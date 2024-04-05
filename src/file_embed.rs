@@ -43,8 +43,6 @@ impl FileEmbeder {
 
     pub async fn embed(&mut self, embeder:&Embeder) -> Result<(), reqwest::Error> {
         self.embeddings = embeder.embed(&self.chunks).await?;
-        // self.embeddings
-        //     .extend(embeddings.iter().map(|i| i.embedding.clone()));
         Ok(())
     }
 
