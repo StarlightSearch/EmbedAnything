@@ -1,14 +1,17 @@
+use futures::lock::Mutex;
+use pyo3::prelude::*;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
-use std::collections::HashMap;
-use pyo3::prelude::*;
+use std::{collections::HashMap, sync::Arc};
+
+use rust_bert::pipelines::sentence_embeddings::{
+    SentenceEmbeddingsBuilder, SentenceEmbeddingsModel, SentenceEmbeddingsModelType,
+};
 
 #[derive(Deserialize, Debug)]
 pub struct EmbedResponse {
-    // object: String,
     pub data: Vec<EmbedData>,
-    // model: String,
     usage: HashMap<String, usize>,
 }
 #[pyclass]
@@ -22,37 +25,32 @@ pub struct EmbedData {
 
 #[pymethods]
 impl EmbedData {
-
     #[new]
     pub fn new(embedding: Vec<f32>, text: Option<String>) -> Self {
-        Self {
-            embedding,
-            text,
-        }
+        Self { embedding, text }
     }
 
     pub fn __str__(&self) -> String {
-        format!("EmbedData(embedding: {:?}, text: {:?})", self.embedding, self.text)
+        format!(
+            "EmbedData(embedding: {:?}, text: {:?})",
+            self.embedding, self.text
+        )
     }
-
 }
 
 pub enum Embeder {
     OpenAI(OpenAIEmbeder),
-    // AllMiniLmL12V2(AllMiniLmL12V2Embeder),
+    AllMiniLmL12V2(AllMiniLmL12V2Embeder),
 }
-
 
 impl Embeder {
-    pub async fn embed(&self, text_batch: &[String]) ->Result<Vec<EmbedData>, reqwest::Error> {
+    pub async fn embed(&self, text_batch: &[String]) -> Result<Vec<EmbedData>, reqwest::Error> {
         match self {
             Embeder::OpenAI(embeder) => embeder.embed(text_batch).await,
-            // Embeder::AllMiniLmL12V2(embeder) => embeder.embed(text_batch).await,
+            Embeder::AllMiniLmL12V2(embeder) => embeder.embed(text_batch).await,
         }
     }
-
 }
-
 
 /// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
 #[derive(Deserialize, Debug)]
@@ -67,13 +65,43 @@ impl Default for OpenAIEmbeder {
     }
 }
 
-
-
-pub trait Embed {
-   fn embed(&self, text_batch: &[String]) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>> ;
+pub struct AllMiniLmL12V2Embeder {
+    pub model: Arc<Mutex<SentenceEmbeddingsModel>>,
+}
+impl AllMiniLmL12V2Embeder {
+    pub fn new() -> Self {
+        let model = SentenceEmbeddingsBuilder::remote(SentenceEmbeddingsModelType::AllMiniLmL12V2)
+            .create_model()
+            .unwrap();
+        AllMiniLmL12V2Embeder {
+            model: Arc::new(Mutex::new(model)),
+        }
+    }
 }
 
+pub trait Embed {
+    fn embed(
+        &self,
+        text_batch: &[String],
+    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>>;
 
+}
+
+impl Embed for AllMiniLmL12V2Embeder {
+    async fn embed(&self, text_batch: &[String]) -> Result<Vec<EmbedData>, reqwest::Error> {
+        let encodings = self.model.lock().await.encode(text_batch).unwrap();
+        // let embeddings: Vec<EmbedData> = encodings
+        //     .iter()
+        //     .map(|i| EmbedData::new(Arc::new(i.to_vec())))
+        //     .collect::<Vec<_>>();
+        let embeddings = encodings
+            .iter()
+            .zip(text_batch)
+            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone())))
+            .collect::<Vec<_>>();
+        Ok(embeddings)
+    }
+}
 
 impl Embed for OpenAIEmbeder {
     async fn embed(&self, text_batch: &[String]) -> Result<Vec<EmbedData>, reqwest::Error> {
@@ -92,8 +120,13 @@ impl Embed for OpenAIEmbeder {
 
         let data = response.json::<EmbedResponse>().await?;
         println!("{:?}", data.usage);
-        
-        let emb_data = data.data.iter().zip(text_batch).map( move |(data, text)| EmbedData::new(data.embedding.clone(), Some(text.clone()))).collect::<Vec<_>>();
+
+        let emb_data = data
+            .data
+            .iter()
+            .zip(text_batch)
+            .map(move |(data, text)| EmbedData::new(data.embedding.clone(), Some(text.clone())))
+            .collect::<Vec<_>>();
 
         Ok(emb_data)
     }
