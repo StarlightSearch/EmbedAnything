@@ -1,8 +1,7 @@
 use std::fmt::Debug;
 use std::io::Error;
-use std::sync::Arc;
 
-use crate::embed::{EmbedData, Embeder};
+use crate::embedding_model::embed::{EmbedData, Embeder};
 
 use super::pdf_processor::PdfProcessor;
 

@@ -11,8 +11,12 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
+
 ]
 dynamic = ["version"]
+license = {file = "LICENSE"}
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 
