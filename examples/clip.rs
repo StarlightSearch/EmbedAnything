@@ -1,18 +1,23 @@
-pub mod embedding_model;
-pub mod file_embed;
-pub mod parser;
-pub mod pdf_processor;
-
 use std::path::PathBuf;
 
-use embedding_model::{clip::ClipEmbeder, embed::{Embed, EmbedData, EmbedImage, Embeder}};
-use file_embed::FileEmbeder;
-use parser::FileParser;
-use pyo3::{exceptions::PyValueError, prelude::*};
-use rayon::prelude::*;
+use embed_anything::{
+    embedding_model::{
+        self,
+        embed::{EmbedData, EmbedImage, Embeder},
+    },
+    file_embed::FileEmbeder,
+    parser::FileParser,
+};
+use pyo3::{exceptions::PyValueError, PyResult};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-/// Embeds the text from a file using the OpenAI API.
-#[pyfunction]
+fn main() {
+    //    let out =  embed_file("test_files/TUe_SOP_AI_2.pdf", "Bert").unwrap();
+    let out = embed_directory(PathBuf::from("test_files"), "Bert").unwrap();
+
+    println!("{:?}", out);
+}
+
 fn embed_file(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
     let embedding_model = match embeder {
         "OpenAI" => Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()),
@@ -73,7 +78,6 @@ fn emb_image<T:EmbedImage>(directory: PathBuf, embedding_model: T) -> PyResult<V
         .unwrap();
     Ok(embeddings)
 }
-#[pyfunction]
 fn embed_directory(directory: PathBuf, embeder: &str) -> PyResult<Vec<EmbedData>> {
     let embeddings = match embeder {
         "OpenAI" => emb(
@@ -101,13 +105,4 @@ fn embed_directory(directory: PathBuf, embeder: &str) -> PyResult<Vec<EmbedData>
     };
 
     Ok(embeddings)
-}
-
-/// A Python module implemented in Rust.
-#[pymodule]
-fn embed_anything(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(embed_file, m)?)?;
-    m.add_function(wrap_pyfunction!(embed_directory, m)?)?;
-    m.add_class::<embedding_model::embed::EmbedData>()?;
-    Ok(())
 }

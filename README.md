@@ -31,5 +31,5 @@ Please check if you already have the OpenAI key in the Environment variable. We 
 import embed_anything
 from embed_anything import EmbedData
 data = embed_anything.embed_file("filename.pdf")
-print(data[0])```
+```
 
