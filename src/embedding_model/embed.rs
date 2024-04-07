@@ -61,6 +61,7 @@ pub trait Embed {
         &self,
         text_batch: &[String],
     ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>>;
+    
 }
 
 pub trait EmbedImage {

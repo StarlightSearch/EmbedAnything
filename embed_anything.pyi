@@ -1,4 +1,16 @@
 from .embed_anything import *
+
+def embed_query(query: list[str], embeder: str) -> list[EmbedData]:
+    """
+    Embeds the given query and returns an EmbedData object.
+
+    ### Arguments:
+    - `query`: The query to embed.
+    - `embeder`: The name of the embedding model to use. Choose between "OpenAI" and "AllMiniLmL12V2"
+
+    ### Returns:
+    - An EmbedData object.
+    """
 def embed_file(file_path: str, embeder: str) -> list[EmbedData]:
     """
     Embeds the file at the given path and returns a list of EmbedData objects.
