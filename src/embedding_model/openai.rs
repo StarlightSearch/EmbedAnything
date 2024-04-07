@@ -46,6 +46,7 @@ impl Embed for OpenAIEmbeder {
 
         Ok(emb_data)
     }
+    
 }
 
 impl OpenAIEmbeder {

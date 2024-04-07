@@ -169,7 +169,6 @@ impl Embed for ClipEmbeder {
         )
         .unwrap();
 
-        println!("{}", self.model.get_text_features(&input_ids).unwrap());
         let encodings = self
             .model
             .get_text_features(&input_ids)
