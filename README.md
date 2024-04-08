@@ -1,8 +1,16 @@
 # EmbedAnything
-
+<p align ="center">
 <img width=600 src = "https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
+</p>
+
+
+<p align="center">
+    <b>Infra for building multimodal embeddings from unstructured sources, built in Rust for speed and robustness</b>
+</p>
 
 EmbedAnything is a powerful library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data[Multimodality to be added], EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
+
+
 
 [![Watch the demo]](https://youtu.be/HLXIuznnXcI)
 
