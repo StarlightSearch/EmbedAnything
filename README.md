@@ -4,6 +4,10 @@
 
 EmbedAnything is a powerful library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data[Multimodality to be added], EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
 
+[![Watch the video](https://i.stack.imgur.com/Vp2cE.png)](https://youtu.be/HLXIuznnXcI)
+
+
+
 ## Key Features
 
 - **Flexible:** Build custom embedding pipelines tailored to your needs.
