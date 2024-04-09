@@ -27,7 +27,8 @@ EmbedAnything is a powerful library designed to streamline the creation and mana
 - **Versatile:** Supports a wide range of data types, including text, images, audio, and more.
 - **Local embeddings** Release it for local embeddings as well
 - **Vector Database** Add functionalities to integrate with any Vector Database
-## Installation
+
+## :rocket: Installation
 
 `
 pip install embed-anything`
@@ -38,7 +39,7 @@ Requirements:
 Please check if you already have the OpenAI key in the Environment variable. We have only released the OpenAI embedder library so far. Please stay tuned for updates for the local embeddings as well.
 
 
-## Script:
+## :astronaut: Get Started:
 
 ```python
 import embed_anything
