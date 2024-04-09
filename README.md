@@ -1,4 +1,4 @@
-# EmbedAnything
+![image](https://github.com/StarlightSearch/EmbedAnything/assets/27013287/3eb92af8-d266-4096-a4c8-ecf9e84e2b44)# EmbedAnything
 <p align ="center">
 <img width=600 src = "https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
 </p>
@@ -16,20 +16,20 @@ EmbedAnything is a powerful library designed to streamline the creation and mana
 
 
 
-## Key Features
+## 🚀 Key Features
 
-- **Flexible:** Build custom embedding pipelines tailored to your needs.
-- **MultiModality** Works with text and image, will soon expand to audio
+- **Local Embedding** Works with local and OpenAI embedding
+- **MultiModality** Works with text and image and will soon expand to audio
+- - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Efficient:** Optimized for speed and performance, with core functionality written in Rust.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
-- **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 
-## ToDo
-- **Versatile:** Supports a wide range of data types, including text, images, audio, and more.
-- **Local embeddings** Release it for local embeddings as well
+
+## 💡ToDo
+
 - **Vector Database** Add functionalities to integrate with any Vector Database
 
-## :rocket: Installation
+## 💚 Installation
 
 `
 pip install embed-anything`
