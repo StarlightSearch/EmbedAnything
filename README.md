@@ -19,6 +19,7 @@ EmbedAnything is a powerful library designed to streamline the creation and mana
 ## Key Features
 
 - **Flexible:** Build custom embedding pipelines tailored to your needs.
+- **MultiModality** Works with text and image, will soon expand to audio
 - **Efficient:** Optimized for speed and performance, with core functionality written in Rust.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
