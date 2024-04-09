@@ -1,4 +1,4 @@
-![image](https://github.com/StarlightSearch/EmbedAnything/assets/27013287/3eb92af8-d266-4096-a4c8-ecf9e84e2b44)# EmbedAnything
+
 <p align ="center">
 <img width=600 src = "https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
 </p>
