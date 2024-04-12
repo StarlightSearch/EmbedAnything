@@ -3,10 +3,7 @@ name = "embed_anything"
 version = "0.1.5"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[lib]
-name = "embed_anything"
-crate-type = ["cdylib"]
+
 
 [dependencies]
 pyo3 = { version = "0.20", features = ["extension-module"] }
@@ -17,13 +14,15 @@ reqwest = { version = "0.12.2", features = ["json"] }
 futures = "0.3.30"
 serde = {version = "1.0.196", features = ["rc", "derive"]}
 pdf-extract = "0.7.4"
-rust-bert = { git = "https://github.com/guillaume-be/rust-bert.git" }
 walkdir = "2.4.0"
 regex = "1.10.3"
 rayon = "1.8.1"
-candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
 image = "0.25.1"
 hf-hub = "0.3.2"
 tokenizers = "0.15.2"
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
+candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
+anyhow = "1.0.81"
+intel-mkl-src = "0.8.1"
 
