@@ -81,7 +81,6 @@ To set up your development environment, please follow the steps mentioned below 
  
 ### 🔍 Reporting Bugs
 
-You can start working on an existing bug that has been reported and labeled as **"Bug"** in the Issues Section, and you can report your bugs in the following manner :
 
 1. Title describing the issue clearly and concisely with relevant labels
 2. Provide a detailed description of the problem and the necessary steps to reproduce the issue.
