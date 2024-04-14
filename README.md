@@ -56,7 +56,7 @@ data = embed_anything.embed_file("filename.pdf")
 ```python
 data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
-
+```
 
 ## How to get started for libtorch?
 
