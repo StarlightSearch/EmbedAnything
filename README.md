@@ -37,7 +37,8 @@ pip install embed-anything`
 
 Requirements:
 
-Please check if you already have the OpenAI key in the Environment variable. We have only released the OpenAI embedder library so far. Please stay tuned for updates for the local embeddings as well.
+1. Please check if you already have the OpenAI key in the Environment variable. We have only released the OpenAI embedder library so far. Please stay tuned for updates for the local embeddings as well.
+2. Please add libtorch address like it has been stated below.
 
 
 ## :astronaut: Get Started
@@ -51,6 +52,11 @@ data = embed_anything.embed_file("filename.pdf")
 ## For using local embedding like Allmini, Bert Jina and multimodal embedding like Clip, you need to give the address of libtorch.
 
 ```os.add_dll_directory(r'address_of_libtorch_desktop')
+
+```python
+data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
+embeddings = np.array([data.embedding for data in data])
+
 
 ## How to get started for libtorch?
 
