@@ -3,12 +3,12 @@ name = "embed_anything"
 version = "0.1.5"
 edition = "2021"
 
-
+[lib]
+name = "embed_anything"
+crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.20", features = ["extension-module"] }
-pyo3-asyncio = { version = "0.20", features = ["tokio-runtime"] }
-tokio = "1.9"
+
 serde_json = "1.0.112"
 reqwest = { version = "0.12.2", features = ["json"] }
 futures = "0.3.30"
@@ -25,4 +25,8 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", versi
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
 anyhow = "1.0.81"
 intel-mkl-src = "0.8.1"
+candle-pyo3 = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+tokio = {version = "1.37.0", features=["rt-multi-thread"]}
+pyo3 = { version = "0.21" }
+
 

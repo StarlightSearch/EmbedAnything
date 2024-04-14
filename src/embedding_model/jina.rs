@@ -1,9 +1,6 @@
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
-// use rust_bert::pipelines::sentence_embeddings::{
-//     SentenceEmbeddingsBuilder, SentenceEmbeddingsModel, SentenceEmbeddingsModelType,
-// };
 use super::embed::{Embed, EmbedData};
 use candle_transformers::models::jina_bert::{BertModel, Config};
 use hf_hub::{Repo, RepoType};
@@ -12,30 +9,35 @@ pub struct JinaEmbeder {
     pub model: BertModel,
     pub tokenizer: Tokenizer,
 }
-impl JinaEmbeder {
-    pub fn default() -> anyhow::Result<Self> {
-        let api = hf_hub::api::sync::Api::new()?;
+
+impl Default for JinaEmbeder {
+    fn default() -> Self {
+        let api = hf_hub::api::sync::Api::new().unwrap();
         let model_file = api
             .repo(Repo::new(
                 "jinaai/jina-embeddings-v2-base-en".to_string(),
                 RepoType::Model,
             ))
-            .get("model.safetensors")?;
+            .get("model.safetensors")
+            .unwrap();
         let config = Config::v2_base();
 
         let device = Device::Cpu;
         let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
+            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device).unwrap()
         };
-        let model = BertModel::new(vb, &config)?;
-        let mut tokenizer = Self::get_tokenizer(None)?;
+        let model = BertModel::new(vb, &config).unwrap();
+        let mut tokenizer = Self::get_tokenizer(None).unwrap();
         let pp = tokenizers::PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
             ..Default::default()
         };
         tokenizer.with_padding(Some(pp));
-        Ok(JinaEmbeder { model, tokenizer })
+        JinaEmbeder { model, tokenizer }
     }
+}
+
+impl JinaEmbeder {
 
     pub fn get_tokenizer(tokenizer: Option<String>) -> anyhow::Result<Tokenizer> {
         let tokenizer = match tokenizer {
