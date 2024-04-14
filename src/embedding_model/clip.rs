@@ -1,6 +1,5 @@
+#[cfg(feature = "mkl")]
 extern crate intel_mkl_src;
-
-use std::any;
 
 use anyhow::Error as E;
 
@@ -18,23 +17,23 @@ pub struct ClipEmbeder {
     pub tokenizer: Tokenizer,
 }
 
-impl ClipEmbeder {
-    pub fn default() -> anyhow::Result<Self> {
-        let api = hf_hub::api::sync::Api::new()?;
+impl Default for ClipEmbeder {
+    fn default() -> Self {
+        let api = hf_hub::api::sync::Api::new().unwrap();
         let api = api.repo(hf_hub::Repo::with_revision(
             "openai/clip-vit-base-patch32".to_string(),
             hf_hub::RepoType::Model,
             "refs/pr/15".to_string(),
         ));
-        let model_file = api.get("model.safetensors")?;
+        let model_file = api.get("model.safetensors").unwrap();
         let config = clip::ClipConfig::vit_base_patch32();
         let device = Device::Cpu;
         let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
+            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device).unwrap()
         };
-        let model = clip::ClipModel::new(vb, &config)?;
-        let tokenizer = Self::get_tokenizer(None)?;
-        Ok(ClipEmbeder { model, tokenizer })
+        let model = clip::ClipModel::new(vb, &config).unwrap();
+        let tokenizer = Self::get_tokenizer(None).unwrap();
+        ClipEmbeder { model, tokenizer }
     }
 }
 
@@ -123,7 +122,7 @@ impl ClipEmbeder {
     
     fn load_images<T: AsRef<std::path::Path>>(
         &self, 
-        paths: &Vec<T>,
+        paths: &[T],
         image_size: usize,
     ) -> anyhow::Result<Tensor> {
         let mut images = vec![];
@@ -144,7 +143,7 @@ impl ClipEmbeder {
 }
 
 impl EmbedImage for ClipEmbeder{
-    fn embed_image_batch<T: AsRef<std::path::Path>>(&self, image_paths:&Vec<T>) -> anyhow::Result<Vec<EmbedData>> {
+    fn embed_image_batch<T: AsRef<std::path::Path>>(&self, image_paths:&[T]) -> anyhow::Result<Vec<EmbedData>> {
         let config = clip::ClipConfig::vit_base_patch32();
 
         let images = self.load_images(image_paths, config.image_size).unwrap();

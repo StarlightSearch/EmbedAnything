@@ -1,6 +1,5 @@
 use pyo3::prelude::*;
 use serde::Deserialize;
-use std::any;
 use std::collections::HashMap;
 
 
@@ -65,5 +64,5 @@ pub trait Embed {
 }
 
 pub trait EmbedImage {
-    fn embed_image_batch<T: AsRef<std::path::Path>>(&self, image_paths:&Vec<T>) -> anyhow::Result<Vec<EmbedData>>;
+    fn embed_image_batch<T: AsRef<std::path::Path>>(&self, image_paths:&[T]) -> anyhow::Result<Vec<EmbedData>>;
 }
