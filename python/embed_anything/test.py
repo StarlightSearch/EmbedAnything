@@ -1,18 +1,9 @@
 import os
 import numpy as np
-# os.add_dll_directory(r'D:\test')
-from embed_anything import EmbedData
 import embed_anything
+from embed_anything import EmbedData
 from PIL import Image
 import time
-
-# data:list[EmbedData] = embed_anything.embed_file("test_files/TUe_SOP_AI_2.pdf", embeder= "Bert")
-
-# embeddings = np.array([data.embedding for data in data])
-
-
-# print(embeddings)
-# print("Time taken: ", end-start)
 
 start = time.time()
 data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
