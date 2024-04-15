@@ -331,18 +331,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "candle-pyo3"
-version = "0.5.0"
-source = "git+https://github.com/huggingface/candle.git#7f354473cf495db4554e08f84be44ed498f1aa5e"
-dependencies = [
- "candle-core",
- "candle-nn",
- "half",
- "pyo3",
- "pyo3-build-config",
-]
-
-[[package]]
 name = "candle-transformers"
 version = "0.5.0"
 source = "git+https://github.com/huggingface/candle.git#7f354473cf495db4554e08f84be44ed498f1aa5e"
@@ -721,7 +709,6 @@ dependencies = [
  "anyhow",
  "candle-core",
  "candle-nn",
- "candle-pyo3",
  "candle-transformers",
  "futures",
  "hf-hub",

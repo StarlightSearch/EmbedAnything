@@ -25,7 +25,6 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", versi
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
 anyhow = "1.0.81"
 intel-mkl-src = "0.8.1"
-candle-pyo3 = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
 tokio = {version = "1.37.0", features=["rt-multi-thread"]}
 pyo3 = { version = "0.21" }
 
