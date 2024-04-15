@@ -43,7 +43,7 @@ pip install embed-anything`
 ### To use local embedding: we support Bert and Jina
 
 ```python
-from embed_anything import *
+import embed_anything
 data = embed_anything.embed_file("filename.pdf", embeder= "Bert")
 embeddings = np.array([data.embedding for data in data])
 ```
@@ -53,7 +53,7 @@ embeddings = np.array([data.embedding for data in data])
 ### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
 
 ```python
-from embed_anything import *
+import embed_anything
 data = embed_anything.embed_directory("test_files", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
 
