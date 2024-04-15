@@ -10,7 +10,6 @@
 
 EmbedAnything is a powerful library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data., EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
 
-## Please bear with us, as we are releasing local and multimodal embedding soon.
 
 [Watch the demo](https://youtu.be/HLXIuznnXcI)
 
@@ -35,13 +34,13 @@ EmbedAnything is a powerful library designed to streamline the creation and mana
 pip install embed-anything`
 
 
-Requirements:
 
+
+
+## :astronaut: Getting Started
+# Requirements for OpenAI
 1. Please check if you already have the OpenAI key in the Environment variable. We have only released the OpenAI embedder library so far. Please stay tuned for updates for the local embeddings as well.
-2. Please add libtorch address like it has been stated below.
 
-
-## :astronaut: Get Started
 ### If you are using embed-anything==0.1.4 version
 
 ```python
@@ -49,56 +48,38 @@ import embed_anything
 from embed_anything import EmbedData
 data = embed_anything.embed_file("filename.pdf")
 ```
-## For using local embedding like Allmini, Bert Jina and multimodal embedding like Clip, you need to give the address of libtorch.
-
-```os.add_dll_directory(r'address_of_libtorch_desktop')
+### if you are using embed-anything==0.1.7 version
 
 ```python
-data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
+import embed_anything
+data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "OpenAI")
 embeddings = np.array([data.embedding for data in data])
 ```
 
-## How to get started for libtorch?
+# For local models or multimodal Embedding
 
-### System-wide Libtorch
+## To use local embedding: we support Allmini or Bert, and Jina
 
-On linux platforms, the build script will look for a system-wide libtorch
-library in `/usr/lib/libtorch.so`.
-
-### Python PyTorch Install
-
-If the `LIBTORCH_USE_PYTORCH` environment variable is set, the active python
-interpreter is called to retrieve information about the torch python package.
-This version is then linked against.
-
-### Libtorch Manual Install
-
-- Get `libtorch` from the
-[PyTorch website download section](https://pytorch.org/get-started/locally/) and extract
-the content of the zip file.
-- For Linux and macOS users, add the following to your `.bashrc` or equivalent, where `/path/to/libtorch`
-is the path to the directory that was created when unzipping the file.
-```bash
-export LIBTORCH=/path/to/libtorch
+```python
+data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Jina")
+embeddings = np.array([data.embedding for data in data])
 ```
-The header files location can also be specified separately from the shared library via
-the following:
-```bash
-# LIBTORCH_INCLUDE must contain `include` directory.
-export LIBTORCH_INCLUDE=/path/to/libtorch/
-# LIBTORCH_LIB must contain `lib` directory.
-export LIBTORCH_LIB=/path/to/libtorch/
-```
-- For Windows users, assuming that `X:\path\to\libtorch` is the unzipped libtorch directory.
-    - Navigate to Control Panel -> View advanced system settings -> Environment variables.
-    - Create the `LIBTORCH` variable and set it to `X:\path\to\libtorch`.
-    - Append `X:\path\to\libtorch\lib` to the `Path` variable.
 
-  If you prefer to temporarily set environment variables, in PowerShell you can run
-```powershell
-$Env:LIBTORCH = "X:\path\to\libtorch"
-$Env:Path += ";X:\path\to\libtorch\lib"
+
+## To use multimodal embedding: we support CLIP
+
+```python
+data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Clip")
+embeddings = np.array([data.embedding for data in data])
 ```
+
+
+
+
+
+
+
+
 
 #  ⚡ Contributing to EmbedAnything
 
