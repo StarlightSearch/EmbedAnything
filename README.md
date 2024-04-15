@@ -43,7 +43,7 @@ pip install embed-anything`
 
 ```python
 from embed_anything import *
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Bert")
+data = embed_anything.embed_file("filename.pdf", embeder= "Bert")
 embeddings = np.array([data.embedding for data in data])
 ```
 
@@ -53,7 +53,7 @@ embeddings = np.array([data.embedding for data in data])
 
 ```python
 from embed_anything import *
-data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
+data = embed_anything.embed_directory("test_files", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
 
 query = "photo of a dog"
@@ -71,7 +71,7 @@ Image.open(data[max_index].text).show()
 
 ```python
 import embed_anything
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "OpenAI")
+data = embed_anything.embed_file("filename.pdf", embeder= "OpenAI")
 embeddings = np.array([data.embedding for data in data])
 ```
 
