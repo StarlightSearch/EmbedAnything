@@ -37,9 +37,36 @@ pip install embed-anything`
 
 
 
-## :astronaut: Getting Started
-# Requirements for OpenAI
+# :astronaut: Getting Started
+
+## For local models or multimodal Embedding
+
+### To use local embedding: we support Allmini or Bert, and Jina
+
+```python
+data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Jina")
+embeddings = np.array([data.embedding for data in data])
+```
+
+
+### To use multimodal embedding: we support CLIP
+
+```python
+data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Clip")
+embeddings = np.array([data.embedding for data in data])
+```
+
+
+## For OpenAI 
 1. Please check if you already have the OpenAI key in the Environment variable. We have only released the OpenAI embedder library so far. Please stay tuned for updates for the local embeddings as well.
+
+### if you are using embed-anything==0.1.7 version (latest version)
+
+```python
+import embed_anything
+data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "OpenAI")
+embeddings = np.array([data.embedding for data in data])
+```
 
 ### If you are using embed-anything==0.1.4 version
 
@@ -48,30 +75,6 @@ import embed_anything
 from embed_anything import EmbedData
 data = embed_anything.embed_file("filename.pdf")
 ```
-### if you are using embed-anything==0.1.7 version
-
-```python
-import embed_anything
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "OpenAI")
-embeddings = np.array([data.embedding for data in data])
-```
-
-# For local models or multimodal Embedding
-
-## To use local embedding: we support Allmini or Bert, and Jina
-
-```python
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Jina")
-embeddings = np.array([data.embedding for data in data])
-```
-
-
-## To use multimodal embedding: we support CLIP
-
-```python
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Clip")
-embeddings = np.array([data.embedding for data in data])
-```
 
 
 
@@ -80,8 +83,7 @@ embeddings = np.array([data.embedding for data in data])
 
 
 
-
-#  ⚡ Contributing to EmbedAnything
+#  🚧 Contributing to EmbedAnything
 
 
 First of all, thank you for taking the time to contribute to this project. We truly appreciate your contributions, whether it's bug reports, feature suggestions, or pull requests. Your time and effort are highly valued in this project. 🚀
