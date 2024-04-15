@@ -49,6 +49,7 @@ jobs:
             TARGET_CC: clang
             OPENSSL_LIB_DIR: /usr/lib/i386-linux-gnu/
             OPENSSL_INCLUDE_DIR: /usr/include/openssl/
+            PKG_CONFIG_PATH: /usr/local.lib/pkgconfig/
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
