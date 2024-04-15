@@ -21,6 +21,8 @@ license = {file = "LICENSE"}
 features = ["pyo3/extension-module"]
 include = [{path = "lib/*.dll", format = ["sdist", "wheel"]}]
 python-source = "python"
+manifest-path = "Cargo.toml"
+optional-dependencies = ["mkl"]
 
 [project.urls]
 Homepage = "https://github.com/StarlightSearch/EmbedAnything/tree/main"

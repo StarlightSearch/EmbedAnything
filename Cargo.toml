@@ -1,14 +1,9 @@
 [package]
 name = "embed_anything"
-version = "0.1.7"
+version = "0.1.11"
 edition = "2021"
 
-[lib]
-name = "embed_anything"
-crate-type = ["cdylib"]
-
 [dependencies]
-
 serde_json = "1.0.112"
 reqwest = { version = "0.12.2", features = ["json"] }
 futures = "0.3.30"
@@ -20,12 +15,13 @@ rayon = "1.8.1"
 image = "0.25.1"
 hf-hub = "0.3.2"
 tokenizers = "0.15.2"
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
-candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
+candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
 anyhow = "1.0.81"
-intel-mkl-src = "0.8.1"
 tokio = {version = "1.37.0", features=["rt-multi-thread"]}
 pyo3 = { version = "0.21" }
+intel-mkl-src = {version = "0.8.1", optional = true }
 
-
+[features]
+mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]
