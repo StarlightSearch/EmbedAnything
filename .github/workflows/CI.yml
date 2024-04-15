@@ -44,9 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config openssl libssl-dev
-        env:
-            PKG_CONFIG_PATH: /usr/local/lib/pkgconfig/
+          sudo apt-get install -y pkg-config libssl-dev
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
