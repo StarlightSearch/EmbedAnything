@@ -24,9 +24,7 @@ EmbedAnything is a powerful library designed to streamline the creation and mana
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
 
 
-## 💡ToDo
 
-- **Vector Database** Add functionalities to integrate with any Vector Database
 
 ## 💚 Installation
 
@@ -37,22 +35,24 @@ pip install embed-anything`
 
 
 
-# :astronaut: Getting Started
+# 🧑‍🚀 Getting Started
 
-## For local models or multimodal Embedding
+## For local models 
 
-### To use local embedding: we support Allmini or Bert, and Jina
+### To use local embedding: we support  or Bert
 
 ```python
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Jina")
+from embed_anything import *
+data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Bert")
 embeddings = np.array([data.embedding for data in data])
 ```
 
 
-### To use multimodal embedding: we support CLIP
-### Requirements Directory with pictures you want to search
+## For multimodal embedding: we support CLIP
+### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
 
 ```python
+from embed_anything import *
 data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
 
@@ -65,9 +65,9 @@ Image.open(data[max_index].text).show()
 
 
 ## For OpenAI 
-1. Please check if you already have the OpenAI key in the Environment variable. We have only released the OpenAI embedder library so far. Please stay tuned for updates for the local embeddings as well.
+1. Please check if you already have the OpenAI key in the Environment variable.
 
-### if you are using embed-anything==0.1.7 version (latest version)
+### If you are using embed-anything==0.1.7 version (latest version)
 
 ```python
 import embed_anything
@@ -75,13 +75,7 @@ data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "OpenA
 embeddings = np.array([data.embedding for data in data])
 ```
 
-### If you are using embed-anything==0.1.4 version
 
-```python
-import embed_anything
-from embed_anything import EmbedData
-data = embed_anything.embed_file("filename.pdf")
-```
 
 
 
@@ -91,6 +85,7 @@ data = embed_anything.embed_file("filename.pdf")
 
 
 #  🚧 Contributing to EmbedAnything
+
 
 
 First of all, thank you for taking the time to contribute to this project. We truly appreciate your contributions, whether it's bug reports, feature suggestions, or pull requests. Your time and effort are highly valued in this project. 🚀
@@ -127,15 +122,12 @@ To set up your development environment, please follow the steps mentioned below 
 2. Provide a detailed description of the problem and the necessary steps to reproduce the issue.
 3. Include any relevant logs, screenshots, or other helpful information supporting the issue.
 
-### :bulb: New Feature or Suggesting Enhancements
+### 💡 New Feature or Suggesting Enhancements
 
 
 
-## Testing your Changes
+## ☑️ ToDo
 
-
-
-## Pull Request
-
+- **Vector Database** Add functionalities to integrate with any Vector Database
 
 
