@@ -17,11 +17,12 @@ EmbedAnything is a powerful library designed to streamline the creation and mana
 
 ## 🚀 Key Features
 
-- **Local Embedding** Works with local and OpenAI embedding
+- **Local Embedding** Works with local embedding models like AllminiLM
 - **MultiModality** Works with text and image and will soon expand to audio
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Efficient:** Optimized for speed and performance, with core functionality written in Rust.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
+- **OpenAI** Works with openai as well
 
 
 
