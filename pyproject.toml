@@ -19,6 +19,7 @@ license = {file = "LICENSE"}
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-
+include = [{path = "lib/*.dll", format = ["sdist", "wheel"]}]
+python-source = "python"
 [project.urls]
 Homepage = "https://github.com/StarlightSearch/EmbedAnything/tree/main"
