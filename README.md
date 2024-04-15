@@ -17,11 +17,12 @@ EmbedAnything is a powerful library designed to streamline the creation and mana
 
 ## 🚀 Key Features
 
-- **Local Embedding** Works with local and OpenAI embedding
+- **Local Embedding** Works with local embedding models like AllminiLM
 - **MultiModality** Works with text and image and will soon expand to audio
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Efficient:** Optimized for speed and performance, with core functionality written in Rust.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
+- **OpenAI** Works with openai as well
 
 
 
@@ -39,11 +40,11 @@ pip install embed-anything`
 
 ## For local models 
 
-### To use local embedding: we support  or Bert
+### To use local embedding: we support Bert and Jina
 
 ```python
 from embed_anything import *
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "Bert")
+data = embed_anything.embed_file("filename.pdf", embeder= "Bert")
 embeddings = np.array([data.embedding for data in data])
 ```
 
@@ -53,7 +54,7 @@ embeddings = np.array([data.embedding for data in data])
 
 ```python
 from embed_anything import *
-data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
+data = embed_anything.embed_directory("test_files", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
 
 query = "photo of a dog"
@@ -71,7 +72,7 @@ Image.open(data[max_index].text).show()
 
 ```python
 import embed_anything
-data:list[EmbedData] = embed_anything.embed_file("filename.pdf", embeder= "OpenAI")
+data = embed_anything.embed_file("filename.pdf", embeder= "OpenAI")
 embeddings = np.array([data.embedding for data in data])
 ```
 
