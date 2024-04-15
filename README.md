@@ -39,7 +39,7 @@ pip install embed-anything`
 
 ## For local models 
 
-### To use local embedding: we support  or Bert
+### To use local embedding: we support Bert and Jina
 
 ```python
 from embed_anything import *
