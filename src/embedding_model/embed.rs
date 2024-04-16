@@ -36,6 +36,7 @@ impl EmbedData {
     }
 }
 
+
 pub enum Embeder {
     OpenAI(OpenAIEmbeder),
     Jina(JinaEmbeder),
@@ -64,5 +65,6 @@ pub trait Embed {
 }
 
 pub trait EmbedImage {
+    fn embed_image<T: AsRef<std::path::Path>>(&self, image_path: T) -> anyhow::Result<EmbedData>;
     fn embed_image_batch<T: AsRef<std::path::Path>>(&self, image_paths:&[T]) -> anyhow::Result<Vec<EmbedData>>;
 }

@@ -1,9 +1,9 @@
-use std::io::Error;
+use std::{io::Error, path::PathBuf};
 
 pub struct PdfProcessor;
 
 impl PdfProcessor {
-    pub fn extract_text(file_path: &str) -> Result<String, Error> {
+    pub fn extract_text(file_path: &PathBuf) -> Result<String, Error> {
         let bytes = std::fs::read(file_path).unwrap();
         let out = pdf_extract::extract_text_from_mem(&bytes).unwrap();
         Ok(out)

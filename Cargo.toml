@@ -4,6 +4,7 @@ version = "0.1.14"
 edition = "2021"
 
 [dependencies]
+openssl-sys = { version = "*", features = ["vendored"] }
 serde_json = "1.0.112"
 reqwest = { version = "0.12.2", features = ["json"] }
 serde = {version = "1.0.196", features = ["derive"]}
@@ -18,9 +19,12 @@ candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.
 candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
 anyhow = "1.0.81"
-tokio = {version = "1.37.0", features=["rt-multi-thread"]}
+tokio = {version = "1.37.0", features=["rt-multi-thread", "macros"]}
 pyo3 = { version = "0.21" }
 intel-mkl-src = {version = "0.8.1", optional = true }
+
+[dev-dependencies]
+tempdir = "0.3.7"
 
 [features]
 mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]

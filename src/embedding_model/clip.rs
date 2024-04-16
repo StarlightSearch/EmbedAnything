@@ -157,6 +157,13 @@ impl EmbedImage for ClipEmbeder{
         Ok(embeddings)
 
     }
+
+    fn embed_image<T: AsRef<std::path::Path>>(&self, image_path: T) -> anyhow::Result<EmbedData> {
+        let config = clip::ClipConfig::vit_base_patch32();
+        let image = self.load_image(&image_path, config.image_size).unwrap().unsqueeze(0).unwrap();
+        let encoding = &self.model.get_image_features(&image).unwrap().to_vec2::<f32>().unwrap()[0];
+        Ok(EmbedData::new(encoding.to_vec(), None))
+    }
 }
 
 impl Embed for ClipEmbeder {
