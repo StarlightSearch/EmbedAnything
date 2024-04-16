@@ -1,12 +1,11 @@
 import os
 import numpy as np
-import embed_anything as embed_anything
-from embed_anything import EmbedData
+from python.embed_anything import embed_anything
 from PIL import Image
 import time
 
 start = time.time()
-data:list[EmbedData] = embed_anything.embed_directory("test_files", embeder= "Clip")
+data= embed_anything.embed_directory("test_files", embeder= "Clip")
 
 embeddings = np.array([data.embedding for data in data])
 
