@@ -1,9 +1,11 @@
 use candle_core::{Device, Tensor};
 use embed_anything::{embed_directory, embed_query};
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Instant};
 
 fn main() {
     //    let out =  embed_file("test_files/TUe_SOP_AI_2.pdf", "Bert").unwrap();
+
+    let now = Instant::now();
     let out = embed_directory(PathBuf::from("test_files"), "Clip").unwrap();
     let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], "Clip").unwrap();
     let n_vectors = out.len();
@@ -58,5 +60,7 @@ fn main() {
 
     let similar_image =top_3_image_paths[0].clone();
 
-    println!("{:?}", similar_image)
+    println!("{:?}", similar_image);
+    let elapsed_time = now.elapsed();
+    println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 }

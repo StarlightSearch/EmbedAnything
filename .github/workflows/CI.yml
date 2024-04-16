@@ -28,19 +28,15 @@ jobs:
             target: x86_64
           - runner: ubuntu-latest
             target: x86
-          - runner: ubuntu-latest
-            target: aarch64
-          - runner: ubuntu-latest
-            target: armv7
-          - runner: ubuntu-latest
-            target: s390x
-          - runner: ubuntu-latest
-            target: ppc64le
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+      - name: Install ssl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
