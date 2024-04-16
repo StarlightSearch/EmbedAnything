@@ -5,7 +5,7 @@
 
 
 <p align="center">
-    <b>Infra for building multimodal embeddings from unstructured sources, built in Rust for speed and robustness</b>
+    <b>Framework for building multimodal embeddings built in Rust for speed and robustness</b>
 </p>
 
 EmbedAnything is a powerful library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data., EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
@@ -43,7 +43,7 @@ pip install embed-anything`
 ### To use local embedding: we support Bert and Jina
 
 ```python
-from embed_anything import *
+import embed_anything
 data = embed_anything.embed_file("filename.pdf", embeder= "Bert")
 embeddings = np.array([data.embedding for data in data])
 ```
@@ -53,7 +53,7 @@ embeddings = np.array([data.embedding for data in data])
 ### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
 
 ```python
-from embed_anything import *
+import embed_anything
 data = embed_anything.embed_directory("test_files", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
 
