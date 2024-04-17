@@ -43,8 +43,7 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          pip install -r requirements.txt  # Replace with the path to your requirements file if exists
-          cargo update -p pyo3-macros
+          pip install maturin  # Replace with the path to your requirements file if exists
 
       - name: Build with Maturin
         run: |
