@@ -18,24 +18,42 @@ impl FileParser {
         Self { files: Vec::new() }
     }
 
-    pub fn get_pdf_files(&mut self, directory_path: &PathBuf) -> Result<Vec<String>, Error> {
-        let pdf_extension_regex = Regex::new(r#"\.pdf$"#).unwrap();
+    pub fn get_text_files(&mut self, directory_path: &PathBuf, extensions:Option<Vec<String>>) -> Result<Vec<String>, Error> {
 
-        let pdf_files: Vec<String> = WalkDir::new(directory_path)
-            .into_iter()
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.file_type().is_file())
-            .filter(|entry| pdf_extension_regex.is_match(entry.file_name().to_str().unwrap_or("")))
-            .map(|entry| {
-                let absolute_path = entry
-                    .path()
-                    .canonicalize()
-                    .unwrap_or_else(|_| entry.path().to_path_buf());
-                absolute_path.to_string_lossy().to_string()
-            })
-            .collect();
-        self.files = pdf_files;
-
+        match extensions {
+            Some(extensions) => {
+                let extension_regex = Regex::new(&format!(r"\.({})$", extensions.join("|"))).unwrap();
+                self.files = WalkDir::new(directory_path)
+                    .into_iter()
+                    .filter_map(|entry| entry.ok())
+                    .filter(|entry| entry.file_type().is_file())
+                    .filter(|entry| extension_regex.is_match(entry.file_name().to_str().unwrap_or("")))
+                    .map(|entry| {
+                        let absolute_path = entry
+                            .path()
+                            .canonicalize()
+                            .unwrap_or_else(|_| entry.path().to_path_buf());
+                        absolute_path.to_string_lossy().to_string()
+                    })
+                    .collect();
+            }
+            None => {
+                let extension_regex = Regex::new(r"\.(pdf|md)$").unwrap();
+                self.files = WalkDir::new(directory_path)
+                    .into_iter()
+                    .filter_map(|entry| entry.ok())
+                    .filter(|entry| entry.file_type().is_file())
+                    .filter(|entry| extension_regex.is_match(entry.file_name().to_str().unwrap_or("")))
+                    .map(|entry| {
+                        let absolute_path = entry
+                            .path()
+                            .canonicalize()
+                            .unwrap_or_else(|_| entry.path().to_path_buf());
+                        absolute_path.to_string_lossy().to_string()
+                    })
+                    .collect();
+            }
+        }
         Ok(self.files.clone())
     }
 
@@ -87,7 +105,7 @@ mod tests {
 
         let mut file_parser = FileParser::new();
         let pdf_files = file_parser
-            .get_pdf_files(&PathBuf::from(temp_dir.path()))
+            .get_text_files(&PathBuf::from(temp_dir.path()), None)
             .unwrap();
         assert_eq!(pdf_files.len(), 1);
         assert_eq!(pdf_files[0], pdf_file.canonicalize().unwrap().to_string_lossy().to_string());
@@ -118,7 +136,7 @@ mod tests {
 
         let mut file_parser = FileParser::new();
         file_parser
-            .get_pdf_files(&PathBuf::from(temp_dir.path()))
+            .get_text_files(&PathBuf::from(temp_dir.path()), None)
             .unwrap();
         file_parser
             .get_image_paths(&PathBuf::from(temp_dir.path()))

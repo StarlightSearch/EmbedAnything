@@ -6,7 +6,7 @@ fn main() {
     //    let out =  embed_file("test_files/TUe_SOP_AI_2.pdf", "Bert").unwrap();
 
     let now = Instant::now();
-    let out = embed_directory(PathBuf::from("test_files"), "Clip").unwrap();
+    let out = embed_directory(PathBuf::from("test_files"), "Clip", None).unwrap();
     let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], "Clip").unwrap();
     let n_vectors = out.len();
     let out_embeddings = Tensor::from_vec(

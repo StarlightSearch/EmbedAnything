@@ -1,10 +1,13 @@
+//! # Embed Anything
+//! This library provides a simple interface to embed text and images using various embedding models.
+
 #[cfg(feature = "mkl")]
 extern crate intel_mkl_src;
 
 pub mod embedding_model;
 pub mod file_embed;
+pub mod file_processor;
 pub mod parser;
-pub mod pdf_processor;
 
 use std::path::PathBuf;
 
@@ -15,6 +18,32 @@ use pyo3::{exceptions::PyValueError, prelude::*};
 use rayon::prelude::*;
 use tokio::runtime::Builder;
 
+/// Embeds a list of queries using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `query` - A vector of strings representing the queries to embed.
+/// * `embeder` - A string specifying the embedding model to use. Valid options are "OpenAI", "Jina", "Clip", and "Bert".
+///
+/// # Returns
+///
+/// A vector of `EmbedData` objects representing the embeddings of the queries.
+///
+/// # Errors
+///
+/// Returns a `PyValueError` if an invalid embedding model is specified.
+///
+/// # Example
+///
+/// ```
+/// use embed_anything::embed_query;
+///
+/// let query = vec!["Hello".to_string(), "World".to_string()];
+/// let embeder = "OpenAI";
+/// let embeddings = embed_query(query, embeder).unwrap();
+/// println!("{:?}", embeddings);
+/// ```
+/// This will output the embeddings of the queries using the OpenAI embedding model.
 #[pyfunction]
 pub fn embed_query(query: Vec<String>, embeder: &str) -> PyResult<Vec<EmbedData>> {
     let embedding_model = match embeder {
@@ -33,8 +62,31 @@ pub fn embed_query(query: Vec<String>, embeder: &str) -> PyResult<Vec<EmbedData>
     let embeddings = runtime.block_on(embedding_model.embed(&query)).unwrap();
     Ok(embeddings)
 }
-
-/// Embeds the text from a file using the OpenAI API.
+/// Embeds the text from a file using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `file_name` - A string specifying the name of the file to embed.
+/// * `embeder` - A string specifying the embedding model to use. Valid options are "OpenAI", "Jina", "Clip", and "Bert".
+///
+/// # Returns
+///
+/// A vector of `EmbedData` objects representing the embeddings of the file.
+///
+/// # Errors
+///
+/// Returns a `PyValueError` if an invalid embedding model is specified.
+///
+/// # Example
+///
+/// ```rust
+/// use embed_anything::embed_file;
+///
+/// let file_name = "example.pdf";
+/// let embeder = "Bert";
+/// let embeddings = embed_file(file_name, embeder).unwrap();
+/// ```
+/// This will output the embeddings of the file using the OpenAI embedding model.
 #[pyfunction]
 pub fn embed_file(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
     let embedding_model = match embeder {
@@ -59,33 +111,64 @@ pub fn embed_file(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
     Ok(file_embeder.embeddings)
 }
 
+/// Embeds the text from files in a directory using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `directory` - A `PathBuf` representing the directory containing the files to embed.
+/// * `embeder` - A string specifying the embedding model to use. Valid options are "OpenAI", "Jina", "Clip", and "Bert".
+/// * `extensions` - An optional vector of strings representing the file extensions to consider for embedding. If `None`, all files in the directory will be considered.
+///
+/// # Returns
+///
+/// A vector of `EmbedData` objects representing the embeddings of the files.
+///
+/// # Errors
+///
+/// Returns a `PyValueError` if an invalid embedding model is specified.
+///
+/// # Example
+///
+/// ```rust
+/// use embed_anything::embed_directory;
+/// use std::path::PathBuf;
+///
+/// let directory = PathBuf::from("/path/to/directory");
+/// let embeder = "OpenAI";
+/// let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
+/// let embeddings = embed_directory(directory, embeder, extensions).unwrap();
+/// ```
+/// This will output the embeddings of the files in the specified directory using the OpenAI embedding model.
 #[pyfunction]
-pub fn embed_directory(directory: PathBuf, embeder: &str) -> PyResult<Vec<EmbedData>> {
+pub fn embed_directory(
+    directory: PathBuf,
+    embeder: &str,
+    extensions: Option<Vec<String>>,
+) -> PyResult<Vec<EmbedData>> {
     let embeddings = match embeder {
         "OpenAI" => emb(
             directory,
             Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()),
+            extensions,
         )
         .unwrap(),
         "Jina" => emb(
             directory,
             Embeder::Jina(embedding_model::jina::JinaEmbeder::default()),
+            extensions,
         )
         .unwrap(),
         "Bert" => emb(
             directory,
             Embeder::Bert(embedding_model::bert::BertEmbeder::default()),
+            extensions,
         )
         .unwrap(),
-        "Clip" => emb_image(
-            directory,
-            embedding_model::clip::ClipEmbeder::default(),
-        )
-        .unwrap(),
+        "Clip" => emb_image(directory, embedding_model::clip::ClipEmbeder::default()).unwrap(),
 
         _ => {
             return Err(PyValueError::new_err(
-                "Invalid embedding model. Choose between OpenAI and AllMiniLmL12V2.",
+                "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
             ))
         }
     };
@@ -93,9 +176,8 @@ pub fn embed_directory(directory: PathBuf, embeder: &str) -> PyResult<Vec<EmbedD
     Ok(embeddings)
 }
 
-/// A Python module implemented in Rust.
 #[pymodule]
-fn embed_anything(m: &Bound<'_,PyModule>) -> PyResult<()> {
+fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_file, m)?)?;
     m.add_function(wrap_pyfunction!(embed_directory, m)?)?;
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
@@ -103,9 +185,13 @@ fn embed_anything(m: &Bound<'_,PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-fn emb(directory: PathBuf, embedding_model: Embeder) -> PyResult<Vec<EmbedData>> {
+fn emb(
+    directory: PathBuf,
+    embedding_model: Embeder,
+    extensions: Option<Vec<String>>,
+) -> PyResult<Vec<EmbedData>> {
     let mut file_parser = FileParser::new();
-    file_parser.get_pdf_files(&directory).unwrap();
+    file_parser.get_text_files(&directory, extensions).unwrap();
 
     let embeddings: Vec<EmbedData> = file_parser
         .files
