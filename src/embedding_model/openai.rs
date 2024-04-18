@@ -59,3 +59,20 @@ impl OpenAIEmbeder {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_openai_embed() {
+        let openai = OpenAIEmbeder::default();
+        let text_batch = vec![
+            "Once upon a time".to_string(),
+            "The quick brown fox jumps over the lazy dog".to_string(),
+        ];
+
+        let embeddings = openai.embed(&text_batch).await.unwrap();
+        assert_eq!(embeddings.len(), 2);
+    }
+}

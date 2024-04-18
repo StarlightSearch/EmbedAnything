@@ -1,7 +1,7 @@
+use super::embed::{Embed, EmbedData};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
-use super::embed::{Embed, EmbedData};
 use candle_transformers::models::jina_bert::{BertModel, Config};
 use hf_hub::{Repo, RepoType};
 use tokenizers::Tokenizer;
@@ -38,7 +38,6 @@ impl Default for JinaEmbeder {
 }
 
 impl JinaEmbeder {
-
     pub fn get_tokenizer(tokenizer: Option<String>) -> anyhow::Result<Tokenizer> {
         let tokenizer = match tokenizer {
             None => {
@@ -69,8 +68,6 @@ impl JinaEmbeder {
             .collect::<candle_core::Result<Vec<_>>>()?;
         Ok(Tensor::stack(&token_ids, 0)?)
     }
-
-
 }
 
 impl Embed for JinaEmbeder {

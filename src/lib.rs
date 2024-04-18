@@ -82,7 +82,7 @@ pub fn embed_query(query: Vec<String>, embeder: &str) -> PyResult<Vec<EmbedData>
 /// ```rust
 /// use embed_anything::embed_file;
 ///
-/// let file_name = "example.pdf";
+/// let file_name = "test_files/test.pdf";
 /// let embeder = "Bert";
 /// let embeddings = embed_file(file_name, embeder).unwrap();
 /// ```

@@ -18,16 +18,22 @@ impl FileParser {
         Self { files: Vec::new() }
     }
 
-    pub fn get_text_files(&mut self, directory_path: &PathBuf, extensions:Option<Vec<String>>) -> Result<Vec<String>, Error> {
-
+    pub fn get_text_files(
+        &mut self,
+        directory_path: &PathBuf,
+        extensions: Option<Vec<String>>,
+    ) -> Result<Vec<String>, Error> {
         match extensions {
             Some(extensions) => {
-                let extension_regex = Regex::new(&format!(r"\.({})$", extensions.join("|"))).unwrap();
+                let extension_regex =
+                    Regex::new(&format!(r"\.({})$", extensions.join("|"))).unwrap();
                 self.files = WalkDir::new(directory_path)
                     .into_iter()
                     .filter_map(|entry| entry.ok())
                     .filter(|entry| entry.file_type().is_file())
-                    .filter(|entry| extension_regex.is_match(entry.file_name().to_str().unwrap_or("")))
+                    .filter(|entry| {
+                        extension_regex.is_match(entry.file_name().to_str().unwrap_or(""))
+                    })
                     .map(|entry| {
                         let absolute_path = entry
                             .path()
@@ -38,12 +44,14 @@ impl FileParser {
                     .collect();
             }
             None => {
-                let extension_regex = Regex::new(r"\.(pdf|md)$").unwrap();
+                let extension_regex = Regex::new(r"\.(pdf|md|txt)$").unwrap();
                 self.files = WalkDir::new(directory_path)
                     .into_iter()
                     .filter_map(|entry| entry.ok())
                     .filter(|entry| entry.file_type().is_file())
-                    .filter(|entry| extension_regex.is_match(entry.file_name().to_str().unwrap_or("")))
+                    .filter(|entry| {
+                        extension_regex.is_match(entry.file_name().to_str().unwrap_or(""))
+                    })
                     .map(|entry| {
                         let absolute_path = entry
                             .path()
@@ -96,19 +104,68 @@ mod tests {
     use tempdir::TempDir;
 
     #[test]
-    fn test_get_pdf_files() {
+    fn test_get_text_files() {
         let temp_dir = TempDir::new("example").unwrap();
         let pdf_file = temp_dir.path().join("test.pdf");
+        let txt_file = temp_dir.path().join("test.txt");
+        let markdown_file = (0..2)
+            .into_iter()
+            .map(|f| temp_dir.path().join(format!("test{}.md", f)))
+            .collect::<Vec<_>>();
         let _image_file = temp_dir.path().join("image.jpg");
 
         File::create(&pdf_file).unwrap();
+        File::create(&txt_file).unwrap();
+        markdown_file.iter().for_each(|f| {
+            File::create(f).unwrap();
+        });
 
         let mut file_parser = FileParser::new();
         let pdf_files = file_parser
-            .get_text_files(&PathBuf::from(temp_dir.path()), None)
+            .get_text_files(
+                &PathBuf::from(temp_dir.path()),
+                Some(vec!["pdf".to_string()]),
+            )
             .unwrap();
+        let text_files = file_parser
+            .get_text_files(
+                &PathBuf::from(temp_dir.path()),
+                Some(vec!["txt".to_string()]),
+            )
+            .unwrap();
+        let markdown_files = file_parser
+            .get_text_files(
+                &PathBuf::from(temp_dir.path()),
+                Some(vec!["md".to_string()]),
+            )
+            .unwrap();
+
         assert_eq!(pdf_files.len(), 1);
-        assert_eq!(pdf_files[0], pdf_file.canonicalize().unwrap().to_string_lossy().to_string());
+        assert_eq!(text_files.len(), 1);
+        assert_eq!(markdown_files.len(), 2);
+        assert_eq!(
+            pdf_files[0],
+            pdf_file
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+                .to_string()
+        );
+        assert_eq!(
+            text_files[0],
+            txt_file
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+                .to_string()
+        );
+        assert_eq!(
+            markdown_files,
+            markdown_file
+                .iter()
+                .map(|f| f.canonicalize().unwrap().to_string_lossy().to_string())
+                .collect::<Vec<String>>()
+        );
     }
 
     #[test]
@@ -123,7 +180,14 @@ mod tests {
             .get_image_paths(&PathBuf::from(temp_dir.path()))
             .unwrap();
         assert_eq!(image_files.len(), 1);
-        assert_eq!(image_files[0], image_file.canonicalize().unwrap().to_string_lossy().to_string());
+        assert_eq!(
+            image_files[0],
+            image_file
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+                .to_string()
+        );
     }
 
     #[test]
@@ -145,6 +209,13 @@ mod tests {
         let indexed_files = vec![pdf_file.to_string_lossy().to_string()];
         let files_to_index = file_parser.get_files_to_index(&indexed_files.into_iter().collect());
         assert_eq!(files_to_index.len(), 1);
-        assert_eq!(files_to_index[0], image_file.canonicalize().unwrap().to_string_lossy().to_string());
+        assert_eq!(
+            files_to_index[0],
+            image_file
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+                .to_string()
+        );
     }
 }
