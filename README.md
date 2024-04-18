@@ -8,11 +8,14 @@
     <b>Framework for building local and multimodal embeddings built in Rust 🦀 for speed and robustness</b>
 </p>
 
+<p align="center">
+    [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1JdmFNGCqCIcmN3jvfs_gFd1cCwsFQr4k?usp=sharing)
+</p>
+
 EmbedAnything is a powerful library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data., EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
 
 
 [Watch the demo](https://youtu.be/HLXIuznnXcI)
-
 
 
 ## 🚀 Key Features
