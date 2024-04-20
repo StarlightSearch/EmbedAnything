@@ -89,26 +89,19 @@ pub fn embed_query(query: Vec<String>, embeder: &str) -> PyResult<Vec<EmbedData>
 /// This will output the embeddings of the file using the OpenAI embedding model.
 #[pyfunction]
 pub fn embed_file(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
-    let embedding_model = match embeder {
-        "OpenAI" => Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()),
-        "Jina" => Embeder::Jina(embedding_model::jina::JinaEmbeder::default()),
-        "Clip" => Embeder::Clip(embedding_model::clip::ClipEmbeder::default()),
-        "Bert" => Embeder::Bert(embedding_model::bert::BertEmbeder::default()),
+    let embeddings = match embeder {
+        "OpenAI" => emb_text(file_name, Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()))?,
+        "Jina" => emb_text(file_name, Embeder::Jina(embedding_model::jina::JinaEmbeder::default()))?,
+        "Bert" => emb_text(file_name, Embeder::Bert(embedding_model::bert::BertEmbeder::default()))?,
+        "Clip" => emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?,
         _ => {
             return Err(PyValueError::new_err(
-                "Invalid embedding model. Choose between OpenAI and AllMiniLmL12V2.",
+                "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
             ))
         }
     };
 
-    let mut file_embeder = FileEmbeder::new(file_name.to_string());
-    let text = file_embeder.extract_text().unwrap();
-    file_embeder.split_into_chunks(&text, 100);
-    let runtime = Builder::new_multi_thread().enable_all().build().unwrap();
-    runtime
-        .block_on(file_embeder.embed(&embedding_model))
-        .unwrap();
-    Ok(file_embeder.embeddings)
+    Ok(vec![embeddings])
 }
 
 /// Embeds the text from files in a directory using the specified embedding model.
@@ -146,25 +139,25 @@ pub fn embed_directory(
     extensions: Option<Vec<String>>,
 ) -> PyResult<Vec<EmbedData>> {
     let embeddings = match embeder {
-        "OpenAI" => emb(
+        "OpenAI" => emb_directory(
             directory,
             Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()),
             extensions,
         )
         .unwrap(),
-        "Jina" => emb(
+        "Jina" => emb_directory(
             directory,
             Embeder::Jina(embedding_model::jina::JinaEmbeder::default()),
             extensions,
         )
         .unwrap(),
-        "Bert" => emb(
+        "Bert" => emb_directory(
             directory,
             Embeder::Bert(embedding_model::bert::BertEmbeder::default()),
             extensions,
         )
         .unwrap(),
-        "Clip" => emb_image(directory, embedding_model::clip::ClipEmbeder::default()).unwrap(),
+        "Clip" => emb_image_directory(directory, embedding_model::clip::ClipEmbeder::default())?,
 
         _ => {
             return Err(PyValueError::new_err(
@@ -185,7 +178,7 @@ fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-fn emb(
+fn emb_directory(
     directory: PathBuf,
     embedding_model: Embeder,
     extensions: Option<Vec<String>>,
@@ -212,7 +205,24 @@ fn emb(
     Ok(embeddings)
 }
 
-fn emb_image<T: EmbedImage>(directory: PathBuf, embedding_model: T) -> PyResult<Vec<EmbedData>> {
+fn emb_text<T: AsRef<std::path::Path>> (file: T, embedding_model: Embeder) -> PyResult<EmbedData> {
+    let mut file_embeder = FileEmbeder::new(file.as_ref().to_str().unwrap().to_string());
+    let text = file_embeder.extract_text().unwrap();
+    file_embeder.split_into_chunks(&text, 100);
+    let runtime = Builder::new_multi_thread().enable_all().build().unwrap();
+    runtime
+        .block_on(file_embeder.embed(&embedding_model))
+        .unwrap();
+    Ok(file_embeder.embeddings[0].clone())
+    
+}
+
+fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(image_path: T, embedding_model: U) -> PyResult<EmbedData> {
+    let embedding = embedding_model.embed_image(image_path).unwrap();
+    Ok(embedding)
+}
+
+fn emb_image_directory<T: EmbedImage>(directory: PathBuf, embedding_model: T) -> PyResult<Vec<EmbedData>> {
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
 

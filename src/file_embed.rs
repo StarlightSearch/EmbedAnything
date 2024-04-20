@@ -10,7 +10,7 @@ use crate::{
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileEmbeder {
     pub file: String,
     pub chunks: Vec<String>,

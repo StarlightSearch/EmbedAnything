@@ -13,7 +13,7 @@ pub struct EmbedResponse {
     pub usage: HashMap<String, usize>,
 }
 #[pyclass]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct EmbedData {
     #[pyo3(get, set)]
     pub embedding: Vec<f32>,

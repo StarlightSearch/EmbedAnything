@@ -5,7 +5,8 @@ from PIL import Image
 import time
 
 start = time.time()
-data= embed_anything.embed_directory("test_files", embeder= "Clip")
+data= embed_anything.embed_file("test_files/clip/cat1.jpg", embeder= "Clip")
+
 
 embeddings = np.array([data.embedding for data in data])
 
