@@ -15,7 +15,7 @@ EmbedAnything is a powerful python library designed to streamline the creation a
 Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models. If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations. This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product. Also, Candle allows inferences on CUDA-enabled GPUs right out of the box. We will soon post on how we use Candle to increase the performance and decrease the memory usage of EmbedAnything.
 
 ## Examples
-1. Image Search: [![Open in Colab]([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
+1. Image Search: [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
 
 [Watch the demo](https://youtu.be/HLXIuznnXcI)
 
