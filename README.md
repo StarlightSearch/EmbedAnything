@@ -5,11 +5,14 @@
 
 
 <p align="center">
-    <b>Framework for building local and multimodal embeddings built in Rust 🦀 and Canlde by HuggingFace. Built with no heavy dependencies and speed for less computation on cloud</b>
+    <b>Framework for building local and multimodal embeddings built in Rust 🦀 and Candle by HuggingFace. Built with no heavy dependencies</b>
 </p>
 
 
 EmbedAnything is a powerful python library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data., EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
+
+##Most often, I have been asked, Why Rust? Well the answer is Candle...
+Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models. If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations. This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product. Also, Candle allows inferences on CUDA-enabled GPUs right out of the box. We will soon post on how we use Candle to increase the performance and decrease the memory usage of EmbedAnything.
 
 ## Examples
 1. Image Search: [![Open in Colab]([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
