@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 serde_json = "1.0.112"
-reqwest = { version = "0.12.2", features = ["json"] }
+reqwest = { version = "0.12.2", features = ["json", "blocking"] }
 serde = {version = "1.0.196", features = ["derive"]}
 pdf-extract = "0.7.4"
 walkdir = "2.4.0"
@@ -24,6 +24,8 @@ pyo3 = { version = "0.21" }
 intel-mkl-src = {version = "0.8.1", optional = true }
 markdown-parser = "0.1.2"
 markdown_to_text = "1.0.0"
+scraper = "0.19.0"
+text-cleaner = "0.1.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"

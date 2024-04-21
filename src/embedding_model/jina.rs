@@ -1,4 +1,6 @@
-use super::embed::{Embed, EmbedData};
+use std::collections::HashMap;
+
+use super::embed::{Embed, EmbedData, TextEmbed};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
@@ -68,10 +70,8 @@ impl JinaEmbeder {
             .collect::<candle_core::Result<Vec<_>>>()?;
         Ok(Tensor::stack(&token_ids, 0)?)
     }
-}
 
-impl Embed for JinaEmbeder {
-    async fn embed(&self, text_batch: &[String]) -> Result<Vec<EmbedData>, reqwest::Error> {
+    async fn embed(&self, text_batch: &[String], metadata:Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, reqwest::Error> {
         let token_ids = self.tokenize_batch(text_batch, &self.model.device).unwrap();
         let embeddings = self.model.forward(&token_ids).unwrap();
 
@@ -84,9 +84,31 @@ impl Embed for JinaEmbeder {
         let final_embeddings = encodings
             .iter()
             .zip(text_batch)
-            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone())))
+            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
             .collect::<Vec<_>>();
         Ok(final_embeddings)
+    }
+
+
+}
+
+impl Embed for JinaEmbeder {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        metadata: Option<HashMap<String, String>>,
+    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>> {
+        self.embed(text_batch, metadata)
+    }
+}
+
+impl TextEmbed for JinaEmbeder {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        metadata: Option<HashMap<String, String>>,
+    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>> {
+        self.embed(text_batch, metadata)
     }
 }
 

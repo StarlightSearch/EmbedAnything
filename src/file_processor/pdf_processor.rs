@@ -1,5 +1,4 @@
 use std:: path::PathBuf;
-use pdf_extract::OutputError;
 use anyhow::Error;
 
 /// A struct for processing PDF files.
@@ -26,6 +25,7 @@ impl PdfProcessor {
 
 #[cfg(test)]
 mod tests {
+    use pdf_extract::OutputError;
     use super::*;
     use std::fs::File;
     use tempdir::TempDir;

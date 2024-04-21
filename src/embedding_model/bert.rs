@@ -1,10 +1,12 @@
 #[cfg(feature = "mkl")]
 extern crate intel_mkl_src;
 
+use std::collections::HashMap;
+
 use anyhow::Error as E;
 use candle_core::{Device, Tensor};
 use tokenizers::{PaddingParams, Tokenizer};
-use super::embed::{Embed, EmbedData};
+use super::embed::{Embed, EmbedData, TextEmbed};
 use candle_nn::VarBuilder;
 use candle_transformers::models::bert::{BertModel, Config, HiddenAct, DTYPE};
 use hf_hub::{api::sync::Api, Repo};
@@ -65,10 +67,8 @@ impl BertEmbeder {
 
         Ok(Tensor::stack(&token_ids, 0)?)
     }
-}
 
-impl Embed for BertEmbeder {
-    async fn embed(&self, text_batch: &[String]) -> Result<Vec<EmbedData>, reqwest::Error> {
+    pub async fn embed(&self, text_batch: &[String],metadata:Option<HashMap<String,String>>) -> Result<Vec<EmbedData>, reqwest::Error> {
         let token_ids = self.tokenize_batch(text_batch, &self.model.device).unwrap();
         let token_type_ids = token_ids.zeros_like().unwrap();
         let embeddings = self.model.forward(&token_ids, &token_type_ids).unwrap();
@@ -79,9 +79,28 @@ impl Embed for BertEmbeder {
         let final_embeddings = encodings
             .iter()
             .zip(text_batch)
-            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone())))
+            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
             .collect::<Vec<_>>();
         Ok(final_embeddings)
+    }
+}
+
+impl Embed for BertEmbeder {
+    fn embed(
+        &self,
+        text_batch: &[String],metadata: Option<HashMap<String,String>>
+    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>> {
+        self.embed(text_batch, metadata)
+    }
+}
+
+impl TextEmbed for BertEmbeder {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        metadata: Option<HashMap<String,String>>
+    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>> {
+        self.embed(text_batch, metadata)
     }
 }
 

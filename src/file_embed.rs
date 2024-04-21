@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 use anyhow::Error;
 
@@ -25,13 +25,20 @@ impl FileEmbeder {
             embeddings: Vec::new(),
         }
     }
-    pub fn split_into_chunks(&mut self, text: &str, chunk_size: usize) {
+    pub fn split_into_chunks(&mut self, text: &str, chunk_size: usize) -> Option<Vec<String>>  {
+     
         let mut chunk = Vec::new();
+        let mut chunks  = Vec::new();
+
+        if text == "" {
+            return None;
+        }
+
         let sentences: Vec<&str> = text.split_terminator('.').collect();
 
         for sentence in sentences {
             if text.len() < chunk_size {
-                self.chunks.push(text.to_owned());
+                chunks.push(text.to_owned());
                 break;
             }
 
@@ -44,14 +51,17 @@ impl FileEmbeder {
             chunk.extend(words);
 
             if chunk.len() >= chunk_size {
-                self.chunks.push(chunk.join(" "));
+                chunks.push(chunk.join(" "));
                 chunk.clear();
             }
         }
+        self.chunks = chunks;
+        Some(self.chunks.clone())
+        
     }
 
-    pub async fn embed(&mut self, embeder: &Embeder) -> Result<(), reqwest::Error> {
-        self.embeddings = embeder.embed(&self.chunks).await?;
+    pub async fn embed(&mut self, embeder: &Embeder, metadata: Option<HashMap< String, String>>) -> Result<(), reqwest::Error> {
+        self.embeddings = embeder.embed(&self.chunks, metadata).await?;
         Ok(())
     }
 
@@ -81,7 +91,7 @@ mod tests {
         let embeder = Embeder::Bert(BertEmbeder::default());
         let mut file_embeder = FileEmbeder::new(file_path.to_string_lossy().to_string());
         file_embeder.split_into_chunks(&text, 100);
-        file_embeder.embed(&embeder).await.unwrap();
+        file_embeder.embed(&embeder, None).await.unwrap();
         assert_eq!(file_embeder.chunks.len(), 5);
         assert_eq!(file_embeder.embeddings.len(), 5);
     }
@@ -90,7 +100,7 @@ mod tests {
     async fn test_image_embeder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
         let embeder = ClipEmbeder::default();
-        let emb_data = embeder.embed_image(&file_path).unwrap();
+        let emb_data = embeder.embed_image(&file_path, None).unwrap();
         assert_eq!(emb_data.embedding.len(), 512);
     }
 }

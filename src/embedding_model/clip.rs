@@ -1,6 +1,8 @@
 #[cfg(feature = "mkl")]
 extern crate intel_mkl_src;
 
+use std::collections::HashMap;
+
 use anyhow::Error as E;
 
 use candle_core::{DType, Device, Tensor};
@@ -145,6 +147,7 @@ impl EmbedImage for ClipEmbeder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+        
     ) -> anyhow::Result<Vec<EmbedData>> {
         let config = clip::ClipConfig::vit_base_patch32();
 
@@ -163,13 +166,14 @@ impl EmbedImage for ClipEmbeder {
                 EmbedData::new(
                     data.to_vec(),
                     Some(path.as_ref().to_str().unwrap().to_string()),
+                    None, 
                 )
             })
             .collect::<Vec<_>>();
         Ok(embeddings)
     }
 
-    fn embed_image<T: AsRef<std::path::Path>>(&self, image_path: T) -> anyhow::Result<EmbedData> {
+    fn embed_image<T: AsRef<std::path::Path>>(&self, image_path: T, metadata: Option<HashMap<String, String>>) -> anyhow::Result<EmbedData> {
         let config = clip::ClipConfig::vit_base_patch32();
         let image = self
             .load_image(&image_path, config.image_size)
@@ -182,12 +186,12 @@ impl EmbedImage for ClipEmbeder {
             .unwrap()
             .to_vec2::<f32>()
             .unwrap()[0];
-        Ok(EmbedData::new(encoding.to_vec(), None))
+        Ok(EmbedData::new(encoding.to_vec(), None, metadata.clone()))
     }
 }
 
 impl Embed for ClipEmbeder {
-    async fn embed(&self, text_batch: &[String]) -> Result<Vec<EmbedData>, reqwest::Error> {
+    async fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, reqwest::Error> {
         let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
             Some(text_batch.to_vec()),
             &self.tokenizer,
@@ -204,7 +208,7 @@ impl Embed for ClipEmbeder {
         let embeddings = encodings
             .iter()
             .zip(text_batch)
-            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone())))
+            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone() ))
             .collect::<Vec<_>>();
         Ok(embeddings)
     }

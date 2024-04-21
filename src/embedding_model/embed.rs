@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 
 use super::jina::JinaEmbeder;
@@ -12,6 +13,8 @@ pub struct EmbedResponse {
     pub data: Vec<EmbedData>,
     pub usage: HashMap<String, usize>,
 }
+
+
 #[pyclass]
 #[derive(Deserialize, Debug, Clone)]
 pub struct EmbedData {
@@ -19,19 +22,31 @@ pub struct EmbedData {
     pub embedding: Vec<f32>,
     #[pyo3(get, set)]
     pub text: Option<String>,
+    #[pyo3(get, set)]
+    pub metadata: Option<HashMap<String, String>>,
+}
+
+impl Default for EmbedData {
+    fn default() -> Self {
+        Self {
+            embedding: Vec::new(),
+            text: None,
+            metadata: None,
+        }
+    }
 }
 
 #[pymethods]
 impl EmbedData {
     #[new]
-    pub fn new(embedding: Vec<f32>, text: Option<String>) -> Self {
-        Self { embedding, text }
+    pub fn new(embedding: Vec<f32>, text: Option<String>, metadata:Option<HashMap<String, String>>) -> Self {
+        Self { embedding, text, metadata }
     }
 
     pub fn __str__(&self) -> String {
         format!(
-            "EmbedData(embedding: {:?}, text: {:?})",
-            self.embedding, self.text
+            "EmbedData(embedding: {:?}, text: {:?}, metadata: {:?})",
+            self.embedding, self.text, self.metadata.clone()
         )
     }
 }
@@ -45,12 +60,12 @@ pub enum Embeder {
 }
 
 impl Embeder {
-    pub async fn embed(&self, text_batch: &[String]) -> Result<Vec<EmbedData>, reqwest::Error> {
+    pub async fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, reqwest::Error> {
         match self {
-            Embeder::OpenAI(embeder) => embeder.embed(text_batch).await,
-            Embeder::Jina(embeder) => embeder.embed(text_batch).await,
-            Embeder::Clip(embeder) => embeder.embed(text_batch).await,
-            Embeder::Bert(embeder) => embeder.embed(text_batch).await,
+            Embeder::OpenAI(embeder) => TextEmbed::embed(embeder, text_batch, metadata).await,
+            Embeder::Jina(embeder) => TextEmbed::embed(embeder, text_batch, metadata).await,
+            Embeder::Clip(embeder) => Embed::embed(embeder, text_batch, metadata).await,
+            Embeder::Bert(embeder) => TextEmbed::embed(embeder, text_batch, metadata).await,
         }
     }
 }
@@ -60,11 +75,16 @@ pub trait Embed {
     fn embed(
         &self,
         text_batch: &[String],
+        metadata: Option<HashMap<String, String>>,
     ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>>;
     
 }
 
+pub trait TextEmbed {
+    fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>>;
+}
+
 pub trait EmbedImage {
-    fn embed_image<T: AsRef<std::path::Path>>(&self, image_path: T) -> anyhow::Result<EmbedData>;
+    fn embed_image<T: AsRef<std::path::Path>>(&self, image_path: T, metadata: Option<HashMap<String, String>>) -> anyhow::Result<EmbedData>;
     fn embed_image_batch<T: AsRef<std::path::Path>>(&self, image_paths:&[T]) -> anyhow::Result<Vec<EmbedData>>;
 }
