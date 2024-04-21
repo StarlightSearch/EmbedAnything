@@ -11,7 +11,13 @@
 
 EmbedAnything is a powerful python library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data., EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
 
-## Most often, We have been asked, Why Rust? Well the answer is Candle...
+## The Benefit of Rust for Speed
+By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
+Rust is Compiled: Unlike Python, Rust compiles directly to machine code, resulting in faster execution.
+Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages.
+Rust achieves true multithreading.
+
+## Why Candle?...
 Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models. If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations. This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product. Also, Candle allows inferences on CUDA-enabled GPUs right out of the box. We will soon post on how we use Candle to increase the performance and decrease the memory usage of EmbedAnything.
 
 ## Examples
