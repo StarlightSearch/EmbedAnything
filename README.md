@@ -5,7 +5,7 @@
 
 
 <p align="center">
-    <b>Framework for building local and multimodal embeddings built in Rust 🦀 for speed and robustness</b>
+    <b>Framework for building local and multimodal embeddings built in Rust 🦀 and Canlde by HuggingFace. Built with heavy dependencies and speed for less computation on cloud</b>
 </p>
 
 
