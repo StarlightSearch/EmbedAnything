@@ -22,22 +22,22 @@ pub struct WebPage {
 }
 
 impl WebPage {
-    pub async fn embed_webpage<T: TextEmbed>(&self, embeder: &T) -> Result<Vec<EmbedData>, Error>{
+    pub fn embed_webpage<T: TextEmbed>(&self, embeder: &T) -> Result<Vec<EmbedData>, Error>{
         let mut embed_data = Vec::new();
         let paragraph_embeddings = if let Some(paragraphs) = &self.paragraphs {
-            self.embed_tag::<T>("p", paragraphs.to_vec(), &embeder).await.unwrap_or(Vec::new())
+            self.embed_tag::<T>("p", paragraphs.to_vec(), &embeder).unwrap_or(Vec::new())
         } else {
             Vec::new()
         };
 
         let header_embeddings = if let Some(headers) = &self.headers {
-            self.embed_tag::<T>("h1", headers.to_vec(), &embeder).await.unwrap_or(Vec::new())
+            self.embed_tag::<T>("h1", headers.to_vec(), &embeder).unwrap_or(Vec::new())
         } else {
             Vec::new()
         };
 
         let code_embeddings = if let Some(codes) = &self.codes {
-            self.embed_tag::<T>("code", codes.to_vec(), &embeder).await.unwrap_or(Vec::new())
+            self.embed_tag::<T>("code", codes.to_vec(), &embeder).unwrap_or(Vec::new())
         } else {
             Vec::new()
         };
@@ -48,7 +48,7 @@ impl WebPage {
         Ok(embed_data)
     }
 
-    pub async fn embed_tag<T: TextEmbed>(&self,tag: &str,  tag_content: Vec<String>, embeder: &T) -> Result<Vec<EmbedData>, Error> {
+    pub fn embed_tag<T: TextEmbed>(&self,tag: &str,  tag_content: Vec<String>, embeder: &T) -> Result<Vec<EmbedData>, Error> {
         let mut embed_data = Vec::new();
         for content in tag_content {
             let mut file_embeder = FileEmbeder::new(self.url.to_string());
@@ -84,7 +84,7 @@ impl WebPage {
 
             let embeddings = embeder
                 .embed(&chunks, Some(metadata_hashmap))
-                .await
+                
                 .unwrap_or(Vec::new());
             for embedding in embeddings {
                 embed_data.push(embedding);

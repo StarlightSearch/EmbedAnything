@@ -8,7 +8,7 @@ async fn main() {
     let website_processor = website_processor::WebsiteProcesor;
     let webpage = website_processor.process_website(url).await.unwrap();
     let embeder = embed_anything::embedding_model::bert::BertEmbeder::default();
-    let embed_data = webpage.embed_webpage(&embeder).await.unwrap();
+    let embed_data = webpage.embed_webpage(&embeder).unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data.iter().map(|data| data.embedding.clone()).collect();
 
     let embeddings = Tensor::from_vec(
@@ -18,7 +18,7 @@ async fn main() {
     ).unwrap();
 
     let query = vec!["how to use lstm for nlp".to_string()];
-    let query_embedding: Vec<f32> = embeder.embed(&query, None).await.unwrap().iter().map(|data| data.embedding.clone()).flatten().collect();
+    let query_embedding: Vec<f32> = embeder.embed(&query, None).unwrap().iter().map(|data| data.embedding.clone()).flatten().collect();
     
     let query_embedding_tensor = Tensor::from_vec(
         query_embedding.clone(),

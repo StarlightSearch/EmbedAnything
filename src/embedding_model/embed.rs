@@ -60,12 +60,12 @@ pub enum Embeder {
 }
 
 impl Embeder {
-    pub async fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, reqwest::Error> {
+    pub fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, anyhow::Error> {
         match self {
-            Embeder::OpenAI(embeder) => TextEmbed::embed(embeder, text_batch, metadata).await,
-            Embeder::Jina(embeder) => TextEmbed::embed(embeder, text_batch, metadata).await,
-            Embeder::Clip(embeder) => Embed::embed(embeder, text_batch, metadata).await,
-            Embeder::Bert(embeder) => TextEmbed::embed(embeder, text_batch, metadata).await,
+            Embeder::OpenAI(embeder) => TextEmbed::embed(embeder, text_batch, metadata),
+            Embeder::Jina(embeder) => TextEmbed::embed(embeder, text_batch, metadata),
+            Embeder::Clip(embeder) => Embed::embed(embeder, text_batch, metadata),
+            Embeder::Bert(embeder) => TextEmbed::embed(embeder, text_batch, metadata),
         }
     }
 }
@@ -76,12 +76,12 @@ pub trait Embed {
         &self,
         text_batch: &[String],
         metadata: Option<HashMap<String, String>>,
-    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>>;
+    ) ->Result<Vec<EmbedData>, anyhow::Error>;
     
 }
 
 pub trait TextEmbed {
-    fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>>;
+    fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) ->  Result<Vec<EmbedData>, anyhow::Error>;
 }
 
 pub trait EmbedImage {

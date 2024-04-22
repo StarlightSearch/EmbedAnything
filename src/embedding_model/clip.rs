@@ -191,7 +191,7 @@ impl EmbedImage for ClipEmbeder {
 }
 
 impl Embed for ClipEmbeder {
-    async fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, reqwest::Error> {
+    fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, anyhow::Error> {
         let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
             Some(text_batch.to_vec()),
             &self.tokenizer,
