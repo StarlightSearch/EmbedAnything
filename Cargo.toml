@@ -40,7 +40,7 @@ candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.
 anyhow = "1.0.81"
 
 # Asynchronous Programming
-tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.37.0", features = ["macros"] }
 
 # Python Interoperability
 pyo3 = { version = "0.21" }
@@ -63,4 +63,5 @@ url = "2.5.0"
 tempdir = "0.3.7"
 
 [features]
+default = ["mkl"]
 mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]

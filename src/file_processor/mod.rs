@@ -1,4 +1,3 @@
-
 /// This module contains the file processor for different file types.
 pub mod pdf_processor;
 

@@ -57,7 +57,8 @@ impl OpenAIEmbeder {
         metadata: Option<HashMap<String, String>>,
     ) -> Result<Vec<EmbedData>, anyhow::Error> {
         let client = Client::new();
-        let runtime = tokio::runtime::Builder::new_current_thread().enable_io()
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_io()
             .build()
             .unwrap();
 
@@ -96,6 +97,7 @@ impl OpenAIEmbeder {
 mod tests {
     use super::*;
 
+    #[test]
     fn test_openai_embed() {
         let openai = OpenAIEmbeder::default();
         let text_batch = vec![

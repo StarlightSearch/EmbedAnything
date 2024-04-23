@@ -3,13 +3,13 @@ extern crate intel_mkl_src;
 
 use std::collections::HashMap;
 
+use super::embed::{Embed, EmbedData, TextEmbed};
 use anyhow::Error as E;
 use candle_core::{Device, Tensor};
-use tokenizers::{PaddingParams, Tokenizer};
-use super::embed::{Embed, EmbedData, TextEmbed};
 use candle_nn::VarBuilder;
 use candle_transformers::models::bert::{BertModel, Config, HiddenAct, DTYPE};
 use hf_hub::{api::sync::Api, Repo};
+use tokenizers::{PaddingParams, Tokenizer};
 
 pub struct BertEmbeder {
     pub model: BertModel,
@@ -34,7 +34,9 @@ impl Default for BertEmbeder {
         };
         let config = std::fs::read_to_string(config_filename).unwrap();
         let mut config: Config = serde_json::from_str(&config).unwrap();
-        let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg).unwrap();
+        let mut tokenizer = Tokenizer::from_file(tokenizer_filename)
+            .map_err(E::msg)
+            .unwrap();
 
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
@@ -42,8 +44,9 @@ impl Default for BertEmbeder {
         };
         tokenizer.with_padding(Some(pp));
 
-        let vb =
-            unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap() };
+        let vb = unsafe {
+            VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
+        };
 
         config.hidden_act = HiddenAct::GeluApproximate;
 
@@ -68,7 +71,11 @@ impl BertEmbeder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    pub fn embed(&self, text_batch: &[String],metadata:Option<HashMap<String,String>>) -> Result<Vec<EmbedData>, anyhow::Error> {
+    pub fn embed(
+        &self,
+        text_batch: &[String],
+        metadata: Option<HashMap<String, String>>,
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
         let token_ids = self.tokenize_batch(text_batch, &self.model.device).unwrap();
         let token_type_ids = token_ids.zeros_like().unwrap();
         let embeddings = self.model.forward(&token_ids, &token_type_ids).unwrap();
@@ -88,7 +95,8 @@ impl BertEmbeder {
 impl Embed for BertEmbeder {
     fn embed(
         &self,
-        text_batch: &[String],metadata: Option<HashMap<String,String>>
+        text_batch: &[String],
+        metadata: Option<HashMap<String, String>>,
     ) -> Result<Vec<EmbedData>, anyhow::Error> {
         self.embed(text_batch, metadata)
     }
@@ -98,7 +106,7 @@ impl TextEmbed for BertEmbeder {
     fn embed(
         &self,
         text_batch: &[String],
-        metadata: Option<HashMap<String,String>>
+        metadata: Option<HashMap<String, String>>,
     ) -> Result<Vec<EmbedData>, anyhow::Error> {
         self.embed(text_batch, metadata)
     }

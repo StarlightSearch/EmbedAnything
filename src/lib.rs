@@ -5,17 +5,16 @@
 extern crate intel_mkl_src;
 
 pub mod embedding_model;
-pub mod file_embed;
 pub mod file_processor;
-pub mod parser;
-
+pub mod file_loader;
+pub mod text_loader;
 use std::path::PathBuf;
 
 use embedding_model::embed::{EmbedData, EmbedImage, Embeder};
-use file_embed::FileEmbeder;
-use parser::FileParser;
+use file_loader::FileParser;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use rayon::prelude::*;
+use text_loader::TextLoader;
 use tokio::runtime::Builder;
 
 /// Embeds a list of queries using the specified embedding model.
@@ -176,11 +175,14 @@ pub fn emb_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
         .unwrap();
 
     let embeddings = match embeder {
-        "OpenAI" => webpage.embed_webpage(&embedding_model::openai::OpenAIEmbeder::default())
+        "OpenAI" => webpage
+            .embed_webpage(&embedding_model::openai::OpenAIEmbeder::default())
             .unwrap(),
-        "Jina" => webpage.embed_webpage(&embedding_model::jina::JinaEmbeder::default())
+        "Jina" => webpage
+            .embed_webpage(&embedding_model::jina::JinaEmbeder::default())
             .unwrap(),
-        "Bert" => webpage.embed_webpage(&embedding_model::bert::BertEmbeder::default())
+        "Bert" => webpage
+            .embed_webpage(&embedding_model::bert::BertEmbeder::default())
             .unwrap(),
         _ => {
             return Err(PyValueError::new_err(
@@ -215,11 +217,13 @@ fn emb_directory(
         .files
         .par_iter()
         .map(|file| {
-            let mut file_embeder = FileEmbeder::new(file.to_string());
-            let text = file_embeder.extract_text().unwrap();
-            file_embeder.split_into_chunks(&text, 100);
-            file_embeder.embed(&embedding_model, None).unwrap();
-            file_embeder.embeddings
+            let text = TextLoader::extract_text(file).unwrap();
+            let chunks = TextLoader::split_into_chunks(&text, 100);
+
+            chunks
+                .map(|chunks| embedding_model.embed(&chunks, None).unwrap())
+                .ok_or_else(|| PyValueError::new_err("No text found in file"))
+                .unwrap()
         })
         .flatten()
         .collect();
@@ -228,11 +232,14 @@ fn emb_directory(
 }
 
 fn emb_text<T: AsRef<std::path::Path>>(file: T, embedding_model: Embeder) -> PyResult<EmbedData> {
-    let mut file_embeder = FileEmbeder::new(file.as_ref().to_str().unwrap().to_string());
-    let text = file_embeder.extract_text().unwrap();
-    file_embeder.split_into_chunks(&text, 100);
-    file_embeder.embed(&embedding_model, None).unwrap();
-    Ok(file_embeder.embeddings[0].clone())
+    let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
+    let chunks = TextLoader::split_into_chunks(&text, 100);
+
+    let embeddings = chunks
+        .map(|chunks| embedding_model.embed(&chunks, None).unwrap())
+        .ok_or_else(|| PyValueError::new_err("No text found in file"))?;
+
+    Ok(embeddings[0].clone())
 }
 
 fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
