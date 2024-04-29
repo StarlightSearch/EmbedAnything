@@ -8,7 +8,7 @@
     <b>Framework for building local and multimodal embeddings built in Rust 🦀 and Candle by HuggingFace. Built with no heavy dependencies</b>
 </p>
 
-
+[![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
 EmbedAnything is a powerful python library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data., EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
 
 ## The Benefit of Rust for Speed
