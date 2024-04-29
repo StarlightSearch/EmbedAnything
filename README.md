@@ -5,19 +5,23 @@
 
 
 <p align="center">
-    <b>Framework for building local and multimodal embeddings built in Rust 🦀 and Candle by HuggingFace. Built with no heavy dependencies</b>
+    <b>Framework for building local and multimodal embeddings built in Rust 🦀</b>
 </p>
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
+[![license]( https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![license]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
+
 EmbedAnything is a powerful python library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, or any other type of data., EmbedAnything makes it easy to generate embeddings from multiple sources and store them efficiently in a vector database.
 
-## The Benefit of Rust for Speed
+## 🦀The Benefit of Rust for Speed
 By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
 Rust is Compiled: Unlike Python, Rust compiles directly to machine code, resulting in faster execution.
 Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages.
 Rust achieves true multithreading.
 
-## Why Candle?...
+## 🚀Why Candle?...
 Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models. If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations. This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product. Also, Candle allows inferences on CUDA-enabled GPUs right out of the box. We will soon post on how we use Candle to increase the performance and decrease the memory usage of EmbedAnything.
 
 ## Examples
