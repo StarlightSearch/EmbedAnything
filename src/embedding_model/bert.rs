@@ -68,7 +68,7 @@ impl BertEmbeder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    pub async fn embed(&self, text_batch: &[String],metadata:Option<HashMap<String,String>>) -> Result<Vec<EmbedData>, reqwest::Error> {
+    pub fn embed(&self, text_batch: &[String],metadata:Option<HashMap<String,String>>) -> Result<Vec<EmbedData>, anyhow::Error> {
         let token_ids = self.tokenize_batch(text_batch, &self.model.device).unwrap();
         let token_type_ids = token_ids.zeros_like().unwrap();
         let embeddings = self.model.forward(&token_ids, &token_type_ids).unwrap();
@@ -89,7 +89,7 @@ impl Embed for BertEmbeder {
     fn embed(
         &self,
         text_batch: &[String],metadata: Option<HashMap<String,String>>
-    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>> {
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
         self.embed(text_batch, metadata)
     }
 }
@@ -99,7 +99,7 @@ impl TextEmbed for BertEmbeder {
         &self,
         text_batch: &[String],
         metadata: Option<HashMap<String,String>>
-    ) -> impl std::future::Future<Output = Result<Vec<EmbedData>, reqwest::Error>> {
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
         self.embed(text_batch, metadata)
     }
 }

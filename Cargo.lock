@@ -836,6 +836,7 @@ dependencies = [
  "text-cleaner",
  "tokenizers",
  "tokio",
+ "url",
  "walkdir",
 ]
 

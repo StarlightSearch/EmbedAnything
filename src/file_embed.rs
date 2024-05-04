@@ -60,8 +60,8 @@ impl FileEmbeder {
         
     }
 
-    pub async fn embed(&mut self, embeder: &Embeder, metadata: Option<HashMap< String, String>>) -> Result<(), reqwest::Error> {
-        self.embeddings = embeder.embed(&self.chunks, metadata).await?;
+    pub fn embed(&mut self, embeder: &Embeder, metadata: Option<HashMap< String, String>>) -> Result<(), anyhow::Error> {
+        self.embeddings = embeder.embed(&self.chunks, metadata)?;
         Ok(())
     }
 
@@ -91,7 +91,7 @@ mod tests {
         let embeder = Embeder::Bert(BertEmbeder::default());
         let mut file_embeder = FileEmbeder::new(file_path.to_string_lossy().to_string());
         file_embeder.split_into_chunks(&text, 100);
-        file_embeder.embed(&embeder, None).await.unwrap();
+        file_embeder.embed(&embeder, None).unwrap();
         assert_eq!(file_embeder.chunks.len(), 5);
         assert_eq!(file_embeder.embeddings.len(), 5);
     }

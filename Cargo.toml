@@ -5,27 +5,59 @@ version = "0.1.14"
 edition = "2021"
 
 [dependencies]
+# Data Serialization
+serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.112"
+
+# HTTP Client
 reqwest = { version = "0.12.2", features = ["json", "blocking"] }
-serde = {version = "1.0.196", features = ["derive"]}
-pdf-extract = "0.7.4"
+
+# Filesystem
 walkdir = "2.4.0"
+
+# Regular Expressions
 regex = "1.10.3"
+
+# Parallelism
 rayon = "1.8.1"
+
+# Image Processing
 image = "0.25.1"
-hf-hub = "0.3.2"
+
+# Natural Language Processing
 tokenizers = "0.15.2"
+
+# PDF Processing
+pdf-extract = "0.7.4"
+
+# Hugging Face Libraries
+hf-hub = "0.3.2"
 candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
 candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+
+# Error Handling
 anyhow = "1.0.81"
-tokio = {version = "1.37.0", features=["rt-multi-thread", "macros"]}
+
+# Asynchronous Programming
+tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+
+# Python Interoperability
 pyo3 = { version = "0.21" }
-intel-mkl-src = {version = "0.8.1", optional = true }
+
+# Optional Dependency
+intel-mkl-src = { version = "0.8.1", optional = true }
+
+# Markdown Processing
 markdown-parser = "0.1.2"
 markdown_to_text = "1.0.0"
+
+# Web Scraping
 scraper = "0.19.0"
+
+# Text Processing
 text-cleaner = "0.1.0"
+url = "2.5.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"

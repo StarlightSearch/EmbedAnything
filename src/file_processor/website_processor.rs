@@ -1,10 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::
+    collections::{HashMap, HashSet};
 
-use anyhow::{Error, Ok};
-use regex::Regex;
-use scraper::Selector;
+use anyhow:: Result;
+use scraper::{Html, Selector};
 use serde_json::json;
-use text_cleaner::clean::Clean;
+use url::Url;
 
 use crate::{
     embedding_model::embed::{EmbedData, TextEmbed},
@@ -22,45 +22,36 @@ pub struct WebPage {
 }
 
 impl WebPage {
-    pub async fn embed_webpage<T: TextEmbed>(&self, embeder: &T) -> Result<Vec<EmbedData>, Error>{
+    pub fn embed_webpage<T: TextEmbed>(&self, embeder: &T) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
-        let paragraph_embeddings = if let Some(paragraphs) = &self.paragraphs {
-            self.embed_tag::<T>("p", paragraphs.to_vec(), &embeder).await.unwrap_or(Vec::new())
-        } else {
-            Vec::new()
-        };
 
-        let header_embeddings = if let Some(headers) = &self.headers {
-            self.embed_tag::<T>("h1", headers.to_vec(), &embeder).await.unwrap_or(Vec::new())
-        } else {
-            Vec::new()
-        };
+        if let Some(paragraphs) = &self.paragraphs {
+            embed_data.extend(self.embed_tag("p", paragraphs, embeder)?);
+        }
 
-        let code_embeddings = if let Some(codes) = &self.codes {
-            self.embed_tag::<T>("code", codes.to_vec(), &embeder).await.unwrap_or(Vec::new())
-        } else {
-            Vec::new()
-        };
+        if let Some(headers) = &self.headers {
+            embed_data.extend(self.embed_tag("h1", headers, embeder)?);
+        }
 
-        embed_data.extend(paragraph_embeddings);
-        embed_data.extend(header_embeddings);
-        embed_data.extend(code_embeddings);
+        if let Some(codes) = &self.codes {
+            embed_data.extend(self.embed_tag("code", codes, embeder)?);
+        }
+
         Ok(embed_data)
     }
 
-    pub async fn embed_tag<T: TextEmbed>(&self,tag: &str,  tag_content: Vec<String>, embeder: &T) -> Result<Vec<EmbedData>, Error> {
+    pub fn embed_tag<T: TextEmbed>(&self, tag: &str, tag_content: &[String], embeder: &T) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
+
         for content in tag_content {
             let mut file_embeder = FileEmbeder::new(self.url.to_string());
-
-            let chunks = match file_embeder.split_into_chunks(&content, 1000) {
+            let chunks = match file_embeder.split_into_chunks(content, 1000) {
                 Some(chunks) => chunks,
                 None => continue,
             };
 
-            match chunks.len() {
-                0 => continue,
-                _ => (),
+            if chunks.is_empty() {
+                continue;
             }
 
             let tag_type = match tag {
@@ -78,44 +69,34 @@ impl WebPage {
                 "full_text": content,
             });
 
-            let metadata_hashmap: HashMap<String, String> =
-                serde_json::from_value(metadata).unwrap();
-      
+            let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let embeddings = embeder
-                .embed(&chunks, Some(metadata_hashmap))
-                .await
-                .unwrap_or(Vec::new());
-            for embedding in embeddings {
-                embed_data.push(embedding);
-               
-            }
+            let embeddings = embeder.embed(&chunks, Some(metadata_hashmap))?;
+            embed_data.extend(embeddings);
         }
+
         Ok(embed_data)
     }
 }
 
-/// A struct for processing websites.
-pub struct WebsiteProcesor;
+pub struct WebsiteProcessor;
 
-
-impl WebsiteProcesor {
+impl WebsiteProcessor {
     pub fn new() -> Self {
         Self {}
     }
 
-    pub async fn process_website(&self, website: &str) -> Result<WebPage, Error> {
+    pub async fn process_website(&self, website: &str) -> Result<WebPage> {
         let response = reqwest::get(website).await?.text().await?;
-        let document = scraper::Html::parse_document(&response);
+        let document = Html::parse_document(&response);
         let headers = self.get_text_from_tag("h1,h2,h3", &document)?;
         let paragraphs = self.get_text_from_tag("p", &document)?;
         let codes = self.get_text_from_tag("code", &document)?;
         let links = self.extract_links(website, &document)?;
-        let binding = self.get_text_from_tag("h1", &document)?;
-        let title = binding.first();
+        let title = self.get_title(&document)?;
         let web_page = WebPage {
             url: website.to_string(),
-            title: title.map(|s| s.to_string()),
+            title,
             headers: Some(headers),
             paragraphs: Some(paragraphs),
             codes: Some(codes),
@@ -125,41 +106,36 @@ impl WebsiteProcesor {
         Ok(web_page)
     }
 
-    pub fn get_text_from_tag(
-        &self,
-        tag: &str,
-        document: &scraper::Html,
-    ) -> Result<Vec<String>, Error> {
-        let selector = Selector::parse(tag).map_err(|e| Error::msg(e.to_string()))?;
+    fn get_text_from_tag(&self, tag: &str, document: &Html) -> Result<Vec<String>, anyhow::Error> {
+        let selector = Selector::parse(tag).unwrap();
         Ok(document
             .select(&selector)
-            .map(|element| element.text().collect::<String>().trim())
-            .collect::<Vec<_>>())
+            .map(|element| element.text().collect::<String>().trim().to_string())
+            .collect())
     }
 
-    pub fn extract_links(
-        &self,
-        website: &str,
-        document: &scraper::Html,
-    ) -> Result<HashSet<String>, Error> {
+    fn extract_links(&self, website: &str, document: &Html) -> Result<HashSet<String>> {
         let mut links = HashSet::new();
-        let _ = document
-            .select(&Selector::parse("a").unwrap())
-            .map(|element| {
-                let link = element.value().attr("href").unwrap_or_default().to_string();
-                let regex: Regex = Regex::new(
-                    r"^((https?|ftp|smtp):\/\/)?(www.)?[a-z0-9]+\.[a-z]+(\/[a-zA-Z0-9#]+\/?)*$",
-                )
-                .unwrap();
-                // Check if the link is a valid URL using regex. If not append the website URL to the beginning of the link.
-                if !regex.is_match(&link) {
-                    links.insert(format!("{}{}", website, link));
-                } else {
-                    links.insert(link);
-                }
-            });
+        let base_url = Url::parse(website)?;
+
+        for element in document.select(&Selector::parse("a").unwrap()) {
+            if let Some(href) = element.value().attr("href") {
+                let mut link_url = base_url.join(href)?;
+                // Normalize URLs, remove fragments and ensure they are absolute.
+                link_url.set_fragment(None);
+                links.insert(link_url.to_string());
+            }
+        }
 
         Ok(links)
+    }
+
+    fn get_title(&self, document: &Html) -> Result<Option<String>> {
+        if let Some(title_element) = document.select(&Selector::parse("title").unwrap()).next() {
+            Ok(Some(title_element.text().collect::<String>()))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -169,9 +145,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_website() {
-        let website_processor = WebsiteProcesor;
+        let website_processor = WebsiteProcessor::new();
         let website = "https://www.scrapingbee.com/blog/web-scraping-rust/";
-        let result = website_processor.process_website(website);
-        assert!(result.await.is_ok());
+        let result = website_processor.process_website(website).await;
+        assert!(result.is_ok());
     }
 }
