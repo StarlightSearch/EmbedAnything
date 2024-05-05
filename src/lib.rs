@@ -219,9 +219,9 @@ fn emb_directory(
         .map(|file| {
             let text = TextLoader::extract_text(file).unwrap();
             let chunks = TextLoader::split_into_chunks(&text, 100);
-
+            let metadata = TextLoader::get_metadata(file).ok();
             chunks
-                .map(|chunks| embedding_model.embed(&chunks, None).unwrap())
+                .map(|chunks| embedding_model.embed(&chunks, metadata).unwrap())
                 .ok_or_else(|| PyValueError::new_err("No text found in file"))
                 .unwrap()
         })
@@ -234,9 +234,10 @@ fn emb_directory(
 fn emb_text<T: AsRef<std::path::Path>>(file: T, embedding_model: Embeder) -> PyResult<EmbedData> {
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let chunks = TextLoader::split_into_chunks(&text, 100);
+    let metadata = TextLoader::get_metadata(file.as_ref().to_str().unwrap()).ok();
 
     let embeddings = chunks
-        .map(|chunks| embedding_model.embed(&chunks, None).unwrap())
+        .map(|chunks| embedding_model.embed(&chunks, metadata).unwrap())
         .ok_or_else(|| PyValueError::new_err("No text found in file"))?;
 
     Ok(embeddings[0].clone())

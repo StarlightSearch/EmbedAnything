@@ -1,6 +1,7 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug, fs, os::unix::fs::MetadataExt, time::UNIX_EPOCH};
 
 use anyhow::Error;
+use chrono::{DateTime, Local, Utc};
 
 use crate::file_processor::markdown_processor::MarkdownProcessor;
 
@@ -57,6 +58,16 @@ impl TextLoader {
             _ => Err(Error::msg("Unsupported file type")),
         }
     }
+
+    pub fn get_metadata(file: &str) -> Result<HashMap<String, String>, Error> {
+        let metadata = fs::metadata(file)?;
+        let mut metadata_map = HashMap::new();
+        metadata_map.insert("created".to_string(), format!("{}",DateTime::<Local>::from(metadata.created()?)));
+        metadata_map.insert("modified".to_string(), format!("{}",DateTime::<Local>::from(metadata.modified()?)));
+        metadata_map.insert("size".to_string(), metadata.size().to_string());
+        metadata_map.insert("file_name".to_string(), file.to_string());
+        Ok(metadata_map)
+    }
 }
 
 #[cfg(test)]
@@ -69,8 +80,8 @@ mod tests {
     };
     use std::path::PathBuf;
 
-    #[tokio::test]
-    async fn test_file_embeder() {
+    #[test]
+    fn test_file_embeder() {
         let file_path = PathBuf::from("test_files/test.pdf");
         let text = PdfProcessor::extract_text(&file_path).unwrap();
         let embeder = Embeder::Bert(BertEmbeder::default());
@@ -86,11 +97,20 @@ mod tests {
         assert_eq!(embeddings.len(), 5);
     }
 
-    #[tokio::test]
-    async fn test_image_embeder() {
+    #[test]
+    fn test_metadata() {
+        let file_path = PathBuf::from("test_files/test.pdf");
+        let metadata = TextLoader::get_metadata(file_path.to_str().unwrap()).unwrap();
+        assert_eq!(metadata.len(), 4);
+    }
+
+    #[test]
+    fn test_image_embeder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
         let embeder = ClipEmbeder::default();
         let emb_data = embeder.embed_image(&file_path, None).unwrap();
         assert_eq!(emb_data.embedding.len(), 512);
     }
+
+    
 }
