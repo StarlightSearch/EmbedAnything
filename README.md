@@ -5,7 +5,7 @@
 
 
 <p align="center">
-    <b>Framework for building local and multimodal embeddings built in Rust 🦀</b>
+    <b>Minimalist Framework for building local and multimodal embeddings built in Rust 🦀</b>
 </p>
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
@@ -18,12 +18,16 @@ EmbedAnything is a powerful python library designed to streamline the creation a
 
 ## 🦀The Benefit of Rust for Speed
 By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
-Rust is Compiled: Unlike Python, Rust compiles directly to machine code, resulting in faster execution.
-Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages.
-Rust achieves true multithreading.
+➡️Rust is Compiled: Unlike Python, Rust compiles directly to machine code, resulting in faster execution.
+➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages.
+➡️Rust achieves true multithreading.
 
 ## 🚀Why Candle?...
-Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models. If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations. This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product. Also, Candle allows inferences on CUDA-enabled GPUs right out of the box. We will soon post on how we use Candle to increase the performance and decrease the memory usage of EmbedAnything.
+➡️Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models. 
+➡️If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations.
+➡️ This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product. 
+➡️Also, Candle allows inferences on CUDA-enabled GPUs right out of the box. 
+We will soon post on how we use Candle to increase the performance and decrease the memory usage of EmbedAnything.
 
 ## Examples
 1. Image Search: [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
@@ -115,6 +119,14 @@ This document provides guidelines and best practices to help you to contribute e
 **********************************Table of Content:********************************** 
 1. [Code of conduct]
 2. [Quick Start]
+3. [RoadMap]
+
+
+## RoadMap 
+☑️Graph embedding -- build deepwalks embeddings depth first and word to vec
+☑️Add whisper for audio embeddings
+☑️Zero-shot application
+☑️Asynchronous chunks training
 
 
 ## ✔️ Code of Conduct:

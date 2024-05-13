@@ -27,6 +27,6 @@ index = pc.Index("anything")
 def retrieval(query):
     query_embedding = embed_anything.embed_query(query, embeder="OpenAI")
     return index.query(vector=query_embedding[0].embedding, top_k=2)
+index.fetch(["82", "81"])
 
-
-print(retrieval(["what is AI?"]))
+# print(retrieval(["what is AI?"]))
