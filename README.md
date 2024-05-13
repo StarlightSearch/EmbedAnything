@@ -18,14 +18,15 @@ EmbedAnything is a powerful python library designed to streamline the creation a
 
 ## 🦀The Benefit of Rust for Speed
 By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
-➡️Rust is Compiled: Unlike Python, Rust compiles directly to machine code, resulting in faster execution.
-➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages.
+
+➡️Rust is Compiled: Unlike Python, Rust compiles directly to machine code, resulting in faster execution. <br />
+➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️Rust achieves true multithreading.
 
 ## 🚀Why Candle?...
-➡️Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models. 
-➡️If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations.
-➡️ This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product. 
+➡️Running language models or embedding models locally can be difficult, especially when you want to deploy a product that utilizes these models.  <br />
+➡️If you use the transformers library from Hugging Face in Python, you will depend on PyTorch for tensor operations. <br />
+➡️ This, in turn, has a dependency on Libtorch, which means that you will need to include the entire Libtorch library with your product.  <br />
 ➡️Also, Candle allows inferences on CUDA-enabled GPUs right out of the box. 
 We will soon post on how we use Candle to increase the performance and decrease the memory usage of EmbedAnything.
 
@@ -123,9 +124,9 @@ This document provides guidelines and best practices to help you to contribute e
 
 
 ## RoadMap 
-☑️Graph embedding -- build deepwalks embeddings depth first and word to vec
-☑️Add whisper for audio embeddings
-☑️Zero-shot application
+☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
+☑️Add whisper for audio embeddings <br />
+☑️Zero-shot application <br />
 ☑️Asynchronous chunks training
 
 
