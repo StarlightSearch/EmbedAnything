@@ -17,16 +17,42 @@ query= embed_anything.embed_query(["what is AI?"], embeder="OpenAI")
 pc = Pinecone(api_key="")
 index = pc.Index("anything")
 
-# for i in range(len(data)):
-#     index.upsert(
-#         vectors=[{"id": str(i), "values": data[i].embedding, "metadata": {"text": data[i].text}}]
-#     )
+for i in range(len(data)):
+    index.upsert(
+        vectors=[{"id": str(i), "values": data[i].embedding, "metadata": {"text": data[i].text}}]
+    )
 
 
 
 def retrieval(query):
     query_embedding = embed_anything.embed_query(query, embeder="OpenAI")
-    return index.query(vector=query_embedding[0].embedding, top_k=2)
-index.fetch(["82", "81"])
+    context =  index.query(vector=query_embedding[0].embedding, top_k=2)
+    indices = [int(context.matches[i]['id']) for i in range(len(context.matches))]
+    return indices
 
-# print(retrieval(["what is AI?"]))
+indices = retrieval(["what is AI?"])
+
+def get_text(indices):
+    return [index.fetch([str(e)])['vectors'][str(e)]['metadata']['text'] for e in indices]
+
+
+
+content = query + " "
+for i in range(min(len(indices), 3)):
+    content += get_text(indices)[i] + " "
+
+
+
+client = OpenAI()
+
+
+
+response = client.chat.completions.create(
+  model="gpt-3.5-turbo-0125",
+  response_format={ "type": "json_object" },
+  messages=[
+    {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
+    {"role": "user", "content": content}
+  ]
+)
+print(response.choices[0].message.content)
