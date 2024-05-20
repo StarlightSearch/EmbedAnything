@@ -9,8 +9,7 @@
 </p>
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
-[![Multimodal Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![RAG Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://drive.google.com/file/d/1GCSJ7kMwJWT86khVN9JrP_I-v0ipeWvP/view?usp=sharing)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
 [![license]( https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![license]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![license](https://img.shields.io/discord/1213966302046064711?style=flat&logo=discord&link=https%3A%2F%2Fdiscord.gg%2FHGxDZxNt9G)](https://discord.gg/juETVTMdZu)
@@ -33,7 +32,6 @@ We will soon post on how we use Candle to increase the performance and decrease 
 
 ## Examples
 1. Image Search: [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-2. RAG with Pinecone: [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://drive.google.com/file/d/1GCSJ7kMwJWT86khVN9JrP_I-v0ipeWvP/view?usp=sharing)
 
 [Watch the demo](https://youtu.be/HLXIuznnXcI)
 
