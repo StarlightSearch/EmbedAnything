@@ -1,28 +1,66 @@
 [package]
 name = "embed_anything"
-version = "0.1.5"
+
+version = "0.1.15"
 edition = "2021"
 
-
-
 [dependencies]
-pyo3 = { version = "0.20", features = ["extension-module"] }
-pyo3-asyncio = { version = "0.20", features = ["tokio-runtime"] }
-tokio = "1.9"
+# Data Serialization
+serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.112"
-reqwest = { version = "0.12.2", features = ["json"] }
-futures = "0.3.30"
-serde = {version = "1.0.196", features = ["rc", "derive"]}
-pdf-extract = "0.7.4"
-walkdir = "2.4.0"
-regex = "1.10.3"
-rayon = "1.8.1"
-image = "0.25.1"
-hf-hub = "0.3.2"
-tokenizers = "0.15.2"
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
-candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0", features = ["mkl"] }
-anyhow = "1.0.81"
-intel-mkl-src = "0.8.1"
 
+# HTTP Client
+reqwest = { version = "0.12.2", features = ["json", "blocking"] }
+
+# Filesystem
+walkdir = "2.4.0"
+
+# Regular Expressions
+regex = "1.10.3"
+
+# Parallelism
+rayon = "1.8.1"
+
+# Image Processing
+image = "0.25.1"
+
+# Natural Language Processing
+tokenizers = "0.15.2"
+
+# PDF Processing
+pdf-extract = "0.7.4"
+
+# Hugging Face Libraries
+hf-hub = "0.3.2"
+candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.5.0" }
+
+# Error Handling
+anyhow = "1.0.81"
+
+# Asynchronous Programming
+tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+
+# Python Interoperability
+pyo3 = { version = "0.21" }
+
+# Optional Dependency
+intel-mkl-src = { version = "0.8.1", optional = true }
+
+# Markdown Processing
+markdown-parser = "0.1.2"
+markdown_to_text = "1.0.0"
+
+# Web Scraping
+scraper = "0.19.0"
+
+# Text Processing
+text-cleaner = "0.1.0"
+url = "2.5.0"
+
+[dev-dependencies]
+tempdir = "0.3.7"
+
+[features]
+mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]

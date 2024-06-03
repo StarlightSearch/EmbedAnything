@@ -23,7 +23,7 @@ def embed_file(file_path: str, embeder: str) -> list[EmbedData]:
     - A list of EmbedData objects.
     """
 
-def embed_directory(file_path: str, embeder: str, extensions: list[str]=None) -> list[EmbedData]:
+def embed_directory(file_path: str, embeder: str) -> list[EmbedData]:
     """
     Embeds all the files in the given directory and returns a list of EmbedData objects.
 

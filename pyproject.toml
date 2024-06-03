@@ -18,7 +18,11 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+features = ["pyo3/extension-module", "mkl"]
+include = [{path = "lib/*.dll", format = ["sdist", "wheel"]}]
+python-source = "python"
+manifest-path = "Cargo.toml"
+dependencies = ["mkl"]
 
 [project.urls]
 Homepage = "https://github.com/StarlightSearch/EmbedAnything/tree/main"
