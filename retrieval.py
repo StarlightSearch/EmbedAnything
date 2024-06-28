@@ -1,9 +1,7 @@
-import embed_anything
-from openai import OpenAI
+from python.embed_anything import embed_anything
 
 import os
 import time
-from pinecone import Pinecone
 import numpy as np
 
 
