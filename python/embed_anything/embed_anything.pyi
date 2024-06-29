@@ -35,6 +35,19 @@ def embed_directory(file_path: str, embeder: str) -> list[EmbedData]:
     - A list of EmbedData objects.
     """
 
+def embed_url(url: str, embeder: str) -> list[EmbedData]:
+    """
+    Embeds the content of the webpage at the given URL and returns a list of EmbedData objects.
+
+    ### Arguments:
+    - `url`: The URL of the webpage to embed.
+    - `embeder`: The name of the embedding model to use. Choose between "OpenAI" and "AllMiniLmL12V2"
+
+    ### Returns:
+    - A list of EmbedData objects.
+    """
+
+
 class EmbedData:
     """
     Represents the data of an embedded file.
