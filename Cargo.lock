@@ -813,7 +813,7 @@ checksum = "11157ac094ffbdde99aa67b23417ebdd801842852b500e395a45a9c0aac03e4a"
 
 [[package]]
 name = "embed_anything"
-version = "0.1.14"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "candle-core",

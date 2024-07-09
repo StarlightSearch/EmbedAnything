@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fmt::Debug, fs, os::unix::fs::MetadataExt, time::UNIX_EPOCH};
+use std::{collections::HashMap, fmt::Debug, fs};
 
 use anyhow::Error;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local};
 
 use crate::file_processor::markdown_processor::MarkdownProcessor;
 
@@ -64,7 +64,6 @@ impl TextLoader {
         let mut metadata_map = HashMap::new();
         metadata_map.insert("created".to_string(), format!("{}",DateTime::<Local>::from(metadata.created()?)));
         metadata_map.insert("modified".to_string(), format!("{}",DateTime::<Local>::from(metadata.modified()?)));
-        metadata_map.insert("size".to_string(), metadata.size().to_string());
         metadata_map.insert("file_name".to_string(), file.to_string());
         Ok(metadata_map)
     }
