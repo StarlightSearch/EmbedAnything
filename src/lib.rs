@@ -169,7 +169,7 @@ pub fn embed_directory(
 #[pyfunction]
 pub fn emb_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
-    let runtime = Builder::new_multi_thread().enable_all().build().unwrap();
+    let runtime = Builder::new_current_thread().enable_all().build().unwrap();
     let webpage = runtime
         .block_on(website_processor.process_website(url.as_ref()))
         .unwrap();
