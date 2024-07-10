@@ -5,13 +5,14 @@
 extern crate intel_mkl_src;
 
 pub mod embedding_model;
-pub mod file_processor;
 pub mod file_loader;
+pub mod file_processor;
 pub mod text_loader;
 use std::path::PathBuf;
 
-use embedding_model::embed::{EmbedData, EmbedImage, Embeder};
+use embedding_model::embed::{AudioEmbed, EmbedData, EmbedImage, Embeder};
 use file_loader::FileParser;
+use file_processor::audio::audio_processor;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use rayon::prelude::*;
 use text_loader::TextLoader;
@@ -90,7 +91,8 @@ pub fn embed_file(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
         "OpenAI" => emb_text(file_name, Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()))?,
         "Jina" => emb_text(file_name, Embeder::Jina(embedding_model::jina::JinaEmbeder::default()))?,
         "Bert" => emb_text(file_name, Embeder::Bert(embedding_model::bert::BertEmbeder::default()))?,
-        "Clip" => emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?,
+        "Clip" => vec![emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?],
+        "Whisper-Bert" => emb_audio(file_name, embedding_model::bert::BertEmbeder::default())?,
         _ => {
             return Err(PyValueError::new_err(
                 "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
@@ -98,7 +100,7 @@ pub fn embed_file(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
         }
     };
 
-    Ok(vec![embeddings])
+    Ok(embeddings)
 }
 
 /// Embeds the text from files in a directory using the specified embedding model.
@@ -166,6 +168,41 @@ pub fn embed_directory(
     Ok(embeddings)
 }
 
+/// Embeddings of a webpage using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `embeder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
+/// * `webpage` - The webpage to embed.
+///
+/// # Returns
+///
+/// The embeddings of the webpage.
+///
+/// # Errors
+///
+/// Returns an error if the specified embedding model is invalid.
+///
+/// # Example
+///
+/// ```
+/// let embeddings = match embeder {
+///     "OpenAI" => webpage
+///         .embed_webpage(&embedding_model::openai::OpenAIEmbeder::default())
+///         .unwrap(),
+///     "Jina" => webpage
+///         .embed_webpage(&embedding_model::jina::JinaEmbeder::default())
+///         .unwrap(),
+///     "Bert" => webpage
+///         .embed_webpage(&embedding_model::bert::BertEmbeder::default())
+///         .unwrap(),
+///     _ => {
+///         return Err(PyValueError::new_err(
+///             "Invalid embedding model. Choose between OpenAI and AllMiniLmL12V2.",
+///         ))
+///     }
+/// };
+/// ```
 #[pyfunction]
 pub fn emb_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
@@ -231,7 +268,10 @@ fn emb_directory(
     Ok(embeddings)
 }
 
-fn emb_text<T: AsRef<std::path::Path>>(file: T, embedding_model: Embeder) -> PyResult<EmbedData> {
+fn emb_text<T: AsRef<std::path::Path>>(
+    file: T,
+    embedding_model: Embeder,
+) -> PyResult<Vec<EmbedData>> {
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let chunks = TextLoader::split_into_chunks(&text, 100);
     let metadata = TextLoader::get_metadata(file.as_ref().to_str().unwrap()).ok();
@@ -240,7 +280,7 @@ fn emb_text<T: AsRef<std::path::Path>>(file: T, embedding_model: Embeder) -> PyR
         .map(|chunks| embedding_model.embed(&chunks, metadata).unwrap())
         .ok_or_else(|| PyValueError::new_err("No text found in file"))?;
 
-    Ok(embeddings[0].clone())
+    Ok(embeddings.clone())
 }
 
 fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
@@ -249,6 +289,25 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
 ) -> PyResult<EmbedData> {
     let embedding = embedding_model.embed_image(image_path, None).unwrap();
     Ok(embedding)
+}
+
+pub fn emb_audio<T: AsRef<std::path::Path>, U: AudioEmbed>(
+    audio_file: T,
+    text_embedding_model: U,
+) -> PyResult<Vec<EmbedData>> {
+    let model_input = audio_processor::build_model(
+        Some("openai/whisper-tiny.en".to_string()),
+        Some("main".to_string()),
+        false,
+        "tiny-en",
+    )
+    .unwrap();
+
+    let segments = audio_processor::process_audio(&audio_file, model_input).unwrap();
+    let embeddings = text_embedding_model
+        .embed_audio(segments, &audio_file)
+        .unwrap();
+    Ok(embeddings)
 }
 
 fn emb_image_directory<T: EmbedImage>(

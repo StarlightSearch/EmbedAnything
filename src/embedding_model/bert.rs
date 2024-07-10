@@ -3,7 +3,9 @@ extern crate intel_mkl_src;
 
 use std::collections::HashMap;
 
-use super::embed::{Embed, EmbedData, TextEmbed};
+use crate::file_processor::audio::audio_processor::Segment;
+
+use super::embed::{AudioEmbed, Embed, EmbedData, TextEmbed};
 use anyhow::Error as E;
 use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
@@ -90,6 +92,45 @@ impl BertEmbeder {
             .collect::<Vec<_>>();
         Ok(final_embeddings)
     }
+
+    fn embed_audio<T: AsRef<std::path::Path>>(
+        &self,
+        segments: Vec<Segment>,
+        audio_file: T,
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
+        let text_batch = segments
+            .iter()
+            .map(|segment| segment.dr.text.clone())
+            .collect::<Vec<String>>();
+
+        let token_ids = self
+            .tokenize_batch(&text_batch, &self.model.device)
+            .unwrap();
+        let token_type_ids = token_ids.zeros_like().unwrap();
+        let embeddings = self.model.forward(&token_ids, &token_type_ids).unwrap();
+        let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
+        let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
+        let embeddings = normalize_l2(&embeddings).unwrap();
+        let encodings = embeddings.to_vec2::<f32>().unwrap();
+        let final_embeddings = encodings
+            .iter()
+            .enumerate()
+            .map(|(i, data)| {
+                let mut metadata = HashMap::new();
+                metadata.insert("start".to_string(), segments[i].start.to_string());
+                metadata.insert(
+                    "end".to_string(),
+                    (segments[i].start + segments[i].duration).to_string(),
+                );
+                metadata.insert(
+                    "file_name".to_string(),
+                    (audio_file.as_ref().to_str().unwrap()).to_string(),
+                );
+                EmbedData::new(data.to_vec(), Some(text_batch[i].clone()), Some(metadata))
+            })
+            .collect::<Vec<_>>();
+        Ok(final_embeddings)
+    }
 }
 
 impl Embed for BertEmbeder {
@@ -109,6 +150,16 @@ impl TextEmbed for BertEmbeder {
         metadata: Option<HashMap<String, String>>,
     ) -> Result<Vec<EmbedData>, anyhow::Error> {
         self.embed(text_batch, metadata)
+    }
+}
+
+impl AudioEmbed for BertEmbeder {
+    fn embed_audio<T: AsRef<std::path::Path>>(
+        &self,
+        segments: Vec<Segment>,
+        audio_file: T,
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
+        self.embed_audio(segments, audio_file)
     }
 }
 
