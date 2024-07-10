@@ -1,14 +1,13 @@
-use std::
-    collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
-use anyhow:: Result;
+use anyhow::Result;
 use scraper::{Html, Selector};
 use serde_json::json;
 use url::Url;
 
 use crate::{
     embedding_model::embed::{EmbedData, TextEmbed},
-    file_embed::FileEmbeder,
+    text_loader::TextLoader,
 };
 
 #[derive(Debug)]
@@ -40,12 +39,16 @@ impl WebPage {
         Ok(embed_data)
     }
 
-    pub fn embed_tag<T: TextEmbed>(&self, tag: &str, tag_content: &[String], embeder: &T) -> Result<Vec<EmbedData>> {
+    pub fn embed_tag<T: TextEmbed>(
+        &self,
+        tag: &str,
+        tag_content: &[String],
+        embeder: &T,
+    ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         for content in tag_content {
-            let mut file_embeder = FileEmbeder::new(self.url.to_string());
-            let chunks = match file_embeder.split_into_chunks(content, 1000) {
+            let chunks = match TextLoader::split_into_chunks(content, 1000) {
                 Some(chunks) => chunks,
                 None => continue,
             };
@@ -76,6 +79,25 @@ impl WebPage {
         }
 
         Ok(embed_data)
+    }
+}
+
+impl Default for WebPage {
+    fn default() -> Self {
+        Self {
+            url: "".to_string(),
+            title: None,
+            headers: None,
+            paragraphs: None,
+            codes: None,
+            links: None,
+        }
+    }
+}
+
+impl Default for WebsiteProcessor {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
