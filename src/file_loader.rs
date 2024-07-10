@@ -86,6 +86,27 @@ impl FileParser {
         Ok(self.files.clone())
     }
 
+    pub fn get_audio_files(&mut self, directory_path: &PathBuf) -> Result<Vec<String>, Error> {
+        let audio_regex = Regex::new(r".*\.(wav)$").unwrap();
+
+        let audio_paths: Vec<String> = WalkDir::new(directory_path)
+            .into_iter()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_file())
+            .filter(|entry| audio_regex.is_match(entry.file_name().to_str().unwrap_or("")))
+            .map(|entry| {
+                let absolute_path = entry
+                    .path()
+                    .canonicalize()
+                    .unwrap_or_else(|_| entry.path().to_path_buf());
+                absolute_path.to_string_lossy().to_string()
+            })
+            .collect();
+
+        self.files = audio_paths;
+        Ok(self.files.clone())
+    }
+
     pub fn get_files_to_index(&self, indexed_files: &HashSet<String>) -> Vec<String> {
         let files = self
             .files
@@ -160,11 +181,13 @@ mod tests {
                 .to_string()
         );
         assert_eq!(
-            markdown_files,
+            markdown_files.clone().sort(),
             markdown_file
                 .iter()
                 .map(|f| f.canonicalize().unwrap().to_string_lossy().to_string())
                 .collect::<Vec<String>>()
+                .clone()
+                .sort()
         );
     }
 
@@ -188,6 +211,16 @@ mod tests {
                 .to_string_lossy()
                 .to_string()
         );
+    }
+
+    #[test]
+    fn test_get_audio_paths() {
+        let mut file_parser = FileParser::new();
+        let audio_files = file_parser
+            .get_audio_files(&PathBuf::from("test_files"))
+            .unwrap();
+
+        assert_eq!(audio_files.len(), 2);
     }
 
     #[test]

@@ -3,6 +3,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
+use crate::file_processor::audio::audio_processor::Segment;
+
 use super::bert::BertEmbeder;
 use super::clip::ClipEmbeder;
 use super::jina::JinaEmbeder;
@@ -97,5 +99,13 @@ pub trait EmbedImage {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+    ) -> anyhow::Result<Vec<EmbedData>>;
+}
+
+pub trait AudioEmbed {
+    fn embed_audio<T: AsRef<std::path::Path>>(
+        &self,
+        segments: Vec<Segment>,
+        audio_file: T,
     ) -> anyhow::Result<Vec<EmbedData>>;
 }

@@ -9,3 +9,5 @@ pub mod txt_processor;
 
 /// This module contains the processor to process web links.
 pub mod website_processor;
+
+pub mod audio;

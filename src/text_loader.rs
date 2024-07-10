@@ -62,8 +62,14 @@ impl TextLoader {
     pub fn get_metadata(file: &str) -> Result<HashMap<String, String>, Error> {
         let metadata = fs::metadata(file)?;
         let mut metadata_map = HashMap::new();
-        metadata_map.insert("created".to_string(), format!("{}",DateTime::<Local>::from(metadata.created()?)));
-        metadata_map.insert("modified".to_string(), format!("{}",DateTime::<Local>::from(metadata.modified()?)));
+        metadata_map.insert(
+            "created".to_string(),
+            format!("{}", DateTime::<Local>::from(metadata.created()?)),
+        );
+        metadata_map.insert(
+            "modified".to_string(),
+            format!("{}", DateTime::<Local>::from(metadata.modified()?)),
+        );
         metadata_map.insert("file_name".to_string(), file.to_string());
         Ok(metadata_map)
     }
@@ -100,7 +106,11 @@ mod tests {
     fn test_metadata() {
         let file_path = PathBuf::from("test_files/test.pdf");
         let metadata = TextLoader::get_metadata(file_path.to_str().unwrap()).unwrap();
-        assert_eq!(metadata.len(), 4);
+
+        // assert the fields that are present
+        assert!(metadata.contains_key("created"));
+        assert!(metadata.contains_key("modified"));
+        assert!(metadata.contains_key("file_name"));
     }
 
     #[test]
@@ -110,6 +120,4 @@ mod tests {
         let emb_data = embeder.embed_image(&file_path, None).unwrap();
         assert_eq!(emb_data.embedding.len(), 512);
     }
-
-    
 }
