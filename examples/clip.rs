@@ -58,7 +58,7 @@ fn main() {
         .map(|i| image_paths[*i].clone())
         .collect::<Vec<String>>();
 
-    let similar_image =top_3_image_paths[0].clone();
+    let similar_image = top_3_image_paths[0].clone();
 
     println!("{:?}", similar_image);
     let elapsed_time = now.elapsed();

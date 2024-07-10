@@ -147,7 +147,6 @@ impl EmbedImage for ClipEmbeder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
-        
     ) -> anyhow::Result<Vec<EmbedData>> {
         let config = clip::ClipConfig::vit_base_patch32();
 
@@ -166,14 +165,18 @@ impl EmbedImage for ClipEmbeder {
                 EmbedData::new(
                     data.to_vec(),
                     Some(path.as_ref().to_str().unwrap().to_string()),
-                    None, 
+                    None,
                 )
             })
             .collect::<Vec<_>>();
         Ok(embeddings)
     }
 
-    fn embed_image<T: AsRef<std::path::Path>>(&self, image_path: T, metadata: Option<HashMap<String, String>>) -> anyhow::Result<EmbedData> {
+    fn embed_image<T: AsRef<std::path::Path>>(
+        &self,
+        image_path: T,
+        metadata: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<EmbedData> {
         let config = clip::ClipConfig::vit_base_patch32();
         let image = self
             .load_image(&image_path, config.image_size)
@@ -191,7 +194,11 @@ impl EmbedImage for ClipEmbeder {
 }
 
 impl Embed for ClipEmbeder {
-    fn embed(&self, text_batch: &[String], metadata: Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        metadata: Option<HashMap<String, String>>,
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
         let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
             Some(text_batch.to_vec()),
             &self.tokenizer,
@@ -208,7 +215,7 @@ impl Embed for ClipEmbeder {
         let embeddings = encodings
             .iter()
             .zip(text_batch)
-            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone() ))
+            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
             .collect::<Vec<_>>();
         Ok(embeddings)
     }
@@ -221,7 +228,6 @@ mod tests {
     #[test]
     fn test_default_initialization() {
         let _clip_embeder = ClipEmbeder::default();
-        
     }
 
     // Tests the tokenize_sequences method.
@@ -232,11 +238,16 @@ mod tests {
             "Hey there how are you?".to_string(),
             "EmbedAnything is the best!".to_string(),
         ]);
-        let (input_ids, vec_seq) = ClipEmbeder::tokenize_sequences(sequences, &clip_embeder.tokenizer, &Device::Cpu).unwrap();
-        assert_eq!(vec_seq, vec![
-            "Hey there how are you?".to_string(),
-            "EmbedAnything is the best!".to_string(),
-        ]);
+        let (input_ids, vec_seq) =
+            ClipEmbeder::tokenize_sequences(sequences, &clip_embeder.tokenizer, &Device::Cpu)
+                .unwrap();
+        assert_eq!(
+            vec_seq,
+            vec![
+                "Hey there how are you?".to_string(),
+                "EmbedAnything is the best!".to_string(),
+            ]
+        );
         assert_eq!(input_ids.shape().clone().into_dims(), &[2, 8]);
     }
 
@@ -244,7 +255,9 @@ mod tests {
     #[test]
     fn test_load_image() {
         let clip_embeder = ClipEmbeder::default();
-        let image = clip_embeder.load_image("test_files/clip/cat1.jpg", 224).unwrap();
+        let image = clip_embeder
+            .load_image("test_files/clip/cat1.jpg", 224)
+            .unwrap();
         assert_eq!(image.shape().clone().into_dims(), &[3, 224, 224]);
     }
 
@@ -252,7 +265,12 @@ mod tests {
     #[test]
     fn test_load_images() {
         let clip_embeder = ClipEmbeder::default();
-        let images = clip_embeder.load_images(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"], 224).unwrap();
+        let images = clip_embeder
+            .load_images(
+                &["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"],
+                224,
+            )
+            .unwrap();
         assert_eq!(images.shape().clone().into_dims(), &[2, 3, 224, 224]);
     }
 
@@ -260,7 +278,9 @@ mod tests {
     #[test]
     fn test_embed_image_batch() {
         let clip_embeder = ClipEmbeder::default();
-        let embeddings = clip_embeder.embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"]).unwrap();
+        let embeddings = clip_embeder
+            .embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"])
+            .unwrap();
         assert_eq!(embeddings.len(), 2);
     }
 }

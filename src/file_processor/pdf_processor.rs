@@ -1,5 +1,5 @@
-use std:: path::PathBuf;
 use anyhow::Error;
+use std::path::PathBuf;
 
 /// A struct for processing PDF files.
 pub struct PdfProcessor;
@@ -18,15 +18,15 @@ impl PdfProcessor {
     pub fn extract_text(file_path: &PathBuf) -> Result<String, Error> {
         let bytes = std::fs::read(file_path)?;
         let out = pdf_extract::extract_text_from_mem(&bytes)?;
-        
+
         Ok(out)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use pdf_extract::OutputError;
     use super::*;
+    use pdf_extract::OutputError;
     use std::fs::File;
     use tempdir::TempDir;
 
@@ -43,6 +43,5 @@ mod tests {
         let pdf_file = "test_files/test.pdf";
         let text = PdfProcessor::extract_text(&PathBuf::from(pdf_file)).unwrap();
         assert_eq!(text.len(), 4271);
-        
     }
 }

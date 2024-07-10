@@ -71,7 +71,11 @@ impl JinaEmbeder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    fn embed(&self, text_batch: &[String], metadata:Option<HashMap<String, String>>) -> Result<Vec<EmbedData>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        metadata: Option<HashMap<String, String>>,
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
         let token_ids = self.tokenize_batch(text_batch, &self.model.device).unwrap();
         let embeddings = self.model.forward(&token_ids).unwrap();
 
@@ -88,8 +92,6 @@ impl JinaEmbeder {
             .collect::<Vec<_>>();
         Ok(final_embeddings)
     }
-
-
 }
 
 impl Embed for JinaEmbeder {
