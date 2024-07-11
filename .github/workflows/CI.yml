@@ -44,14 +44,15 @@ jobs:
       - name: Install dependencies 
         run: | 
           pip install patchelf
-          sudo apt update
-          sudo apt install -y build-essential libssl-dev install pkg-config libpython3.11-dev
+          sudo apt-get update
+          sudo apt-get install -y build-essential 
+          sudo apt-get install -y libssl-dev pkg-config libpython3.11-dev
       - name: Install MKL
         run: | 
           sudo apt install -y gpg-agent wget
           wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/nullwget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
           echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-          sudo apt  update
+          sudo apt update
           sudo apt install -y intel-oneapi-mkl-devel
           export LD_LIBRARY_PATH="/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH"
           
