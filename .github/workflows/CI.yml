@@ -16,7 +16,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  id-token: write
 
 jobs:
   linux:
@@ -30,20 +31,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Configure Git Credentials
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '>=3.9'  # Choose the Python version you need
-      - name: Deploy Docs
-        run: |
-          pip install mkdocs mkdocstrings[python] mkdocs-material
-          mkdocs build
-          mkdocs gh-deploy --force
           
       - name: Install Maturin
         run: |
@@ -145,14 +137,15 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permmissions:
+      id-token: write
+    environment: release
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [linux, windows, macos, sdist]
     steps:
       - uses: actions/download-artifact@v4
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
