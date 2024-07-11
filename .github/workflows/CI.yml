@@ -45,7 +45,7 @@ jobs:
         run: | 
           pip install patchelf
           sudo apt update
-          sudo apt install-y build-essential libssl-dev install pkg-config libpython3.11-dev
+          sudo apt install -y build-essential libssl-dev install pkg-config libpython3.11-dev
       - name: Install MKL
         run: | 
           sudo apt install -y gpg-agent wget
