@@ -39,6 +39,7 @@ jobs:
       - name: Install Maturin
         run: |
           python3 -m pip install maturin[patchelf]
+          export PATH="$PATH:/opt/python/cp37-cp37m/bin:/opt/python/cp38-cp38/bin:/opt/python/cp39-cp39/bin:/opt/python/cp310-cp310/bin:/opt/python/cp311-cp311/bin:/opt/python/cp312-cp312/bin
 
       - name: Install dependencies
         run: |
@@ -53,15 +54,6 @@ jobs:
           profile: minimal
           toolchain: nightly
 
-      - name: Create virtual environment
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-
-      - name: Install project dependencies
-        run: |
-          pip install maturin patchelf  # Replace with the path to your requirements file if exists
-          
       - name: Install MKL
         run: | 
           wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
