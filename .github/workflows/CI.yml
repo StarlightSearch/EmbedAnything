@@ -29,7 +29,7 @@ jobs:
    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,7 +39,6 @@ jobs:
       - name: Install Maturin
         run: |
           python3 -m pip install maturin[patchelf]
-          export PATH="$PATH:/opt/python/cp37-cp37m/bin:/opt/python/cp38-cp38/bin:/opt/python/cp39-cp39/bin:/opt/python/cp310-cp310/bin:/opt/python/cp311-cp311/bin:/opt/python/cp312-cp312/bin"
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -61,6 +60,7 @@ jobs:
           export LD_LIBRARY_PATH="/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH"
       - name: Build with Maturin
         run: |
+          export PATH="$PATH:/opt/hostedtoolcache/Python/3.12.4/x64/bin/python3.12:/opt/hostedtoolcache/Python/3.11.9/x64/bin/python3.11:/opt/hostedtoolcache/Python/3.10.9/x64/bin/python3.10"
           maturin build --release --find-interpreter
   windows:
     runs-on: ${{ matrix.platform.runner }}
