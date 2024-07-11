@@ -41,10 +41,15 @@ jobs:
           python3 -m pip install maturin[patchelf]
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev  # OpenSSL development headers for Ubuntu
-          sudo apt-get install -y build-essential 
-          sudo apt-get install -y pkg-config
+          sudo add-apt-repository ppa:deadsnakes/ppa
+          sudo apt update
+          sudo apt install -y libssl-dev  # OpenSSL development headers for Ubuntu
+          sudo apt install -y build-essential 
+          sudo apt install -y pkg-config
+          sudo apt install python3.11
+          sudo apt install python3.10
+          sudo apt install python 3.9
+          sudo apt install python 3.12
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
