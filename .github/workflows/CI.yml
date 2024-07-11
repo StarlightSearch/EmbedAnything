@@ -34,7 +34,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'  # Choose the Python version you need
+          python-version: '>=3.9'  # Choose the Python version you need
 
       - name: Install Maturin
         run: |
