@@ -1,0 +1,42 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+   
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'  # Choose the Python version you need
+      - name: Deploy Docs
+        run: |
+          pip install mkdocs mkdocstrings[python] mkdocs-material
+          mkdocs build
+          mkdocs gh-deploy --force
+  
