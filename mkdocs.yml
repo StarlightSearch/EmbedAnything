@@ -1,0 +1,9 @@
+site_name: EmbedAnything Docs
+theme:
+  name: "material"
+plugins:
+- mkdocstrings
+
+nav:
+- index.md
+- references.md
