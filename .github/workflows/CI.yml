@@ -67,6 +67,12 @@ jobs:
         run: |
           export PATH="$PATH:/opt/hostedtoolcache/Python/3.12.4/x64/bin/python3.12:/opt/hostedtoolcache/Python/3.11.9/x64/bin/python3.11:/opt/hostedtoolcache/Python/3.10.9/x64/bin/python3.10"
           maturin build --release --out dist --find-interpreter
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-${{ matrix.platform.target }}
+          path: dist
+          
   windows:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
