@@ -6,7 +6,7 @@ __pycache__/
 *.py[cod]
 
 # C extensions
-*.so
+embed*.so
 
 # Distribution / packaging
 .Python
@@ -69,3 +69,6 @@ docs/_build/
 
 # Pyenv
 .python-version
+
+site/
+
