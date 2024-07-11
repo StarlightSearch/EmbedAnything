@@ -66,7 +66,7 @@ jobs:
       - name: Build with Maturin
         run: |
           export PATH="$PATH:/opt/hostedtoolcache/Python/3.12.4/x64/bin/python3.12:/opt/hostedtoolcache/Python/3.11.9/x64/bin/python3.11:/opt/hostedtoolcache/Python/3.10.9/x64/bin/python3.10"
-          maturin build --release --find-interpreter
+          maturin build --release --out dist --find-interpreter
   windows:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
