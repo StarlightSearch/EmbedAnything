@@ -37,7 +37,7 @@ jobs:
           python-version: '>=3.9'  # Choose the Python version you need
       - name: Deploy Docs
         run: |
-          pip install mkdocs mkdocstrings
+          pip install mkdocs mkdocstrings[python] mkdocs-material
           mkdocs build
           mkdocs gh-deploy
           
