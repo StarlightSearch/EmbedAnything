@@ -48,8 +48,8 @@ jobs:
           sudo apt install -y pkg-config
           sudo apt install python3.11
           sudo apt install python3.10
-          sudo apt install python 3.9
-          sudo apt install python 3.12
+          sudo apt install python3.9
+          sudo apt install python3.12
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
