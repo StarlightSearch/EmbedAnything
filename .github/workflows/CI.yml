@@ -28,25 +28,40 @@ jobs:
             target: x86_64
    
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          python-version: 3.x
-          
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
+          python-version: '3.x'  # Choose the Python version you need
+
+      - name: Install Maturin
+        run: |
+          python3 -m pip install maturin[patchelf]
+          export PATH="$PATH:/opt/python/cp37-cp37m/bin:/opt/python/cp38-cp38/bin:/opt/python/cp39-cp39/bin:/opt/python/cp310-cp310/bin:/opt/python/cp311-cp311/bin:/opt/python/cp312-cp312/bin"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev  # OpenSSL development headers for Ubuntu
+          sudo apt-get install -y build-essential 
+          sudo apt-get install -y pkg-configS
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
         with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-          manylinux: auto
-            
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-linux-${{ matrix.platform.target }}
-          path: dist
-          
+          profile: minimal
+          toolchain: nightly
+
+      - name: Install MKL
+        run: | 
+          wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          sudo apt update
+          sudo apt install -y intel-oneapi-mkl-devel
+          export LD_LIBRARY_PATH="/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH"
+      - name: Build with Maturin
+        run: |
+          maturin build --release --find-interpreter
   windows:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
