@@ -35,7 +35,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '>=3.9'  # Choose the Python version you need
-
+      - name: Deploy Docs
+        run: |
+          pip install mkdocs mkdocstrings
+          mkdocs build
+          mkdocs gh-deploy
+          
       - name: Install Maturin
         run: |
           python3 -m pip install maturin[patchelf]
