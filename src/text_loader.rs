@@ -32,10 +32,11 @@ impl TextLoader {
             return Some(chunks);
         }
 
-        let sentences: Vec<&str> = text.split_terminator('.').collect();
+        let sentences: Vec<&str> = text.split_terminator(&['.', ';'][..]).collect();
 
         for sentence in sentences {
             let sentence_with_period = format!("{}.", sentence);
+
             let words: Vec<String> = sentence_with_period
                 .split_whitespace()
                 .map(|word| word.to_owned())
@@ -48,6 +49,8 @@ impl TextLoader {
                 chunk.clear();
             }
         }
+        chunks.push(chunk.join(" ")); // push the remaining words
+
         Some(chunks)
     }
 
