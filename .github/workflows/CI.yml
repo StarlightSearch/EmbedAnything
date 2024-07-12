@@ -34,7 +34,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '>=3.9'  # Choose the Python version you need
+          python-version: '>=3.10'  # Choose the Python version you need
           
       - name: Install Maturin
         run: |
@@ -48,7 +48,6 @@ jobs:
           sudo apt install -y pkg-config
           sudo apt install python3.11
           sudo apt install python3.10
-          sudo apt install python3.9
           sudo apt install python3.12
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -65,7 +64,6 @@ jobs:
           export LD_LIBRARY_PATH="/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH"
       - name: Build with Maturin
         run: |
-          export PATH="$PATH:/opt/hostedtoolcache/Python/3.12.4/x64/bin/python3.12:/opt/hostedtoolcache/Python/3.11.9/x64/bin/python3.11:/opt/hostedtoolcache/Python/3.10.9/x64/bin/python3.10"
           maturin build --release --out dist --find-interpreter --features mkl
   windows:
     runs-on: ${{ matrix.platform.runner }}
