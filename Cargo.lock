@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "accelerate-src"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "415ed64958754dbe991900f3940677e6a7eefb4d7367afd70d642677b0c7d19d"
+
+[[package]]
 name = "addr2line"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -332,6 +338,7 @@ name = "candle-core"
 version = "0.6.0"
 source = "git+https://github.com/huggingface/candle.git#25960676caefcb10060fb36a8d66efa9fa731dec"
 dependencies = [
+ "accelerate-src",
  "byteorder",
  "gemm",
  "half",
@@ -354,6 +361,7 @@ name = "candle-nn"
 version = "0.6.0"
 source = "git+https://github.com/huggingface/candle.git#25960676caefcb10060fb36a8d66efa9fa731dec"
 dependencies = [
+ "accelerate-src",
  "candle-core",
  "half",
  "intel-mkl-src",
@@ -369,6 +377,7 @@ name = "candle-transformers"
 version = "0.6.0"
 source = "git+https://github.com/huggingface/candle.git#25960676caefcb10060fb36a8d66efa9fa731dec"
 dependencies = [
+ "accelerate-src",
  "byteorder",
  "candle-core",
  "candle-nn",
@@ -848,6 +857,7 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 name = "embed_anything"
 version = "0.1.19"
 dependencies = [
+ "accelerate-src",
  "anyhow",
  "byteorder",
  "candle-core",
