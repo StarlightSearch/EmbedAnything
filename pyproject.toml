@@ -18,7 +18,7 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 
 [tool.maturin]
-features = ["pyo3/extension-module", "mkl"]
+features = ["pyo3/extension-module"]
 include = [{path = "lib/*.dll", format = ["sdist", "wheel"]}]
 python-source = "python"
 manifest-path = "Cargo.toml"
