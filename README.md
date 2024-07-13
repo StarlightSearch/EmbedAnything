@@ -52,9 +52,9 @@ EmbedAnything is a powerful Python library designed to streamline the creation a
         <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="##-Usage">Usage</a></li>
-    <li><a href="##-RoadMap">Roadmap</a></li>
-    <li><a href="##-🚀-Quick-Start">Contributing</a></li>
+    <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-getting-started">Usage</a></li>
+    <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap">Roadmap</a></li>
+    <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#quick-start">Contributing</a></li>
   </ol>
 </details>
 
