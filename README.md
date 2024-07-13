@@ -62,12 +62,13 @@ EmbedAnything is a powerful Python library designed to streamline the creation a
 
 ## 🚀 Key Features
 
-- **Local Embedding** Works with local embedding models like AllminiLM
-- **MultiModality** Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
+- **Local Embedding** : Works with local embedding models like BERT and JINA
+- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
+- **Rust** : All the file processing is done in rust for speed and efficiency
+- **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
-- **Efficient:** Optimized for speed and performance, with core functionality written in Rust.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
-- **OpenAI** Works with openai as well
+- **OpenAI** Supports OpenAI and Whisper embeddings
 
 
 ## 🦀The Benefit of Rust for Speed
@@ -159,15 +160,21 @@ This document provides guidelines and best practices to help you to contribute e
 
 
 
-**********************************Table of Content:********************************** 
-1. [Code of conduct]
-2. [Quick Start]
-3. [RoadMap]
+<li><a href="##-RoadMap">Roadmap</a></li>
+<li><a href="##-Quick-Start">Quick Start</a></li>
+<li><a href="##-Contributing-Guidelines">Guidelines</a></li>
 
 
 ## RoadMap 
+One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
+✅ Markdown, PDFs, and Website <br />
+✅ WAV File <br />
+✅ JPG, PNG, webp <br />
+✅Add whisper for audio embeddings <br />
+
+Yet to do be done <br />
+☑️Vector Database: Add functionalities to integrate with any Vector Database <br />
 ☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-☑️Add whisper for audio embeddings <br />
 ☑️Zero-shot application <br />
 ☑️Asynchronous chunks training
 
@@ -176,15 +183,14 @@ This document provides guidelines and best practices to help you to contribute e
 
 Please read our [Code of Conduct] to understand the expectations we have for all contributors participating in this project. By participating, you agree to abide by our Code of Conduct.
 
-## 🚀 Quick Start
+## Quick Start
 
 You can quickly get started with contributing by searching for issues with the labels **"Good First Issue"** or **"Help Needed"** in the [Issues Section]. If you think you can contribute, comment on the issue and we will assign it to you.  
 
 To set up your development environment, please follow the steps mentioned below : 
 
-1. Fork the repository and create a clone of the fork
-2. Create a branch for a feature or a bug you are working on in your fork
-3. If you are working with OpenAI make sure you have the keys
+1. Fork the repository from dev, We don't allow direct contribution to main
+
 
 ## Contributing Guidelines 
  
@@ -195,12 +201,6 @@ To set up your development environment, please follow the steps mentioned below 
 2. Provide a detailed description of the problem and the necessary steps to reproduce the issue.
 3. Include any relevant logs, screenshots, or other helpful information supporting the issue.
 
-### 💡 New Feature or Suggesting Enhancements
 
-
-
-## ☑️ ToDo
-
-- **Vector Database** Add functionalities to integrate with any Vector Database
 
 
