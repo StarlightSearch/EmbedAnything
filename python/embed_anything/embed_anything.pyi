@@ -56,7 +56,7 @@ def embed_file(file_path: str, embeder: str) -> list[EmbedData]:
 
     - Text -> "OpenAI", "Bert"
     - Image -> "Clip"
-    - Audio -> "Whisper-Bert"
+    - Audio -> "Whisper-Bert", "Whisper-OpenAI", "Whisper-Jina"
 
     Args:
         file_path: The path to the file to embed.
@@ -64,6 +64,13 @@ def embed_file(file_path: str, embeder: str) -> list[EmbedData]:
 
     Returns:
         A list of EmbedData objects.
+
+    Example:
+
+    ```python
+    import embed_anything
+    data = embed_anything.embed_file("test_files/test.pdf", embeder="Bert
+    ```
 
     """
 
@@ -76,7 +83,20 @@ def embed_directory(file_path: str, embeder: str) -> list[EmbedData]:
         embeder: The name of the embedding model to use. Choose between "OpenAI" and "Bert"
 
     Returns:
-    - A list of EmbedData objects.
+        A list of EmbedData objects.
+    """
+
+def embed_webpage(url: str, embeder: str) -> list[EmbedData]:
+    """
+    Embeds the webpage at the given URL and returns a list of EmbedData objects.
+
+    Args:
+        url: The URL of the webpage to embed.
+        embeder: The name of the embedding model to use. Choose between "OpenAI", "Jina", "Bert"
+
+    Returns:
+        A list of EmbedData objects
+
     """
 
 class EmbedData:
