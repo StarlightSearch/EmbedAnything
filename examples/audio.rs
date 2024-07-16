@@ -5,5 +5,5 @@ fn main() {
 
     let embeddings = embed_file(audio_path.to_str().unwrap(), "Whisper-Bert").unwrap();
 
-    println!("{:?}", embeddings);
+    // println!("{:?}", embeddings);
 }
