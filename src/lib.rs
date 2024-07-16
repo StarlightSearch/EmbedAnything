@@ -93,6 +93,8 @@ pub fn embed_file(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
         "Bert" => emb_text(file_name, Embeder::Bert(embedding_model::bert::BertEmbeder::default()))?,
         "Clip" => vec![emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?],
         "Whisper-Bert" => emb_audio(file_name, embedding_model::bert::BertEmbeder::default())?,
+        "Whisper-OpenAI"=> emb_audio(file_name, embedding_model::openai::OpenAIEmbeder::default())?,
+        "Whisper-Jina" => emb_audio(file_name, embedding_model::jina::JinaEmbeder::default())?,
         _ => {
             return Err(PyValueError::new_err(
                 "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
@@ -204,7 +206,7 @@ pub fn embed_directory(
 /// };
 /// ```
 #[pyfunction]
-pub fn emb_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
+pub fn embed_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let runtime = Builder::new_current_thread().enable_all().build().unwrap();
     let webpage = runtime
@@ -236,7 +238,7 @@ fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_file, m)?)?;
     m.add_function(wrap_pyfunction!(embed_directory, m)?)?;
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
-    m.add_function(wrap_pyfunction!(emb_webpage, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
     m.add_class::<embedding_model::embed::EmbedData>()?;
 
     Ok(())
