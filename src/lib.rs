@@ -224,7 +224,7 @@ pub fn embed_file(
     config: Option<&EmbedConfig>,
 ) -> PyResult<Vec<EmbedData>> {
     let embeddings = if let Some(config) = config {
-        if let Some(_) = &config.audio_decoder {
+        if config.audio_decoder.is_some() {
             emb_audio(file_name, config)?
         } else if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
