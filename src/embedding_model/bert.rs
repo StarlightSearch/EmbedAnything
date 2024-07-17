@@ -37,17 +37,15 @@ impl BertEmbeder {
                     hf_hub::RepoType::Model,
                 )),
             };
-            let config = api.get("config.json").unwrap();
-            let tokenizer = api.get("tokenizer.json").unwrap();
-            let weights = api.get("model.safetensors").unwrap();
+            let config = api.get("config.json")?;
+            let tokenizer = api.get("tokenizer.json")?;
+            let weights = api.get("model.safetensors")?;
 
             (config, tokenizer, weights)
         };
-        let config = std::fs::read_to_string(config_filename).unwrap();
-        let mut config: Config = serde_json::from_str(&config).unwrap();
-        let mut tokenizer = Tokenizer::from_file(tokenizer_filename)
-            .map_err(E::msg)
-            .unwrap();
+        let config = std::fs::read_to_string(config_filename)?;
+        let mut config: Config = serde_json::from_str(&config)?;
+        let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
 
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
