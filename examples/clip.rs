@@ -5,9 +5,17 @@ use std::{path::PathBuf, time::Instant};
 fn main() {
     //    let out =  embed_file("test_files/TUe_SOP_AI_2.pdf", "Bert").unwrap();
 
-    let now = Instant::now();
-    let out = embed_directory(PathBuf::from("test_files"), "Clip", None).unwrap();
-    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], "Clip").unwrap();
+    let clip_config = embed_anything::config::ClipConfig {
+        model_id: Some("google/siglip-base-patch16-224".to_string()),
+        revision: Some("main".to_string()),
+    };
+    let config = embed_anything::config::EmbedConfig {
+        clip: Some(clip_config),
+        ..Default::default()
+    };
+    let out = embed_directory(PathBuf::from("test_files"), "Clip", None, Some(&config)).unwrap();
+    let query_emb_data =
+        embed_query(vec!["Photo of a monkey".to_string()], "Clip", Some(&config)).unwrap();
     let n_vectors = out.len();
     let out_embeddings = Tensor::from_vec(
         out.iter()
@@ -61,6 +69,5 @@ fn main() {
     let similar_image = top_3_image_paths[0].clone();
 
     println!("{:?}", similar_image);
-    let elapsed_time = now.elapsed();
-    println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
+    // println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 }

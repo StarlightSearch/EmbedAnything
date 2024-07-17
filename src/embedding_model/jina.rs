@@ -22,32 +22,33 @@ pub struct JinaEmbeder {
 
 impl Default for JinaEmbeder {
     fn default() -> Self {
-        let api = hf_hub::api::sync::Api::new().unwrap();
-        let model_file = api
-            .repo(Repo::new(
-                "jinaai/jina-embeddings-v2-base-en".to_string(),
-                RepoType::Model,
-            ))
-            .get("model.safetensors")
-            .unwrap();
-        let config = Config::v2_base();
+        Self::new("jinaai/jina-embeddings-v2-base-en".to_string(), None).unwrap()
+    }
+}
 
+impl JinaEmbeder {
+    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+        let api = hf_hub::api::sync::Api::new()?;
+        let api = match revision {
+            Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
+            None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
+        };
+        let model_file = api.get("model.safetensors")?;
+        let config = Config::v2_base();
         let device = Device::Cpu;
         let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device).unwrap()
+            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
         };
-        let model = BertModel::new(vb, &config).unwrap();
-        let mut tokenizer = Self::get_tokenizer(None).unwrap();
+        let model = BertModel::new(vb, &config)?;
+        let mut tokenizer = Self::get_tokenizer(None)?;
         let pp = tokenizers::PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
             ..Default::default()
         };
         tokenizer.with_padding(Some(pp));
-        JinaEmbeder { model, tokenizer }
+        Ok(Self { model, tokenizer })
     }
-}
 
-impl JinaEmbeder {
     pub fn get_tokenizer(tokenizer: Option<String>) -> anyhow::Result<Tokenizer> {
         let tokenizer = match tokenizer {
             None => {
@@ -115,7 +116,6 @@ impl JinaEmbeder {
             .tokenize_batch(&text_batch, &self.model.device)
             .unwrap();
         println!("{:?}", token_ids);
-        let token_type_ids = token_ids.zeros_like().unwrap();
         let embeddings = self.model.forward(&token_ids).unwrap();
         let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
         let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
@@ -141,7 +141,6 @@ impl JinaEmbeder {
         Ok(final_embeddings)
     }
 }
-
 
 impl Embed for JinaEmbeder {
     fn embed(
