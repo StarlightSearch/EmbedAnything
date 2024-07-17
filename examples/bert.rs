@@ -1,5 +1,5 @@
 use embed_anything::config::{BertConfig, EmbedConfig};
-use embed_anything::{embed_directory, embed_file, embedding_model::embed::Embed};
+use embed_anything::embed_directory;
 use std::{path::PathBuf, time::Instant};
 
 fn main() {
