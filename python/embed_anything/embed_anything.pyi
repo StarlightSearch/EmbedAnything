@@ -26,7 +26,6 @@ Supported Embedding Models:
     - "Whisper-Bert"
 """
 
-from typing import Optional
 from .embed_anything import *
 
 def embed_query(query: list[str], embeder: str) -> list[EmbedData]:
@@ -41,7 +40,7 @@ def embed_query(query: list[str], embeder: str) -> list[EmbedData]:
     """
 
 def embed_file(
-    file_path: str, embeder: str, config: Optional[EmbedConfig] = None
+    file_path: str, embeder: str, config: EmbedConfig | None = None
 ) -> list[EmbedData]:
     """
     Embeds the file at the given path and returns a list of EmbedData objects.
@@ -67,7 +66,7 @@ def embed_file(
     """
 
 def embed_directory(
-    file_path: str, embeder: str, config: Optional[EmbedConfig]
+    file_path: str, embeder: str, config: EmbedConfig | None
 ) -> list[EmbedData]:
     """
     Embeds all the files in the given directory and returns a list of EmbedData objects.
@@ -104,6 +103,10 @@ class EmbedData:
         metadata: Additional metadata associated with the embedding.
     """
 
+    def __init__(self, embedding: list[float], text: str, metadata: dict[str, str]):
+        self.embedding = embedding
+        self.text = text
+        self.metadata = metadata
     embedding: list[float]
     text: str
     metadata: dict[str, str]
@@ -118,9 +121,18 @@ class BertConfig:
         chunk_size: The chunk size for the Bert model.
     """
 
-    model_id: Optional[str] = None
-    revision: Optional[str] = None
-    chunk_size: Optional[int] = None
+    def __init__(
+        self,
+        model_id: str | None = None,
+        revision: str | None = None,
+        chunk_size: int | None = None,
+    ):
+        self.model_id = model_id
+        self.revision = revision
+        self.chunk_size = chunk_size
+    model_id: str | None
+    revision: str | None
+    chunk_size: int | None
 
 class JinaConfig:
     """
@@ -132,9 +144,18 @@ class JinaConfig:
         chunk_size: The chunk size for the Jina model.
     """
 
-    model_id: Optional[str] = None
-    revision: Optional[str] = None
-    chunk_size: Optional[int] = None
+    def __init__(
+        self,
+        model_id: str | None = None,
+        revision: str | None = None,
+        chunk_size: int | None = None,
+    ):
+        self.model_id = model_id
+        self.revision = revision
+        self.chunk_size = chunk_size
+    model_id: str | None = None
+    revision: str | None = None
+    chunk_size: int | None = None
 
 class OpenAIConfig:
     """
@@ -146,9 +167,18 @@ class OpenAIConfig:
         chunk_size: The chunk size for the OpenAI model.
     """
 
-    model: Optional[str] = None
-    api_key: Optional[str] = None
-    chunk_size: Optional[int] = None
+    def __init__(
+        self,
+        model: str | None = None,
+        api_key: str | None = None,
+        chunk_size: int | None = None,
+    ):
+        self.model = model
+        self.api_key = api_key
+        self.chunk_size = chunk_size
+    model: str | None
+    api_key: str | None
+    chunk_size: int | None
 
 class ClipConfig:
     """
@@ -159,8 +189,11 @@ class ClipConfig:
         revision: The revision of the Clip model.
     """
 
-    model_id: Optional[str] = None
-    revision: Optional[str] = None
+    def __init__(self, model_id: str | None = None, revision: str | None = None):
+        self.model_id = model_id
+        self.revision = revision
+    model_id: str | None
+    revision: str | None
 
 class AudioDecoderConfig:
     """
@@ -173,10 +206,21 @@ class AudioDecoderConfig:
         quantized: Whether the Audio Decoder model is quantized.
     """
 
-    decoder_model_id: Optional[str] = None
-    decoder_revision: Optional[str] = None
-    model_type: Optional[str] = None
-    quantized: Optional[bool] = None
+    def __init__(
+        self,
+        decoder_model_id: str | None = None,
+        decoder_revision: str | None = None,
+        model_type: str | None = None,
+        quantized: bool | None = None,
+    ):
+        self.decoder_model_id = decoder_model_id
+        self.decoder_revision = decoder_revision
+        self.model_type = model_type
+        self.quantized = quantized
+    decoder_model_id: str | None
+    decoder_revision: str | None
+    model_type: str | None
+    quantized: bool | None
 
 class EmbedConfig:
     """
@@ -188,6 +232,15 @@ class EmbedConfig:
         clip: The configuration for the Clip model.
     """
 
-    bert: Optional[BertConfig] = None
-    openai: Optional[OpenAIConfig] = None
-    clip: Optional[ClipConfig] = None
+    def __init__(
+        self,
+        bert: BertConfig | None = None,
+        openai: OpenAIConfig | None = None,
+        clip: ClipConfig | None = None,
+    ):
+        self.bert = bert
+        self.openai = openai
+        self.clip = clip
+    bert: BertConfig | None
+    openai: OpenAIConfig | None
+    clip: ClipConfig | None
