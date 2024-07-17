@@ -23,14 +23,20 @@ pub struct BertEmbeder {
 
 impl Default for BertEmbeder {
     fn default() -> Self {
-        let device = Device::Cpu;
-        let default_model = "sentence-transformers/all-MiniLM-L12-v2".to_string();
-        let default_revision = "refs/pr/21".to_string();
-        let (model_id, _revision) = (default_model, default_revision);
-        let repo = Repo::model(model_id);
+        Self::new("sentence-transformers/all-MiniLM-L12-v2".to_string(), None).unwrap()
+    }
+}
+impl BertEmbeder {
+    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
-            let api = api.repo(repo);
+            let api = match revision {
+                Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
+                None => api.repo(hf_hub::Repo::new(
+                    model_id.to_string(),
+                    hf_hub::RepoType::Model,
+                )),
+            };
             let config = api.get("config.json").unwrap();
             let tokenizer = api.get("tokenizer.json").unwrap();
             let weights = api.get("model.safetensors").unwrap();
@@ -49,6 +55,7 @@ impl Default for BertEmbeder {
         };
         tokenizer.with_padding(Some(pp));
 
+        let device = Device::Cpu;
         let vb = unsafe {
             VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
         };
@@ -56,10 +63,9 @@ impl Default for BertEmbeder {
         config.hidden_act = HiddenAct::GeluApproximate;
 
         let model = BertModel::load(vb, &config).unwrap();
-        BertEmbeder { model, tokenizer }
+        Ok(BertEmbeder { model, tokenizer })
     }
-}
-impl BertEmbeder {
+
     pub fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
         let tokens = self
             .tokenizer
