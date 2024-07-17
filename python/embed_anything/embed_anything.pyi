@@ -1,34 +1,8 @@
-"""
-This module provides functions and classes for embedding queries, files, and directories using different embedding models.
-
-The module includes the following functions:
-- `embed_query`: Embeds the given query and returns an EmbedData object.
-- `embed_file`: Embeds the file at the given path and returns a list of EmbedData objects.
-- `embed_directory`: Embeds all the files in the given directory and returns a list of EmbedData objects.
-
-The module also includes the `EmbedData` class, which represents the data of an embedded file.
-
-The `EmbedData` class has the following attributes:
-- `embedding`: The embedding of the file.
-- `text`: The text for which the embedding is generated for.
-- `metadata`: Additional metadata associated with the embedding.
-
-Supported Embedding Models:
----------------------------
-- Text Embedding Models:
-    - "OpenAI"
-    - "Bert"
-
-- Image Embedding Models:
-    - "Clip"
-
-- Audio Embedding Models:
-    - "Whisper-Bert"
-"""
-
 from .embed_anything import *
 
-def embed_query(query: list[str], embeder: str) -> list[EmbedData]:
+def embed_query(
+    query: list[str], embeder: str, config: EmbedConfig | None = None
+) -> list[EmbedData]:
     """Embeds the given query and returns an EmbedData object.
 
     Args:
@@ -66,7 +40,7 @@ def embed_file(
     """
 
 def embed_directory(
-    file_path: str, embeder: str, config: EmbedConfig | None
+    file_path: str, embeder: str, config: EmbedConfig | None = None
 ) -> list[EmbedData]:
     """
     Embeds all the files in the given directory and returns a list of EmbedData objects.
@@ -197,7 +171,9 @@ class ClipConfig:
 
 class AudioDecoderConfig:
     """
-    Represents the configuration for the Audio Decoder model.
+    Represents the configuration for the Audio Decoder model. Choose any whisper or
+    distilwhisper model from https://huggingface.co/distil-whisper
+    or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
 
     Attributes:
         decoder_model_id: The ID of the Audio Decoder model from huggingface.

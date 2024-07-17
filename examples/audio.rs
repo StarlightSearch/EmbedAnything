@@ -11,7 +11,7 @@ fn main() {
     );
 
     let jina_config = config::JinaConfig::new(
-        Some("jinaai/jina-embeddings-v2-base-en".to_string()),
+        Some("jinaai/jina-embeddings-v2-small-en".to_string()),
         Some("main".to_string()),
         Some(100),
     );
