@@ -91,29 +91,6 @@ By using Rust for its core functionalities, EmbedAnything offers significant spe
 
 
 
-- **Local Embedding** : Works with local embedding models like BERT and JINA
-- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
-- **Rust** : All the file processing is done in rust for speed and efficiency
-- **Candle** : We have taken care of hardware acceleration as well, with Candle.
-- **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
-- **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
-- **OpenAI** Supports OpenAI and Whisper embeddings
-
-
-
-## 🦀The Benefit of Rust for Speed
-By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
-
-➡️Faster execution. <br />
-➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
-➡️True multithreading.
-
-## 🤗Why Candle? by Hugging face
-➡️Running language models or embedding models locally and efficiently <br />
-➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage of EmbedAnything.
-
-
 
 # 🧑‍🚀 Getting Started
 
