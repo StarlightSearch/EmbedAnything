@@ -113,11 +113,6 @@ By using Rust for its core functionalities, EmbedAnything offers significant spe
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
 ➡️Decrease the memory usage of EmbedAnything.
 
-# 🧑‍🚀 Getting Started
-
-
-
-
 
 
 # 🧑‍🚀 Getting Started
