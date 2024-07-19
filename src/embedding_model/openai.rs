@@ -4,7 +4,10 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{embedding_model::embed::{EmbedData, EmbedResponse}, file_processor::audio::audio_processor::Segment};
+use crate::{
+    embedding_model::embed::{EmbedData, EmbedResponse},
+    file_processor::audio::audio_processor::Segment,
+};
 
 use super::embed::{AudioEmbed, Embed, TextEmbed};
 
@@ -12,12 +15,13 @@ use super::embed::{AudioEmbed, Embed, TextEmbed};
 #[derive(Deserialize, Debug)]
 pub struct OpenAIEmbeder {
     url: String,
+    model: String,
     api_key: String,
 }
 
 impl Default for OpenAIEmbeder {
     fn default() -> Self {
-        Self::new(None)
+        Self::new("text-embedding-3-small".to_string(), None)
     }
 }
 
@@ -42,10 +46,11 @@ impl TextEmbed for OpenAIEmbeder {
 }
 
 impl OpenAIEmbeder {
-    pub fn new(api_key: Option<String>) -> Self {
+    pub fn new(model: String, api_key: Option<String>) -> Self {
         let api_key = api_key.unwrap_or_else(|| std::env::var("OPENAI_API_KEY").unwrap());
 
         Self {
+            model,
             url: "https://api.openai.com/v1/embeddings".to_string(),
             api_key,
         }
@@ -69,7 +74,7 @@ impl OpenAIEmbeder {
                 .header("Authorization", format!("Bearer {}", self.api_key))
                 .json(&json!({
                     "input": text_batch,
-                    "model": "text-embedding-3-small",
+                    "model": self.model,
                 }))
                 .send()
                 .await
@@ -96,8 +101,7 @@ impl OpenAIEmbeder {
         &self,
         segments: Vec<Segment>,
         audio_file: T,
-    )  -> Result<Vec<EmbedData>, anyhow::Error> {
-
+    ) -> Result<Vec<EmbedData>, anyhow::Error> {
         let client = Client::new();
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_io()
@@ -105,9 +109,9 @@ impl OpenAIEmbeder {
             .unwrap();
 
         let text_batch = segments
-        .iter()
-        .map(|segment| segment.dr.text.clone())
-        .collect::<Vec<String>>();
+            .iter()
+            .map(|segment| segment.dr.text.clone())
+            .collect::<Vec<String>>();
 
         let data = runtime.block_on(async {
             let response = client
@@ -127,7 +131,11 @@ impl OpenAIEmbeder {
             data
         });
 
-        let encodings = data.data.iter().map(|data| data.embedding.clone()).collect::<Vec<_>>();
+        let encodings = data
+            .data
+            .iter()
+            .map(|data| data.embedding.clone())
+            .collect::<Vec<_>>();
 
         let emb_data = encodings
             .iter()
@@ -148,11 +156,7 @@ impl OpenAIEmbeder {
             .collect::<Vec<_>>();
 
         Ok(emb_data)
-
-
-        
     }
-
 }
 
 impl AudioEmbed for OpenAIEmbeder {
