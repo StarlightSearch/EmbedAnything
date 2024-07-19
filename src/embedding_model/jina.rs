@@ -14,7 +14,7 @@ use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
 use candle_transformers::models::jina_bert::{BertModel, Config};
 use hf_hub::{Repo, RepoType};
-use tokenizers::Tokenizer;
+use tokenizers::{tokenizer, Tokenizer};
 pub struct JinaEmbeder {
     pub model: BertModel,
     pub tokenizer: Tokenizer,
@@ -22,47 +22,37 @@ pub struct JinaEmbeder {
 
 impl Default for JinaEmbeder {
     fn default() -> Self {
-        let api = hf_hub::api::sync::Api::new().unwrap();
-        let model_file = api
-            .repo(Repo::new(
-                "jinaai/jina-embeddings-v2-base-en".to_string(),
-                RepoType::Model,
-            ))
-            .get("model.safetensors")
-            .unwrap();
-        let config = Config::v2_base();
+        Self::new("jinaai/jina-embeddings-v2-base-en".to_string(), None).unwrap()
+    }
+}
 
+impl JinaEmbeder {
+    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+        let api = hf_hub::api::sync::Api::new()?;
+        let api = match revision {
+            Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
+            None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
+        };
+        let model_file = api.get("model.safetensors")?;
+        let config_filename = api.get("config.json")?;
+        let tokenizer_filename = api.get("tokenizer.json")?;
+        let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
+        let config  = std::fs::read_to_string(config_filename)?;
+        let config: Config = serde_json::from_str(&config)?;
         let device = Device::Cpu;
         let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device).unwrap()
+            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
         };
-        let model = BertModel::new(vb, &config).unwrap();
-        let mut tokenizer = Self::get_tokenizer(None).unwrap();
+        let model = BertModel::new(vb, &config)?;
+        // let mut tokenizer = Self::get_tokenizer(None)?;
         let pp = tokenizers::PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
             ..Default::default()
         };
         tokenizer.with_padding(Some(pp));
-        JinaEmbeder { model, tokenizer }
+        Ok(Self { model, tokenizer })
     }
-}
 
-impl JinaEmbeder {
-    pub fn get_tokenizer(tokenizer: Option<String>) -> anyhow::Result<Tokenizer> {
-        let tokenizer = match tokenizer {
-            None => {
-                let api = hf_hub::api::sync::Api::new()?;
-                let api = api.repo(Repo::new(
-                    "sentence-transformers/all-MiniLM-L6-v2".to_string(),
-                    RepoType::Model,
-                ));
-                api.get("tokenizer.json")?
-            }
-            Some(file) => file.into(),
-        };
-
-        Tokenizer::from_file(tokenizer).map_err(E::msg)
-    }
 
     pub fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
         let tokens = self
@@ -115,7 +105,6 @@ impl JinaEmbeder {
             .tokenize_batch(&text_batch, &self.model.device)
             .unwrap();
         println!("{:?}", token_ids);
-        let token_type_ids = token_ids.zeros_like().unwrap();
         let embeddings = self.model.forward(&token_ids).unwrap();
         let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
         let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
@@ -141,7 +130,6 @@ impl JinaEmbeder {
         Ok(final_embeddings)
     }
 }
-
 
 impl Embed for JinaEmbeder {
     fn embed(
