@@ -6,13 +6,22 @@ from PIL import Image
 import time
 
 start = time.time()
-data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder="Clip")
+
+clip_config = embed_anything.ClipConfig(
+    model_id="openai/clip-vit-base-patch32", revision="refs/pr/15"
+)
+
+config = embed_anything.EmbedConfig(clip=clip_config)
+
+data: list[EmbedData] = embed_anything.embed_directory(
+    "test_files", embeder="Clip", config=config
+)
 
 embeddings = np.array([data.embedding for data in data])
 
 print(data[0])
 
-query = ["Photo of a dog?"]
+query = ["Photo of a monkey?"]
 query_embedding = np.array(
     embed_anything.embed_query(query, embeder="Clip")[0].embedding
 )
