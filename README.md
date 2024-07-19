@@ -1,4 +1,5 @@
 
+
 <p align ="center">
 <img width=400 src = "https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
 </p>
@@ -12,6 +13,7 @@
 [![license]( https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![license]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![license](https://img.shields.io/discord/1213966302046064711?style=flat&logo=discord&link=https%3A%2F%2Fdiscord.gg%2FHGxDZxNt9G)](https://discord.gg/juETVTMdZu)
+
 
 </div>
 
@@ -29,6 +31,9 @@
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples">Examples</a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/issues/new">Request Feature</a>
+    .
+    <a href="https://huggingface.co/spaces/akshayballal/search_in_audio">Search in Audio Space</a>
+    
   </p>
 </div>
 
@@ -60,6 +65,7 @@ EmbedAnything is a powerful Python library designed to streamline the creation a
 
 
 
+
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
@@ -85,6 +91,30 @@ By using Rust for its core functionalities, EmbedAnything offers significant spe
 
 
 
+- **Local Embedding** : Works with local embedding models like BERT and JINA
+- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
+- **Rust** : All the file processing is done in rust for speed and efficiency
+- **Candle** : We have taken care of hardware acceleration as well, with Candle.
+- **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
+- **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
+- **OpenAI** Supports OpenAI and Whisper embeddings
+
+
+
+## 🦀The Benefit of Rust for Speed
+By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
+
+➡️Faster execution. <br />
+➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
+➡️True multithreading.
+
+## 🤗Why Candle? by Hugging face
+➡️Running language models or embedding models locally and efficiently <br />
+➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
+➡️Decrease the memory usage of EmbedAnything.
+
+# 🧑‍🚀 Getting Started
+
 
 
 
@@ -97,6 +127,7 @@ By using Rust for its core functionalities, EmbedAnything offers significant spe
 `
 pip install embed-anything`
 
+
 ## Usage
 
 ### To use local embedding: we support Bert and Jina
@@ -108,6 +139,7 @@ embeddings = np.array([data.embedding for data in data])
 ```
 
 
+
 ## For multimodal embedding: we support CLIP
 ### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
 
@@ -116,16 +148,16 @@ import embed_anything
 data = embed_anything.embed_directory("directory_path", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
 
-query = "photo of a dog"
+query = ["photo of a dog"]
 query_embedding = np.array(embed_anything.embed_query(query, embeder= "Clip")[0].embedding)
 similarities = np.dot(embeddings, query_embedding)
 max_index = np.argmax(similarities)
 Image.open(data[max_index].text).show()
 ```
 
-
 ## For OpenAI- Whisper
-### requirements:  Please check if you already have the OpenAI key in the Environment variable.
+### requirements:  Audio .wav files.
+
 
 ```python
 import embed_anything
@@ -200,6 +232,7 @@ To set up your development environment, please follow the steps mentioned below 
 1. Title describing the issue clearly and concisely with relevant labels
 2. Provide a detailed description of the problem and the necessary steps to reproduce the issue.
 3. Include any relevant logs, screenshots, or other helpful information supporting the issue.
+
 
 
 
