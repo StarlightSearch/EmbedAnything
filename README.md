@@ -65,6 +65,7 @@ EmbedAnything is a powerful Python library designed to streamline the creation a
 
 
 
+
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
@@ -90,6 +91,30 @@ By using Rust for its core functionalities, EmbedAnything offers significant spe
 
 
 
+- **Local Embedding** : Works with local embedding models like BERT and JINA
+- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
+- **Rust** : All the file processing is done in rust for speed and efficiency
+- **Candle** : We have taken care of hardware acceleration as well, with Candle.
+- **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
+- **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
+- **OpenAI** Supports OpenAI and Whisper embeddings
+
+
+
+## 🦀The Benefit of Rust for Speed
+By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
+
+➡️Faster execution. <br />
+➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
+➡️True multithreading.
+
+## 🤗Why Candle? by Hugging face
+➡️Running language models or embedding models locally and efficiently <br />
+➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
+➡️Decrease the memory usage of EmbedAnything.
+
+# 🧑‍🚀 Getting Started
+
 
 
 
@@ -101,6 +126,7 @@ By using Rust for its core functionalities, EmbedAnything offers significant spe
 
 `
 pip install embed-anything`
+
 
 ## Usage
 
@@ -119,7 +145,7 @@ embeddings = np.array([data.embedding for data in data])
 
 ```python
 import embed_anything
-data = embed_anything.embed_directory("test_files", embeder= "Clip")
+data = embed_anything.embed_directory("directory_path", embeder= "Clip")
 embeddings = np.array([data.embedding for data in data])
 
 query = ["photo of a dog"]
@@ -131,6 +157,7 @@ Image.open(data[max_index].text).show()
 
 ## For OpenAI- Whisper
 ### requirements:  Audio .wav files.
+
 
 ```python
 import embed_anything
@@ -205,6 +232,8 @@ To set up your development environment, please follow the steps mentioned below 
 1. Title describing the issue clearly and concisely with relevant labels
 2. Provide a detailed description of the problem and the necessary steps to reproduce the issue.
 3. Include any relevant logs, screenshots, or other helpful information supporting the issue.
+
+
 
 
 

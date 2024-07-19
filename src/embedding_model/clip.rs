@@ -12,10 +12,12 @@ use candle_core::{DType, Device, Tensor};
 use candle_transformers::models::clip;
 
 use candle_nn::VarBuilder;
+use pyo3::pyclass;
 use tokenizers::Tokenizer;
 
 use super::embed::{Embed, EmbedData, EmbedImage};
 
+#[pyclass]
 pub struct ClipEmbeder {
     pub model: clip::ClipModel,
     pub tokenizer: Tokenizer,
@@ -23,26 +25,39 @@ pub struct ClipEmbeder {
 
 impl Default for ClipEmbeder {
     fn default() -> Self {
-        let api = hf_hub::api::sync::Api::new().unwrap();
-        let api = api.repo(hf_hub::Repo::with_revision(
+        Self::new(
             "openai/clip-vit-base-patch32".to_string(),
-            hf_hub::RepoType::Model,
-            "refs/pr/15".to_string(),
-        ));
-        let model_file = api.get("model.safetensors").unwrap();
-        let config = clip::ClipConfig::vit_base_patch32();
-        let device = Device::Cpu;
-        let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device).unwrap()
-        };
-        let model = clip::ClipModel::new(vb, &config).unwrap();
-        let tokenizer = Self::get_tokenizer(None).unwrap();
-        ClipEmbeder { model, tokenizer }
+            Some("refs/pr/15".to_string()),
+        )
+        .unwrap()
     }
 }
 
 impl ClipEmbeder {
-    pub fn new(model: clip::ClipModel, tokenizer: Tokenizer) -> Result<Self, E> {
+    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+        let api = hf_hub::api::sync::Api::new()?;
+
+        let api = match revision {
+            Some(rev) => api.repo(hf_hub::Repo::with_revision(
+                model_id.to_string(),
+                hf_hub::RepoType::Model,
+                rev.to_string(),
+            )),
+            None => api.repo(hf_hub::Repo::new(
+                model_id.to_string(),
+                hf_hub::RepoType::Model,
+            )),
+        };
+
+        let model_file = api.get("model.safetensors")?;
+
+        let config = clip::ClipConfig::vit_base_patch32();
+        let device = Device::Cpu;
+        let vb = unsafe {
+            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
+        };
+        let model = clip::ClipModel::new(vb, &config)?;
+        let tokenizer = Self::get_tokenizer(None)?;
         Ok(ClipEmbeder { model, tokenizer })
     }
 

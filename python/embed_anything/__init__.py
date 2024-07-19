@@ -11,31 +11,66 @@ The module also includes the `EmbedData` class, which represents the data of an 
 
 Usage:
 ------
-- To embed a query, use the `embed_query` function: \n
-    `embed_query(query: list[str], embeder: str) -> list[EmbedData]`
 
-- To embed a file, use the `embed_file` function: \n
-    `embed_file(file_path: str, embeder: str) -> list[EmbedData]`
+```python
+import embed_anything
 
-- To embed a directory, use the `embed_directory` function: \n
-    `embed_directory(file_path: str, embeder: str) -> list[EmbedData]`
+# Create a config 
+config = embed_anything.EmbedConfig(
+    jina=embed_anything.JinaConfig(
+        model_id="jinaai/jina-embeddings-v2-small-en", 
+        revision="main", 
+        chunk_size=100
+    )
+)
 
-The `EmbedData` class has the following attributes:
-- `embedding`: The embedding of the file.
-- `text`: The text for which the embedding is generated for.
-- `metadata`: Additional metadata associated with the embedding.
+# Embed a file
+data = embed_anything.embed_file("test_files/test.pdf", 
+                embeder="Jina", 
+                config=config)
+
+# Embed a directory
+data = embed_anything.embed_directory("test_files", 
+                embeder="Jina", 
+                config=config)
+
+# Embed Audio
+audio_decoder_config = embed_anything.AudioDecoderConfig(
+    decoder_model_id="openai/whisper-tiny.en",
+    decoder_revision="main",
+    model_type="tiny-en",
+    quantized=False,
+)
+jina_config = embed_anything.JinaConfig(
+    model_id="jinaai/jina-embeddings-v2-small-en", 
+    revision="main", 
+    chunk_size=100
+)
+
+config = embed_anything.EmbedConfig(jina=jina_config, 
+            audio_decoder=audio_decoder_config)
+data = embed_anything.embed_file(
+    "test_files/audio/samples_hp0.wav", 
+    embeder="Audio", 
+    config=config
+)
+
+```
+
 
 Supported Embedding Models:
 ---------------------------
 - Text Embedding Models:
     - "OpenAI"
     - "Bert"
+    - "Jina"
 
 - Image Embedding Models:
     - "Clip"
+    - "SigLip" (Coming Soon)
 
 - Audio Embedding Models:
-    - "Whisper-Bert"
+    - "Whisper"
 """
 
 from .embed_anything import *
