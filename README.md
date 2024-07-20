@@ -69,12 +69,12 @@ EmbedAnything is a powerful Python library designed to streamline the creation a
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
+- **Cloud Embedding Models:**: Supports OpenAI. Mistral and Cohere Support coming soon.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
-- **Cloud Embedding Models:**: Support OpenAI. Mistral and Cohere Support coming soon.  
 
 
 ## 🦀The Benefit of Rust for Speed
