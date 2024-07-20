@@ -74,7 +74,7 @@ EmbedAnything is a powerful Python library designed to streamline the creation a
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
-- **OpenAI** Supports OpenAI and Whisper embeddings
+- **Cloud Embedding Models:**: Support OpenAI. Mistral and Cohere Support coming soon.  
 
 
 ## 🦀The Benefit of Rust for Speed
