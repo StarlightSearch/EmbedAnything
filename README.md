@@ -10,7 +10,7 @@
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![license]( https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![license]( https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/Apache2.0)
 [![license]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![license](https://img.shields.io/discord/1213966302046064711?style=flat&logo=discord&link=https%3A%2F%2Fdiscord.gg%2FHGxDZxNt9G)](https://discord.gg/juETVTMdZu)
 
@@ -203,11 +203,14 @@ One of the aims of EmbedAnything is to allow AI engineers to easily use state of
 ✅ WAV File <br />
 ✅ JPG, PNG, webp <br />
 ✅Add whisper for audio embeddings <br />
+✅Custom model upload, anything that is available in candle <br />
+✅Custom chunk size <br />
+✅Pinecone Adapter, to directly save it on it. <br />
+✅Zero-shot application <br />
 
 Yet to do be done <br />
 ☑️Vector Database: Add functionalities to integrate with any Vector Database <br />
 ☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-☑️Zero-shot application <br />
 ☑️Asynchronous chunks training
 
 
