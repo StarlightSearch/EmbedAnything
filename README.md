@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Minimalist and Robust Framework for local and multimodal embeddings built in Rust 🦀</b>
+    <b>Minimalist and lightening fast framework for local and multimodal embeddings built in Rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -38,7 +38,7 @@
 </div>
 
 
-EmbedAnything is a powerful Python library designed to streamline the creation and management of embedding pipelines. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and storing them in a vector database.
+EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and storing them in a vector database.
 
 <!-- TABLE OF CONTENTS -->
 <details>
