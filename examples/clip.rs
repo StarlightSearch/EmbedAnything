@@ -4,10 +4,11 @@ use std::{path::PathBuf, time::Instant};
 
 fn main() {
     //    let out =  embed_file("test_files/TUe_SOP_AI_2.pdf", "Bert").unwrap();
+    let now = Instant::now();
 
     let clip_config = embed_anything::config::ClipConfig {
-        model_id: Some("google/siglip-base-patch16-224".to_string()),
-        revision: Some("main".to_string()),
+        model_id: Some("openai/clip-vit-base-patch32".to_string()),
+        revision: Some("refs/pr/15".to_string()),
     };
     let config = embed_anything::config::EmbedConfig {
         clip: Some(clip_config),
@@ -69,5 +70,7 @@ fn main() {
     let similar_image = top_3_image_paths[0].clone();
 
     println!("{:?}", similar_image);
-    // println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
+
+    let elapsed_time = now.elapsed();
+    println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 }
