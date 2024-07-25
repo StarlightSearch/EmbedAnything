@@ -10,7 +10,7 @@
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![license]( https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/Apache2.0)
+[![license]( https://img.shields.io/badge/License-Apache-blue.svg)](https://opensource.org/licenses/Apache2.0)
 [![license]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![license](https://img.shields.io/discord/1213966302046064711?style=flat&logo=discord&link=https%3A%2F%2Fdiscord.gg%2FHGxDZxNt9G)](https://discord.gg/juETVTMdZu)
 
@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Minimalist and lightening fast framework for local and multimodal embeddings built in Rust 🦀</b>
+    <b>Supercharge your embedding pipeline with minimalist and lightening fast framework built in rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -60,6 +60,8 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
     <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-getting-started">Usage</a></li>
     <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap">Roadmap</a></li>
     <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#quick-start">Contributing</a></li>
+    <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#Supported-Models">How to add custom model and chunk size</a></li>
+    
   </ol>
 </details>
 
@@ -74,20 +76,42 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 - **Rust** : All the file processing is done in rust for speed and efficiency
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
-- **Scalable:** Store embeddings in a vector database for easy retrieval and scalability.
+- **Scalable:** Store embeddings in a vector database for easy retrieval and scalability. 
 
 
-## 🦀The Benefit of Rust for Speed
-By using Rust for its core functionalities, EmbedAnything offers significant speed advantages:
+
+
+## 🦀 Why Embed Anything 
 
 ➡️Faster execution. <br />
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
-➡️True multithreading.
-
-## 🤗Why Candle? by Hugging face
+➡️True multithreading <br />
 ➡️Running language models or embedding models locally and efficiently <br />
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
 ➡️Decrease the memory usage of EmbedAnything.
+
+# ⭐ Supported Models
+
+We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
+
+## How to add custom model and Chunk Size.
+```python
+jina_config = JinaConfig(
+    model_id="Custom link given below", revision="main", chunk_size=100
+)
+embed_config = EmbedConfig(jina=jina_config)
+```
+
+
+| Model  | Custom link |
+| ------------- | ------------- |
+| Jina  | jinaai/jina-embeddings-v2-base-en  |
+|   | jinaai/jina-embeddings-v2-small-en  |
+| Bert | sentence-transformers/all-MiniLM-L6-v2 |
+|      | sentence-transformers/all-MiniLM-L12-v2 |
+|      | sentence-transformers/paraphrase-MiniLM-L6-v2 |
+| Clip | openai/clip-vit-base-patch32 | 
+| Whisper| Most OpenAI Whisper from huggingface supported.
 
 
 
