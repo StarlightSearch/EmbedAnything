@@ -24,7 +24,6 @@ fn main() {
     )
     .unwrap();
 
-    println!("{:?}", out);
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 }
