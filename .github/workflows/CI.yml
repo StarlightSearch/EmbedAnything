@@ -37,6 +37,13 @@ jobs:
         with:
           cuda: '12.5.0'
           linux-local-args: '["--toolkit"]'
+
+      - name: Check Cuda 
+        run: |
+          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
+          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+          nvcc -V
+
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -97,7 +104,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features mkl,extension-module
+          args: --release --out dist --find-interpreter --features mkl,extension-module,cuda
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
