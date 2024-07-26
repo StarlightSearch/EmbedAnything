@@ -13,8 +13,8 @@ use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
 use candle_transformers::models::jina_bert::{BertModel, Config};
-use hf_hub::{Repo, RepoType};
-use tokenizers::{tokenizer, Tokenizer};
+use hf_hub::Repo;
+use tokenizers::Tokenizer;
 pub struct JinaEmbeder {
     pub model: BertModel,
     pub tokenizer: Tokenizer,
@@ -39,7 +39,7 @@ impl JinaEmbeder {
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
         let config  = std::fs::read_to_string(config_filename)?;
         let config: Config = serde_json::from_str(&config)?;
-        let device = Device::Cpu;
+        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
         let vb = unsafe {
             VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
         };
