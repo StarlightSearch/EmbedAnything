@@ -30,6 +30,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install Cuda
+        uses: Jimver/cuda-toolkit@v0.2.16
+        id: cuda-toolkit
+        with:
+          cuda: '12.4.0'
       
       - name: Set up Python
         uses: actions/setup-python@v5
