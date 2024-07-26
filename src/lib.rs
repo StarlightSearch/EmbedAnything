@@ -222,7 +222,8 @@ pub fn embed_file(
     file_name: &str,
     embeder: &str,
     config: Option<&EmbedConfig>,
-) -> PyResult<Vec<EmbedData>> {
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
     let embeddings = if let Some(config) = config {
         if config.audio_decoder.is_some() {
             emb_audio(file_name, config)?
@@ -250,7 +251,23 @@ pub fn embed_file(
     } else {
         embed_default(file_name, embeder)?
     };
-    Ok(embeddings)
+
+    // Send embeddings to vector database
+    if let Some(adapter) = adapter {
+        Python::with_gil(|py| {
+            let conversion_fn = adapter.getattr(py, "convert")?;
+            let upsert_fn = adapter.getattr(py, "upsert")?;
+            let converted_embeddings = conversion_fn
+                .call1(py, (vec![embeddings.clone()],))
+                .unwrap();
+            upsert_fn.call1(py, (&converted_embeddings,)).unwrap();
+
+            // return none
+            Ok(None)
+        })
+    } else {
+        Ok(Some(embeddings))
+    }
 }
 
 /// Embeds the text from files in a directory using the specified embedding model.
@@ -422,6 +439,7 @@ pub fn embed_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
 
     Ok(embeddings)
 }
+
 
 #[pymodule]
 fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
