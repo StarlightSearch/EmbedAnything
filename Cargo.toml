@@ -75,3 +75,5 @@ tempdir = "0.3.7"
 default = []
 mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]
 accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
+cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-core/cuda"]
+extension-module = ["pyo3/extension-module"]
