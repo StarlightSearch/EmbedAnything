@@ -43,6 +43,8 @@ jobs:
           echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
           echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
           nvcc -V
+          export PATH="/usr/local/cuda-12.5/bin:$PATH"
+          
 
       
       - name: Set up Python
