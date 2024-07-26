@@ -53,7 +53,7 @@ impl BertEmbeder {
         };
         tokenizer.with_padding(Some(pp));
 
-        let device = Device::Cpu;
+        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
         let vb = unsafe {
             VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
         };
