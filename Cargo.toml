@@ -44,7 +44,7 @@ anyhow = "1.0.81"
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
 
 # Python Interoperability
-pyo3 = { version = "0.21" }
+pyo3 = { version = "0.21"}
 
 # Markdown Processing
 markdown-parser = "0.1.2"
@@ -75,3 +75,5 @@ tempdir = "0.3.7"
 default = []
 mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]
 accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
+cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-core/cuda"]
+extension-module = ["pyo3/extension-module"]

@@ -22,7 +22,7 @@ fn main() {
         ..Default::default()
     };
 
-    let embeddings = embed_file(audio_path.to_str().unwrap(), "Audio", Some(&config)).unwrap();
+    let embeddings = embed_file(audio_path.to_str().unwrap(), "Audio", Some(&config), None).unwrap();
 
     println!("{:?}", embeddings);
 }

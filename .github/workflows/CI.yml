@@ -66,7 +66,7 @@ jobs:
           export LD_LIBRARY_PATH="/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH"
       - name: Build with Maturin
         run: |
-          maturin build --release --out dist --find-interpreter --features mkl
+          maturin build --release --out dist --find-interpreter --features mkl,extension-module
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -89,7 +89,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features mkl
+          args: --release --out dist --find-interpreter --features mkl,extension-module
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -115,7 +115,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features accelerate
+          args: --release --out dist --find-interpreter --features accelerate,extension-module
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
