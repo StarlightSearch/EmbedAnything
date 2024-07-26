@@ -88,19 +88,6 @@ jobs:
           python-version: 3.x
           architecture: ${{ matrix.platform.target }}
 
-      - name: Install Cuda
-        uses: Jimver/cuda-toolkit@v0.2.16
-        id: cuda-toolkit
-        with:
-          cuda: '12.5.0'
-          linux-local-args: '["--toolkit"]'
-
-      - name: Check Cuda 
-        run: |
-          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
-          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
-          nvcc -V
-          
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
