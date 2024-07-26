@@ -31,21 +31,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Cuda
-        uses: Jimver/cuda-toolkit@v0.2.16
-        id: cuda-toolkit
-        with:
-          cuda: '12.5.0'
-          linux-local-args: '["--toolkit"]'
-
-      - name: Check Cuda 
-        run: |
-          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
-          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
-          nvcc -V
-          export PATH="/usr/local/cuda-12.5/bin:$PATH"
-          
-
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -83,7 +68,7 @@ jobs:
 
       - name: Build with Maturin
         run: |
-          maturin build --release --out dist --find-interpreter --features mkl,extension-module,cuda
+          maturin build --release --out dist --find-interpreter --features mkl,extension-module
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -120,7 +105,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features mkl,extension-module,cuda
+          args: --release --out dist --find-interpreter --features mkl,extension-module
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
