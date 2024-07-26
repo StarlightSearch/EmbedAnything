@@ -2,23 +2,31 @@ import os
 import re
 import uuid
 from typing import List, Dict
-from pinecone import Pinecone
+from pinecone import Pinecone, ServerlessSpec
 from .embed_anything import EmbedData
-import numpy as np
-
 
 
 class PineconeAdapter:
-    def __init__(self, api_key: str, index_name: str, dimension: int, metric: str):
-        
+    def __init__(self, api_key: str, index_name: str):
+
         self.api_key = api_key
         self.index_name = index_name
+        self.pc = Pinecone(api_key=self.api_key)
 
-        
+    def create_index(
+        self,
+        dimension: int,
+        metric: str = "cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    ):
+        self.pc.create_index(
+            name=self.index_name, dimension=dimension, metric=metric, spec=spec
+        )
 
-  
+    def delete_index(self, index_name: str):
+        self.pc.delete_index(name=index_name)
 
-    def convert_to_pinecone_format(self, embeddings: List[List[EmbedData]]) -> List[Dict]:
+    def convert(self, embeddings: List[List[EmbedData]]) -> List[Dict]:
         data_emb = []
         for i, embedding_list in enumerate(embeddings):
             for emb in embedding_list:
@@ -34,9 +42,6 @@ class PineconeAdapter:
                 )
         return data_emb
 
-    def upsert_embeddings(self, data: List[Dict]):
-
-        self.pc = Pinecone(api_key=self.api_key)
+    def upsert(self, data: List[Dict]):
 
         self.pc.Index(name=self.index_name).upsert(data)
-        
