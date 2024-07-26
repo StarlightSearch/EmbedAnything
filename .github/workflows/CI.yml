@@ -73,7 +73,7 @@ jobs:
           
       - name: Build with Maturin
         run: |
-          maturin build --release --out dist --find-interpreter --features mkl,extension-module
+          maturin build --release --out dist --find-interpreter --features mkl,extension-module,cuda
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
