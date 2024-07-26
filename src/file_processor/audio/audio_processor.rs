@@ -484,7 +484,7 @@ pub fn process_audio<T: AsRef<std::path::Path>>(
     audio_path: T,
     model_input: ModelInput,
 ) -> Result<Vec<Segment>> {
-    let device = candle_core::Device::Cpu;
+    let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
 
     let (config_filename, tokenizer_filename, weights_filename, input) = (
         model_input.config,
@@ -536,7 +536,7 @@ pub fn process_audio<T: AsRef<std::path::Path>>(
         model,
         tokenizer,
         299792458,
-        &candle_core::Device::Cpu,
+        &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
         language_token,
         Some(Task::Transcribe),
         false,

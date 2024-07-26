@@ -18,14 +18,14 @@ bert_config = BertConfig(
 jina_config = JinaConfig(
     model_id="jinaai/jina-embeddings-v2-small-en", revision="main", chunk_size=100
 )
-embed_config = EmbedConfig(jina=jina_config)
+embed_config = EmbedConfig(bert=bert_config)
 
 data = embed_anything.embed_directory(
-    "test_files", embeder="Jina", extensions=["pdf"], config=embed_config
+    "test_files", embeder="Bert", extensions=["pdf"], config=embed_config
 )
 
 data_file = embed_anything.embed_file(
-    "./test_files/test.pdf", embeder="Jina", config=embed_config
+    "./test_files/test.pdf", embeder="Bert", config=embed_config
 )
 
 print(data_file[0])
