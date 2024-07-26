@@ -3,7 +3,6 @@ use embed_anything::{embed_directory, embed_query};
 use std::{path::PathBuf, time::Instant};
 
 fn main() {
-    //    let out =  embed_file("test_files/TUe_SOP_AI_2.pdf", "Bert").unwrap();
     let now = Instant::now();
 
     let clip_config = embed_anything::config::ClipConfig {
