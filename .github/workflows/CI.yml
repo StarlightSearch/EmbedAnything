@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-20.04
+          - runner: ubuntu-latest
             target: x86_64
    
     steps:
@@ -65,15 +65,9 @@ jobs:
           sudo apt install -y intel-oneapi-mkl-devel
           export LD_LIBRARY_PATH="/opt/intel/oneapi/compiler/2024.2/lib:$LD_LIBRARY_PATH"
 
-      - name: Install Cuda
-        uses: Jimver/cuda-toolkit@v0.2.16
-        id: cuda-toolkit
-        with:
-          cuda: '12.5.0'
-          
       - name: Build with Maturin
         run: |
-          maturin build --release --out dist --find-interpreter --features mkl,extension-module,cuda
+          maturin build --release --out dist --find-interpreter --features mkl,extension-module
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
