@@ -52,8 +52,7 @@ impl ClipEmbeder {
         let model_file = api.get("model.safetensors")?;
 
         let config = clip::ClipConfig::vit_base_patch32();
-        let device =Device::cuda_if_available(0).unwrap_or(
-            Device::Cpu);
+        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
 
         let vb = unsafe {
             VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
