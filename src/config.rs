@@ -111,8 +111,7 @@ impl AudioDecoderConfig {
 }
 
 #[pyclass]
-#[derive(Clone)]
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct EmbedConfig {
     pub bert: Option<BertConfig>,
     pub clip: Option<ClipConfig>,
@@ -120,7 +119,6 @@ pub struct EmbedConfig {
     pub jina: Option<JinaConfig>,
     pub audio_decoder: Option<AudioDecoderConfig>,
 }
-
 
 #[pymethods]
 impl EmbedConfig {

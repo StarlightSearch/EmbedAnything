@@ -1,9 +1,11 @@
 [package]
 name = "embed_anything"
-
-
-version = "0.1.22"
+version = "0.1.21"
 edition = "2021"
+license = "Apache-2.0"
+description = "Embed anything at lightning speed"
+repository = "https://github.com/StarlightSearch/EmbedAnything"
+authors = ["Akshay Ballal <arballal95@gmail.com>"]
 
 [dependencies]
 # Data Serialization
