@@ -137,7 +137,7 @@ impl ClipEmbeder {
         let img = img.to_rgb8();
 
         let img = img.into_raw();
-        let img = Tensor::from_vec(img, (height, width, 3), &Device::Cpu)?
+        let img = Tensor::from_vec(img, (height, width, 3), &Device::cuda_if_available(0).unwrap_or(Device::Cpu))?
             .permute((2, 0, 1))?
             .to_dtype(DType::F32)?
             .affine(2. / 255., -1.)?;
@@ -222,7 +222,7 @@ impl Embed for ClipEmbeder {
         let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
             Some(text_batch.to_vec()),
             &self.tokenizer,
-            &Device::Cpu,
+            &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
         )
         .unwrap();
 
