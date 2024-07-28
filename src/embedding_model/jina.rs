@@ -37,7 +37,7 @@ impl JinaEmbeder {
         let config_filename = api.get("config.json")?;
         let tokenizer_filename = api.get("tokenizer.json")?;
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
-        let config  = std::fs::read_to_string(config_filename)?;
+        let config = std::fs::read_to_string(config_filename)?;
         let config: Config = serde_json::from_str(&config)?;
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
         let vb = unsafe {
@@ -52,7 +52,6 @@ impl JinaEmbeder {
         tokenizer.with_padding(Some(pp));
         Ok(Self { model, tokenizer })
     }
-
 
     pub fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
         let tokens = self

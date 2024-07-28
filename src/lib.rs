@@ -440,7 +440,6 @@ pub fn embed_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
     Ok(embeddings)
 }
 
-
 #[pymodule]
 fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_file, m)?)?;
