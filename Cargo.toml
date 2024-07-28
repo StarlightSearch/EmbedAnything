@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.1.21"
+version = "0.1.23"
 edition = "2021"
 license = "Apache-2.0"
 description = "Embed anything at lightning speed"

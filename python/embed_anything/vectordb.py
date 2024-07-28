@@ -3,7 +3,7 @@ import re
 import uuid
 from typing import List, Dict
 from pinecone import Pinecone, ServerlessSpec
-from .embed_anything import EmbedData
+from embed_anything import EmbedData
 
 
 class PineconeAdapter:
