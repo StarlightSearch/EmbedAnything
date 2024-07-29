@@ -6,7 +6,7 @@ fn main() {
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
     let embeder = "Jina".to_string();
 
-    let embed_data = embed_webpage(url, &embeder, None).unwrap();
+    let embed_data = embed_webpage(url, &embeder, None, None).unwrap().unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data
         .iter()
         .map(|data| data.embedding.clone())

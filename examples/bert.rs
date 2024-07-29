@@ -28,7 +28,9 @@ fn main() {
         "Bert",
         Some(vec!["pdf".to_string()]),
         Some(&config),
+        None,
     )
+    .unwrap()
     .unwrap();
 
     let _out_jina = embed_directory(
@@ -36,7 +38,10 @@ fn main() {
         "Jina",
         Some(vec!["pdf".to_string()]),
         Some(&config),
-    );
+        None,
+    )
+    .unwrap()
+    .unwrap();
 
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
