@@ -13,7 +13,15 @@ fn main() {
         clip: Some(clip_config),
         ..Default::default()
     };
-    let out = embed_directory(PathBuf::from("test_files"), "Clip", None, Some(&config)).unwrap();
+    let out = embed_directory(
+        PathBuf::from("test_files"),
+        "Clip",
+        None,
+        Some(&config),
+        None,
+    )
+    .unwrap()
+    .unwrap();
     let query_emb_data =
         embed_query(vec!["Photo of a monkey".to_string()], "Clip", Some(&config)).unwrap();
     let n_vectors = out.len();
