@@ -24,7 +24,6 @@ use file_processor::audio::audio_processor;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use rayon::prelude::*;
 use text_loader::TextLoader;
-use tokio::runtime::Builder;
 
 fn get_bert_embeder(config: &BertConfig) -> PyResult<BertEmbeder> {
     let model_id = &config
@@ -147,6 +146,7 @@ fn embed_default(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
 /// ```
 /// This will output the embeddings of the queries using the OpenAI embedding model.
 #[pyfunction]
+#[pyo3(signature = (query, embeder, config=None))]
 pub fn embed_query(
     query: Vec<String>,
     embeder: &str,
@@ -218,6 +218,7 @@ pub fn embed_query(
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 #[pyfunction]
+#[pyo3(signature = (file_name, embeder, config=None, adapter=None))]
 pub fn embed_file(
     file_name: &str,
     embeder: &str,
@@ -257,9 +258,7 @@ pub fn embed_file(
         Python::with_gil(|py| {
             let conversion_fn = adapter.getattr(py, "convert")?;
             let upsert_fn = adapter.getattr(py, "upsert")?;
-            let converted_embeddings = conversion_fn
-                .call1(py, (vec![embeddings.clone()],))
-                .unwrap();
+            let converted_embeddings = conversion_fn.call1(py, (embeddings.clone(),)).unwrap();
             upsert_fn.call1(py, (&converted_embeddings,)).unwrap();
 
             // return none
@@ -301,6 +300,7 @@ pub fn embed_file(
 /// ```
 /// This will output the embeddings of the files in the specified directory using the OpenAI embedding model.
 #[pyfunction]
+#[pyo3(signature = (directory, embeder, extensions=None, config=None))]
 pub fn embed_directory(
     directory: PathBuf,
     embeder: &str,
@@ -413,27 +413,56 @@ pub fn embed_directory(
 /// };
 /// ```
 #[pyfunction]
-pub fn embed_webpage(url: String, embeder: &str) -> PyResult<Vec<EmbedData>> {
+#[pyo3(signature = (url, embeder, config=None))]
+pub fn embed_webpage(
+    url: String,
+    embeder: &str,
+    config: Option<&EmbedConfig>,
+) -> PyResult<Vec<EmbedData>> {
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
-    let runtime = Builder::new_current_thread().enable_all().build().unwrap();
-    let webpage = runtime
-        .block_on(website_processor.process_website(url.as_ref()))
-        .unwrap();
+    let webpage = website_processor
+        .process_website(url.as_ref())
+        .map_err(|e| {
+            PyValueError::new_err(format!("Error processing website: {}", e.to_string()))
+        })?;
 
-    let embeddings = match embeder {
-        "OpenAI" => webpage
-            .embed_webpage(&embedding_model::openai::OpenAIEmbeder::default())
-            .unwrap(),
-        "Jina" => webpage
-            .embed_webpage(&embedding_model::jina::JinaEmbeder::default())
-            .unwrap(),
-        "Bert" => webpage
-            .embed_webpage(&embedding_model::bert::BertEmbeder::default())
-            .unwrap(),
-        _ => {
+    let embeddings = if let Some(config) = config {
+        if let Some(bert_config) = &config.bert {
+            let embeder = get_bert_embeder(bert_config)?;
+            webpage.embed_webpage(&embeder).map_err(|e| {
+                PyValueError::new_err(format!("Error embedding webpage: {}", e.to_string()))
+            })?
+        } else if let Some(openai_config) = &config.openai {
+            let embeder = get_openai_embeder(openai_config)?;
+            webpage.embed_webpage(&embeder).map_err(|e| {
+                PyValueError::new_err(format!("Error embedding webpage: {}", e.to_string()))
+            })?
+        } else if let Some(jina_config) = &config.jina {
+            let embeder = get_jina_embeder(jina_config)?;
+            webpage.embed_webpage(&embeder).map_err(|e| {
+                PyValueError::new_err(format!("Error embedding webpage: {}", e.to_string()))
+            })?
+        } else {
             return Err(PyValueError::new_err(
-                "Invalid embedding model. Choose between OpenAI and AllMiniLmL12V2.",
-            ))
+                "Provide the config for the embedding model. Otherwise, use the embed_webpage function without the config parameter.",
+            ));
+        }
+    } else {
+        match embeder {
+            "OpenAI" => webpage
+                .embed_webpage(&embedding_model::openai::OpenAIEmbeder::default())
+                .unwrap(),
+            "Jina" => webpage
+                .embed_webpage(&embedding_model::jina::JinaEmbeder::default())
+                .unwrap(),
+            "Bert" => webpage
+                .embed_webpage(&embedding_model::bert::BertEmbeder::default())
+                .unwrap(),
+            _ => {
+                return Err(PyValueError::new_err(
+                    "Invalid embedding model. Choose between OpenAI, Jina, Bert and Clip.",
+                ))
+            }
         }
     };
 

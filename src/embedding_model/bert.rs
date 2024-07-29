@@ -173,3 +173,46 @@ impl AudioEmbed for BertEmbeder {
 pub fn normalize_l2(v: &Tensor) -> candle_core::Result<Tensor> {
     v.broadcast_div(&v.sqr()?.sum_keepdim(1)?.sqrt()?)
 }
+
+#[cfg(test)]
+
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use std::time::Instant;
+
+    #[test]
+    fn test_bert_embeder() {
+        let embeder = BertEmbeder::default();
+        let text = vec![
+            "Rust is a systems programming language".to_string(),
+            "It is blazingly fast".to_string(),
+        ];
+        let start = Instant::now();
+        let embeddings = embeder.embed(&text, None).unwrap();
+        println!("Time taken: {:?}", start.elapsed());
+        assert_eq!(embeddings.len(), 2);
+    }
+
+    #[test]
+    fn test_bert_embeder_audio() {
+        let embeder = BertEmbeder::default();
+        let segments = vec![
+            Segment {
+                start: 0.0,
+                duration: 1.0,
+                dr: Default::default(),
+            },
+            Segment {
+                start: 1.0,
+                duration: 1.0,
+                dr: Default::default(),
+            },
+        ];
+        let audio_file = PathBuf::from("tests/data/sample.wav");
+        let start = Instant::now();
+        let embeddings = embeder.embed_audio(segments, audio_file).unwrap();
+        println!("Time taken: {:?}", start.elapsed());
+        assert_eq!(embeddings.len(), 2);
+    }
+}

@@ -136,10 +136,14 @@ impl ClipEmbeder {
         let img = img.to_rgb8();
 
         let img = img.into_raw();
-        let img = Tensor::from_vec(img, (height, width, 3), &Device::cuda_if_available(0).unwrap_or(Device::Cpu))?
-            .permute((2, 0, 1))?
-            .to_dtype(DType::F32)?
-            .affine(2. / 255., -1.)?;
+        let img = Tensor::from_vec(
+            img,
+            (height, width, 3),
+            &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
+        )?
+        .permute((2, 0, 1))?
+        .to_dtype(DType::F32)?
+        .affine(2. / 255., -1.)?;
         // .unsqueeze(0)?;
         Ok(img)
     }

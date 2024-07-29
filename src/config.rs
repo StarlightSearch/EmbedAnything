@@ -11,6 +11,7 @@ pub struct BertConfig {
 #[pymethods]
 impl BertConfig {
     #[new]
+    #[pyo3(signature = (model_id=None, revision=None, chunk_size=None))]
     pub fn new(
         model_id: Option<String>,
         revision: Option<String>,
@@ -34,6 +35,7 @@ pub struct ClipConfig {
 #[pymethods]
 impl ClipConfig {
     #[new]
+    #[pyo3(signature = (model_id=None, revision=None))]
     pub fn new(model_id: Option<String>, revision: Option<String>) -> Self {
         Self { model_id, revision }
     }
@@ -58,6 +60,7 @@ pub struct JinaConfig {
 #[pymethods]
 impl JinaConfig {
     #[new]
+    #[pyo3(signature = (model_id=None, revision=None, chunk_size=None))]
     pub fn new(
         model_id: Option<String>,
         revision: Option<String>,
@@ -74,6 +77,7 @@ impl JinaConfig {
 #[pymethods]
 impl OpenAIConfig {
     #[new]
+    #[pyo3(signature = (model=None, api_key=None, chunk_size=None))]
     pub fn new(model: Option<String>, api_key: Option<String>, chunk_size: Option<usize>) -> Self {
         Self {
             model,
@@ -95,6 +99,7 @@ pub struct AudioDecoderConfig {
 #[pymethods]
 impl AudioDecoderConfig {
     #[new]
+    #[pyo3(signature = (decoder_model_id=None, decoder_revision=None, model_type=None, quantized=None))]
     pub fn new(
         decoder_model_id: Option<String>,
         decoder_revision: Option<String>,
@@ -123,6 +128,7 @@ pub struct EmbedConfig {
 #[pymethods]
 impl EmbedConfig {
     #[new]
+    #[pyo3(signature = (bert=None, clip=None, openai=None, jina=None, audio_decoder=None))]
     pub fn new(
         bert: Option<BertConfig>,
         clip: Option<ClipConfig>,

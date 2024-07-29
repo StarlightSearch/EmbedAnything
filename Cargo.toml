@@ -6,7 +6,7 @@ license = "Apache-2.0"
 description = "Embed anything at lightning speed"
 repository = "https://github.com/StarlightSearch/EmbedAnything"
 authors = ["Akshay Ballal <arballal95@gmail.com>"]
-exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/*", "mkdocs.yml", "docs/*"]
+exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/*", "mkdocs.yml", "docs/*", "tests/*"]
 
 [dependencies]
 # Data Serialization
@@ -29,7 +29,7 @@ rayon = "1.8.1"
 image = "0.25.1"
 
 # Natural Language Processing
-tokenizers = "0.15.2"
+tokenizers = "0.19.1"
 
 # PDF Processing
 pdf-extract = "0.7.4"
@@ -47,7 +47,7 @@ anyhow = "1.0.81"
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
 
 # Python Interoperability
-pyo3 = { version = "0.21"}
+pyo3 = { version = "0.22.2"}
 
 # Markdown Processing
 markdown-parser = "0.1.2"

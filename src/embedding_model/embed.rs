@@ -30,6 +30,7 @@ pub struct EmbedData {
 #[pymethods]
 impl EmbedData {
     #[new]
+    #[pyo3(signature = (embedding, text=None, metadata=None))]
     pub fn new(
         embedding: Vec<f32>,
         text: Option<String>,
