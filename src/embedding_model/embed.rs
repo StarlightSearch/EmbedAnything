@@ -2,9 +2,6 @@ use pyo3::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
-
-use crate::file_processor::audio::audio_processor::Segment;
-
 use super::bert::BertEmbeder;
 use super::clip::ClipEmbeder;
 use super::jina::JinaEmbeder;
@@ -53,6 +50,9 @@ impl EmbedData {
     }
 }
 
+pub trait TextEmbed {
+    fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+}
 pub enum Embeder {
     OpenAI(OpenAIEmbeder),
     Jina(JinaEmbeder),
@@ -61,34 +61,14 @@ pub enum Embeder {
 }
 
 impl Embeder {
-    pub fn embed(
-        &self,
-        text_batch: &[String],
-        metadata: Option<HashMap<String, String>>,
-    ) -> Result<Vec<EmbedData>, anyhow::Error> {
+    pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
-            Embeder::OpenAI(embeder) => TextEmbed::embed(embeder, text_batch, metadata),
-            Embeder::Jina(embeder) => TextEmbed::embed(embeder, text_batch, metadata),
-            Embeder::Clip(embeder) => Embed::embed(embeder, text_batch, metadata),
-            Embeder::Bert(embeder) => TextEmbed::embed(embeder, text_batch, metadata),
+            Embeder::OpenAI(embeder) => embeder.embed(text_batch),
+            Embeder::Jina(embeder) => embeder.embed(text_batch),
+            Embeder::Clip(embeder) => embeder.embed(text_batch),
+            Embeder::Bert(embeder) => embeder.embed(text_batch),
         }
     }
-}
-
-pub trait Embed {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        metadata: Option<HashMap<String, String>>,
-    ) -> Result<Vec<EmbedData>, anyhow::Error>;
-}
-
-pub trait TextEmbed {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        metadata: Option<HashMap<String, String>>,
-    ) -> Result<Vec<EmbedData>, anyhow::Error>;
 }
 
 pub trait EmbedImage {
@@ -100,13 +80,5 @@ pub trait EmbedImage {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>>;
-}
-
-pub trait AudioEmbed {
-    fn embed_audio<T: AsRef<std::path::Path>>(
-        &self,
-        segments: Vec<Segment>,
-        audio_file: T,
     ) -> anyhow::Result<Vec<EmbedData>>;
 }

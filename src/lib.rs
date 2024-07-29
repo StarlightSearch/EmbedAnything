@@ -15,7 +15,8 @@ use config::{AudioDecoderConfig, BertConfig, ClipConfig, EmbedConfig, JinaConfig
 use embedding_model::{
     bert::BertEmbeder,
     clip::ClipEmbeder,
-    embed::{AudioEmbed, EmbedData, EmbedImage, Embeder},
+    embed::{EmbedData, EmbedImage, Embeder},
+    embed_audio, get_text_metadata,
     jina::JinaEmbeder,
     openai::OpenAIEmbeder,
 };
@@ -152,19 +153,19 @@ pub fn embed_query(
     embeder: &str,
     config: Option<&EmbedConfig>,
 ) -> PyResult<Vec<EmbedData>> {
-    let embeddings = if let Some(config) = config {
+    let encodings = if let Some(config) = config {
         if let Some(bert_config) = &config.bert {
-            let embeder = Embeder::Bert(get_bert_embeder(bert_config)?);
-            embeder.embed(&query, None).unwrap()
+            let embeder = get_bert_embeder(bert_config)?;
+            embeder.embed(&query).unwrap()
         } else if let Some(clip_config) = &config.clip {
-            let embeder = Embeder::Clip(get_clip_embeder(clip_config)?);
-            embeder.embed(&query, None).unwrap()
+            let embeder = get_clip_embeder(clip_config)?;
+            embeder.embed(&query).unwrap()
         } else if let Some(openai_config) = &config.openai {
-            let embeder = Embeder::OpenAI(get_openai_embeder(openai_config)?);
-            embeder.embed(&query, None).unwrap()
+            let embeder = get_openai_embeder(openai_config)?;
+            embeder.embed(&query).unwrap()
         } else if let Some(jina_config) = &config.jina {
-            let embeder = Embeder::Jina(get_jina_embeder(jina_config)?);
-            embeder.embed(&query, None).unwrap()
+            let embeder = get_jina_embeder(jina_config)?;
+            embeder.embed(&query).unwrap()
         } else {
             // error to provide atleat one config
 
@@ -184,9 +185,12 @@ pub fn embed_query(
                 ))
             }
         }
-        .embed(&query, None)
-        .unwrap()
+        .embed(&query)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?
     };
+
+    let embeddings = get_text_metadata(&encodings, &query, None)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
     Ok(embeddings)
 }
@@ -423,24 +427,24 @@ pub fn embed_webpage(
     let webpage = website_processor
         .process_website(url.as_ref())
         .map_err(|e| {
-            PyValueError::new_err(format!("Error processing website: {}", e.to_string()))
+            PyValueError::new_err(format!("Error processing website: {}", e))
         })?;
 
     let embeddings = if let Some(config) = config {
         if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
             webpage.embed_webpage(&embeder).map_err(|e| {
-                PyValueError::new_err(format!("Error embedding webpage: {}", e.to_string()))
+                PyValueError::new_err(format!("Error embedding webpage: {}", e))
             })?
         } else if let Some(openai_config) = &config.openai {
             let embeder = get_openai_embeder(openai_config)?;
             webpage.embed_webpage(&embeder).map_err(|e| {
-                PyValueError::new_err(format!("Error embedding webpage: {}", e.to_string()))
+                PyValueError::new_err(format!("Error embedding webpage: {}", e))
             })?
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
             webpage.embed_webpage(&embeder).map_err(|e| {
-                PyValueError::new_err(format!("Error embedding webpage: {}", e.to_string()))
+                PyValueError::new_err(format!("Error embedding webpage: {}", e))
             })?
         } else {
             return Err(PyValueError::new_err(
@@ -503,7 +507,10 @@ fn emb_directory(
             let chunks = TextLoader::split_into_chunks(&text, chunk_size.unwrap_or(100));
             let metadata = TextLoader::get_metadata(file).ok();
             chunks
-                .map(|chunks| embedding_model.embed(&chunks, metadata).unwrap())
+                .map(|chunks| {
+                    let encodings = embedding_model.embed(&chunks).unwrap();
+                    get_text_metadata(&encodings, &chunks, metadata).unwrap()
+                })
                 .ok_or_else(|| PyValueError::new_err("No text found in file"))
                 .unwrap()
         })
@@ -523,7 +530,10 @@ fn emb_text<T: AsRef<std::path::Path>>(
     let metadata = TextLoader::get_metadata(file.as_ref().to_str().unwrap()).ok();
 
     let embeddings = chunks
-        .map(|chunks| embedding_model.embed(&chunks, metadata).unwrap())
+        .map(|chunks| {
+            let encodings = embedding_model.embed(&chunks).unwrap();
+            get_text_metadata(&encodings, &chunks, metadata).unwrap()
+        })
         .ok_or_else(|| PyValueError::new_err("No text found in file"))?;
 
     Ok(embeddings.clone())
@@ -563,20 +573,14 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
         audio_processor::process_audio(&audio_file, model_input).unwrap();
 
     let embeddings = if let Some(bert_config) = &config.bert {
-        get_bert_embeder(bert_config)
-            .unwrap()
-            .embed_audio(segments, audio_file)
-            .unwrap()
+        let embeder = get_bert_embeder(bert_config).unwrap();
+        embed_audio(&embeder, segments, audio_file).unwrap()
     } else if let Some(openai_config) = &config.openai {
-        get_openai_embeder(openai_config)
-            .unwrap()
-            .embed_audio(segments, audio_file)
-            .unwrap()
+        let embeder= get_openai_embeder(openai_config).unwrap();
+        embed_audio(&embeder, segments, audio_file).unwrap()
     } else if let Some(jina_config) = &config.jina {
-        get_jina_embeder(jina_config)
-            .unwrap()
-            .embed_audio(segments, audio_file)
-            .unwrap()
+        let embeder = get_jina_embeder(jina_config).unwrap();
+        embed_audio(&embeder, segments, audio_file).unwrap()
     } else {
         // error
         return Err(PyValueError::new_err(

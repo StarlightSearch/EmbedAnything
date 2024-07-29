@@ -6,7 +6,10 @@ use serde_json::json;
 use url::Url;
 
 use crate::{
-    embedding_model::embed::{EmbedData, TextEmbed},
+    embedding_model::{
+        embed::{EmbedData, TextEmbed},
+        get_text_metadata,
+    },
     text_loader::TextLoader,
 };
 
@@ -74,7 +77,8 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let embeddings = embeder.embed(&chunks, Some(metadata_hashmap))?;
+            let encodings = embeder.embed(&chunks)?;
+            let embeddings = get_text_metadata(&encodings, &chunks, Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
 
