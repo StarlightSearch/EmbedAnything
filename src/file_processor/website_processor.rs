@@ -108,8 +108,8 @@ impl WebsiteProcessor {
         Self {}
     }
 
-    pub async fn process_website(&self, website: &str) -> Result<WebPage> {
-        let response = reqwest::get(website).await?.text().await?;
+    pub fn process_website(&self, website: &str) -> Result<WebPage> {
+        let response = reqwest::blocking::get(website)?.text()?;
         let document = Html::parse_document(&response);
         let headers = self.get_text_from_tag("h1,h2,h3", &document)?;
         let paragraphs = self.get_text_from_tag("p", &document)?;
@@ -165,11 +165,11 @@ impl WebsiteProcessor {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_process_website() {
+    #[test]
+    fn test_process_website() {
         let website_processor = WebsiteProcessor::new();
         let website = "https://www.scrapingbee.com/blog/web-scraping-rust/";
-        let result = website_processor.process_website(website).await;
+        let result = website_processor.process_website(website);
         assert!(result.is_ok());
     }
 }

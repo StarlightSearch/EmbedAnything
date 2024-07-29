@@ -35,19 +35,21 @@ Bert_models_dict = [
 ]
 
 
-# for model in jina_models_dict:
-#     start_time = time.time()
-#     jina_config = JinaConfig(
-#         model_id=model["model_id"], revision=model["revision"], chunk_size=model["chunk_size"]
-#     )
-#     embed_config = EmbedConfig(jina=jina_config)
+for model in jina_models_dict:
+    start_time = time.time()
+    jina_config = JinaConfig(
+        model_id=model["model_id"],
+        revision=model["revision"],
+        chunk_size=model["chunk_size"],
+    )
+    embed_config = EmbedConfig(jina=jina_config)
 
-#     data_file = embed_anything.embed_file(
-#         "./test_files/test.pdf", embeder="Jina", config=embed_config
-#     )
+    data_file = embed_anything.embed_file(
+        "./test_files/test.pdf", embeder="Jina", config=embed_config
+    )
 
-#     end_time = time.time()
-#     print("Time taken: ", end_time - start_time)
+    end_time = time.time()
+    print("Time taken: ", end_time - start_time)
 
 for model in Bert_models_dict:
     start_time = time.time()

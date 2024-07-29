@@ -57,7 +57,7 @@ impl Model {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DecodingResult {
     pub tokens: Vec<u32>,
     pub text: String,
