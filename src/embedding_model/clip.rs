@@ -15,7 +15,7 @@ use candle_nn::VarBuilder;
 use pyo3::pyclass;
 use tokenizers::Tokenizer;
 
-use super::embed::{Embed, EmbedData, EmbedImage};
+use super::embed::{EmbedData, EmbedImage};
 
 #[pyclass]
 pub struct ClipEmbeder {
@@ -164,6 +164,24 @@ impl ClipEmbeder {
 
         Ok(images)
     }
+
+    pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
+            Some(text_batch.to_vec()),
+            &self.tokenizer,
+            &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
+        )
+        .unwrap();
+
+        let encodings = self
+            .model
+            .get_text_features(&input_ids)
+            .unwrap()
+            .to_vec2::<f32>()
+            .unwrap();
+
+        Ok(encodings)
+    }
 }
 
 impl EmbedImage for ClipEmbeder {
@@ -216,42 +234,9 @@ impl EmbedImage for ClipEmbeder {
     }
 }
 
-impl Embed for ClipEmbeder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        metadata: Option<HashMap<String, String>>,
-    ) -> Result<Vec<EmbedData>, anyhow::Error> {
-        let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
-            Some(text_batch.to_vec()),
-            &self.tokenizer,
-            &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
-        )
-        .unwrap();
-
-        let encodings = self
-            .model
-            .get_text_features(&input_ids)
-            .unwrap()
-            .to_vec2::<f32>()
-            .unwrap();
-        let embeddings = encodings
-            .iter()
-            .zip(text_batch)
-            .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
-            .collect::<Vec<_>>();
-        Ok(embeddings)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    // Initializes a new ClipEmbeder with default values.
-    #[test]
-    fn test_default_initialization() {
-        let _clip_embeder = ClipEmbeder::default();
-    }
 
     // Tests the tokenize_sequences method.
     #[test]

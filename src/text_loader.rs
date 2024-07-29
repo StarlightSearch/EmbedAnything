@@ -81,10 +81,7 @@ impl TextLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embedding_model::{
-        clip::ClipEmbeder,
-        embed::EmbedImage,
-    };
+    use crate::embedding_model::{clip::ClipEmbeder, embed::EmbedImage};
     use std::path::PathBuf;
 
     #[test]
