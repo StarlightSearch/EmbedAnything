@@ -24,19 +24,19 @@ pub struct WebPage {
 }
 
 impl WebPage {
-    pub fn embed_webpage<T: TextEmbed>(&self, embeder: &T) -> Result<Vec<EmbedData>> {
+    pub fn embed_webpage<T: TextEmbed>(&self, embeder: &T, chunk_size: usize) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
-            embed_data.extend(self.embed_tag("p", paragraphs, embeder)?);
+            embed_data.extend(self.embed_tag("p", paragraphs, embeder, chunk_size)?);
         }
 
         if let Some(headers) = &self.headers {
-            embed_data.extend(self.embed_tag("h1", headers, embeder)?);
+            embed_data.extend(self.embed_tag("h1", headers, embeder, chunk_size)?);
         }
 
         if let Some(codes) = &self.codes {
-            embed_data.extend(self.embed_tag("code", codes, embeder)?);
+            embed_data.extend(self.embed_tag("code", codes, embeder, chunk_size)?);
         }
 
         Ok(embed_data)
@@ -47,11 +47,12 @@ impl WebPage {
         tag: &str,
         tag_content: &[String],
         embeder: &T,
+        chunk_size: usize,
     ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         for content in tag_content {
-            let chunks = match TextLoader::split_into_chunks(content, 1000) {
+            let chunks = match TextLoader::split_into_chunks(content, chunk_size) {
                 Some(chunks) => chunks,
                 None => continue,
             };
