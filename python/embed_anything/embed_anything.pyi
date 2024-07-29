@@ -1,4 +1,5 @@
 from .embed_anything import *
+from embed_anything.vectordb import Adapter
 
 def embed_query(
     query: list[str], embeder: str, config: EmbedConfig | None = None
@@ -7,17 +8,30 @@ def embed_query(
 
     Args:
         query: The query to embed.
-        embeder: The name of the embedding model to use. Choose between "OpenAI" and "Bert"
+        embeder: The name of the embedding model to use. Choose between "OpenAI", "Jina", "Bert"
+        config: The configuration for the embedding model.
 
     Returns:
         An EmbedData object.
+
+    Example:
+    ```python
+    import embed_anything
+    config = embed_anything.EmbedConfig(
+        bert=embed_anything.BertConfig(model_id="sentence-transformers/allMiniLM-L6-v2"),
+    )
+    data = embed_anything.embed_query(["Hello World", "This is a query"], embeder="Bert, config = config)
+    ```
     """
 
 def embed_file(
-    file_path: str, embeder: str, config: EmbedConfig | None = None
+    file_path: str,
+    embeder: str,
+    config: EmbedConfig | None = None,
+    adapter: Adapter | None = None,
 ) -> list[EmbedData]:
-    """
-    Embeds the file at the given path and returns a list of EmbedData objects.
+    """Embeds the file at the given path and returns a list of EmbedData
+    objects.
 
     - Text -> "OpenAI", "Bert"
     - Image -> "Clip"
@@ -26,50 +40,81 @@ def embed_file(
     Args:
         file_path: The path to the file to embed.
         embeder: The name of the embedding model to use.
+        config: The configuration for the embedding model.
+        adapter: The adapter to use for storing the embeddings
 
     Returns:
         A list of EmbedData objects.
 
     Example:
-
     ```python
     import embed_anything
-    data = embed_anything.embed_file("test_files/test.pdf", embeder="Bert
+    config = embed_anything.EmbedConfig(
+                    openai_config=embed_anything.OpenAIConfig(
+                    model="text-embedding-3-small")
+                    )
+    data = embed_anything.embed_file("test_files/test.pdf",
+                                    embeder="OpenAI,
+                                    config = config)
     ```
-
     """
 
 def embed_directory(
     file_path: str, embeder: str, config: EmbedConfig | None = None
 ) -> list[EmbedData]:
-    """
-    Embeds all the files in the given directory and returns a list of EmbedData objects.
+    """Embeds all the files in the given directory and returns a list of
+    EmbedData objects.
 
     Args:
         file_path: The path to the directory containing the files to embed.
-        embeder: The name of the embedding model to use. Choose between "OpenAI" and "Bert"
+        embeder: The name of the embedding model to use. Choose between "OpenAI", "Jina", "Bert"
         config:  The configuration for the embedding model.
+        adapter: The adapter to use for storing the embeddings in a vector database.
 
     Returns:
         A list of EmbedData objects.
+
+    Example:
+    ```python
+    import embed_anything
+    config = embed_anything.EmbedConfig(
+                    bert_config = embed_anything.BertConfig(
+                    model_id="sentence-transformers/allMiniLM-L6-v2")
+                    )
+    data = embed_anything.embed_directory("test_files", embeder="Bert", config=config)
+    ```
     """
 
-def embed_webpage(url: str, embeder: str) -> list[EmbedData]:
-    """
-    Embeds the webpage at the given URL and returns a list of EmbedData objects.
+def embed_webpage(
+    url: str, embeder: str, config: EmbedConfig | None, adapter: Adapter | None
+) -> list[EmbedData] | None:
+    """Embeds the webpage at the given URL and returns a list of EmbedData
+    objects.
 
     Args:
         url: The URL of the webpage to embed.
         embeder: The name of the embedding model to use. Choose between "OpenAI", "Jina", "Bert"
+        config: The configuration for the embedding model.
+        adapter: The adapter to use for storing the embeddings.
 
     Returns:
         A list of EmbedData objects
 
+    Example:
+    ```python
+    import embed_anything
+
+    config = embed_anything.EmbedConfig(
+        openai_config=embed_anything.OpenAIConfig(model="text-embedding-3-small")
+    )
+    data = embed_anything.embed_webpage(
+        "https://www.akshaymakes.com/", embeder="OpenAI", config=config
+    )
+    ```
     """
 
 class EmbedData:
-    """
-    Represents the data of an embedded file.
+    """Represents the data of an embedded file.
 
     Attributes:
         embedding: The embedding of the file.
@@ -85,9 +130,34 @@ class EmbedData:
     text: str
     metadata: dict[str, str]
 
-class BertConfig:
+class EmbedConfig:
+    """Represents the configuration for the embedding model. Each config object
+    should hold only one of the embedding model. Do not provide multiple.
+
+    Attributes:
+        bert: The configuration for the Bert model.
+        openai: The configuration for the OpenAI model.
+        clip: The configuration for the Clip model.
     """
-    Represents the configuration for the Bert model.
+
+    def __init__(
+        self,
+        bert: BertConfig | None = None,
+        openai: OpenAIConfig | None = None,
+        clip: ClipConfig | None = None,
+        audio_decoder: AudioDecoderConfig | None = None,
+    ):
+        self.bert = bert
+        self.openai = openai
+        self.clip = clip
+        self.audio_decoder = audio_decoder
+    bert: BertConfig | None
+    openai: OpenAIConfig | None
+    clip: ClipConfig | None
+    audio_decoder: AudioDecoderConfig | None
+
+class BertConfig:
+    """Represents the configuration for the Bert model.
 
     Attributes:
         model_id: The ID of the Bert model from huggingface.
@@ -109,8 +179,7 @@ class BertConfig:
     chunk_size: int | None
 
 class JinaConfig:
-    """
-    Represents the configuration for the Jina model.
+    """Represents the configuration for the Jina model.
 
     Attributes:
         model_id: The ID of the Jina model from huggingface.
@@ -132,8 +201,7 @@ class JinaConfig:
     chunk_size: int | None = None
 
 class OpenAIConfig:
-    """
-    Represents the configuration for the OpenAI model.
+    """Represents the configuration for the OpenAI model.
 
     Attributes:
         model: The name of the OpenAI model.
@@ -155,8 +223,7 @@ class OpenAIConfig:
     chunk_size: int | None
 
 class ClipConfig:
-    """
-    Represents the configuration for the Clip model.
+    """Represents the configuration for the Clip model.
 
     Attributes:
         model_id: The ID of the Clip model from huggingface.
@@ -197,26 +264,3 @@ class AudioDecoderConfig:
     decoder_revision: str | None
     model_type: str | None
     quantized: bool | None
-
-class EmbedConfig:
-    """
-    Represents the configuration for the embedding model.
-
-    Attributes:
-        bert: The configuration for the Bert model.
-        openai: The configuration for the OpenAI model.
-        clip: The configuration for the Clip model.
-    """
-
-    def __init__(
-        self,
-        bert: BertConfig | None = None,
-        openai: OpenAIConfig | None = None,
-        clip: ClipConfig | None = None,
-    ):
-        self.bert = bert
-        self.openai = openai
-        self.clip = clip
-    bert: BertConfig | None
-    openai: OpenAIConfig | None
-    clip: ClipConfig | None
