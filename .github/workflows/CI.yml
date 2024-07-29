@@ -7,9 +7,6 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-      - master
     tags:
       - '*'
   pull_request:
@@ -21,6 +18,7 @@ permissions:
 jobs:
   linux:
     runs-on: ${{ matrix.platform.runner }}
+
     strategy:
       matrix:
         platform:
@@ -76,6 +74,7 @@ jobs:
           path: dist
   windows:
     runs-on: ${{ matrix.platform.runner }}
+
     strategy:
       matrix:
         platform:
@@ -102,6 +101,7 @@ jobs:
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
+
     strategy:
       matrix:
         platform:

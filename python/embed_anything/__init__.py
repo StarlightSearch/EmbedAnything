@@ -74,6 +74,7 @@ Supported Embedding Models:
 """
 
 from .embed_anything import *
+import embed_anything.vectordb
 
 __doc__ = embed_anything.__doc__
 if hasattr(embed_anything, "__all__"):

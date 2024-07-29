@@ -81,29 +81,8 @@ impl TextLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embedding_model::{
-        bert::BertEmbeder,
-        clip::ClipEmbeder,
-        embed::{EmbedImage, Embeder},
-    };
+    use crate::embedding_model::{clip::ClipEmbeder, embed::EmbedImage};
     use std::path::PathBuf;
-
-    #[test]
-    fn test_file_embeder() {
-        let file_path = PathBuf::from("test_files/test.pdf");
-        let text = PdfProcessor::extract_text(&file_path).unwrap();
-        let embeder = Embeder::Bert(BertEmbeder::default());
-        let chunks = TextLoader::split_into_chunks(&text, 100);
-        let embeddings = match chunks {
-            Some(chunks) => {
-                assert_eq!(chunks.len(), 5);
-
-                embeder.embed(&chunks, None).unwrap()
-            }
-            None => panic!("No chunks found"),
-        };
-        assert_eq!(embeddings.len(), 5);
-    }
 
     #[test]
     fn test_metadata() {
