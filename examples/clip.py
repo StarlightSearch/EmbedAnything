@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import embed_anything as embed_anything
+import embed_anything
 from embed_anything import EmbedData
 from PIL import Image
 import time
