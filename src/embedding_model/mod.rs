@@ -12,6 +12,7 @@ pub mod clip;
 pub mod embed;
 pub mod jina;
 pub mod openai;
+pub mod cohere;
 
 pub fn get_text_metadata(
     encodings: &[Vec<f32>],

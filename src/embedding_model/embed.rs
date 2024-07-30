@@ -8,9 +8,15 @@ use super::jina::JinaEmbeder;
 use super::openai::OpenAIEmbeder;
 
 #[derive(Deserialize, Debug, Default)]
-pub struct EmbedResponse {
+pub struct OpenAIEmbedResponse {
     pub data: Vec<EmbedData>,
     pub usage: HashMap<String, usize>,
+}
+
+
+#[derive(Deserialize, Debug, Default)]
+pub struct CohereEmbedResponse {
+    pub embeddings: Vec<Vec<f32>>,
 }
 
 #[pyclass]
