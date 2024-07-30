@@ -18,22 +18,12 @@ fn main() {
     };
 
     let config = EmbedConfig {
-        bert: Some(bert_config),
+        // bert: Some(bert_config),
         jina: Some(jina_config),
         ..Default::default()
     };
 
-    let _out_bert = embed_directory(
-        PathBuf::from("test_files"),
-        "Bert",
-        Some(vec!["pdf".to_string()]),
-        Some(&config),
-        None,
-    )
-    .unwrap()
-    .unwrap();
-
-    let _out_jina = embed_directory(
+    let _out = embed_directory(
         PathBuf::from("test_files"),
         "Jina",
         Some(vec!["pdf".to_string()]),

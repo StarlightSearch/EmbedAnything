@@ -1,12 +1,23 @@
 use candle_core::Tensor;
-use embed_anything::{embed_query, embed_webpage};
+use embed_anything::{config::{EmbedConfig, JinaConfig}, embed_query, embed_webpage};
 
 fn main() {
     let start_time = std::time::Instant::now();
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
     let embeder = "Jina".to_string();
 
-    let embed_data = embed_webpage(url, &embeder, None, None).unwrap().unwrap();
+    let jina_config = JinaConfig {
+        model_id: Some("jinaai/jina-embeddings-v2-base-en".to_string()),
+        revision: None,
+        chunk_size: Some(1000),
+    };
+
+    let embed_config = EmbedConfig{
+        jina: Some(jina_config),
+        ..Default::default()
+    };
+    
+    let embed_data = embed_webpage(url, &embeder, Some(&embed_config), None).unwrap().unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data
         .iter()
         .map(|data| data.embedding.clone())
@@ -21,7 +32,7 @@ fn main() {
     .unwrap();
 
     let query = vec!["Rust for web scraping".to_string()];
-    let query_embedding: Vec<f32> = embed_query(query, &embeder, None)
+    let query_embedding: Vec<f32> = embed_query(query, &embeder, Some(&embed_config))
         .unwrap()
         .iter()
         .map(|data| data.embedding.clone())

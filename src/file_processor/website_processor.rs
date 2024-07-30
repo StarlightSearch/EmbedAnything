@@ -114,6 +114,14 @@ impl WebsiteProcessor {
     }
 
     pub fn process_website(&self, website: &str) -> Result<WebPage> {
+
+        // check if https is in the website. If not, add it.
+        let website = if website.starts_with("http") {
+            website
+        } else {
+            &format!("https://{}", website)
+        };
+
         let response = reqwest::blocking::get(website)?.text()?;
         let document = Html::parse_document(&response);
         let headers = self.get_text_from_tag("h1,h2,h3", &document)?;
