@@ -217,7 +217,6 @@ One of the aims of EmbedAnything is to allow AI engineers to easily use state of
 Yet to do be done <br />
 ☑️Vector Database: Add functionalities to integrate with any Vector Database <br />
 ☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-☑️Asynchronous chunks training
 
 
 ## ✔️ Code of Conduct:
