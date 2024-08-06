@@ -7,7 +7,7 @@ from embed_anything.vectordb import PineconeAdapter
 # Initialize the PineconeEmbedder class
 api_key = os.environ.get("PINECONE_API_KEY")
 index_name = "anything"
-pinecone_adapter = PineconeAdapter(api_key, index_name=index_name)
+pinecone_adapter = PineconeAdapter(api_key)
 
 try:
     pinecone_adapter.delete_index("anything")

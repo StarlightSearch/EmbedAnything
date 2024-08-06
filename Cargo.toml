@@ -32,7 +32,7 @@ image = "0.25.1"
 tokenizers = "0.19.1"
 
 # PDF Processing
-pdf-extract = "0.7.4"
+pdf-extract = {git = "https://github.com/jrmuizel/pdf-extract.git", rev="refs/pull/91/head"}
 
 # Hugging Face Libraries
 hf-hub = "0.3.2"

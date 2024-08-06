@@ -1,16 +1,21 @@
-use pyo3::prelude::*;
-use serde::Deserialize;
-use std::collections::HashMap;
-use std::fmt::Debug;
 use super::bert::BertEmbeder;
 use super::clip::ClipEmbeder;
 use super::jina::JinaEmbeder;
 use super::openai::OpenAIEmbeder;
+use pyo3::prelude::*;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::fmt::Debug;
 
 #[derive(Deserialize, Debug, Default)]
-pub struct EmbedResponse {
+pub struct OpenAIEmbedResponse {
     pub data: Vec<EmbedData>,
     pub usage: HashMap<String, usize>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct CohereEmbedResponse {
+    pub embeddings: Vec<Vec<f32>>,
 }
 
 #[pyclass]

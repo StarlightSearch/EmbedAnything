@@ -2,38 +2,38 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embedding_model::embed::OpenAIEmbedResponse;
+use crate::embedding_model::embed::CohereEmbedResponse;
 
 use super::embed::TextEmbed;
 
 /// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
 #[derive(Deserialize, Debug)]
-pub struct OpenAIEmbeder {
+pub struct CohereEmbeder {
     url: String,
     model: String,
     api_key: String,
 }
 
-impl Default for OpenAIEmbeder {
+impl Default for CohereEmbeder {
     fn default() -> Self {
-        Self::new("text-embedding-3-small".to_string(), None)
+        Self::new("embed-english-v3.0".to_string(), None)
     }
 }
 
-impl TextEmbed for OpenAIEmbeder {
+impl TextEmbed for CohereEmbeder {
     fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
 }
 
-impl OpenAIEmbeder {
+impl CohereEmbeder {
     pub fn new(model: String, api_key: Option<String>) -> Self {
         let api_key =
-            api_key.unwrap_or_else(|| std::env::var("OPENAI_API_KEY").expect("API Key not set"));
+            api_key.unwrap_or_else(|| std::env::var("CO_API_KEY").expect("API key not set"));
 
         Self {
             model,
-            url: "https://api.openai.com/v1/embeddings".to_string(),
+            url: "https://api.cohere.com/v1/embed".to_string(),
             api_key,
         }
     }
@@ -48,26 +48,22 @@ impl OpenAIEmbeder {
         let data = runtime.block_on(async move {
             let response = client
                 .post(&self.url)
+                .header("Accept", "application/json")
                 .header("Content-Type", "application/json")
                 .header("Authorization", format!("Bearer {}", self.api_key))
                 .json(&json!({
-                    "input": text_batch,
+                    "texts": text_batch,
                     "model": self.model,
+                    "input_type": "search_document"
                 }))
                 .send()
                 .await
                 .unwrap();
-
-            let data = response.json::<OpenAIEmbedResponse>().await.unwrap();
-            println!("{:?}", data.usage);
+            let data = response.json::<CohereEmbedResponse>().await.unwrap();
             data
         });
 
-        let encodings = data
-            .data
-            .iter()
-            .map(|data| data.embedding.clone())
-            .collect::<Vec<_>>();
+        let encodings = data.embeddings;
 
         Ok(encodings)
     }
@@ -78,14 +74,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_openai_embed() {
-        let openai = OpenAIEmbeder::default();
+    fn test_cohere_embed() {
+        let cohere = CohereEmbeder::default();
         let text_batch = vec![
             "Once upon a time".to_string(),
             "The quick brown fox jumps over the lazy dog".to_string(),
         ];
 
-        let embeddings = openai.embed(&text_batch).unwrap();
+        let embeddings = cohere.embed(&text_batch).unwrap();
         assert_eq!(embeddings.len(), 2);
     }
 }

@@ -60,7 +60,11 @@ def embed_file(
     """
 
 def embed_directory(
-    file_path: str, embeder: str, config: EmbedConfig | None = None
+    file_path: str,
+    embeder: str,
+    extensions: list[str],
+    config: EmbedConfig | None = None,
+    adapter: Adapter | None = None,
 ) -> list[EmbedData]:
     """Embeds all the files in the given directory and returns a list of
     EmbedData objects.
@@ -68,6 +72,7 @@ def embed_directory(
     Args:
         file_path: The path to the directory containing the files to embed.
         embeder: The name of the embedding model to use. Choose between "OpenAI", "Jina", "Bert"
+        extensions: The list of file extensions to consider for embedding. Choose from ["txt", "pdf", "md"]
         config:  The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings in a vector database.
 
