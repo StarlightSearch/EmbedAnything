@@ -89,7 +89,7 @@ fn get_jina_embeder(config: &JinaConfig) -> PyResult<JinaEmbeder> {
     Ok(embeder)
 }
 
-fn embed_default(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
+fn embed_default(file_name: &str, embeder: &str) -> PyResult<Option<Vec<EmbedData>>> {
     let decoder_config = config::AudioDecoderConfig::new(
         Some("lmz/candle-whisper".to_string()),
         Some("main".to_string()),
@@ -106,10 +106,10 @@ fn embed_default(file_name: &str, embeder: &str) -> PyResult<Vec<EmbedData>> {
         ..Default::default()
     };
     match embeder {
-        "OpenAI" => emb_text(file_name, &Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()), None),
-        "Jina" => emb_text(file_name, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), None),
-        "Bert" => emb_text(file_name, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), None),
-        "Clip" => Ok(vec![emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?]),
+        "OpenAI" => emb_text(file_name, &Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()), None, None),
+        "Jina" => emb_text(file_name, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), None, None),
+        "Bert" => emb_text(file_name, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), None, None),
+        "Clip" => Ok(Some(vec![emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?])),
         "Audio" => emb_audio(file_name, &config),
         _ => Err(PyValueError::new_err(
             "Invalid embedding model. Choose between OpenAI, Bert, Jina for text files and Clip for image files.",
@@ -237,19 +237,34 @@ pub fn embed_file(
         } else if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
             let chunk_size = bert_config.chunk_size.unwrap_or(100);
-            emb_text(file_name, &Embeder::Bert(embeder), Some(chunk_size))?
+            emb_text(
+                file_name,
+                &Embeder::Bert(embeder),
+                Some(chunk_size),
+                adapter,
+            )?
         } else if let Some(clip_config) = &config.clip {
             let embeder = get_clip_embeder(clip_config)?;
-            vec![emb_image(file_name, embeder)?]
+            Some(vec![emb_image(file_name, embeder)?])
         } else if let Some(openai_config) = &config.openai {
             let embeder = get_openai_embeder(openai_config)?;
             let chunk_size = openai_config.chunk_size.unwrap_or(100);
 
-            emb_text(file_name, &Embeder::OpenAI(embeder), Some(chunk_size))?
+            emb_text(
+                file_name,
+                &Embeder::OpenAI(embeder),
+                Some(chunk_size),
+                adapter,
+            )?
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
             let chunk_size = jina_config.chunk_size.unwrap_or(100);
-            emb_text(file_name, &Embeder::Jina(embeder), Some(chunk_size))?
+            emb_text(
+                file_name,
+                &Embeder::Jina(embeder),
+                Some(chunk_size),
+                adapter,
+            )?
         } else {
             return Err(PyValueError::new_err(
                 "Provide the config for the embedding model. Otherwise, use the embed_file function without the config parameter.",
@@ -259,20 +274,7 @@ pub fn embed_file(
         embed_default(file_name, embeder)?
     };
 
-    // Send embeddings to vector database
-    if let Some(adapter) = adapter {
-        Python::with_gil(|py| {
-            let conversion_fn = adapter.getattr(py, "convert")?;
-            let upsert_fn = adapter.getattr(py, "upsert")?;
-            let converted_embeddings = conversion_fn.call1(py, (embeddings.clone(),)).unwrap();
-            upsert_fn.call1(py, (&converted_embeddings,)).unwrap();
-
-            // return none
-            Ok(None)
-        })
-    } else {
-        Ok(Some(embeddings))
-    }
+    Ok(embeddings)
 }
 
 /// Embeds the text from files in a directory using the specified embedding model.
@@ -284,7 +286,7 @@ pub fn embed_file(
 /// * `extensions` - An optional vector of strings representing the file extensions to consider for embedding. If `None`, all files in the directory will be considered.
 /// * `config` - An optional `EmbedConfig` object specifying the configuration for the embedding model.
 /// * 'adapter' - An optional `Adapter` object to send the embeddings to a vector database.
-/// 
+///
 /// # Returns
 /// A vector of `EmbedData` objects representing the embeddings of the files.
 ///
@@ -318,33 +320,36 @@ pub fn embed_directory(
         if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
             let chunk_size = bert_config.chunk_size.unwrap_or(100);
-            emb_directory(
+            Ok(emb_directory(
                 directory,
-                Embeder::Bert(embeder),
+                &Embeder::Bert(embeder),
                 extensions,
                 Some(chunk_size),
-            )?
+                adapter,
+            )?)
         } else if let Some(clip_config) = &config.clip {
             let embeder = get_clip_embeder(clip_config)?;
-            emb_image_directory(directory, embeder)?
-        } else if let Some(openai_config) = &config.openai {
-            let embeder = get_openai_embeder(openai_config)?;
-            let chunk_size = openai_config.chunk_size.unwrap_or(100);
-            emb_directory(
+            Ok(emb_image_directory(directory, embeder)?)
+        } else if let Some(_openai_config) = &config.openai {
+            let embeder = get_openai_embeder(_openai_config)?;
+            let chunk_size = _openai_config.chunk_size.unwrap_or(100);
+            Ok(emb_directory(
                 directory,
-                Embeder::OpenAI(embeder),
+                &Embeder::OpenAI(embeder),
                 extensions,
                 Some(chunk_size),
-            )?
+                adapter,
+            )?)
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
             let chunk_size = jina_config.chunk_size.unwrap_or(100);
-            emb_directory(
+            Ok(emb_directory(
                 directory,
-                Embeder::Jina(embeder),
+                &Embeder::Jina(embeder),
                 extensions,
                 Some(chunk_size),
-            )?
+                adapter,
+            )?)
         } else {
             return Err(PyValueError::new_err(
                 "Provide the config for the embedding model. Otherwise, use the embed_directory function without the config parameter.",
@@ -352,28 +357,10 @@ pub fn embed_directory(
         }
     } else {
         match embeder {
-                "OpenAI" => emb_directory(
-                    directory,
-                    Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()),
-                    extensions,
-                    Some(100)
-                )
-                .unwrap(),
-                "Jina" => emb_directory(
-                    directory,
-                    Embeder::Jina(embedding_model::jina::JinaEmbeder::default()),
-                    extensions,
-                    Some(100)
-                )
-                .unwrap(),
-                "Bert" => emb_directory(
-                    directory,
-                    Embeder::Bert(embedding_model::bert::BertEmbeder::default()),
-                    extensions,
-                    Some(100)
-                )
-                .unwrap(),
-                "Clip" => emb_image_directory(directory, embedding_model::clip::ClipEmbeder::default())?,
+                "OpenAI" => Ok(emb_directory(directory, &Embeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default()), extensions, None, adapter)?),
+                "Jina" => Ok(emb_directory(directory, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), extensions, None, adapter)?),
+                "Bert" => Ok(emb_directory(directory, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), extensions, None, adapter)?),
+                "Clip" => Ok(emb_image_directory(directory, embedding_model::clip::ClipEmbeder::default())?),
                 _ => {
                     return Err(PyValueError::new_err(
                         "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
@@ -381,21 +368,10 @@ pub fn embed_directory(
                 }
     }
     };
-    
-    // Send embeddings to vector database
-    if let Some(adapter) = adapter {
-        Python::with_gil(|py| {
-            let conversion_fn = adapter.getattr(py, "convert")?;
-            let upsert_fn = adapter.getattr(py, "upsert")?;
-            let converted_embeddings = conversion_fn.call1(py, (embeddings.clone(),)).unwrap();
-            upsert_fn.call1(py, (&converted_embeddings,)).unwrap();
 
-            // return none
-            Ok(None)
-        })
-    } else {
-        Ok(Some(embeddings))
-    }
+    embeddings
+
+    // Send embeddings to vector database
 }
 
 /// Embeddings of a webpage using the specified embedding model.
@@ -521,40 +497,84 @@ fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
 fn emb_directory(
     directory: PathBuf,
-    embedding_model: Embeder,
+    embedding_model: &Embeder,
     extensions: Option<Vec<String>>,
     chunk_size: Option<usize>,
-) -> PyResult<Vec<EmbedData>> {
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions).unwrap();
 
-    let embeddings: Vec<EmbedData> = file_parser
-        .files
-        .par_iter()
-        .map(|file| emb_text(file, &embedding_model, chunk_size).unwrap())
-        .flatten()
-        .collect();
-
-    Ok(embeddings)
+    if let Some(adapter) = adapter {
+        Python::with_gil(|py| {
+            file_parser
+                .files
+                .iter()
+                .filter_map(|file| {
+                    emb_text(
+                        file,
+                        &embedding_model,
+                        chunk_size,
+                        Some(adapter.clone_ref(py)),
+                    )
+                    .unwrap()
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+        });
+        Ok(None)
+    } else {
+        let embeddings = file_parser
+            .files
+            .par_iter()
+            .filter_map(|file| emb_text(file, &embedding_model, chunk_size, None).unwrap())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        Ok(Some(embeddings))
+    }
 }
 
 fn emb_text<T: AsRef<std::path::Path>>(
     file: T,
     embedding_model: &Embeder,
     chunk_size: Option<usize>,
-) -> PyResult<Vec<EmbedData>> {
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let chunks = TextLoader::split_into_chunks(&text, chunk_size.unwrap_or(100));
     let metadata = TextLoader::get_metadata(file.as_ref().to_str().unwrap()).ok();
 
-    let embeddings = chunks
-        .map(|chunks| {
-            let encodings = embedding_model.embed(&chunks).unwrap();
-            get_text_metadata(&encodings, &chunks, metadata).unwrap()
-        })
-        .ok_or_else(|| PyValueError::new_err("No text found in file"))?;
+    if let Some(adapter) = adapter {
+        Python::with_gil(|py| {
+            let embeddings = chunks
+                .map(|chunks| {
+                    let encodings = embedding_model.embed(&chunks).unwrap();
+                    get_text_metadata(&encodings, &chunks, metadata).unwrap()
+                })
+                .ok_or_else(|| PyValueError::new_err("No text found in file"))?;
 
-    Ok(embeddings.clone())
+            let conversion_fn = adapter.getattr(py, "convert")?;
+            let upsert_fn = adapter.getattr(py, "upsert")?;
+            let converted_embeddings = conversion_fn.call1(py, (embeddings,))?;
+            upsert_fn.call1(py, (&converted_embeddings,))?;
+
+            // return none
+            Ok(None)
+        })
+    } else {
+        let embeddings = chunks
+            .map(|chunks| {
+                let encodings = embedding_model.embed(&chunks).unwrap();
+                get_text_metadata(&encodings, &chunks, metadata).unwrap()
+            })
+            .ok_or_else(|| PyValueError::new_err("No text found in file"))?;
+
+        Ok(Some(embeddings))
+    }
 }
 
 fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
@@ -568,7 +588,7 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
 pub fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     config: &EmbedConfig,
-) -> PyResult<Vec<EmbedData>> {
+) -> PyResult<Option<Vec<EmbedData>>> {
     let model_input = if let Some(audio_decoder_config) = &config.audio_decoder {
         audio_processor::build_model(
             audio_decoder_config.decoder_model_id.clone(),
@@ -606,18 +626,18 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
         ));
     };
 
-    Ok(embeddings)
+    Ok(Some(embeddings))
 }
 
 fn emb_image_directory<T: EmbedImage>(
     directory: PathBuf,
     embedding_model: T,
-) -> PyResult<Vec<EmbedData>> {
+) -> PyResult<Option<Vec<EmbedData>>> {
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
 
     let embeddings = embedding_model
         .embed_image_batch(&file_parser.files)
         .unwrap();
-    Ok(embeddings)
+    Ok(Some(embeddings))
 }

@@ -1,5 +1,5 @@
-"""
-This module provides functions and classes for embedding queries, files, and directories using different embedding models.
+"""This module provides functions and classes for embedding queries, files, and
+directories using different embedding models.
 
 The module includes the following functions:
 
@@ -15,23 +15,23 @@ Usage:
 ```python
 import embed_anything
 
-# Create a config 
+# Create a config
 config = embed_anything.EmbedConfig(
     jina=embed_anything.JinaConfig(
-        model_id="jinaai/jina-embeddings-v2-small-en", 
-        revision="main", 
+        model_id="jinaai/jina-embeddings-v2-small-en",
+        revision="main",
         chunk_size=100
     )
 )
 
 # Embed a file
-data = embed_anything.embed_file("test_files/test.pdf", 
-                embeder="Jina", 
+data = embed_anything.embed_file("test_files/test.pdf",
+                embeder="Jina",
                 config=config)
 
 # Embed a directory
-data = embed_anything.embed_directory("test_files", 
-                embeder="Jina", 
+data = embed_anything.embed_directory("test_files",
+                embeder="Jina",
                 config=config)
 
 # Embed Audio
@@ -42,16 +42,16 @@ audio_decoder_config = embed_anything.AudioDecoderConfig(
     quantized=False,
 )
 jina_config = embed_anything.JinaConfig(
-    model_id="jinaai/jina-embeddings-v2-small-en", 
-    revision="main", 
+    model_id="jinaai/jina-embeddings-v2-small-en",
+    revision="main",
     chunk_size=100
 )
 
-config = embed_anything.EmbedConfig(jina=jina_config, 
+config = embed_anything.EmbedConfig(jina=jina_config,
             audio_decoder=audio_decoder_config)
 data = embed_anything.embed_file(
-    "test_files/audio/samples_hp0.wav", 
-    embeder="Audio", 
+    "test_files/audio/samples_hp0.wav",
+    embeder="Audio",
     config=config
 )
 
@@ -69,7 +69,7 @@ from embed_anything.vectordb import PineconeAdapter
 # Initialize the PineconeEmbedder class
 api_key = os.environ.get("PINECONE_API_KEY")
 index_name = "anything"
-pinecone_adapter = PineconeAdapter(api_key, index_name=index_name)
+pinecone_adapter = PineconeAdapter(api_key)
 
 try:
     pinecone_adapter.delete_index("anything")
@@ -78,13 +78,17 @@ except:
 
 # Initialize the PineconeEmbedder class
 
-pinecone_adapter.create_index(dimension=1536, metric="cosine")
+pinecone_adapter.create_index(
+        dimension=1536,
+        metric="cosine",
+        index_name=index_name
+        )
 
-# Embed the audio files
-# Replace the line with a valid code snippet or remove it if not needed
 data = embed_anything.embed_file(
-    "test_files/test.pdf", embeder="OpenAI", adapter=pinecone_adapter
-)
+        "test_files/test.pdf",
+        embeder="OpenAI",
+        adapter=pinecone_adapter
+        )
 ```
 
 

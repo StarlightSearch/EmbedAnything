@@ -13,14 +13,13 @@ use candle_transformers::models::jina_bert::{BertModel, Config};
 use hf_hub::Repo;
 use tokenizers::Tokenizer;
 
-
 ///jina-embeddings-v2-base-en is an English, monolingual embedding model supporting 8192 sequence length. It is based on a BERT architecture (JinaBERT) that supports the symmetric bidirectional variant of ALiBi to allow longer sequence length. The backbone jina-bert-v2-base-en is pretrained on the C4 dataset. The model is further trained on Jina AI's collection of more than 400 millions of sentence pairs and hard negatives. These pairs were obtained from various domains and were carefully selected through a thorough cleaning process.
 ///
 ///The embedding model was trained using 512 sequence length, but extrapolates to 8k sequence length (or even longer) thanks to ALiBi. This makes our model useful for a range of use cases, especially when processing long documents is needed, including long document retrieval, semantic textual similarity, text reranking, recommendation, RAG and LLM-based generative search, etc.
 ///
 ///With a standard size of 137 million parameters, the model enables fast inference while delivering better performance than our small model. It is recommended to use a single GPU for inference. Additionally, we provide the following embedding models:
 ///
-///- jina-embeddings-v2-small-en: 33 million parameters. 
+///- jina-embeddings-v2-small-en: 33 million parameters.
 ///- jina-embeddings-v2-base-en: 137 million parameters .
 ///- jina-embeddings-v2-base-zh: Chinese-English Bilingual embeddings.
 ///- jina-embeddings-v2-base-de: German-English Bilingual embeddings.
@@ -90,8 +89,6 @@ impl JinaEmbeder {
         let encodings = embeddings.to_vec2::<f32>().unwrap();
         Ok(encodings)
     }
-
-   
 }
 
 impl TextEmbed for JinaEmbeder {
@@ -99,4 +96,3 @@ impl TextEmbed for JinaEmbeder {
         self.embed(text_batch)
     }
 }
-
