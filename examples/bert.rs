@@ -30,7 +30,6 @@ fn main() {
         Some(&config),
         None,
     )
-    .unwrap()
     .unwrap();
 
     let elapsed_time = now.elapsed();

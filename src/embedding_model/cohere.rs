@@ -64,7 +64,7 @@ impl CohereEmbeder {
         });
 
         let encodings = data.embeddings;
-    
+
         Ok(encodings)
     }
 }

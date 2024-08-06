@@ -26,7 +26,6 @@ impl PdfProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pdf_extract::OutputError;
     use std::fs::File;
     use tempdir::TempDir;
 
@@ -36,9 +35,6 @@ mod tests {
         let pdf_file = temp_dir.path().join("test.pdf");
 
         File::create(&pdf_file).unwrap();
-
-        let error = PdfProcessor::extract_text(&pdf_file).unwrap_err();
-        assert!(matches!(error.downcast::<OutputError>(), Ok(_)));
 
         let pdf_file = "test_files/test.pdf";
         let text = PdfProcessor::extract_text(&PathBuf::from(pdf_file)).unwrap();

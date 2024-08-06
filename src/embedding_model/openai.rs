@@ -28,7 +28,8 @@ impl TextEmbed for OpenAIEmbeder {
 
 impl OpenAIEmbeder {
     pub fn new(model: String, api_key: Option<String>) -> Self {
-        let api_key = api_key.unwrap_or_else(|| std::env::var("OPENAI_API_KEY").expect("API Key not set"));
+        let api_key =
+            api_key.unwrap_or_else(|| std::env::var("OPENAI_API_KEY").expect("API Key not set"));
 
         Self {
             model,

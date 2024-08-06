@@ -24,7 +24,11 @@ pub struct WebPage {
 }
 
 impl WebPage {
-    pub fn embed_webpage<T: TextEmbed>(&self, embeder: &T, chunk_size: usize) -> Result<Vec<EmbedData>> {
+    pub fn embed_webpage<T: TextEmbed>(
+        &self,
+        embeder: &T,
+        chunk_size: usize,
+    ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
@@ -114,7 +118,6 @@ impl WebsiteProcessor {
     }
 
     pub fn process_website(&self, website: &str) -> Result<WebPage> {
-
         // check if https is in the website. If not, add it.
         let website = if website.starts_with("http") {
             website

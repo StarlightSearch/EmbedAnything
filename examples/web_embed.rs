@@ -1,5 +1,8 @@
 use candle_core::Tensor;
-use embed_anything::{config::{EmbedConfig, JinaConfig}, embed_query, embed_webpage};
+use embed_anything::{
+    config::{EmbedConfig, JinaConfig},
+    embed_query, embed_webpage,
+};
 
 fn main() {
     let start_time = std::time::Instant::now();
@@ -12,12 +15,14 @@ fn main() {
         chunk_size: Some(1000),
     };
 
-    let embed_config = EmbedConfig{
+    let embed_config = EmbedConfig {
         jina: Some(jina_config),
         ..Default::default()
     };
-    
-    let embed_data = embed_webpage(url, &embeder, Some(&embed_config), None).unwrap().unwrap();
+
+    let embed_data = embed_webpage(url, &embeder, Some(&embed_config), None)
+        .unwrap()
+        .unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data
         .iter()
         .map(|data| data.embedding.clone())
