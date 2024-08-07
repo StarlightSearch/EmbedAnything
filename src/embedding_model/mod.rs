@@ -20,7 +20,7 @@ pub fn get_text_metadata(
     metadata: Option<HashMap<String, String>>,
 ) -> anyhow::Result<Vec<EmbedData>> {
     let final_embeddings = encodings
-        .into_iter()
+        .iter()
         .zip(text_batch)
         .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
         .collect::<Vec<_>>();

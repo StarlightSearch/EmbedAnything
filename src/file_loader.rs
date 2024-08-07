@@ -72,8 +72,7 @@ impl FileParser {
             .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.file_type().is_file())
-            .filter(|entry| image_regex.is_match(entry.file_name().to_str().unwrap_or(""))
-        )
+            .filter(|entry| image_regex.is_match(entry.file_name().to_str().unwrap_or("")))
             .map(|entry| {
                 let absolute_path = entry
                     .path()
@@ -94,8 +93,7 @@ impl FileParser {
             .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.file_type().is_file())
-            .filter(|entry| audio_regex.is_match(entry.file_name().to_str().unwrap_or(""))
-            )
+            .filter(|entry| audio_regex.is_match(entry.file_name().to_str().unwrap_or("")))
             .map(|entry| {
                 let absolute_path = entry
                     .path()

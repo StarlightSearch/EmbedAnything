@@ -19,23 +19,26 @@ impl Default for TextLoader {
 #[derive(Debug)]
 pub struct TextLoader {
     splitter: TextSplitter<Tokenizer>,
-
 }
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
         Self {
-            splitter: TextSplitter::new(ChunkConfig::new(chunk_size).with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()))
-
+            splitter: TextSplitter::new(
+                ChunkConfig::new(chunk_size)
+                    .with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()),
+            ),
         }
     }
     pub fn split_into_chunks(&self, text: &str) -> Option<Vec<String>> {
-
         if text.is_empty() {
             return None;
         }
-        let chunks: Vec<String> = self.splitter.chunks(text).map(|chunk| chunk.to_string()).collect();
+        let chunks: Vec<String> = self
+            .splitter
+            .chunks(text)
+            .map(|chunk| chunk.to_string())
+            .collect();
         Some(chunks)
-
     }
 
     pub fn extract_text(file: &str) -> Result<String, Error> {

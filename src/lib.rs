@@ -359,7 +359,7 @@ pub fn embed_directory(
     config: Option<&EmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
-    let embeddings = if let Some(config) = &config {
+    if let Some(config) = &config {
         if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
             let chunk_size = bert_config.chunk_size.unwrap_or(256);
@@ -415,14 +415,12 @@ pub fn embed_directory(
                 "Bert" => Ok(emb_directory(directory, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), extensions, None,None, adapter)?),
                 "Clip" => Ok(emb_image_directory(directory, embedding_model::clip::ClipEmbeder::default())?),
                 _ => {
-                    return Err(PyValueError::new_err(
+                    Err(PyValueError::new_err(
                         "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
                     ))
                 }
     }
-    };
-
-    embeddings
+    }
 
     // Send embeddings to vector database
 }
@@ -579,7 +577,7 @@ fn emb_directory(
                 .filter_map(|file| {
                     emb_text(
                         file,
-                        &embedding_model,
+                        embedding_model,
                         chunk_size,
                         batch_size,
                         Some(adapter.clone_ref(py)),
@@ -597,7 +595,7 @@ fn emb_directory(
             .files
             .par_iter()
             .filter_map(|file| {
-                emb_text(file, &embedding_model, chunk_size, batch_size, None).unwrap()
+                emb_text(file, embedding_model, chunk_size, batch_size, None).unwrap()
             })
             .collect::<Vec<_>>()
             .into_iter()

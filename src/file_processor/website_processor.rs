@@ -58,7 +58,7 @@ impl WebPage {
         let mut embed_data = Vec::new();
 
         for content in tag_content {
-            let textloader= TextLoader::new(chunk_size);
+            let textloader = TextLoader::new(chunk_size);
             let chunks = match textloader.split_into_chunks(content) {
                 Some(chunks) => chunks,
                 None => continue,
