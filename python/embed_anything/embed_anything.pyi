@@ -171,6 +171,7 @@ class BertConfig:
         model_id: The ID of the Bert model from huggingface.
         revision: The revision of the Bert model.
         chunk_size: The chunk size for the Bert model.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
     def __init__(
@@ -196,6 +197,7 @@ class JinaConfig:
         model_id: The ID of the Jina model from huggingface.
         revision: The revision of the Jina model.
         chunk_size: The chunk size for the Jina model.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
     def __init__(
@@ -246,6 +248,8 @@ class ClipConfig:
     Attributes:
         model_id: The ID of the Clip model from huggingface.
         revision: The revision of the Clip model.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
+
     """
 
     def __init__(
