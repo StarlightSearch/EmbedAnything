@@ -77,21 +77,32 @@ impl BertEmbeder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let token_ids = self.tokenize_batch(text_batch, &self.model.device).unwrap();
-        let token_type_ids = token_ids.zeros_like().unwrap();
-        let embeddings = self.model.forward(&token_ids, &token_type_ids).unwrap();
-        let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
-        let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
-        let embeddings = normalize_l2(&embeddings).unwrap();
-        let encodings = embeddings.to_vec2::<f32>().unwrap();
+    pub fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        let mut encodings = Vec::new();
+        let batch_size = batch_size.unwrap_or(32);
+        for mini_text_batch in text_batch.chunks(batch_size) {
+            let token_ids = self
+                .tokenize_batch(mini_text_batch, &self.model.device)
+                .unwrap();
+            let token_type_ids = token_ids.zeros_like().unwrap();
+
+            let embeddings = self.model.forward(&token_ids, &token_type_ids).unwrap();
+            let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
+
+            let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
+            let embeddings = normalize_l2(&embeddings).unwrap();
+            let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
+
+            encodings.extend(batch_encodings);
+        }
+
         Ok(encodings)
     }
 }
 
 impl TextEmbed for BertEmbeder {
-    fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        self.embed(text_batch)
+    fn embed(&self, text_batch: &[String], batch_size:Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        self.embed(text_batch, batch_size)
     }
 }
 
@@ -113,7 +124,7 @@ mod tests {
             "It is blazingly fast".to_string(),
         ];
         let start = Instant::now();
-        let embeddings = embeder.embed(&text).unwrap();
+        let embeddings = embeder.embed(&text, None).unwrap();
         println!("Time taken: {:?}", start.elapsed());
         assert_eq!(embeddings.len(), 2);
     }

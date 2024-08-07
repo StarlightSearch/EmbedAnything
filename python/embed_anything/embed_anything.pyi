@@ -148,16 +148,19 @@ class EmbedConfig:
     def __init__(
         self,
         bert: BertConfig | None = None,
-        openai: OpenAIConfig | None = None,
+        jina: JinaConfig | None = None,
+        cloud: CloudConfig | None = None,
         clip: ClipConfig | None = None,
         audio_decoder: AudioDecoderConfig | None = None,
     ):
         self.bert = bert
-        self.openai = openai
+        self.cloud = cloud
+        self.jina = jina
         self.clip = clip
         self.audio_decoder = audio_decoder
     bert: BertConfig | None
-    openai: OpenAIConfig | None
+    jina: JinaConfig | None
+    openai: CloudConfig | None
     clip: ClipConfig | None
     audio_decoder: AudioDecoderConfig | None
 
@@ -168,6 +171,7 @@ class BertConfig:
         model_id: The ID of the Bert model from huggingface.
         revision: The revision of the Bert model.
         chunk_size: The chunk size for the Bert model.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
     def __init__(
@@ -175,13 +179,16 @@ class BertConfig:
         model_id: str | None = None,
         revision: str | None = None,
         chunk_size: int | None = None,
+        batch_size: int | None = None,
     ):
         self.model_id = model_id
         self.revision = revision
         self.chunk_size = chunk_size
+        self.batch_size = batch_size
     model_id: str | None
     revision: str | None
     chunk_size: int | None
+    batch_size: int | None
 
 class JinaConfig:
     """Represents the configuration for the Jina model.
@@ -190,6 +197,7 @@ class JinaConfig:
         model_id: The ID of the Jina model from huggingface.
         revision: The revision of the Jina model.
         chunk_size: The chunk size for the Jina model.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
     def __init__(
@@ -197,18 +205,22 @@ class JinaConfig:
         model_id: str | None = None,
         revision: str | None = None,
         chunk_size: int | None = None,
+        batch_size: int | None = None,
     ):
         self.model_id = model_id
         self.revision = revision
         self.chunk_size = chunk_size
+        self.batch_size = batch_size
     model_id: str | None = None
     revision: str | None = None
     chunk_size: int | None = None
+    batch_size: int | None = None
 
-class OpenAIConfig:
+class CloudConfig:
     """Represents the configuration for the OpenAI model.
 
     Attributes:
+        provider: The provider of the Cloud model. Default is OpenAI.
         model: The name of the OpenAI model.
         api_key: The API key for the OpenAI model.
         chunk_size: The chunk size for the OpenAI model.
@@ -216,13 +228,16 @@ class OpenAIConfig:
 
     def __init__(
         self,
+        provider: str | None = None,
         model: str | None = None,
         api_key: str | None = None,
         chunk_size: int | None = None,
     ):
+        self.provider = provider
         self.model = model
         self.api_key = api_key
         self.chunk_size = chunk_size
+    provider: str | None
     model: str | None
     api_key: str | None
     chunk_size: int | None
@@ -233,13 +248,22 @@ class ClipConfig:
     Attributes:
         model_id: The ID of the Clip model from huggingface.
         revision: The revision of the Clip model.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
+
     """
 
-    def __init__(self, model_id: str | None = None, revision: str | None = None):
+    def __init__(
+        self,
+        model_id: str | None = None,
+        revision: str | None = None,
+        batch_size: int | None = None,
+    ):
         self.model_id = model_id
         self.revision = revision
+        self.batch_size = batch_size
     model_id: str | None
     revision: str | None
+    batch_size: int | None
 
 class AudioDecoderConfig:
     """

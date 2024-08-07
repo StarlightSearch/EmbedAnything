@@ -165,20 +165,32 @@ impl ClipEmbeder {
         Ok(images)
     }
 
-    pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
-            Some(text_batch.to_vec()),
-            &self.tokenizer,
-            &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
-        )
-        .unwrap();
+    pub fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        let mut encodings = Vec::new();
 
-        let encodings = self
-            .model
-            .get_text_features(&input_ids)
-            .unwrap()
-            .to_vec2::<f32>()
+        let batch_size = batch_size.unwrap_or(32);
+
+        for mini_text_batch in text_batch.chunks(batch_size) {
+            let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
+                Some(mini_text_batch.to_vec()),
+                &self.tokenizer,
+                &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
+            )
             .unwrap();
+
+            let batch_encodings = self
+                .model
+                .get_text_features(&input_ids)
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap();
+
+            encodings.extend(batch_encodings);
+        }
 
         Ok(encodings)
     }
@@ -191,13 +203,17 @@ impl EmbedImage for ClipEmbeder {
     ) -> anyhow::Result<Vec<EmbedData>> {
         let config = clip::ClipConfig::vit_base_patch32();
 
-        let images = self.load_images(image_paths, config.image_size).unwrap();
-        let encodings = self
-            .model
-            .get_image_features(&images)
-            .unwrap()
-            .to_vec2::<f32>()
-            .unwrap();
+        let mut encodings = Vec::new();
+        for image_batch in image_paths.chunks(32) {
+            let images = self.load_images(image_batch, config.image_size).unwrap();
+            let batch_encodings = self
+                .model
+                .get_image_features(&images)
+                .unwrap()
+                .to_vec2::<f32>()
+                .unwrap();
+            encodings.extend(batch_encodings);
+        }
 
         let embeddings = encodings
             .iter()
