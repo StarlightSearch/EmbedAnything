@@ -77,7 +77,11 @@ impl JinaEmbeder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    pub fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         let mut encodings = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
@@ -99,7 +103,11 @@ impl JinaEmbeder {
 }
 
 impl TextEmbed for JinaEmbeder {
-    fn embed(&self, text_batch: &[String], batch_size:Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch, batch_size)
     }
 }

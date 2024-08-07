@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.1.23"
+version = "0.2.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "Embed anything at lightning speed"
@@ -29,7 +29,10 @@ rayon = "1.8.1"
 image = "0.25.1"
 
 # Natural Language Processing
-tokenizers = "0.19.1"
+tokenizers = {version="0.19.1", features=["http"]}
+text-splitter = {version="0.14.1", features=["tokenizers"]}
+
+
 
 # PDF Processing
 pdf-extract = "0.7.7"

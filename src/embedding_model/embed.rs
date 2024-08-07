@@ -57,7 +57,11 @@ impl EmbedData {
 }
 
 pub trait TextEmbed {
-    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
 }
 pub enum Embeder {
     Cloud(CloudEmbeder),
@@ -67,7 +71,11 @@ pub enum Embeder {
 }
 
 impl Embeder {
-    pub fn embed(&self, text_batch: &[String], batch_size:Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
             Embeder::Cloud(embeder) => embeder.embed(text_batch),
             Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
@@ -76,7 +84,6 @@ impl Embeder {
         }
     }
 }
-
 
 pub enum CloudEmbeder {
     OpenAI(OpenAIEmbeder),
@@ -90,11 +97,14 @@ impl CloudEmbeder {
             Self::Cohere(embeder) => embeder.embed(text_batch),
         }
     }
-
 }
 
 impl TextEmbed for CloudEmbeder {
-    fn embed(&self, text_batch: &[String], _batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        _batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
             Self::OpenAI(embeder) => embeder.embed(text_batch),
             Self::Cohere(embeder) => embeder.embed(text_batch),
