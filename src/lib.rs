@@ -77,7 +77,7 @@ fn get_jina_embeder(config: &JinaConfig) -> PyResult<JinaEmbeder> {
     let model_id = &config
         .model_id
         .clone()
-        .unwrap_or_else(|| "sentence-transformers/all-MiniLM-L12-v2".to_string());
+        .unwrap_or_else(|| "jinaai/jina-embeddings-v2-base-en".to_string());
     let revision = &config.revision;
     let embeder = if let Some(revision) = revision {
         JinaEmbeder::new(model_id.to_string(), Some(revision.to_string()))
