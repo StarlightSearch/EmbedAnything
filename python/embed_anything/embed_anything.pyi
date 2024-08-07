@@ -149,18 +149,18 @@ class EmbedConfig:
         self,
         bert: BertConfig | None = None,
         jina: JinaConfig | None = None,
-        openai: OpenAIConfig | None = None,
+        cloud: CloudConfig | None = None,
         clip: ClipConfig | None = None,
         audio_decoder: AudioDecoderConfig | None = None,
     ):
         self.bert = bert
-        self.openai = openai
+        self.cloud = cloud
         self.jina = jina
         self.clip = clip
         self.audio_decoder = audio_decoder
     bert: BertConfig | None
     jina: JinaConfig | None
-    openai: OpenAIConfig | None
+    openai: CloudConfig | None
     clip: ClipConfig | None
     audio_decoder: AudioDecoderConfig | None
 
@@ -178,13 +178,16 @@ class BertConfig:
         model_id: str | None = None,
         revision: str | None = None,
         chunk_size: int | None = None,
+        batch_size: int | None = None,
     ):
         self.model_id = model_id
         self.revision = revision
         self.chunk_size = chunk_size
+        self.batch_size = batch_size
     model_id: str | None
     revision: str | None
     chunk_size: int | None
+    batch_size: int | None
 
 class JinaConfig:
     """Represents the configuration for the Jina model.
@@ -200,18 +203,22 @@ class JinaConfig:
         model_id: str | None = None,
         revision: str | None = None,
         chunk_size: int | None = None,
+        batch_size: int | None = None,
     ):
         self.model_id = model_id
         self.revision = revision
         self.chunk_size = chunk_size
+        self.batch_size = batch_size
     model_id: str | None = None
     revision: str | None = None
     chunk_size: int | None = None
+    batch_size: int | None = None
 
-class OpenAIConfig:
+class CloudConfig:
     """Represents the configuration for the OpenAI model.
 
     Attributes:
+        provider: The provider of the Cloud model. Default is OpenAI.
         model: The name of the OpenAI model.
         api_key: The API key for the OpenAI model.
         chunk_size: The chunk size for the OpenAI model.
@@ -219,13 +226,16 @@ class OpenAIConfig:
 
     def __init__(
         self,
+        provider: str | None = None,
         model: str | None = None,
         api_key: str | None = None,
         chunk_size: int | None = None,
     ):
+        self.provider = provider
         self.model = model
         self.api_key = api_key
         self.chunk_size = chunk_size
+    provider: str | None
     model: str | None
     api_key: str | None
     chunk_size: int | None
@@ -238,11 +248,18 @@ class ClipConfig:
         revision: The revision of the Clip model.
     """
 
-    def __init__(self, model_id: str | None = None, revision: str | None = None):
+    def __init__(
+        self,
+        model_id: str | None = None,
+        revision: str | None = None,
+        batch_size: int | None = None,
+    ):
         self.model_id = model_id
         self.revision = revision
+        self.batch_size = batch_size
     model_id: str | None
     revision: str | None
+    batch_size: int | None
 
 class AudioDecoderConfig:
     """

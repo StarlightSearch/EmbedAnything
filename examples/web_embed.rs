@@ -13,6 +13,7 @@ fn main() {
         model_id: Some("jinaai/jina-embeddings-v2-base-en".to_string()),
         revision: None,
         chunk_size: Some(1000),
+        batch_size: Some(32),
     };
 
     let embed_config = EmbedConfig {

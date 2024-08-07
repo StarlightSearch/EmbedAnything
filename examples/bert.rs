@@ -9,12 +9,14 @@ fn main() {
         model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()),
         revision: None,
         chunk_size: Some(100),
+        batch_size: Some(32),
     };
 
     let jina_config = JinaConfig {
         model_id: Some("jinaai/jina-embeddings-v2-base-en".to_string()),
         revision: None,
         chunk_size: Some(100),
+        batch_size: Some(32),
     };
 
     let config = EmbedConfig {
