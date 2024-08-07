@@ -40,8 +40,16 @@ pub struct ClipConfig {
 impl ClipConfig {
     #[new]
     #[pyo3(signature = (model_id=None, revision=None, batch_size=None))]
-    pub fn new(model_id: Option<String>, revision: Option<String>, batch_size:Option<usize>) -> Self {
-        Self { model_id, revision , batch_size }
+    pub fn new(
+        model_id: Option<String>,
+        revision: Option<String>,
+        batch_size: Option<usize>,
+    ) -> Self {
+        Self {
+            model_id,
+            revision,
+            batch_size,
+        }
     }
 }
 
@@ -53,7 +61,6 @@ pub struct CloudConfig {
     pub api_key: Option<String>,
     pub chunk_size: Option<usize>,
 }
-
 
 #[pyclass]
 #[derive(Clone)]

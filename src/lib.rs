@@ -9,6 +9,7 @@ pub mod embedding_model;
 pub mod file_loader;
 pub mod file_processor;
 pub mod text_loader;
+
 use std::path::PathBuf;
 
 use config::{AudioDecoderConfig, BertConfig, ClipConfig, CloudConfig, EmbedConfig, JinaConfig};
@@ -137,7 +138,7 @@ fn embed_default(file_name: &str, embeder: &str) -> PyResult<Option<Vec<EmbedDat
         bert: Some(BertConfig {
             model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()),
             revision: None,
-            chunk_size: Some(100),
+            chunk_size: Some(256),
             batch_size: Some(32),
         }),
         ..Default::default()
@@ -178,7 +179,7 @@ fn embed_default(file_name: &str, embeder: &str) -> PyResult<Option<Vec<EmbedDat
 ///
 /// let query = vec!["Hello".to_string(), "World".to_string()];
 /// let embeder = "OpenAI";
-/// let openai_config = OpenAIConfig{ model: Some("text-embedding-3-small".to_string()), api_key: None, chunk_size: Some(100) };
+/// let openai_config = OpenAIConfig{ model: Some("text-embedding-3-small".to_string()), api_key: None, chunk_size: Some(256) };
 /// let config = EmbedConfig{ openai: Some(openai_config), ..Default::default() };
 /// let embeddings = embed_query(query, embeder).unwrap();
 /// println!("{:?}", embeddings);
@@ -258,7 +259,7 @@ pub fn embed_query(
 ///
 /// let file_name = "test_files/test.pdf";
 /// let embeder = "Bert";
-/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(100) };
+/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(256) };
 /// let embeddings = embed_file(file_name, embeder, config).unwrap();
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
@@ -275,7 +276,7 @@ pub fn embed_file(
             emb_audio(file_name, config)?
         } else if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
-            let chunk_size = bert_config.chunk_size.unwrap_or(100);
+            let chunk_size = bert_config.chunk_size.unwrap_or(256);
             emb_text(
                 file_name,
                 &Embeder::Bert(embeder),
@@ -288,7 +289,7 @@ pub fn embed_file(
             Some(vec![emb_image(file_name, embeder)?])
         } else if let Some(openai_config) = &config.cloud {
             let embeder = get_cloud_embeder(openai_config)?;
-            let chunk_size = openai_config.chunk_size.unwrap_or(100);
+            let chunk_size = openai_config.chunk_size.unwrap_or(256);
 
             emb_text(
                 file_name,
@@ -299,7 +300,7 @@ pub fn embed_file(
             )?
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
-            let chunk_size = jina_config.chunk_size.unwrap_or(100);
+            let chunk_size = jina_config.chunk_size.unwrap_or(256);
             emb_text(
                 file_name,
                 &Embeder::Jina(embeder),
@@ -343,7 +344,7 @@ pub fn embed_file(
 ///
 /// let directory = PathBuf::from("/path/to/directory");
 /// let embeder = "OpenAI";
-/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(100) };
+/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(256) };
 /// let config = EmbedConfig{ bert: Some(bert_config), ..Default::default() };
 /// let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
 /// let embeddings = embed_directory(directory, embeder, extensions, config).unwrap();
@@ -361,7 +362,7 @@ pub fn embed_directory(
     let embeddings = if let Some(config) = &config {
         if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
-            let chunk_size = bert_config.chunk_size.unwrap_or(100);
+            let chunk_size = bert_config.chunk_size.unwrap_or(256);
             Ok(emb_directory(
                 directory,
                 &Embeder::Bert(embeder),
@@ -375,7 +376,7 @@ pub fn embed_directory(
             Ok(emb_image_directory(directory, embeder)?)
         } else if let Some(_openai_config) = &config.cloud {
             let embeder = get_cloud_embeder(_openai_config)?;
-            let chunk_size = _openai_config.chunk_size.unwrap_or(100);
+            let chunk_size = _openai_config.chunk_size.unwrap_or(256);
             Ok(emb_directory(
                 directory,
                 &Embeder::Cloud(embeder),
@@ -386,7 +387,7 @@ pub fn embed_directory(
             )?)
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
-            let chunk_size = jina_config.chunk_size.unwrap_or(100);
+            let chunk_size = jina_config.chunk_size.unwrap_or(256);
             Ok(emb_directory(
                 directory,
                 &Embeder::Jina(embeder),
@@ -407,7 +408,7 @@ pub fn embed_directory(
                 &Embeder::Cloud(CloudEmbeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default())),
                 extensions,
                 None,
-                Some(100),
+                Some(256),
                 adapter
             )        ,
                     "Jina" => Ok(emb_directory(directory, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), extensions, None,None, adapter)?),
@@ -480,21 +481,21 @@ pub fn embed_webpage(
             webpage
                 .embed_webpage(
                     &embeder,
-                    bert_config.chunk_size.unwrap_or(100),
+                    bert_config.chunk_size.unwrap_or(256),
                     bert_config.batch_size,
                 )
                 .map_err(|e| PyValueError::new_err(format!("Error embedding webpage: {}", e)))?
         } else if let Some(cloud_config) = &config.cloud {
             let embeder = get_cloud_embeder(cloud_config)?;
             webpage
-                .embed_webpage(&embeder,cloud_config.chunk_size.unwrap_or(100), None)
+                .embed_webpage(&embeder, cloud_config.chunk_size.unwrap_or(256), None)
                 .map_err(|e| PyValueError::new_err(format!("Error embedding webpage: {}", e)))?
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
             webpage
                 .embed_webpage(
                     &embeder,
-                    jina_config.chunk_size.unwrap_or(100),
+                    jina_config.chunk_size.unwrap_or(256),
                     jina_config.batch_size,
                 )
                 .map_err(|e| PyValueError::new_err(format!("Error embedding webpage: {}", e)))?
@@ -508,15 +509,15 @@ pub fn embed_webpage(
             "OpenAI" => webpage
                 .embed_webpage(
                     &embedding_model::openai::OpenAIEmbeder::default(),
-                    100,
+                    256,
                     None,
                 )
                 .unwrap(),
             "Jina" => webpage
-                .embed_webpage(&embedding_model::jina::JinaEmbeder::default(), 100, None)
+                .embed_webpage(&embedding_model::jina::JinaEmbeder::default(), 256, None)
                 .unwrap(),
             "Bert" => webpage
-                .embed_webpage(&embedding_model::bert::BertEmbeder::default(), 100, None)
+                .embed_webpage(&embedding_model::bert::BertEmbeder::default(), 256, None)
                 .unwrap(),
             _ => {
                 return Err(PyValueError::new_err(
@@ -614,7 +615,8 @@ fn emb_text<T: AsRef<std::path::Path>>(
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
-    let chunks = TextLoader::split_into_chunks(&text, chunk_size.unwrap_or(100));
+    let textloader = TextLoader::new(chunk_size.unwrap_or(256));
+    let chunks = textloader.split_into_chunks(&text);
     let metadata = TextLoader::get_metadata(file.as_ref().to_str().unwrap()).ok();
 
     if let Some(adapter) = adapter {
