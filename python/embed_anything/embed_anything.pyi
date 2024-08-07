@@ -148,15 +148,18 @@ class EmbedConfig:
     def __init__(
         self,
         bert: BertConfig | None = None,
+        jina: JinaConfig | None = None,
         openai: OpenAIConfig | None = None,
         clip: ClipConfig | None = None,
         audio_decoder: AudioDecoderConfig | None = None,
     ):
         self.bert = bert
         self.openai = openai
+        self.jina = jina
         self.clip = clip
         self.audio_decoder = audio_decoder
     bert: BertConfig | None
+    jina: JinaConfig | None
     openai: OpenAIConfig | None
     clip: ClipConfig | None
     audio_decoder: AudioDecoderConfig | None
