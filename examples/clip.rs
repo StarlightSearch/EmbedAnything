@@ -8,6 +8,7 @@ fn main() {
     let clip_config = embed_anything::config::ClipConfig {
         model_id: Some("openai/clip-vit-base-patch32".to_string()),
         revision: Some("refs/pr/15".to_string()),
+        batch_size: Some(32),
     };
     let config = embed_anything::config::EmbedConfig {
         clip: Some(clip_config),

@@ -20,7 +20,7 @@ pub fn get_text_metadata(
     metadata: Option<HashMap<String, String>>,
 ) -> anyhow::Result<Vec<EmbedData>> {
     let final_embeddings = encodings
-        .iter()
+        .into_iter()
         .zip(text_batch)
         .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
         .collect::<Vec<_>>();
@@ -69,7 +69,7 @@ pub fn embed_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
 ) -> Result<Vec<EmbedData>, anyhow::Error> {
     let text_batch = text_batch_from_audio(&segments);
-    let encodings = embeder.embed(&text_batch)?;
+    let encodings = embeder.embed(&text_batch, None)?;
     get_audio_metadata(encodings, segments, audio_file)
 }
 

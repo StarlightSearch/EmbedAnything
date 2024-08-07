@@ -21,7 +21,7 @@ impl Default for OpenAIEmbeder {
 }
 
 impl TextEmbed for OpenAIEmbeder {
-    fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(&self, text_batch: &[String], _batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
 }
