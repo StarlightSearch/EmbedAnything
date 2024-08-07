@@ -61,6 +61,7 @@ text-cleaner = "0.1.0"
 url = "2.5.0"
 chrono = "0.4.38"
 rand = "0.8.5"
+itertools = "0.13.0"
 
 # Audio Processing
 symphonia = { version = "0.5.3", features = ["all"]}

@@ -28,19 +28,20 @@ impl WebPage {
         &self,
         embeder: &T,
         chunk_size: usize,
+        batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
-            embed_data.extend(self.embed_tag("p", paragraphs, embeder, chunk_size)?);
+            embed_data.extend(self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size)?);
         }
 
         if let Some(headers) = &self.headers {
-            embed_data.extend(self.embed_tag("h1", headers, embeder, chunk_size)?);
+            embed_data.extend(self.embed_tag("h1", headers, embeder, chunk_size, batch_size)?);
         }
 
         if let Some(codes) = &self.codes {
-            embed_data.extend(self.embed_tag("code", codes, embeder, chunk_size)?);
+            embed_data.extend(self.embed_tag("code", codes, embeder, chunk_size, batch_size)?);
         }
 
         Ok(embed_data)
@@ -52,6 +53,7 @@ impl WebPage {
         tag_content: &[String],
         embeder: &T,
         chunk_size: usize,
+        batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
@@ -82,7 +84,7 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let encodings = embeder.embed(&chunks)?;
+            let encodings = embeder.embed(&chunks, batch_size)?;
             let embeddings = get_text_metadata(&encodings, &chunks, Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }

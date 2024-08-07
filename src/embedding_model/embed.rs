@@ -1,5 +1,6 @@
 use super::bert::BertEmbeder;
 use super::clip::ClipEmbeder;
+use super::cohere::CohereEmbeder;
 use super::jina::JinaEmbeder;
 use super::openai::OpenAIEmbeder;
 use pyo3::prelude::*;
@@ -56,22 +57,47 @@ impl EmbedData {
 }
 
 pub trait TextEmbed {
-    fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error>;
 }
 pub enum Embeder {
-    OpenAI(OpenAIEmbeder),
+    Cloud(CloudEmbeder),
     Jina(JinaEmbeder),
     Clip(ClipEmbeder),
     Bert(BertEmbeder),
 }
 
 impl Embeder {
+    pub fn embed(&self, text_batch: &[String], batch_size:Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        match self {
+            Embeder::Cloud(embeder) => embeder.embed(text_batch),
+            Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
+            Embeder::Clip(embeder) => embeder.embed(text_batch, batch_size),
+            Embeder::Bert(embeder) => embeder.embed(text_batch, batch_size),
+        }
+    }
+}
+
+
+pub enum CloudEmbeder {
+    OpenAI(OpenAIEmbeder),
+    Cohere(CohereEmbeder),
+}
+
+impl CloudEmbeder {
     pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
-            Embeder::OpenAI(embeder) => embeder.embed(text_batch),
-            Embeder::Jina(embeder) => embeder.embed(text_batch),
-            Embeder::Clip(embeder) => embeder.embed(text_batch),
-            Embeder::Bert(embeder) => embeder.embed(text_batch),
+            Self::OpenAI(embeder) => embeder.embed(text_batch),
+            Self::Cohere(embeder) => embeder.embed(text_batch),
+        }
+    }
+
+}
+
+impl TextEmbed for CloudEmbeder {
+    fn embed(&self, text_batch: &[String], _batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        match self {
+            Self::OpenAI(embeder) => embeder.embed(text_batch),
+            Self::Cohere(embeder) => embeder.embed(text_batch),
         }
     }
 }
