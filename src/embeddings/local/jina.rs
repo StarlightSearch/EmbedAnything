@@ -4,8 +4,8 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use super::embed::TextEmbed;
-use crate::embedding_model::normalize_l2;
+use crate::embeddings::embed::TextEmbed;
+use crate::embeddings::normalize_l2;
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};

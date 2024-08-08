@@ -5,7 +5,7 @@ use std::{path::PathBuf, time::Instant};
 fn main() {
     let now = Instant::now();
 
-    let bert_config = BertConfig {
+    let _bert_config = BertConfig {
         model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()),
         revision: None,
         chunk_size: Some(256),

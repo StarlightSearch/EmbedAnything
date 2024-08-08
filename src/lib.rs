@@ -5,7 +5,7 @@
 extern crate intel_mkl_src;
 
 pub mod config;
-pub mod embedding_model;
+pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
 pub mod text_loader;
@@ -13,14 +13,11 @@ pub mod text_loader;
 use std::path::PathBuf;
 
 use config::{AudioDecoderConfig, BertConfig, ClipConfig, CloudConfig, EmbedConfig, JinaConfig};
-use embedding_model::{
-    bert::BertEmbeder,
-    clip::ClipEmbeder,
-    cohere::CohereEmbeder,
+use embeddings::{
+    local::{bert::BertEmbeder, jina::JinaEmbeder, clip::ClipEmbeder},
+    cloud::{cohere::CohereEmbeder, openai::OpenAIEmbeder},
     embed::{CloudEmbeder, EmbedData, EmbedImage, Embeder},
     embed_audio, get_text_metadata,
-    jina::JinaEmbeder,
-    openai::OpenAIEmbeder,
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor;
@@ -144,10 +141,10 @@ fn embed_default(file_name: &str, embeder: &str) -> PyResult<Option<Vec<EmbedDat
         ..Default::default()
     };
     match embeder {
-        "Cloud"|"OpenAI" => emb_text(file_name, &Embeder::Cloud(CloudEmbeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default())), None, None, None),
-        "Jina" => emb_text(file_name, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), None, None, None),
-        "Bert" => emb_text(file_name, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), None, None,None),
-        "Clip" => Ok(Some(vec![emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?])),
+        "Cloud"|"OpenAI" => emb_text(file_name, &Embeder::Cloud(CloudEmbeder::OpenAI(OpenAIEmbeder::default())), None, None, None),
+        "Jina" => emb_text(file_name, &Embeder::Jina(JinaEmbeder::default()), None, None, None),
+        "Bert" => emb_text(file_name, &Embeder::Bert(BertEmbeder::default()), None, None,None),
+        "Clip" => Ok(Some(vec![emb_image(file_name, ClipEmbeder::default())?])),
         "Audio" => emb_audio(file_name, &config),
         _ => Err(PyValueError::new_err(
             "Invalid embedding model. Choose between OpenAI, Bert, Jina for text files and Clip for image files.",
@@ -215,11 +212,11 @@ pub fn embed_query(
     } else {
         match embeder {
             "Cloud" | "OpenAI" => Embeder::Cloud(CloudEmbeder::OpenAI(
-                embedding_model::openai::OpenAIEmbeder::default(),
+                OpenAIEmbeder::default(),
             )),
-            "Jina" => Embeder::Jina(embedding_model::jina::JinaEmbeder::default()),
-            "Clip" => Embeder::Clip(embedding_model::clip::ClipEmbeder::default()),
-            "Bert" => Embeder::Bert(embedding_model::bert::BertEmbeder::default()),
+            "Jina" => Embeder::Jina(JinaEmbeder::default()),
+            "Clip" => Embeder::Clip(ClipEmbeder::default()),
+            "Bert" => Embeder::Bert(BertEmbeder::default()),
             _ => {
                 return Err(PyValueError::new_err(
                     "Invalid embedding model. Choose between OpenAI, Jina, Bert and Clip.",
@@ -405,15 +402,15 @@ pub fn embed_directory(
         match embeder {
             "Cloud"|"OpenAI" => emb_directory(
                 directory,
-                &Embeder::Cloud(CloudEmbeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default())),
+                &Embeder::Cloud(CloudEmbeder::OpenAI(OpenAIEmbeder::default())),
                 extensions,
                 None,
                 Some(256),
                 adapter
             )        ,
-                    "Jina" => Ok(emb_directory(directory, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), extensions, None,None, adapter)?),
-                "Bert" => Ok(emb_directory(directory, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), extensions, None,None, adapter)?),
-                "Clip" => Ok(emb_image_directory(directory, embedding_model::clip::ClipEmbeder::default())?),
+                    "Jina" => Ok(emb_directory(directory, &Embeder::Jina(JinaEmbeder::default()), extensions, None,None, adapter)?),
+                "Bert" => Ok(emb_directory(directory, &Embeder::Bert(BertEmbeder::default()), extensions, None,None, adapter)?),
+                "Clip" => Ok(emb_image_directory(directory, ClipEmbeder::default())?),
                 _ => {
                     Err(PyValueError::new_err(
                         "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
@@ -506,16 +503,16 @@ pub fn embed_webpage(
         match embeder {
             "OpenAI" => webpage
                 .embed_webpage(
-                    &embedding_model::openai::OpenAIEmbeder::default(),
+                    &OpenAIEmbeder::default(),
                     256,
                     None,
                 )
                 .unwrap(),
             "Jina" => webpage
-                .embed_webpage(&embedding_model::jina::JinaEmbeder::default(), 256, None)
+                .embed_webpage(&JinaEmbeder::default(), 256, None)
                 .unwrap(),
             "Bert" => webpage
-                .embed_webpage(&embedding_model::bert::BertEmbeder::default(), 256, None)
+                .embed_webpage(&BertEmbeder::default(), 256, None)
                 .unwrap(),
             _ => {
                 return Err(PyValueError::new_err(
@@ -547,7 +544,7 @@ fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_directory, m)?)?;
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
-    m.add_class::<embedding_model::embed::EmbedData>()?;
+    m.add_class::<embeddings::embed::EmbedData>()?;
     m.add_class::<BertConfig>()?;
     m.add_class::<ClipConfig>()?;
     m.add_class::<CloudConfig>()?;
