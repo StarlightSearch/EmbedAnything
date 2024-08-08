@@ -1,10 +1,17 @@
+use std::collections::HashMap;
+
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embedding_model::embed::OpenAIEmbedResponse;
 
-use super::embed::TextEmbed;
+use crate::embeddings::embed::{EmbedData, TextEmbed};
+
+#[derive(Deserialize, Debug, Default)]
+pub struct OpenAIEmbedResponse {
+    pub data: Vec<EmbedData>,
+    pub usage: HashMap<String, usize>,
+}
 
 /// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
 #[derive(Deserialize, Debug)]
