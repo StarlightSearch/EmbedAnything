@@ -31,7 +31,7 @@ pub struct JinaEmbeder {
 
 impl Default for JinaEmbeder {
     fn default() -> Self {
-        Self::new("jinaai/jina-embeddings-v2-base-en".to_string(), None).unwrap()
+        Self::new("jinaai/jina-embeddings-v2-small-en".to_string(), None).unwrap()
     }
 }
 

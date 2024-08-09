@@ -4,7 +4,6 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-
 use crate::embeddings::embed::{EmbedData, TextEmbed};
 
 #[derive(Deserialize, Debug, Default)]

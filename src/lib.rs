@@ -4,6 +4,7 @@
 #[cfg(feature = "mkl")]
 extern crate intel_mkl_src;
 
+pub mod chunkers;
 pub mod config;
 pub mod embeddings;
 pub mod file_loader;
@@ -14,10 +15,10 @@ use std::path::PathBuf;
 
 use config::{AudioDecoderConfig, BertConfig, ClipConfig, CloudConfig, EmbedConfig, JinaConfig};
 use embeddings::{
-    local::{bert::BertEmbeder, jina::JinaEmbeder, clip::ClipEmbeder},
     cloud::{cohere::CohereEmbeder, openai::OpenAIEmbeder},
     embed::{CloudEmbeder, EmbedData, EmbedImage, Embeder},
     embed_audio, get_text_metadata,
+    local::{bert::BertEmbeder, clip::ClipEmbeder, jina::JinaEmbeder},
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor;
@@ -211,9 +212,7 @@ pub fn embed_query(
         }
     } else {
         match embeder {
-            "Cloud" | "OpenAI" => Embeder::Cloud(CloudEmbeder::OpenAI(
-                OpenAIEmbeder::default(),
-            )),
+            "Cloud" | "OpenAI" => Embeder::Cloud(CloudEmbeder::OpenAI(OpenAIEmbeder::default())),
             "Jina" => Embeder::Jina(JinaEmbeder::default()),
             "Clip" => Embeder::Clip(ClipEmbeder::default()),
             "Bert" => Embeder::Bert(BertEmbeder::default()),
@@ -502,11 +501,7 @@ pub fn embed_webpage(
     } else {
         match embeder {
             "OpenAI" => webpage
-                .embed_webpage(
-                    &OpenAIEmbeder::default(),
-                    256,
-                    None,
-                )
+                .embed_webpage(&OpenAIEmbeder::default(), 256, None)
                 .unwrap(),
             "Jina" => webpage
                 .embed_webpage(&JinaEmbeder::default(), 256, None)

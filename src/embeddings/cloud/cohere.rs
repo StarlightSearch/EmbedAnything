@@ -2,14 +2,12 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-
 use crate::embeddings::embed::TextEmbed;
 
 #[derive(Deserialize, Debug, Default)]
 pub struct CohereEmbedResponse {
     pub embeddings: Vec<Vec<f32>>,
 }
-
 
 /// Represents an CohereEmebeder struct that contains the URL and API key for making requests to the OpenAI API.
 #[derive(Deserialize, Debug)]
