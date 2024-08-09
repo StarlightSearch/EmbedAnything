@@ -53,10 +53,9 @@ impl CohereEmbeder {
     }
 
     pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-
-
         let data = self.runtime.block_on(async move {
-            let response = self.client
+            let response = self
+                .client
                 .post(&self.url)
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json")
