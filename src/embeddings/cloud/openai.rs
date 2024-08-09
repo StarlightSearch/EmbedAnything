@@ -13,11 +13,13 @@ pub struct OpenAIEmbedResponse {
 }
 
 /// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct OpenAIEmbeder {
     url: String,
     model: String,
     api_key: String,
+    runtime: tokio::runtime::Runtime,
+    client: Client,
 }
 
 impl Default for OpenAIEmbeder {
@@ -40,23 +42,23 @@ impl OpenAIEmbeder {
     pub fn new(model: String, api_key: Option<String>) -> Self {
         let api_key =
             api_key.unwrap_or_else(|| std::env::var("OPENAI_API_KEY").expect("API Key not set"));
-
+        
         Self {
             model,
             url: "https://api.openai.com/v1/embeddings".to_string(),
             api_key,
+            runtime: tokio::runtime::Builder::new_current_thread()
+                .enable_io()
+                .build()
+                .unwrap(),
+            client: Client::new(),
         }
     }
 
     pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let client = Client::new();
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_io()
-            .build()
-            .unwrap();
 
-        let data = runtime.block_on(async move {
-            let response = client
+        let data = self.runtime.block_on(async move {
+            let response = self.client
                 .post(&self.url)
                 .header("Content-Type", "application/json")
                 .header("Authorization", format!("Bearer {}", self.api_key))
