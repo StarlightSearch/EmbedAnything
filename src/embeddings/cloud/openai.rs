@@ -42,7 +42,7 @@ impl OpenAIEmbeder {
     pub fn new(model: String, api_key: Option<String>) -> Self {
         let api_key =
             api_key.unwrap_or_else(|| std::env::var("OPENAI_API_KEY").expect("API Key not set"));
-        
+
         Self {
             model,
             url: "https://api.openai.com/v1/embeddings".to_string(),
@@ -56,9 +56,9 @@ impl OpenAIEmbeder {
     }
 
     pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-
         let data = self.runtime.block_on(async move {
-            let response = self.client
+            let response = self
+                .client
                 .post(&self.url)
                 .header("Content-Type", "application/json")
                 .header("Authorization", format!("Bearer {}", self.api_key))
