@@ -10,11 +10,13 @@ pub struct CohereEmbedResponse {
 }
 
 /// Represents an CohereEmebeder struct that contains the URL and API key for making requests to the OpenAI API.
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct CohereEmbeder {
     url: String,
     model: String,
     api_key: String,
+    runtime: tokio::runtime::Runtime,
+    client: Client,
 }
 
 impl Default for CohereEmbeder {
@@ -42,18 +44,19 @@ impl CohereEmbeder {
             model,
             url: "https://api.cohere.com/v1/embed".to_string(),
             api_key,
+            runtime: tokio::runtime::Builder::new_current_thread()
+                .enable_io()
+                .build()
+                .unwrap(),
+            client: Client::new(),
         }
     }
 
     pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let client = Client::new();
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_io()
-            .build()
-            .unwrap();
 
-        let data = runtime.block_on(async move {
-            let response = client
+
+        let data = self.runtime.block_on(async move {
+            let response = self.client
                 .post(&self.url)
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json")
