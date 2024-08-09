@@ -8,9 +8,8 @@ use embed::{EmbedData, TextEmbed};
 use crate::file_processor::audio::audio_processor::Segment;
 
 pub mod cloud;
-pub mod local;
 pub mod embed;
-
+pub mod local;
 
 pub fn get_text_metadata(
     encodings: &[Vec<f32>],

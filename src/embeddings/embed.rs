@@ -1,15 +1,12 @@
+use super::cloud::cohere::CohereEmbeder;
+use super::cloud::openai::OpenAIEmbeder;
 use super::local::bert::BertEmbeder;
 use super::local::clip::ClipEmbeder;
-use super::cloud::cohere::CohereEmbeder;
 use super::local::jina::JinaEmbeder;
-use super::cloud::openai::OpenAIEmbeder;
 use pyo3::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
-
-
-
 
 #[pyclass]
 #[derive(Deserialize, Debug, Clone, Default)]
