@@ -775,6 +775,7 @@ dependencies = [
  "candle-nn",
  "candle-transformers",
  "chrono",
+ "fancy-regex",
  "hf-hub",
  "image",
  "intel-mkl-src",
