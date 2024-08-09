@@ -1,10 +1,13 @@
 use std::{cmp::max, os::linux::raw};
 
-use crate::embeddings::{cloud::openai::OpenAIEmbeder, embed::TextEmbed, local::jina::JinaEmbeder, normalize_l2};
+use crate::embeddings::{
+    cloud::openai::OpenAIEmbeder, embed::TextEmbed, local::jina::JinaEmbeder, normalize_l2,
+};
 use candle_core::Tensor;
 use itertools::{enumerate, Itertools};
-use text_splitter::{ChunkConfig, ChunkSizer, TextSplitter};
-use tokenizers::{tokenizer, Tokenizer};
+use text_cleaner::clean::Clean;
+use text_splitter::{Characters, ChunkConfig, ChunkSizer, TextSplitter};
+use tokenizers::Tokenizer;
 
 #[derive(Debug)]
 pub struct StatisticalChunker<T: TextEmbed, Sizer: ChunkSizer> {
@@ -24,7 +27,8 @@ impl Default for StatisticalChunker<JinaEmbeder, Tokenizer> {
     fn default() -> Self {
         let tokenizer = Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap();
 
-        let splitter = TextSplitter::new(ChunkConfig::new(200).with_sizer(tokenizer.clone()));
+        let splitter = TextSplitter::new(ChunkConfig::new(100).with_sizer(tokenizer.clone()));
+
         let encoder = JinaEmbeder::default();
         let score_threshold = 0.9;
         let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
@@ -36,8 +40,8 @@ impl Default for StatisticalChunker<JinaEmbeder, Tokenizer> {
             threshold_adjustment: 0.01,
             dynamic_threshold: true,
             window_size: 5,
-            min_split_tokens: 200,
-            max_split_tokens: 400,
+            min_split_tokens: 100,
+            max_split_tokens: 300,
             split_token_tolerance: 10,
             tokenizer,
         }
@@ -71,16 +75,52 @@ impl<T: TextEmbed, Sizer: ChunkSizer> StatisticalChunker<T, Sizer> {
             tokenizer,
         }
     }
+
+    pub fn split_into_sentences(&self, text: &str, chunk_size: usize) -> Option<Vec<String>> {
+        let mut chunk = Vec::new();
+        let mut chunks = Vec::new();
+
+        if text.is_empty() {
+            return None;
+        }
+        if text.len() < chunk_size {
+            chunks.push(text.to_owned());
+            return Some(chunks);
+        }
+
+        let sentences: Vec<&str> = text.split_terminator(&['.', ';'][..]).collect();
+
+        for sentence in sentences {
+            let sentence_with_period = format!("{}.", sentence);
+
+            let words: Vec<String> = sentence_with_period
+                .split_whitespace()
+                .map(|word| word.to_owned())
+                .collect();
+
+            chunk.extend(words);
+
+            if chunk.len() >= chunk_size {
+                chunks.push(chunk.join(" "));
+                chunk.clear();
+            }
+        }
+        if !chunk.is_empty() {
+            chunks.push(chunk.join(" "));
+        }
+
+        Some(chunks)
+    }
+
     pub fn _chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
-        let splits = self
-            .splitter
-            .chunks(text)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .map(|x| x.to_string())
-            .collect::<Vec<_>>();
+
+        let splits = self.split_into_sentences(text, 50).unwrap();
+
+        for split in splits.iter() {
+            println!("-----Split---\n{}", split);
+        }
         let mut chunks: Vec<String> = Vec::new();
-        let mut last_chunk: String = "".to_string();
+        let mut last_chunk: String = String::new();
 
         for i in &(0..splits.len()).chunks(batch_size) {
             let indices = i.collect::<Vec<_>>();
@@ -96,7 +136,7 @@ impl<T: TextEmbed, Sizer: ChunkSizer> StatisticalChunker<T, Sizer> {
                     .collect::<Vec<_>>();
             }
 
-            let encoded_splits = self.encoder.embed(&batch_splits, Some(32)).unwrap();
+            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).unwrap();
             let similarities = self._calculate_similarity_scores(&encoded_splits);
             let calculated_threshold: f32;
             if self.dynamic_threshold {
@@ -106,25 +146,23 @@ impl<T: TextEmbed, Sizer: ChunkSizer> StatisticalChunker<T, Sizer> {
             }
 
             let split_indices = self._find_split_indices(&similarities, calculated_threshold);
-            let doc_chunks:Vec<String> = self._split_documents(batch_splits, split_indices, similarities);
+            let doc_chunks: Vec<String> =
+                self._split_documents(batch_splits, split_indices, similarities);
 
-            if doc_chunks.len() > 1{
-               
-               //add doc chunks to chunks
-                chunks.extend(doc_chunks.clone().into_iter());
+            if doc_chunks.len() > 1 {
+                //add doc chunks to chunks
+                chunks.extend(doc_chunks[..doc_chunks.len() - 1].iter().cloned());
                 // last chunk is last element of doc_chunks
-                last_chunk =  doc_chunks.last().unwrap().to_string();
-            }else{
+                last_chunk = doc_chunks.last().unwrap().to_string();
+            } else {
                 last_chunk = doc_chunks[0].clone();
-
-                
             }
         }
-        if !last_chunk.is_empty(){
+        if !last_chunk.is_empty() {
             chunks.push(last_chunk);
         }
 
-        for chunk in chunks.iter(){
+        for chunk in chunks.iter() {
             println!("-----Chunk---\n{}", chunk);
         }
         chunks
@@ -170,7 +208,7 @@ impl<T: TextEmbed, Sizer: ChunkSizer> StatisticalChunker<T, Sizer> {
                 .unwrap();
             let norm = (encoded_splits_tensor_norm * cumulative_context_norm).unwrap();
             let curr_sim_score = encoded_splits_tensor
-                .get(0)
+                .get(i)
                 .unwrap()
                 .reshape((1, embed_dim))
                 .unwrap()
@@ -201,17 +239,13 @@ impl<T: TextEmbed, Sizer: ChunkSizer> StatisticalChunker<T, Sizer> {
             .map(|tokens| tokens.get_ids().len())
             .collect::<Vec<_>>();
 
-        let cumulative_token_counts = token_counts
-            .iter()
+        let cumulative_token_counts = std::iter::once(&0)
+            .chain(token_counts.iter())
             .scan(0, |state, &x| {
                 *state += x;
                 Some(*state)
             })
             .collect::<Vec<_>>();
-
-        // Add an extra element to cumulative_token_counts to handle the end case
-        let mut cumulative_token_counts = cumulative_token_counts;
-        cumulative_token_counts.push(cumulative_token_counts.last().copied().unwrap_or(0));
 
         // analyze the distribution of similarity scores to oset initial bounds
         let median_score = statistical::median(similarities);
@@ -276,29 +310,28 @@ impl<T: TextEmbed, Sizer: ChunkSizer> StatisticalChunker<T, Sizer> {
             .iter()
             .map(|tokens| tokens.get_ids().len())
             .collect::<Vec<_>>();
+
         let mut chunks: Vec<String> = Vec::new();
         let mut current_split = Vec::new();
         let mut current_tokens_count = 0;
 
         for (doc_idx, doc) in enumerate(docs) {
             let doc_token_count = token_counts[doc_idx];
-
             if split_indices.contains(&(doc_idx + 1)) {
                 if self.min_split_tokens <= current_tokens_count + doc_token_count
                     && current_tokens_count + doc_token_count <= self.max_split_tokens
                 {
                     current_split.push(doc);
-                    current_tokens_count += doc_token_count;
-                }
-                chunks.push(current_split.join(" "));   
-                current_split = Vec::new();
-                current_tokens_count = 0;
-                continue;
-            }
-            if current_tokens_count + doc_token_count > self.max_split_tokens{
-                if current_tokens_count>=self.min_split_tokens{
-                    chunks.push(current_split.join(" "));
 
+                    chunks.push(current_split.join(""));
+                    current_split = Vec::new();
+                    current_tokens_count = 0;
+                    continue;
+                }
+            }
+            if current_tokens_count + doc_token_count > self.max_split_tokens {
+                if current_tokens_count >= self.min_split_tokens {
+                    chunks.push(current_split.join(""));
                 }
                 current_split = Vec::new();
                 current_tokens_count = 0;
@@ -308,11 +341,9 @@ impl<T: TextEmbed, Sizer: ChunkSizer> StatisticalChunker<T, Sizer> {
         }
 
         if !current_split.is_empty() {
-            chunks.push(current_split.join(" "));
+            chunks.push(current_split.join(""));
         }
 
         chunks
-
     }
 }
-

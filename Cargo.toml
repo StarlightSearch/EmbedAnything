@@ -76,6 +76,7 @@ byteorder = "1.5.0"
 intel-mkl-src = { version = "0.8.1", optional = true }
 accelerate-src = { version = "0.3.2", optional = true }
 statistical = "1.0.0"
+fancy-regex = "0.13.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"
