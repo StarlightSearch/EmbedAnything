@@ -20,7 +20,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Supercharge your embedding pipeline with minimalist and lightening fast framework built in rust 🦀</b>
+    <b>Generate and Stream your embeddings with minimalist and lightning fast framework built in rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -29,7 +29,7 @@
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples">Examples</a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/issues/new">Request Feature</a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
     .
     <a href="https://huggingface.co/spaces/akshayballal/search_in_audio">Search in Audio Space</a>
     
@@ -37,7 +37,7 @@
 </div>
 
 
-EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and storing them in a vector database.
+EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -76,6 +76,7 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability. 
+- **Vector Streaming:** continuously create and stream embeddings if you have low resource.
 
 
 
