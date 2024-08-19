@@ -27,42 +27,42 @@ class Adapter(ABC):
         pass
 
 
-class PineconeAdapter(Adapter):
-    """
-    Adapter class for interacting with Pinecone, a vector database service.
-    """
+# class PineconeAdapter(Adapter):
+#     """
+#     Adapter class for interacting with Pinecone, a vector database service.
+#     """
 
-    def __init__(self, api_key: str):
-        """
-        Initializes a new instance of the PineconeAdapter class.
+#     def __init__(self, api_key: str):
+#         """
+#         Initializes a new instance of the PineconeAdapter class.
 
-        Args:
-            api_key (str): The API key for accessing the Pinecone service.
-        """
-        super().__init__(api_key)
-        self.pc = Pinecone(api_key=self.api_key)
-        self.index_name = None
+#         Args:
+#             api_key (str): The API key for accessing the Pinecone service.
+#         """
+#         super().__init__(api_key)
+#         self.pc = Pinecone(api_key=self.api_key)
+#         self.index_name = None
 
-    def create_index(
-        self,
-        dimension: int,
-        metric: str = "cosine",
-        index_name: str = "anything",
-        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
-    ):
-        """
-        Creates a new index in Pinecone.
+#     def create_index(
+#         self,
+#         dimension: int,
+#         metric: str = "cosine",
+#         index_name: str = "anything",
+#         spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+#     ):
+#         """
+#         Creates a new index in Pinecone.
 
-        Args:
-            dimension (int): The dimensionality of the embeddings.
-            metric (str, optional): The distance metric to use for similarity search. Defaults to "cosine".
-            index_name (str, optional): The name of the index. Defaults to "anything".
-            spec (ServerlessSpec, optional): The serverless specification for the index. Defaults to AWS in us-east-1 region.
-        """
-        self.index_name = index_name
-        self.pc.create_index(
-            name=index_name, dimension=dimension, metric=metric, spec=spec
-        )
+#         Args:
+#             dimension (int): The dimensionality of the embeddings.
+#             metric (str, optional): The distance metric to use for similarity search. Defaults to "cosine".
+#             index_name (str, optional): The name of the index. Defaults to "anything".
+#             spec (ServerlessSpec, optional): The serverless specification for the index. Defaults to AWS in us-east-1 region.
+#         """
+#         self.index_name = index_name
+#         self.pc.create_index(
+#             name=index_name, dimension=dimension, metric=metric, spec=spec
+#         )
 
     def delete_index(self, index_name: str):
         """
