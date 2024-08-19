@@ -76,7 +76,7 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability. 
-- **Vector Streaming:** continuously create and stream embeddings if you have low resource.
+- **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
 
 
 
