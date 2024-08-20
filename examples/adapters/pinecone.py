@@ -2,6 +2,7 @@ import embed_anything
 import os
 
 from embed_anything.vectordb import Adapter
+from pinecone import Pinecone, ServerlessSpec
 
 
 
