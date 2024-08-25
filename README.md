@@ -216,9 +216,10 @@ One of the aims of EmbedAnything is to allow AI engineers to easily use state of
 ✅Custom chunk size <br />
 ✅Pinecone Adapter, to directly save it on it. <br />
 ✅Zero-shot application <br />
+✅Vector database integration via streaming adapters
 
 Yet to do be done <br />
-☑️Vector Database: Add functionalities to integrate with any Vector Database <br />
+☑️Introducing chunkwise streaming instead of file <br />
 ☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
 
 
