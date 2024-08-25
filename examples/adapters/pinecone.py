@@ -4,6 +4,7 @@ import os
 from embed_anything.vectordb import Adapter
 from pinecone import Pinecone, ServerlessSpec
 
+from embed_anything import BertConfig, EmbedConfig
 
 
 class PineconeAdapter(Adapter):
@@ -108,8 +109,14 @@ except:
 
 pinecone_adapter.create_index(dimension=1536, metric="cosine")
 
+bert_config = BertConfig(
+    model_id="sentence-transformers/all-MiniLM-L12-v2", chunk_size=100
+)
+embed_config = EmbedConfig(bert=bert_config)
+
 # Embed the audio files
 # Replace the line with a valid code snippet or remove it if not needed
 data = embed_anything.embed_file(
-    "test_files/test.pdf", embeder="OpenAI", adapter=pinecone_adapter
+    "/content/EmbedAnything/test_files/test.pdf", embeder="Bert", adapter=pinecone_adapter, config=embed_config
 )
+print(data)
