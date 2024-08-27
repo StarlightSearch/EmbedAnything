@@ -44,9 +44,15 @@ pub trait TextEmbed {
         text_batch: &[String],
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized;
 }
+
 pub enum Embeder {
-    Cloud(CloudEmbeder),
+    OpenAI(OpenAIEmbeder),
+    Cohere(CohereEmbeder),
     Jina(JinaEmbeder),
     Clip(ClipEmbeder),
     Bert(BertEmbeder),
@@ -59,10 +65,47 @@ impl Embeder {
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
-            Embeder::Cloud(embeder) => embeder.embed(text_batch),
+            Embeder::OpenAI(embeder) => embeder.embed(text_batch),
+            Embeder::Cohere(embeder) => embeder.embed(text_batch),
             Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Clip(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Bert(embeder) => embeder.embed(text_batch, batch_size),
+        }
+    }
+
+    pub fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+        match self {
+            Embeder::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
+            Embeder::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
+            Embeder::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+            Embeder::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+            Embeder::Bert(_) => Ok(Self::Bert(BertEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+        }
+    }
+}
+
+impl TextEmbed for Embeder {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        match self {
+            Self::OpenAI(embeder) => embeder.embed(text_batch),
+            Self::Cohere(embeder) => embeder.embed(text_batch),
+            Self::Jina(embeder) => embeder.embed(text_batch, batch_size),
+            Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
+            Self::Bert(embeder) => embeder.embed(text_batch, batch_size),
+        }
+    }
+
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+        match self {
+            Self::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
+            Self::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
+            Self::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+            Self::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+            Self::Bert(_) => Ok(Self::Bert(BertEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
         }
     }
 }
@@ -92,6 +135,13 @@ impl TextEmbed for CloudEmbeder {
             Self::Cohere(embeder) => embeder.embed(text_batch),
         }
     }
+
+    fn from_pretrained(&self, _model_id: &str, _revision: Option<&str>) -> Result<Self, anyhow::Error> {
+        match self {
+            Self::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
+            Self::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
+        }
+    }
 }
 
 pub trait EmbedImage {
@@ -104,4 +154,8 @@ pub trait EmbedImage {
         &self,
         image_paths: &[T],
     ) -> anyhow::Result<Vec<EmbedData>>;
+
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized;
 }
