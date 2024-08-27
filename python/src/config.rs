@@ -1,4 +1,3 @@
-use embed_anything::embeddings::local::jina;
 use pyo3::prelude::*;
 
 
@@ -188,6 +187,7 @@ impl EmbedConfig {
 
 #[pyclass]
 #[derive(Clone)]
+#[derive(Default)]
 pub struct TextEmbedConfig {
     pub inner: embed_anything::config::TextEmbedConfig,
 }
@@ -213,10 +213,3 @@ impl TextEmbedConfig {
     }
 }
 
-impl Default for TextEmbedConfig {
-    fn default() -> Self {
-        Self {
-            inner: embed_anything::config::TextEmbedConfig::default(),
-        }
-    }
-}

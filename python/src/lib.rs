@@ -1,6 +1,6 @@
 pub mod config;
 
-use embed_anything::{self, config::TextEmbedConfig, embeddings::{cloud::openai, embed::{self, Embeder, TextEmbed}}};
+use embed_anything::{self, config::TextEmbedConfig, embeddings::{embed::{Embeder}}};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use std::{collections::HashMap, path::PathBuf};
 
@@ -36,7 +36,7 @@ impl EmbedData {
     }
 
     fn __repr__(&self) -> String {
-        format!("<class 'EmbedData'>")
+        "<class 'EmbedData'>".to_string()
     }
 }
 
