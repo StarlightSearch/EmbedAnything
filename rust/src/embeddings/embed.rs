@@ -3,26 +3,19 @@ use super::cloud::openai::OpenAIEmbeder;
 use super::local::bert::BertEmbeder;
 use super::local::clip::ClipEmbeder;
 use super::local::jina::JinaEmbeder;
-use pyo3::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-#[pyclass]
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct EmbedData {
-    #[pyo3(get, set)]
     pub embedding: Vec<f32>,
-    #[pyo3(get, set)]
     pub text: Option<String>,
-    #[pyo3(get, set)]
     pub metadata: Option<HashMap<String, String>>,
 }
 
-#[pymethods]
 impl EmbedData {
-    #[new]
-    #[pyo3(signature = (embedding, text=None, metadata=None))]
+
     pub fn new(
         embedding: Vec<f32>,
         text: Option<String>,

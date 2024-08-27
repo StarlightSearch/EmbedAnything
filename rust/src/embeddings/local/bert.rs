@@ -90,7 +90,7 @@ impl BertEmbeder {
                 .unwrap();
             let token_type_ids = token_ids.zeros_like().unwrap();
 
-            let embeddings = self.model.forward(&token_ids, &token_type_ids).unwrap();
+            let embeddings = self.model.forward(&token_ids, &token_type_ids, None).unwrap();
             let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
 
             let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
