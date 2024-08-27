@@ -61,7 +61,6 @@ impl BertEmbeder {
         Ok(BertEmbeder { model, tokenizer })
     }
 
-
     pub fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
         let tokens = self
             .tokenizer
@@ -91,7 +90,10 @@ impl BertEmbeder {
                 .unwrap();
             let token_type_ids = token_ids.zeros_like().unwrap();
 
-            let embeddings = self.model.forward(&token_ids, &token_type_ids, None).unwrap();
+            let embeddings = self
+                .model
+                .forward(&token_ids, &token_type_ids, None)
+                .unwrap();
             let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
 
             let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
@@ -114,10 +116,9 @@ impl TextEmbed for BertEmbeder {
         self.embed(text_batch, batch_size)
     }
 
-    fn from_pretrained(&self, model_id:&str, revision: Option<&str>) -> Result<Self, E> {
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, E> {
         Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
     }
-
 }
 
 #[cfg(test)]

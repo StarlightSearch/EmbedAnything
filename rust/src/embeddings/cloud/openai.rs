@@ -37,7 +37,11 @@ impl TextEmbed for OpenAIEmbeder {
         self.embed(text_batch)
     }
 
-    fn from_pretrained(&self, model_id: &str, _revision: Option<&str>) -> Result<Self, anyhow::Error> {
+    fn from_pretrained(
+        &self,
+        model_id: &str,
+        _revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
         Ok(Self::new(model_id.to_string(), None))
     }
 }

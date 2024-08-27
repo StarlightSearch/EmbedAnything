@@ -30,7 +30,6 @@ pub struct ClipConfig {
 }
 
 impl ClipConfig {
-
     pub fn new(
         model_id: Option<String>,
         revision: Option<String>,
@@ -61,7 +60,6 @@ pub struct JinaConfig {
 }
 
 impl JinaConfig {
-
     pub fn new(
         model_id: Option<String>,
         revision: Option<String>,
@@ -78,7 +76,6 @@ impl JinaConfig {
 }
 
 impl CloudConfig {
-
     pub fn new(
         provider: Option<String>,
         model: Option<String>,
@@ -103,7 +100,6 @@ pub struct AudioDecoderConfig {
 }
 
 impl AudioDecoderConfig {
-
     pub fn new(
         decoder_model_id: Option<String>,
         decoder_revision: Option<String>,
@@ -129,7 +125,6 @@ pub struct EmbedConfig {
 }
 
 impl EmbedConfig {
-
     pub fn new(
         bert: Option<BertConfig>,
         clip: Option<ClipConfig>,
@@ -170,4 +165,3 @@ impl TextEmbedConfig {
         }
     }
 }
-
