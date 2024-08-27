@@ -194,7 +194,7 @@ impl ClipEmbeder {
     }
 }
 
-impl TextEmbed for ClipEmbeder{
+impl TextEmbed for ClipEmbeder {
     fn embed(
         &self,
         text_batch: &[String],
@@ -203,7 +203,11 @@ impl TextEmbed for ClipEmbeder{
         self.embed(text_batch, batch_size)
     }
 
-    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+    fn from_pretrained(
+        &self,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
         Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
     }
 }
@@ -232,13 +236,15 @@ impl EmbedImage for ClipEmbeder {
             .zip(image_paths)
             .map(|(data, path)| {
                 let mut metadata = HashMap::new();
-                metadata.insert("file_name".to_string(), path.as_ref().to_str().unwrap().to_string());
+                metadata.insert(
+                    "file_name".to_string(),
+                    path.as_ref().to_str().unwrap().to_string(),
+                );
 
                 EmbedData::new(
                     data.to_vec(),
                     Some(path.as_ref().to_str().unwrap().to_string()),
-                    Some(metadata)
-                    
+                    Some(metadata),
                 )
             })
             .collect::<Vec<_>>();
@@ -266,8 +272,9 @@ impl EmbedImage for ClipEmbeder {
     }
 
     fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
-        where
-            Self: Sized {
+    where
+        Self: Sized,
+    {
         Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
     }
 }

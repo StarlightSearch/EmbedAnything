@@ -1,8 +1,5 @@
 use pyo3::prelude::*;
 
-
-
-
 #[pyclass]
 #[derive(Clone)]
 pub struct JinaConfig {
@@ -21,15 +18,11 @@ impl JinaConfig {
     ) -> Self {
         Self {
             inner: embed_anything::config::JinaConfig::new(
-                model_id,
-                revision,
-                chunk_size,
-                batch_size,
+                model_id, revision, chunk_size, batch_size,
             ),
         }
     }
 }
-
 
 #[pyclass]
 #[derive(Clone)]
@@ -72,7 +65,6 @@ impl ClipConfig {
 pub struct CloudConfig {
     pub inner: embed_anything::config::CloudConfig,
 }
-
 
 #[pymethods]
 impl CloudConfig {
@@ -186,8 +178,7 @@ impl EmbedConfig {
 }
 
 #[pyclass]
-#[derive(Clone)]
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct TextEmbedConfig {
     pub inner: embed_anything::config::TextEmbedConfig,
 }
@@ -212,4 +203,3 @@ impl TextEmbedConfig {
         self.inner.batch_size
     }
 }
-

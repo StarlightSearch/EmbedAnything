@@ -1,6 +1,6 @@
 pub mod config;
 
-use embed_anything::{self, config::TextEmbedConfig, embeddings::{embed::{Embeder}}};
+use embed_anything::{self, config::TextEmbedConfig, embeddings::embed::Embeder};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use std::{collections::HashMap, path::PathBuf};
 
@@ -55,22 +55,22 @@ impl From<&str> for WhichModel {
         match s {
             "openai" | "OpenAI" => WhichModel::OpenAI,
             "cohere" | "Cohere" => WhichModel::Cohere,
-            "bert"|"Bert" => WhichModel::Bert,
-            "clip"|"Clip" => WhichModel::Clip,
-            "jina" |"Jina" => WhichModel::Jina,
+            "bert" | "Bert" => WhichModel::Bert,
+            "clip" | "Clip" => WhichModel::Clip,
+            "jina" | "Jina" => WhichModel::Jina,
             _ => panic!("Invalid model"),
         }
     }
-}   
+}
 
 impl From<String> for WhichModel {
     fn from(s: String) -> Self {
         match s.as_str() {
             "openai" | "OpenAI" => WhichModel::OpenAI,
             "cohere" | "Cohere" => WhichModel::Cohere,
-            "bert"|"Bert" => WhichModel::Bert,
-            "clip"|"Clip" => WhichModel::Clip,
-            "jina" |"Jina" => WhichModel::Jina,
+            "bert" | "Bert" => WhichModel::Bert,
+            "clip" | "Clip" => WhichModel::Clip,
+            "jina" | "Jina" => WhichModel::Jina,
             _ => panic!("Invalid model"),
         }
     }
@@ -85,38 +85,73 @@ pub struct EmbeddingModel {
 impl EmbeddingModel {
     #[staticmethod]
     #[pyo3(signature = (model, model_id, revision=None))]
-    fn from_pretrained_local( model:&WhichModel, model_id: String, revision: Option<&str>) -> PyResult<Self> {
+    fn from_pretrained_local(
+        model: &WhichModel,
+        model_id: String,
+        revision: Option<&str>,
+    ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
-        match model{
-   
+        match model {
             WhichModel::Bert => {
-                let model = Embeder::Bert(embed_anything::embeddings::local::bert::BertEmbeder::new(model_id, revision.map(|s| s.to_string())).unwrap());
+                let model = Embeder::Bert(
+                    embed_anything::embeddings::local::bert::BertEmbeder::new(
+                        model_id,
+                        revision.map(|s| s.to_string()),
+                    )
+                    .unwrap(),
+                );
                 Ok(EmbeddingModel { inner: model })
-            },
+            }
             WhichModel::Clip => {
-                let model = Embeder::Clip(embed_anything::embeddings::local::clip::ClipEmbeder::new(model_id, revision.map(|s| s.to_string())).unwrap());
+                let model = Embeder::Clip(
+                    embed_anything::embeddings::local::clip::ClipEmbeder::new(
+                        model_id,
+                        revision.map(|s| s.to_string()),
+                    )
+                    .unwrap(),
+                );
                 Ok(EmbeddingModel { inner: model })
-            },
+            }
             WhichModel::Jina => {
-                let model = Embeder::Jina(embed_anything::embeddings::local::jina::JinaEmbeder::new(model_id, revision.map(|s| s.to_string())).unwrap());
+                let model = Embeder::Jina(
+                    embed_anything::embeddings::local::jina::JinaEmbeder::new(
+                        model_id,
+                        revision.map(|s| s.to_string()),
+                    )
+                    .unwrap(),
+                );
                 Ok(EmbeddingModel { inner: model })
-            },
+            }
             _ => panic!("Invalid model"),
         }
     }
 
     #[staticmethod]
     #[pyo3(signature = (model, model_id,  api_key=None))]
-    fn from_pretrained_cloud(model:&WhichModel, model_id:&str, api_key: Option<String>) ->PyResult<Self> {
+    fn from_pretrained_cloud(
+        model: &WhichModel,
+        model_id: &str,
+        api_key: Option<String>,
+    ) -> PyResult<Self> {
         match model {
             WhichModel::OpenAI => {
-                let model = Embeder::OpenAI(embed_anything::embeddings::cloud::openai::OpenAIEmbeder::new(model_id.to_string(), api_key));
+                let model = Embeder::OpenAI(
+                    embed_anything::embeddings::cloud::openai::OpenAIEmbeder::new(
+                        model_id.to_string(),
+                        api_key,
+                    ),
+                );
                 Ok(EmbeddingModel { inner: model })
-            },
+            }
             WhichModel::Cohere => {
-                let model = Embeder::Cohere(embed_anything::embeddings::cloud::cohere::CohereEmbeder::new(model_id.to_string(), api_key));
+                let model = Embeder::Cohere(
+                    embed_anything::embeddings::cloud::cohere::CohereEmbeder::new(
+                        model_id.to_string(),
+                        api_key,
+                    ),
+                );
                 Ok(EmbeddingModel { inner: model })
-            },
+            }
             _ => panic!("Invalid model"),
         }
     }
@@ -132,11 +167,15 @@ pub fn embed_query(
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
 
-    Ok(embed_anything::embed_query(query, embedding_model, config.unwrap_or(&TextEmbedConfig::default()).clone())
-        .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .into_iter()
-        .map(|data| EmbedData { inner: data })
-        .collect())
+    Ok(embed_anything::embed_query(
+        query,
+        embedding_model,
+        config.unwrap_or(&TextEmbedConfig::default()).clone(),
+    )
+    .map_err(|e| PyValueError::new_err(e.to_string()))?
+    .into_iter()
+    .map(|data| EmbedData { inner: data })
+    .collect())
 }
 
 #[pyfunction]
@@ -267,18 +306,15 @@ pub fn embed_webpage(
                     .unwrap();
             };
 
-            Ok(embed_anything::embed_webpage(
-                url,
-                embedding_model,
-                config,
-                Some(callback),
+            Ok(
+                embed_anything::embed_webpage(url, embedding_model, config, Some(callback))
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?
+                    .map(|data| {
+                        data.into_iter()
+                            .map(|data| EmbedData { inner: data })
+                            .collect()
+                    }),
             )
-            .map_err(|e| PyValueError::new_err(e.to_string()))?
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect()
-            }))
         }),
         None => Ok(embed_anything::embed_webpage(
             url,
@@ -292,7 +328,8 @@ pub fn embed_webpage(
                 .map(|data| EmbedData { inner: data })
                 .collect()
         })),
-    }}
+    }
+}
 
 #[pymodule]
 fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {

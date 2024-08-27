@@ -112,8 +112,9 @@ impl TextEmbed for JinaEmbeder {
     }
 
     fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
-        where
-            Self: Sized {
+    where
+        Self: Sized,
+    {
         Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
     }
 }

@@ -1,12 +1,14 @@
 import pytest
 import embed_anything
 from embed_anything import EmbedData
+
 # from embed_anything import embed_query
 
 # test_with_pytest.py
 
+
 def test_embed_query_with_empty_string():
-    result = embed_anything.embed_query([''], embeder='Clip')
+    result = embed_anything.embed_query([""], embeder="Clip")
     # Assuming the function returns a list with an EmbedData object for an empty string
     assert isinstance(result, list)
     assert len(result) == 1

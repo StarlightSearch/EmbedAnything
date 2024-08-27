@@ -117,6 +117,9 @@ embed_config = EmbedConfig(bert=bert_config)
 # Embed the audio files
 # Replace the line with a valid code snippet or remove it if not needed
 data = embed_anything.embed_file(
-    "/content/EmbedAnything/test_files/test.pdf", embeder="Bert", adapter=pinecone_adapter, config=embed_config
+    "/content/EmbedAnything/test_files/test.pdf",
+    embeder="Bert",
+    adapter=pinecone_adapter,
+    config=embed_config,
 )
 print(data)
