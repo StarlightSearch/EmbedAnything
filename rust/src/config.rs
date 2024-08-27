@@ -1,6 +1,3 @@
-use pyo3::prelude::*;
-
-#[pyclass]
 #[derive(Clone)]
 pub struct BertConfig {
     pub model_id: Option<String>,
@@ -9,10 +6,7 @@ pub struct BertConfig {
     pub batch_size: Option<usize>,
 }
 
-#[pymethods]
 impl BertConfig {
-    #[new]
-    #[pyo3(signature = (model_id=None, revision=None, chunk_size=None, batch_size=None))]
     pub fn new(
         model_id: Option<String>,
         revision: Option<String>,
@@ -28,7 +22,6 @@ impl BertConfig {
     }
 }
 
-#[pyclass]
 #[derive(Clone)]
 pub struct ClipConfig {
     pub model_id: Option<String>,
@@ -36,10 +29,8 @@ pub struct ClipConfig {
     pub batch_size: Option<usize>,
 }
 
-#[pymethods]
 impl ClipConfig {
-    #[new]
-    #[pyo3(signature = (model_id=None, revision=None, batch_size=None))]
+
     pub fn new(
         model_id: Option<String>,
         revision: Option<String>,
@@ -53,7 +44,6 @@ impl ClipConfig {
     }
 }
 
-#[pyclass]
 #[derive(Clone)]
 pub struct CloudConfig {
     pub provider: Option<String>,
@@ -62,7 +52,6 @@ pub struct CloudConfig {
     pub chunk_size: Option<usize>,
 }
 
-#[pyclass]
 #[derive(Clone)]
 pub struct JinaConfig {
     pub model_id: Option<String>,
@@ -71,10 +60,8 @@ pub struct JinaConfig {
     pub batch_size: Option<usize>,
 }
 
-#[pymethods]
 impl JinaConfig {
-    #[new]
-    #[pyo3(signature = (model_id=None, revision=None, chunk_size=None, batch_size=None))]
+
     pub fn new(
         model_id: Option<String>,
         revision: Option<String>,
@@ -90,10 +77,8 @@ impl JinaConfig {
     }
 }
 
-#[pymethods]
 impl CloudConfig {
-    #[new]
-    #[pyo3(signature = (provider = "OpenAI".to_string(), model=None, api_key=None, chunk_size=None))]
+
     pub fn new(
         provider: Option<String>,
         model: Option<String>,
@@ -109,7 +94,6 @@ impl CloudConfig {
     }
 }
 
-#[pyclass]
 #[derive(Clone)]
 pub struct AudioDecoderConfig {
     pub decoder_model_id: Option<String>,
@@ -118,10 +102,8 @@ pub struct AudioDecoderConfig {
     pub quantized: Option<bool>,
 }
 
-#[pymethods]
 impl AudioDecoderConfig {
-    #[new]
-    #[pyo3(signature = (decoder_model_id=None, decoder_revision=None, model_type=None, quantized=None))]
+
     pub fn new(
         decoder_model_id: Option<String>,
         decoder_revision: Option<String>,
@@ -137,7 +119,6 @@ impl AudioDecoderConfig {
     }
 }
 
-#[pyclass]
 #[derive(Clone, Default)]
 pub struct EmbedConfig {
     pub bert: Option<BertConfig>,
@@ -147,10 +128,8 @@ pub struct EmbedConfig {
     pub audio_decoder: Option<AudioDecoderConfig>,
 }
 
-#[pymethods]
 impl EmbedConfig {
-    #[new]
-    #[pyo3(signature = (bert=None, clip=None, cloud=None, jina=None, audio_decoder=None))]
+
     pub fn new(
         bert: Option<BertConfig>,
         clip: Option<ClipConfig>,

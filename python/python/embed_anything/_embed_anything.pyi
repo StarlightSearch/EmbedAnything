@@ -1,5 +1,16 @@
-from .embed_anything import *
-from embed_anything.vectordb import Adapter
+from typing import List, Dict
+from abc import ABC, abstractmethod
+
+class Adapter(ABC):
+    def __init__(self, api_key: str): ...
+    @abstractmethod
+    def create_index(self, dimension: int, metric: str, index_name: str, **kwargs): ...
+    @abstractmethod
+    def delete_index(self, index_name: str): ...
+    @abstractmethod
+    def convert(self, embeddings: List[List[EmbedData]]) -> List[Dict]: ...
+    @abstractmethod
+    def upsert(self, data: List[Dict]): ...
 
 def embed_query(
     query: list[str], embeder: str, config: EmbedConfig | None = None

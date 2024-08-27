@@ -12,12 +12,10 @@ use candle_core::{DType, Device, Tensor};
 use candle_transformers::models::clip;
 
 use candle_nn::VarBuilder;
-use pyo3::pyclass;
 use tokenizers::Tokenizer;
 
 use crate::embeddings::embed::{EmbedData, EmbedImage};
 
-#[pyclass]
 pub struct ClipEmbeder {
     pub model: clip::ClipModel,
     pub tokenizer: Tokenizer,
@@ -125,7 +123,7 @@ impl ClipEmbeder {
         path: T,
         image_size: usize,
     ) -> anyhow::Result<Tensor> {
-        let img = image::io::Reader::open(path)?.decode()?;
+        let img = image::ImageReader::open(path)?.decode()?;
         let (height, width) = (image_size, image_size);
         let img = img.resize_to_fill(
             width as u32,
