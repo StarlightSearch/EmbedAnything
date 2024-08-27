@@ -39,7 +39,6 @@ fn get_bert_embeder(config: &BertConfig) -> Result<BertEmbeder> {
     Ok(embeder)
 }
 
-
 fn get_cloud_embeder(config: &CloudConfig) -> Result<CloudEmbeder> {
     let embeder = match &config.provider {
         Some(provider) => match provider.as_str() {
@@ -102,7 +101,6 @@ fn get_jina_embeder(config: &JinaConfig) -> Result<JinaEmbeder> {
     };
     Ok(embeder)
 }
-
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -261,7 +259,6 @@ where
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
-
 
     let embeddings = match embeder {
         Embeder::Clip(embeder) => emb_image_directory(directory, embeder),
@@ -443,10 +440,15 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
     embedding_model: &U,
 ) -> Result<EmbedData> {
     let mut metadata = HashMap::new();
-    metadata.insert("file_name".to_string(), image_path.as_ref().to_str().unwrap().to_string());
+    metadata.insert(
+        "file_name".to_string(),
+        image_path.as_ref().to_str().unwrap().to_string(),
+    );
 
-    let embedding = embedding_model.embed_image(&image_path, Some(metadata)).unwrap();
-    
+    let embedding = embedding_model
+        .embed_image(&image_path, Some(metadata))
+        .unwrap();
+
     Ok(embedding)
 }
 

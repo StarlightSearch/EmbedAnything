@@ -24,7 +24,6 @@ pub fn get_text_metadata(
     Ok(final_embeddings)
 }
 
-
 pub fn get_audio_metadata<T: AsRef<std::path::Path>>(
     encodings: Vec<Vec<f32>>,
     segments: Vec<Segment>,

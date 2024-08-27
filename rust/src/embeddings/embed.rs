@@ -15,7 +15,6 @@ pub struct EmbedData {
 }
 
 impl EmbedData {
-
     pub fn new(
         embedding: Vec<f32>,
         text: Option<String>,
@@ -45,7 +44,11 @@ pub trait TextEmbed {
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
 
-    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    fn from_pretrained(
+        &self,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error>
     where
         Self: Sized;
 }
@@ -73,13 +76,26 @@ impl Embeder {
         }
     }
 
-    pub fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+    pub fn from_pretrained(
+        &self,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
         match self {
             Embeder::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
             Embeder::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
-            Embeder::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
-            Embeder::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
-            Embeder::Bert(_) => Ok(Self::Bert(BertEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+            Embeder::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
+            Embeder::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
+            Embeder::Bert(_) => Ok(Self::Bert(BertEmbeder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
         }
     }
 }
@@ -99,13 +115,26 @@ impl TextEmbed for Embeder {
         }
     }
 
-    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+    fn from_pretrained(
+        &self,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
         match self {
             Self::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
             Self::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
-            Self::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
-            Self::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
-            Self::Bert(_) => Ok(Self::Bert(BertEmbeder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+            Self::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
+            Self::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
+            Self::Bert(_) => Ok(Self::Bert(BertEmbeder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
         }
     }
 }
@@ -136,7 +165,11 @@ impl TextEmbed for CloudEmbeder {
         }
     }
 
-    fn from_pretrained(&self, _model_id: &str, _revision: Option<&str>) -> Result<Self, anyhow::Error> {
+    fn from_pretrained(
+        &self,
+        _model_id: &str,
+        _revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
         match self {
             Self::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
             Self::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
@@ -155,7 +188,11 @@ pub trait EmbedImage {
         image_paths: &[T],
     ) -> anyhow::Result<Vec<EmbedData>>;
 
-    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    fn from_pretrained(
+        &self,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error>
     where
         Self: Sized;
 }
