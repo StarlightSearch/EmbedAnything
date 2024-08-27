@@ -36,7 +36,7 @@ mod tests {
 
         File::create(&txt_file).unwrap();
 
-        let text = TxtProcessor::extract_text(&PathBuf::from(txt_file)).unwrap();
+        let text = TxtProcessor::extract_text(&txt_file).unwrap();
         assert_eq!(text, "");
 
         let txt_file = "test_files/test.txt";
