@@ -87,15 +87,17 @@ impl EmbeddingModel {
     #[pyo3(signature = (model, model_id, revision=None))]
     fn from_pretrained_local(
         model: &WhichModel,
-        model_id: String,
+        model_id: Option<&str>,
         revision: Option<&str>,
     ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
         match model {
+        
             WhichModel::Bert => {
+                let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
                 let model = Embeder::Bert(
                     embed_anything::embeddings::local::bert::BertEmbeder::new(
-                        model_id,
+                        model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .unwrap(),
@@ -103,9 +105,10 @@ impl EmbeddingModel {
                 Ok(EmbeddingModel { inner: model })
             }
             WhichModel::Clip => {
+                let model_id = model_id.unwrap_or("openai/clip-vit-base-patch32");
                 let model = Embeder::Clip(
                     embed_anything::embeddings::local::clip::ClipEmbeder::new(
-                        model_id,
+                        model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .unwrap(),
@@ -113,9 +116,10 @@ impl EmbeddingModel {
                 Ok(EmbeddingModel { inner: model })
             }
             WhichModel::Jina => {
+                let model_id= model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
                 let model = Embeder::Jina(
                     embed_anything::embeddings::local::jina::JinaEmbeder::new(
-                        model_id,
+                        model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .unwrap(),
@@ -130,11 +134,12 @@ impl EmbeddingModel {
     #[pyo3(signature = (model, model_id,  api_key=None))]
     fn from_pretrained_cloud(
         model: &WhichModel,
-        model_id: &str,
+        model_id: Option<&str>,
         api_key: Option<String>,
     ) -> PyResult<Self> {
         match model {
             WhichModel::OpenAI => {
+                let model_id = model_id.unwrap_or("text-embedding-3-small");
                 let model = Embeder::OpenAI(
                     embed_anything::embeddings::cloud::openai::OpenAIEmbeder::new(
                         model_id.to_string(),
@@ -144,6 +149,7 @@ impl EmbeddingModel {
                 Ok(EmbeddingModel { inner: model })
             }
             WhichModel::Cohere => {
+                let model_id = model_id.unwrap_or("embed-english-v3.0");
                 let model = Embeder::Cohere(
                     embed_anything::embeddings::cloud::cohere::CohereEmbeder::new(
                         model_id.to_string(),
