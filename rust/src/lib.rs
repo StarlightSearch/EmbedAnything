@@ -181,32 +181,33 @@ pub fn embed_file<F>(
 where
     F: Fn(Vec<EmbedData>),
 {
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
+    let chunk_size = config.chunk_size.unwrap_or(256);
+    let batch_size = config.batch_size; 
+
     let embeddings = match embeder {
         Embeder::OpenAI(embeder) => {
-            let chunk_size = config.unwrap().chunk_size.unwrap_or(256);
             emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
         }
         Embeder::Cohere(embeder) => {
-            let chunk_size = config.unwrap().chunk_size.unwrap_or(256);
             emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
         }
         Embeder::Jina(embeder) => {
-            let chunk_size = config.unwrap().chunk_size.unwrap_or(256);
             emb_text(
                 file_name,
                 embeder,
                 Some(chunk_size),
-                config.unwrap().batch_size,
+                batch_size,
                 adapter,
             )?
         }
         Embeder::Bert(embeder) => {
-            let chunk_size = config.unwrap().chunk_size.unwrap_or(256);
             emb_text(
                 file_name,
                 embeder,
                 Some(chunk_size),
-                config.unwrap().batch_size,
+                batch_size,
                 adapter,
             )?
         }
