@@ -110,4 +110,10 @@ impl TextEmbed for JinaEmbeder {
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch, batch_size)
     }
+
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+        where
+            Self: Sized {
+        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
+    }
 }

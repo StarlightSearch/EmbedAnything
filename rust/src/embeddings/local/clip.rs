@@ -14,7 +14,7 @@ use candle_transformers::models::clip;
 use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;
 
-use crate::embeddings::embed::{EmbedData, EmbedImage};
+use crate::embeddings::embed::{EmbedData, EmbedImage, TextEmbed};
 
 pub struct ClipEmbeder {
     pub model: clip::ClipModel,
@@ -194,6 +194,20 @@ impl ClipEmbeder {
     }
 }
 
+impl TextEmbed for ClipEmbeder{
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        self.embed(text_batch, batch_size)
+    }
+
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
+    }
+}
+
 impl EmbedImage for ClipEmbeder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
@@ -217,10 +231,14 @@ impl EmbedImage for ClipEmbeder {
             .iter()
             .zip(image_paths)
             .map(|(data, path)| {
+                let mut metadata = HashMap::new();
+                metadata.insert("file_name".to_string(), path.as_ref().to_str().unwrap().to_string());
+
                 EmbedData::new(
                     data.to_vec(),
                     Some(path.as_ref().to_str().unwrap().to_string()),
-                    None,
+                    Some(metadata)
+                    
                 )
             })
             .collect::<Vec<_>>();
@@ -245,6 +263,12 @@ impl EmbedImage for ClipEmbeder {
             .to_vec2::<f32>()
             .unwrap()[0];
         Ok(EmbedData::new(encoding.to_vec(), None, metadata.clone()))
+    }
+
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+        where
+            Self: Sized {
+        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
     }
 }
 
