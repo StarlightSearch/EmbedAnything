@@ -33,6 +33,12 @@ impl TextEmbed for CohereEmbeder {
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
+
+    fn from_pretrained(&self, model_id: &str, _revision: Option<&str>) -> Result<Self, anyhow::Error>
+        where
+            Self: Sized {
+        Ok(Self::new(model_id.to_string(), None))
+    }
 }
 
 impl CohereEmbeder {

@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List, Dict
 from abc import ABC, abstractmethod
 
@@ -74,7 +75,7 @@ def embed_directory(
     file_path: str,
     embeder: str,
     extensions: list[str],
-    config: EmbedConfig | None = None,
+    config: TextEmbedConfig | None = None,
     adapter: Adapter | None = None,
 ) -> list[EmbedData]:
     """Embeds all the files in the given directory and returns a list of
@@ -201,6 +202,21 @@ class BertConfig:
     chunk_size: int | None
     batch_size: int | None
 
+class TextEmbedConfig:
+    """
+    Represents the configuration for the Text Embedding model.
+
+    Attributes:
+        chunk_size: The chunk size for the Text Embedding model.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
+    """
+
+    def __init(self, chunk_size: int | None = None, batch_size: int | None = None):
+        self.chunk_size = chunk_size
+        self.batch_size = batch_size
+    chunk_size: int | None
+    batch_size: int | None
+
 class JinaConfig:
     """Represents the configuration for the Jina model.
 
@@ -304,3 +320,22 @@ class AudioDecoderConfig:
     decoder_revision: str | None
     model_type: str | None
     quantized: bool | None
+
+class EmbeddingModel:
+    def __init__(self, model_id: str, revision: str | None = None):
+        self.model_id = model_id
+        self.revision = revision
+
+    def from_pretrained_local(
+        self, model: WhichModel, model_id: str, revision: str | None = None
+    ): ...
+    def from_pretrained_cloud(
+        self, model: WhichModel, model_id: str, api_key: str | None = None
+    ): ...
+
+class WhichModel(Enum):
+    OpenAI = ("OpenAI",)
+    Cohere = ("Cohere",)
+    Bert = ("Bert",)
+    Jina = ("Jina",)
+    Clip = ("Clip",)
