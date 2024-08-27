@@ -86,7 +86,7 @@ mod tests {
     fn test_image_embeder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
         let embeder = ClipEmbeder::default();
-        let emb_data = embeder.embed_image(&file_path, None).unwrap();
+        let emb_data = embeder.embed_image(file_path, None).unwrap();
         assert_eq!(emb_data.embedding.len(), 512);
     }
 }

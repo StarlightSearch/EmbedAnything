@@ -14,12 +14,12 @@ pub mod text_loader;
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{anyhow, Result};
-use config::{BertConfig, ClipConfig, CloudConfig, EmbedConfig, JinaConfig, TextEmbedConfig};
+use config::{BertConfig, CloudConfig, EmbedConfig, JinaConfig, TextEmbedConfig};
 use embeddings::{
     cloud::{cohere::CohereEmbeder, openai::OpenAIEmbeder},
-    embed::{self, CloudEmbeder, EmbedData, EmbedImage, Embeder, TextEmbed},
+    embed::{CloudEmbeder, EmbedData, EmbedImage, Embeder, TextEmbed},
     embed_audio, get_text_metadata,
-    local::{bert::BertEmbeder, clip::ClipEmbeder, jina::JinaEmbeder},
+    local::{bert::BertEmbeder, jina::JinaEmbeder},
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor;
