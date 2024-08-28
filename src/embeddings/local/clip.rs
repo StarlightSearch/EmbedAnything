@@ -15,7 +15,7 @@ use candle_nn::VarBuilder;
 use pyo3::pyclass;
 use tokenizers::Tokenizer;
 
-use super::embed::{EmbedData, EmbedImage};
+use crate::embeddings::embed::{EmbedData, EmbedImage};
 
 #[pyclass]
 pub struct ClipEmbeder {

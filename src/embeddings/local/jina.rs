@@ -4,8 +4,8 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use super::embed::TextEmbed;
-use crate::embedding_model::normalize_l2;
+use crate::embeddings::embed::TextEmbed;
+use crate::embeddings::normalize_l2;
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
@@ -31,7 +31,7 @@ pub struct JinaEmbeder {
 
 impl Default for JinaEmbeder {
     fn default() -> Self {
-        Self::new("jinaai/jina-embeddings-v2-base-en".to_string(), None).unwrap()
+        Self::new("jinaai/jina-embeddings-v2-small-en".to_string(), None).unwrap()
     }
 }
 
@@ -77,7 +77,11 @@ impl JinaEmbeder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    pub fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         let mut encodings = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
@@ -99,7 +103,11 @@ impl JinaEmbeder {
 }
 
 impl TextEmbed for JinaEmbeder {
-    fn embed(&self, text_batch: &[String], batch_size:Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch, batch_size)
     }
 }
