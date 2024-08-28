@@ -4,8 +4,8 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use super::embed::TextEmbed;
-use crate::embedding_model::normalize_l2;
+use crate::embeddings::embed::TextEmbed;
+use crate::embeddings::normalize_l2;
 use anyhow::Error as E;
 use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
@@ -77,7 +77,11 @@ impl BertEmbeder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    pub fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         let mut encodings = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
@@ -101,7 +105,11 @@ impl BertEmbeder {
 }
 
 impl TextEmbed for BertEmbeder {
-    fn embed(&self, text_batch: &[String], batch_size:Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch, batch_size)
     }
 }
@@ -109,7 +117,7 @@ impl TextEmbed for BertEmbeder {
 #[cfg(test)]
 
 mod tests {
-    use crate::embedding_model::embed_audio;
+    use crate::embeddings::embed_audio;
     use crate::file_processor::audio::audio_processor::Segment;
 
     use super::*;

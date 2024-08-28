@@ -4,22 +4,21 @@
 #[cfg(feature = "mkl")]
 extern crate intel_mkl_src;
 
+pub mod chunkers;
 pub mod config;
-pub mod embedding_model;
+pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
 pub mod text_loader;
+
 use std::path::PathBuf;
 
 use config::{AudioDecoderConfig, BertConfig, ClipConfig, CloudConfig, EmbedConfig, JinaConfig};
-use embedding_model::{
-    bert::BertEmbeder,
-    clip::ClipEmbeder,
-    cohere::CohereEmbeder,
+use embeddings::{
+    cloud::{cohere::CohereEmbeder, openai::OpenAIEmbeder},
     embed::{CloudEmbeder, EmbedData, EmbedImage, Embeder},
     embed_audio, get_text_metadata,
-    jina::JinaEmbeder,
-    openai::OpenAIEmbeder,
+    local::{bert::BertEmbeder, clip::ClipEmbeder, jina::JinaEmbeder},
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor;
@@ -137,16 +136,16 @@ fn embed_default(file_name: &str, embeder: &str) -> PyResult<Option<Vec<EmbedDat
         bert: Some(BertConfig {
             model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()),
             revision: None,
-            chunk_size: Some(100),
+            chunk_size: Some(256),
             batch_size: Some(32),
         }),
         ..Default::default()
     };
     match embeder {
-        "Cloud"|"OpenAI" => emb_text(file_name, &Embeder::Cloud(CloudEmbeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default())), None, None, None),
-        "Jina" => emb_text(file_name, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), None, None, None),
-        "Bert" => emb_text(file_name, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), None, None,None),
-        "Clip" => Ok(Some(vec![emb_image(file_name, embedding_model::clip::ClipEmbeder::default())?])),
+        "Cloud"|"OpenAI" => emb_text(file_name, &Embeder::Cloud(CloudEmbeder::OpenAI(OpenAIEmbeder::default())), None, None, None),
+        "Jina" => emb_text(file_name, &Embeder::Jina(JinaEmbeder::default()), None, None, None),
+        "Bert" => emb_text(file_name, &Embeder::Bert(BertEmbeder::default()), None, None,None),
+        "Clip" => Ok(Some(vec![emb_image(file_name, ClipEmbeder::default())?])),
         "Audio" => emb_audio(file_name, &config),
         _ => Err(PyValueError::new_err(
             "Invalid embedding model. Choose between OpenAI, Bert, Jina for text files and Clip for image files.",
@@ -178,7 +177,7 @@ fn embed_default(file_name: &str, embeder: &str) -> PyResult<Option<Vec<EmbedDat
 ///
 /// let query = vec!["Hello".to_string(), "World".to_string()];
 /// let embeder = "OpenAI";
-/// let openai_config = OpenAIConfig{ model: Some("text-embedding-3-small".to_string()), api_key: None, chunk_size: Some(100) };
+/// let openai_config = OpenAIConfig{ model: Some("text-embedding-3-small".to_string()), api_key: None, chunk_size: Some(256) };
 /// let config = EmbedConfig{ openai: Some(openai_config), ..Default::default() };
 /// let embeddings = embed_query(query, embeder).unwrap();
 /// println!("{:?}", embeddings);
@@ -213,12 +212,10 @@ pub fn embed_query(
         }
     } else {
         match embeder {
-            "Cloud" | "OpenAI" => Embeder::Cloud(CloudEmbeder::OpenAI(
-                embedding_model::openai::OpenAIEmbeder::default(),
-            )),
-            "Jina" => Embeder::Jina(embedding_model::jina::JinaEmbeder::default()),
-            "Clip" => Embeder::Clip(embedding_model::clip::ClipEmbeder::default()),
-            "Bert" => Embeder::Bert(embedding_model::bert::BertEmbeder::default()),
+            "Cloud" | "OpenAI" => Embeder::Cloud(CloudEmbeder::OpenAI(OpenAIEmbeder::default())),
+            "Jina" => Embeder::Jina(JinaEmbeder::default()),
+            "Clip" => Embeder::Clip(ClipEmbeder::default()),
+            "Bert" => Embeder::Bert(BertEmbeder::default()),
             _ => {
                 return Err(PyValueError::new_err(
                     "Invalid embedding model. Choose between OpenAI, Jina, Bert and Clip.",
@@ -258,7 +255,7 @@ pub fn embed_query(
 ///
 /// let file_name = "test_files/test.pdf";
 /// let embeder = "Bert";
-/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(100) };
+/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(256) };
 /// let embeddings = embed_file(file_name, embeder, config).unwrap();
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
@@ -275,7 +272,7 @@ pub fn embed_file(
             emb_audio(file_name, config)?
         } else if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
-            let chunk_size = bert_config.chunk_size.unwrap_or(100);
+            let chunk_size = bert_config.chunk_size.unwrap_or(256);
             emb_text(
                 file_name,
                 &Embeder::Bert(embeder),
@@ -288,7 +285,7 @@ pub fn embed_file(
             Some(vec![emb_image(file_name, embeder)?])
         } else if let Some(openai_config) = &config.cloud {
             let embeder = get_cloud_embeder(openai_config)?;
-            let chunk_size = openai_config.chunk_size.unwrap_or(100);
+            let chunk_size = openai_config.chunk_size.unwrap_or(256);
 
             emb_text(
                 file_name,
@@ -299,7 +296,7 @@ pub fn embed_file(
             )?
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
-            let chunk_size = jina_config.chunk_size.unwrap_or(100);
+            let chunk_size = jina_config.chunk_size.unwrap_or(256);
             emb_text(
                 file_name,
                 &Embeder::Jina(embeder),
@@ -343,7 +340,7 @@ pub fn embed_file(
 ///
 /// let directory = PathBuf::from("/path/to/directory");
 /// let embeder = "OpenAI";
-/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(100) };
+/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(256) };
 /// let config = EmbedConfig{ bert: Some(bert_config), ..Default::default() };
 /// let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
 /// let embeddings = embed_directory(directory, embeder, extensions, config).unwrap();
@@ -358,10 +355,10 @@ pub fn embed_directory(
     config: Option<&EmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
-    let embeddings = if let Some(config) = &config {
+    if let Some(config) = &config {
         if let Some(bert_config) = &config.bert {
             let embeder = get_bert_embeder(bert_config)?;
-            let chunk_size = bert_config.chunk_size.unwrap_or(100);
+            let chunk_size = bert_config.chunk_size.unwrap_or(256);
             Ok(emb_directory(
                 directory,
                 &Embeder::Bert(embeder),
@@ -375,7 +372,7 @@ pub fn embed_directory(
             Ok(emb_image_directory(directory, embeder)?)
         } else if let Some(_openai_config) = &config.cloud {
             let embeder = get_cloud_embeder(_openai_config)?;
-            let chunk_size = _openai_config.chunk_size.unwrap_or(100);
+            let chunk_size = _openai_config.chunk_size.unwrap_or(256);
             Ok(emb_directory(
                 directory,
                 &Embeder::Cloud(embeder),
@@ -386,7 +383,7 @@ pub fn embed_directory(
             )?)
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
-            let chunk_size = jina_config.chunk_size.unwrap_or(100);
+            let chunk_size = jina_config.chunk_size.unwrap_or(256);
             Ok(emb_directory(
                 directory,
                 &Embeder::Jina(embeder),
@@ -404,24 +401,22 @@ pub fn embed_directory(
         match embeder {
             "Cloud"|"OpenAI" => emb_directory(
                 directory,
-                &Embeder::Cloud(CloudEmbeder::OpenAI(embedding_model::openai::OpenAIEmbeder::default())),
+                &Embeder::Cloud(CloudEmbeder::OpenAI(OpenAIEmbeder::default())),
                 extensions,
                 None,
-                Some(100),
+                Some(256),
                 adapter
             )        ,
-                    "Jina" => Ok(emb_directory(directory, &Embeder::Jina(embedding_model::jina::JinaEmbeder::default()), extensions, None,None, adapter)?),
-                "Bert" => Ok(emb_directory(directory, &Embeder::Bert(embedding_model::bert::BertEmbeder::default()), extensions, None,None, adapter)?),
-                "Clip" => Ok(emb_image_directory(directory, embedding_model::clip::ClipEmbeder::default())?),
+                    "Jina" => Ok(emb_directory(directory, &Embeder::Jina(JinaEmbeder::default()), extensions, None,None, adapter)?),
+                "Bert" => Ok(emb_directory(directory, &Embeder::Bert(BertEmbeder::default()), extensions, None,None, adapter)?),
+                "Clip" => Ok(emb_image_directory(directory, ClipEmbeder::default())?),
                 _ => {
-                    return Err(PyValueError::new_err(
+                    Err(PyValueError::new_err(
                         "Invalid embedding model. Choose between OpenAI and Bert for text files and Clip for image files.",
                     ))
                 }
     }
-    };
-
-    embeddings
+    }
 
     // Send embeddings to vector database
 }
@@ -480,21 +475,21 @@ pub fn embed_webpage(
             webpage
                 .embed_webpage(
                     &embeder,
-                    bert_config.chunk_size.unwrap_or(100),
+                    bert_config.chunk_size.unwrap_or(256),
                     bert_config.batch_size,
                 )
                 .map_err(|e| PyValueError::new_err(format!("Error embedding webpage: {}", e)))?
         } else if let Some(cloud_config) = &config.cloud {
             let embeder = get_cloud_embeder(cloud_config)?;
             webpage
-                .embed_webpage(&embeder,cloud_config.chunk_size.unwrap_or(100), None)
+                .embed_webpage(&embeder, cloud_config.chunk_size.unwrap_or(256), None)
                 .map_err(|e| PyValueError::new_err(format!("Error embedding webpage: {}", e)))?
         } else if let Some(jina_config) = &config.jina {
             let embeder = get_jina_embeder(jina_config)?;
             webpage
                 .embed_webpage(
                     &embeder,
-                    jina_config.chunk_size.unwrap_or(100),
+                    jina_config.chunk_size.unwrap_or(256),
                     jina_config.batch_size,
                 )
                 .map_err(|e| PyValueError::new_err(format!("Error embedding webpage: {}", e)))?
@@ -506,17 +501,13 @@ pub fn embed_webpage(
     } else {
         match embeder {
             "OpenAI" => webpage
-                .embed_webpage(
-                    &embedding_model::openai::OpenAIEmbeder::default(),
-                    100,
-                    None,
-                )
+                .embed_webpage(&OpenAIEmbeder::default(), 256, None)
                 .unwrap(),
             "Jina" => webpage
-                .embed_webpage(&embedding_model::jina::JinaEmbeder::default(), 100, None)
+                .embed_webpage(&JinaEmbeder::default(), 256, None)
                 .unwrap(),
             "Bert" => webpage
-                .embed_webpage(&embedding_model::bert::BertEmbeder::default(), 100, None)
+                .embed_webpage(&BertEmbeder::default(), 256, None)
                 .unwrap(),
             _ => {
                 return Err(PyValueError::new_err(
@@ -548,7 +539,7 @@ fn embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_directory, m)?)?;
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
-    m.add_class::<embedding_model::embed::EmbedData>()?;
+    m.add_class::<embeddings::embed::EmbedData>()?;
     m.add_class::<BertConfig>()?;
     m.add_class::<ClipConfig>()?;
     m.add_class::<CloudConfig>()?;
@@ -578,7 +569,7 @@ fn emb_directory(
                 .filter_map(|file| {
                     emb_text(
                         file,
-                        &embedding_model,
+                        embedding_model,
                         chunk_size,
                         batch_size,
                         Some(adapter.clone_ref(py)),
@@ -596,7 +587,7 @@ fn emb_directory(
             .files
             .par_iter()
             .filter_map(|file| {
-                emb_text(file, &embedding_model, chunk_size, batch_size, None).unwrap()
+                emb_text(file, embedding_model, chunk_size, batch_size, None).unwrap()
             })
             .collect::<Vec<_>>()
             .into_iter()
@@ -614,7 +605,8 @@ fn emb_text<T: AsRef<std::path::Path>>(
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
-    let chunks = TextLoader::split_into_chunks(&text, chunk_size.unwrap_or(100));
+    let textloader = TextLoader::new(chunk_size.unwrap_or(256));
+    let chunks = textloader.split_into_chunks(&text);
     let metadata = TextLoader::get_metadata(file.as_ref().to_str().unwrap()).ok();
 
     if let Some(adapter) = adapter {
