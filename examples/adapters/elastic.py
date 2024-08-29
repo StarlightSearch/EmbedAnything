@@ -73,7 +73,7 @@ bert_config = BertConfig(
 embed_config = EmbedConfig(bert=bert_config)
 
 data = embed_anything.embed_file(
-    "/Users/ashishtiwari/Downloads/CRN8566515673.pdf",
+    "/path/to/my-file.pdf",
     embeder="Bert",
     adapter=elasticsearch_adapter,
     config=embed_config,
