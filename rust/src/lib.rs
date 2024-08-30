@@ -136,9 +136,14 @@ fn get_jina_embeder(config: &JinaConfig) -> Result<JinaEmbeder> {
 pub fn embed_query(
     query: Vec<String>,
     embeder: &Embeder,
-    config: TextEmbedConfig,
+    config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
-    let encodings = embeder.embed(&query, config.batch_size)?;
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
+    let _chunk_size = config.chunk_size.unwrap_or(256);
+    let batch_size = config.batch_size; 
+
+    let encodings = embeder.embed(&query, batch_size)?;
     let embeddings = get_text_metadata(&encodings, &query, None)?;
 
     Ok(embeddings)

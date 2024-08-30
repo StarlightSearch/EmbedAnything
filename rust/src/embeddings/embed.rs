@@ -44,13 +44,6 @@ pub trait TextEmbed {
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
 
-    fn from_pretrained(
-        &self,
-        model_id: &str,
-        revision: Option<&str>,
-    ) -> Result<Self, anyhow::Error>
-    where
-        Self: Sized;
 }
 
 pub enum Embeder {
@@ -76,26 +69,28 @@ impl Embeder {
         }
     }
 
+    
     pub fn from_pretrained(
-        &self,
+        model: &str,
         model_id: &str,
         revision: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
-        match self {
-            Embeder::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
-            Embeder::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
-            Embeder::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(
+        match model {
+            "openai"|"OpenAI" => Ok(Self::OpenAI(OpenAIEmbeder::default())),
+            "cohere"|"Cohere" => Ok(Self::Cohere(CohereEmbeder::default())),
+            "jina"|"Jina" => Ok(Self::Jina(JinaEmbeder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
             )?)),
-            Embeder::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(
+            "CLIP"|"Clip"|"clip" => Ok(Self::Clip(ClipEmbeder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
             )?)),
-            Embeder::Bert(_) => Ok(Self::Bert(BertEmbeder::new(
+            "Bert"|"bert"=> Ok(Self::Bert(BertEmbeder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
             )?)),
+            _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
 }
@@ -115,28 +110,7 @@ impl TextEmbed for Embeder {
         }
     }
 
-    fn from_pretrained(
-        &self,
-        model_id: &str,
-        revision: Option<&str>,
-    ) -> Result<Self, anyhow::Error> {
-        match self {
-            Self::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
-            Self::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
-            Self::Jina(_) => Ok(Self::Jina(JinaEmbeder::new(
-                model_id.to_string(),
-                revision.map(|s| s.to_string()),
-            )?)),
-            Self::Clip(_) => Ok(Self::Clip(ClipEmbeder::new(
-                model_id.to_string(),
-                revision.map(|s| s.to_string()),
-            )?)),
-            Self::Bert(_) => Ok(Self::Bert(BertEmbeder::new(
-                model_id.to_string(),
-                revision.map(|s| s.to_string()),
-            )?)),
-        }
-    }
+    
 }
 
 pub enum CloudEmbeder {
@@ -165,16 +139,7 @@ impl TextEmbed for CloudEmbeder {
         }
     }
 
-    fn from_pretrained(
-        &self,
-        _model_id: &str,
-        _revision: Option<&str>,
-    ) -> Result<Self, anyhow::Error> {
-        match self {
-            Self::OpenAI(_) => Ok(Self::OpenAI(OpenAIEmbeder::default())),
-            Self::Cohere(_) => Ok(Self::Cohere(CohereEmbeder::default())),
-        }
-    }
+
 }
 
 pub trait EmbedImage {

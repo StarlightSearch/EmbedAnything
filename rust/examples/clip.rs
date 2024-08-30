@@ -1,30 +1,22 @@
 use candle_core::{Device, Tensor};
-use embed_anything::{embed_directory, embed_query};
+use embed_anything::{ embed_directory, embed_query, embeddings::{embed::{EmbedData, EmbedImage, Embeder}, local::clip::ClipEmbeder}};
 use std::{path::PathBuf, time::Instant};
 
 fn main() {
     let now = Instant::now();
 
-    let clip_config = embed_anything::config::ClipConfig {
-        model_id: Some("openai/clip-vit-base-patch16".to_string()),
-        revision: Some("refs/pr/15".to_string()),
-        batch_size: Some(32),
-    };
-    let config = embed_anything::config::EmbedConfig {
-        clip: Some(clip_config),
-        ..Default::default()
-    };
+    let model = Embeder::from_pretrained("clip", "openai/clip-vit-base-patch16", None).unwrap();
     let out = embed_directory(
         PathBuf::from("test_files"),
-        "Clip",
+        &model,
         None,
-        Some(&config),
         None,
+        None::<fn(Vec<EmbedData>)>,
     )
     .unwrap()
     .unwrap();
     let query_emb_data =
-        embed_query(vec!["Photo of a monkey".to_string()], "Clip", Some(&config)).unwrap();
+        embed_query(vec!["Photo of a monkey".to_string()], &model, None).unwrap();
     let n_vectors = out.len();
     let out_embeddings = Tensor::from_vec(
         out.iter()
