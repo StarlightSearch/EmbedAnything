@@ -42,7 +42,12 @@ impl JinaEmbeder {
             Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
             None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
         };
-        let model_file = api.get("model.safetensors")?;
+        let model_file = api.get("model.safetensors").map_err(|e| {
+            anyhow::Error::msg(format!(
+                "Safetensor file not found. Try a different revision. Error: {}",
+                e
+            ))
+        })?;
         let config_filename = api.get("config.json")?;
         let tokenizer_filename = api.get("tokenizer.json")?;
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
