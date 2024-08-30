@@ -4,7 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
 use anyhow::Error as E;
 
@@ -239,7 +239,7 @@ impl EmbedImage for ClipEmbeder {
                 let mut metadata = HashMap::new();
                 metadata.insert(
                     "file_name".to_string(),
-                    path.as_ref().to_str().unwrap().to_string(),
+                    fs::canonicalize(path).unwrap().to_str().unwrap().to_string(),
                 );
 
                 EmbedData::new(
