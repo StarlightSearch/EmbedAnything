@@ -130,7 +130,6 @@ mod tests {
         let pdf_file = temp_dir.path().join("test.pdf");
         let txt_file = temp_dir.path().join("test.txt");
         let markdown_file = (0..2)
-            .into_iter()
             .map(|f| temp_dir.path().join(format!("test{}.md", f)))
             .collect::<Vec<_>>();
         let _image_file = temp_dir.path().join("image.jpg");

@@ -34,7 +34,7 @@ mod tests {
         let temp_dir = TempDir::new("example").unwrap();
         let pdf_file = temp_dir.path().join("test.pdf");
 
-        File::create(&pdf_file).unwrap();
+        File::create(pdf_file).unwrap();
 
         let pdf_file = "test_files/test.pdf";
         let text = PdfProcessor::extract_text(&PathBuf::from(pdf_file)).unwrap();

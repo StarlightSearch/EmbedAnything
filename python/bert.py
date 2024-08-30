@@ -1,10 +1,12 @@
-import embed_anything
-import os
-
-from embed_anything.vectordb import Adapter
+import re
+from typing import Dict, List
+import uuid
+from python.embed_anything import embed_anything
+import time
+from python.embed_anything import EmbedConfig, BertConfig, EmbedData
+from python.embed_anything.vectordb import Adapter
 from pinecone import Pinecone, ServerlessSpec
-
-from embed_anything import BertConfig, EmbedConfig
+import os
 
 
 class PineconeAdapter(Adapter):
@@ -90,12 +92,38 @@ class PineconeAdapter(Adapter):
         Raises:
             ValueError: If the index has not been created before upserting data.
         """
+
+        data = self.convert(data)
+
         if not self.index_name:
             raise ValueError("Index must be created before upserting data")
         self.pc.Index(name=self.index_name).upsert(data)
 
 
-# Initialize the PineconeEmbedder class
+start_time = time.time()
+
+bert_config = BertConfig(
+    model_id="sentence-transformers/all-MiniLM-L12-v2", chunk_size=100
+)
+
+# available model_ids:
+# jinaai/jina-embeddings-v2-base-en,
+# jinaai/jina-embeddings-v2-small-en,
+# jinaai/jina-embeddings-v2-base-zh,
+# jinaai/jina-embeddings-v2-small-de
+# jina_config = JinaConfig(
+#     model_id="jinaai/jina-embeddings-v2-small-en", revision="main", chunk_size=100
+# )
+embed_config = EmbedConfig(bert=bert_config)
+
+data = embed_anything.embed_query(
+    ["Hello world", "Hi"], embeder="Bert", config=embed_config
+)
+# data = embed_anything.embed_directory(
+#     "test_files", embeder="Bert", extensions=["pdf"], config=embed_config
+# )
+
+
 api_key = os.environ.get("PINECONE_API_KEY")
 index_name = "anything"
 pinecone_adapter = PineconeAdapter(api_key)
@@ -105,21 +133,17 @@ try:
 except:
     pass
 
-# Initialize the PineconeEmbedder class
+pinecone_adapter.create_index(dimension=384, metric="cosine")
 
-pinecone_adapter.create_index(dimension=1536, metric="cosine")
 
-bert_config = BertConfig(
-    model_id="sentence-transformers/all-MiniLM-L12-v2", chunk_size=100
-)
-embed_config = EmbedConfig(bert=bert_config)
-
-# Embed the audio files
-# Replace the line with a valid code snippet or remove it if not needed
-data = embed_anything.embed_file(
-    "/content/EmbedAnything/test_files/test.pdf",
+data_file = embed_anything.embed_file(
+    "./test_files/test.pdf",
     embeder="Bert",
-    adapter=pinecone_adapter,
     config=embed_config,
+    adapter=pinecone_adapter,
 )
+
 print(data)
+print(pinecone_adapter.pc.Index(name="anything").list_paginated())
+end_time = time.time()
+print("Time taken: ", end_time - start_time)
