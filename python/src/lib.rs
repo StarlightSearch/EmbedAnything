@@ -110,8 +110,7 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::clip::ClipEmbeder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
-                    )
-                    .unwrap(),
+                    ).map_err(|e| PyValueError::new_err(e.to_string()))?,
                 );
                 Ok(EmbeddingModel { inner: model })
             }

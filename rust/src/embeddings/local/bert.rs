@@ -36,7 +36,12 @@ impl BertEmbeder {
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
-            let weights = api.get("model.safetensors")?;
+            let weights = api.get("model.safetensors").map_err(|e| {
+                anyhow::Error::msg(format!(
+                    "Safetensor file not found. Try a different revision. Error: {}",
+                    e
+                ))
+            })?;
 
             (config, tokenizer, weights)
         };
