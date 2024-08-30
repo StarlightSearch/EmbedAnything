@@ -6,8 +6,8 @@ from embed_anything import (
     embed_file,
     embed_directory,
 )
-import glob
 import pytest
+import os
 
 
 def test_clip_model_creation():
@@ -34,17 +34,17 @@ def test_clip_model_query(clip_model):
 
 def test_clip_model_file(clip_model):
 
+    path = os.path.abspath("test_files/clip/monkey1.jpg")
     data = embed_file("test_files/clip/monkey1.jpg", clip_model)
 
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512
-    assert data[0].metadata["file_name"] == "test_files/clip/monkey1.jpg"
+    assert data[0].metadata["file_name"] == path
 
 
 def test_clip_model_directory(clip_model):
 
     data = embed_directory("test_files/clip", clip_model)
-
     assert len(data) == 5
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512

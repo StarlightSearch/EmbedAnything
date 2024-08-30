@@ -11,7 +11,7 @@ pub mod file_loader;
 pub mod file_processor;
 pub mod text_loader;
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use config::{BertConfig, CloudConfig, EmbedConfig, JinaConfig, TextEmbedConfig};
@@ -413,7 +413,7 @@ where
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(&text);
-    let metadata = TextLoader::get_metadata(file.as_ref().to_str().unwrap()).ok();
+    let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
         let embeddings = chunks
@@ -443,7 +443,7 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
     let mut metadata = HashMap::new();
     metadata.insert(
         "file_name".to_string(),
-        image_path.as_ref().to_str().unwrap().to_string(),
+        fs::canonicalize(&image_path)?.to_str().unwrap().to_string(),
     );
 
     let embedding = embedding_model
