@@ -36,12 +36,18 @@ impl BertEmbeder {
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
-            let weights = api.get("model.safetensors").map_err(|e| {
-                anyhow::Error::msg(format!(
-                    "Safetensor file not found. Try a different revision. Error: {}",
-                    e
-                ))
-            })?;
+            let weights = match api.get("model.safetensors") {
+                Ok(safetensors) => safetensors,
+                Err(_) => match api.get("pytorch_model.bin") {
+                    Ok(pytorch_model) => pytorch_model,
+                    Err(e) => {
+                        return Err(anyhow::Error::msg(format!(
+                            "Model weights not found. The weights should either be a `model.safetensors` or `pytorch_model.bin` file.  Error: {}",
+                            e
+                        )));
+                    }
+                },
+            };
 
             (config, tokenizer, weights)
         };
@@ -56,8 +62,12 @@ impl BertEmbeder {
         tokenizer.with_padding(Some(pp));
 
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
-        let vb = unsafe {
+        let vb = if weights_filename.ends_with(".safetensors") {
+            unsafe {
             VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
+            }
+        } else {
+            VarBuilder::from_pth(&weights_filename, DTYPE, &device).unwrap()
         };
 
         config.hidden_act = HiddenAct::GeluApproximate;

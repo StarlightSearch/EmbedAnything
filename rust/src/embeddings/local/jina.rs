@@ -42,20 +42,26 @@ impl JinaEmbeder {
             Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
             None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
         };
-        let model_file = api.get("model.safetensors").map_err(|e| {
-            anyhow::Error::msg(format!(
-                "Safetensor file not found. Try a different revision. Error: {}",
-                e
-            ))
-        })?;
+ 
         let config_filename = api.get("config.json")?;
         let tokenizer_filename = api.get("tokenizer.json")?;
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
         let config = std::fs::read_to_string(config_filename)?;
         let config: Config = serde_json::from_str(&config)?;
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
-        let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
+        let vb = match api.get("model.safetensors") {
+            Ok(safetensors) => unsafe {
+                VarBuilder::from_mmaped_safetensors(&[safetensors], DType::F32, &device)?
+            },
+            Err(_) => match api.get("pytorch_model.bin") {
+                Ok(pytorch_model) => VarBuilder::from_pth(pytorch_model, DType::F32, &device)?,
+                Err(e) => {
+                    return Err(anyhow::Error::msg(format!(
+                        "Model weights not found. The weights should either be a `model.safetensors` or `pytorch_model.bin` file.  Error: {}",
+                        e
+                    )));
+                }
+            },
         };
         let model = BertModel::new(vb, &config)?;
         // let mut tokenizer = Self::get_tokenizer(None)?;
