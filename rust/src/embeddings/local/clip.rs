@@ -47,16 +47,25 @@ impl ClipEmbeder {
             )),
         };
 
-        let model_file = api.get("model.safetensors")
-            .map_err(|e| anyhow::Error::msg(format!("Safetensor file not found. Try a different revision. Error: {}", e)))?;
-
-        let config = clip::ClipConfig::vit_base_patch32();
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
 
-        let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file.clone()], DType::F32, &device)?
+        let vb = match api.get("model.safetensors") {
+            Ok(safetensors) => unsafe {
+                VarBuilder::from_mmaped_safetensors(&[safetensors], DType::F32, &device)?
+            },
+            Err(_) => match api.get("pytorch_model.bin") {
+                Ok(pytorch_model) => VarBuilder::from_pth(pytorch_model, DType::F32, &device)?,
+                Err(e) => {
+                    return Err(anyhow::Error::msg(format!(
+                        "Model weights not found. The weights should either be a `model.safetensors` or `pytorch_model.bin` file.  Error: {}",
+                        e
+                    )));
+                }
+            },
         };
+        let config = clip::ClipConfig::vit_base_patch32();
         let model = clip::ClipModel::new(vb, &config)?;
+
         let tokenizer = Self::get_tokenizer(None)?;
         Ok(ClipEmbeder { model, tokenizer })
     }
@@ -222,7 +231,7 @@ impl EmbedImage for ClipEmbeder {
 
         let mut encodings = Vec::new();
         for image_batch in image_paths.chunks(32) {
-            let images = self.load_images(image_batch, config.image_size).unwrap();
+            let images = self.load_images(image_batch, config.vision_config.image_size).unwrap();
             let batch_encodings = self
                 .model
                 .get_image_features(&images)
@@ -239,7 +248,11 @@ impl EmbedImage for ClipEmbeder {
                 let mut metadata = HashMap::new();
                 metadata.insert(
                     "file_name".to_string(),
-                    fs::canonicalize(path).unwrap().to_str().unwrap().to_string(),
+                    fs::canonicalize(path)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
                 );
 
                 EmbedData::new(
@@ -259,7 +272,7 @@ impl EmbedImage for ClipEmbeder {
     ) -> anyhow::Result<EmbedData> {
         let config = clip::ClipConfig::vit_base_patch32();
         let image = self
-            .load_image(&image_path, config.image_size)
+            .load_image(&image_path, config.vision_config.image_size)
             .unwrap()
             .unsqueeze(0)
             .unwrap();
