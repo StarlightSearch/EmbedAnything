@@ -1,0 +1,16 @@
+[package]
+name = "embed_anything_python"
+version = "0.2.2"
+edition = "2021"
+
+[lib]
+name = "_embed_anything"
+crate-type = ["cdylib"]
+
+[dependencies]
+embed_anything = {path = "../rust"}
+pyo3 = { version = "0.22.2"}
+
+[features]
+extension-module = ["pyo3/extension-module"]
+mkl = ["embed_anything/mkl"]

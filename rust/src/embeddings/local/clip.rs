@@ -4,7 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
 use anyhow::Error as E;
 
@@ -12,12 +12,10 @@ use candle_core::{DType, Device, Tensor};
 use candle_transformers::models::clip;
 
 use candle_nn::VarBuilder;
-use pyo3::pyclass;
 use tokenizers::Tokenizer;
 
-use crate::embeddings::embed::{EmbedData, EmbedImage};
+use crate::embeddings::embed::{EmbedData, EmbedImage, TextEmbed};
 
-#[pyclass]
 pub struct ClipEmbeder {
     pub model: clip::ClipModel,
     pub tokenizer: Tokenizer,
@@ -49,7 +47,8 @@ impl ClipEmbeder {
             )),
         };
 
-        let model_file = api.get("model.safetensors")?;
+        let model_file = api.get("model.safetensors")
+            .map_err(|e| anyhow::Error::msg(format!("Safetensor file not found. Try a different revision. Error: {}", e)))?;
 
         let config = clip::ClipConfig::vit_base_patch32();
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
@@ -125,7 +124,7 @@ impl ClipEmbeder {
         path: T,
         image_size: usize,
     ) -> anyhow::Result<Tensor> {
-        let img = image::io::Reader::open(path)?.decode()?;
+        let img = image::ImageReader::open(path)?.decode()?;
         let (height, width) = (image_size, image_size);
         let img = img.resize_to_fill(
             width as u32,
@@ -196,6 +195,24 @@ impl ClipEmbeder {
     }
 }
 
+impl TextEmbed for ClipEmbeder {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        self.embed(text_batch, batch_size)
+    }
+
+    fn from_pretrained(
+        &self,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
+        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
+    }
+}
+
 impl EmbedImage for ClipEmbeder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
@@ -222,8 +239,9 @@ impl EmbedImage for ClipEmbeder {
                 let mut metadata = HashMap::new();
                 metadata.insert(
                     "file_name".to_string(),
-                    path.as_ref().to_str().unwrap().to_string(),
+                    fs::canonicalize(path).unwrap().to_str().unwrap().to_string(),
                 );
+
                 EmbedData::new(
                     data.to_vec(),
                     Some(path.as_ref().to_str().unwrap().to_string()),
@@ -252,6 +270,13 @@ impl EmbedImage for ClipEmbeder {
             .to_vec2::<f32>()
             .unwrap()[0];
         Ok(EmbedData::new(encoding.to_vec(), None, metadata.clone()))
+    }
+
+    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized,
+    {
+        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
     }
 }
 

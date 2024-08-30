@@ -107,9 +107,9 @@ Supported Embedding Models:
     - "Whisper"
 """
 
-from .embed_anything import *
-import embed_anything.vectordb
+from ._embed_anything import *
+from .vectordb import *
 
-__doc__ = embed_anything.__doc__
-if hasattr(embed_anything, "__all__"):
-    __all__ = embed_anything.__all__
+__doc__ = _embed_anything.__doc__
+if hasattr(_embed_anything, "__all__"):
+    __all__ = _embed_anything.__all__

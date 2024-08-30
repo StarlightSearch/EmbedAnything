@@ -49,8 +49,8 @@ impl TextLoader {
         }
     }
 
-    pub fn get_metadata(file: &str) -> Result<HashMap<String, String>, Error> {
-        let metadata = fs::metadata(file)?;
+    pub fn get_metadata<T:AsRef<std::path::Path>>(file: T) -> Result<HashMap<String, String>, Error> {
+        let metadata = fs::metadata(&file)?;
         let mut metadata_map = HashMap::new();
         metadata_map.insert(
             "created".to_string(),
@@ -60,7 +60,8 @@ impl TextLoader {
             "modified".to_string(),
             format!("{}", DateTime::<Local>::from(metadata.modified()?)),
         );
-        metadata_map.insert("file_name".to_string(), file.to_string());
+        
+        metadata_map.insert("file_name".to_string(), fs::canonicalize(file)?.to_str().unwrap().to_string());
         Ok(metadata_map)
     }
 }
@@ -86,7 +87,7 @@ mod tests {
     fn test_image_embeder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
         let embeder = ClipEmbeder::default();
-        let emb_data = embeder.embed_image(&file_path, None).unwrap();
+        let emb_data = embeder.embed_image(file_path, None).unwrap();
         assert_eq!(emb_data.embedding.len(), 512);
     }
 }
