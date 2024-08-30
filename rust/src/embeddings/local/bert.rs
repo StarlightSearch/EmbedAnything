@@ -131,9 +131,6 @@ impl TextEmbed for BertEmbeder {
         self.embed(text_batch, batch_size)
     }
 
-    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, E> {
-        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
-    }
 }
 
 #[cfg(test)]

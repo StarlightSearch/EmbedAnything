@@ -175,7 +175,7 @@ pub fn embed_query(
     Ok(embed_anything::embed_query(
         query,
         embedding_model,
-        config.unwrap_or(&TextEmbedConfig::default()).clone(),
+        Some(&config.unwrap_or(&TextEmbedConfig::default())),
     )
     .map_err(|e| PyValueError::new_err(e.to_string()))?
     .into_iter()
