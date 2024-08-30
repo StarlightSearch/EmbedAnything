@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "Apache-2.0"
 description = "Embed anything at lightning speed"
@@ -29,10 +29,14 @@ rayon = "1.8.1"
 image = "0.25.1"
 
 # Natural Language Processing
-tokenizers = "0.19.1"
+tokenizers = {version="0.19.1", features=["http"]}
+text-splitter = {version="0.14.1", features=["tokenizers"]}
+
+
 
 # PDF Processing
-pdf-extract = {git = "https://github.com/jrmuizel/pdf-extract.git", rev="refs/pull/91/head"}
+pdf-extract = "0.7.7"
+
 
 # Hugging Face Libraries
 hf-hub = "0.3.2"
@@ -71,6 +75,8 @@ byteorder = "1.5.0"
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
 accelerate-src = { version = "0.3.2", optional = true }
+statistical = "1.0.0"
+fancy-regex = "0.13.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"

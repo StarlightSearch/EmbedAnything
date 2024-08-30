@@ -2,16 +2,21 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embedding_model::embed::CohereEmbedResponse;
+use crate::embeddings::embed::TextEmbed;
 
-use super::embed::TextEmbed;
+#[derive(Deserialize, Debug, Default)]
+pub struct CohereEmbedResponse {
+    pub embeddings: Vec<Vec<f32>>,
+}
 
-/// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
-#[derive(Deserialize, Debug)]
+/// Represents an CohereEmebeder struct that contains the URL and API key for making requests to the OpenAI API.
+#[derive(Debug)]
 pub struct CohereEmbeder {
     url: String,
     model: String,
     api_key: String,
+    runtime: tokio::runtime::Runtime,
+    client: Client,
 }
 
 impl Default for CohereEmbeder {
@@ -21,7 +26,11 @@ impl Default for CohereEmbeder {
 }
 
 impl TextEmbed for CohereEmbeder {
-    fn embed(&self, text_batch: &[String], _batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        _batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
 }
@@ -35,18 +44,18 @@ impl CohereEmbeder {
             model,
             url: "https://api.cohere.com/v1/embed".to_string(),
             api_key,
+            runtime: tokio::runtime::Builder::new_current_thread()
+                .enable_io()
+                .build()
+                .unwrap(),
+            client: Client::new(),
         }
     }
 
     pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let client = Client::new();
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_io()
-            .build()
-            .unwrap();
-
-        let data = runtime.block_on(async move {
-            let response = client
+        let data = self.runtime.block_on(async move {
+            let response = self
+                .client
                 .post(&self.url)
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json")
@@ -59,8 +68,7 @@ impl CohereEmbeder {
                 .send()
                 .await
                 .unwrap();
-            let data = response.json::<CohereEmbedResponse>().await.unwrap();
-            data
+            response.json::<CohereEmbedResponse>().await.unwrap()
         });
 
         let encodings = data.embeddings;

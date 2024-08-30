@@ -78,7 +78,9 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 - **Scalable:** Store embeddings in a vector database for easy retrieval and scalability. 
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
 
+## 💡What is Vector Streaming
 
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings file by file (Or chunk by chunk in future) and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
 
 
 ## 🦀 Why Embed Anything 
@@ -214,9 +216,10 @@ One of the aims of EmbedAnything is to allow AI engineers to easily use state of
 ✅Custom chunk size <br />
 ✅Pinecone Adapter, to directly save it on it. <br />
 ✅Zero-shot application <br />
+✅Vector database integration via streaming adapters
 
 Yet to do be done <br />
-☑️Vector Database: Add functionalities to integrate with any Vector Database <br />
+☑️Introducing chunkwise streaming instead of file <br />
 ☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
 
 

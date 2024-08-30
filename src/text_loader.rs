@@ -2,6 +2,8 @@ use std::{collections::HashMap, fmt::Debug, fs};
 
 use anyhow::Error;
 use chrono::{DateTime, Local};
+use text_splitter::{ChunkConfig, TextSplitter};
+use tokenizers::Tokenizer;
 
 use crate::file_processor::markdown_processor::MarkdownProcessor;
 
@@ -10,47 +12,32 @@ use std::path::PathBuf;
 
 impl Default for TextLoader {
     fn default() -> Self {
-        Self::new()
+        Self::new(256)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct TextLoader;
+#[derive(Debug)]
+pub struct TextLoader {
+    splitter: TextSplitter<Tokenizer>,
+}
 impl TextLoader {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(chunk_size: usize) -> Self {
+        Self {
+            splitter: TextSplitter::new(
+                ChunkConfig::new(chunk_size)
+                    .with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()),
+            ),
+        }
     }
-    pub fn split_into_chunks(text: &str, chunk_size: usize) -> Option<Vec<String>> {
-        let mut chunk = Vec::new();
-        let mut chunks = Vec::new();
-
+    pub fn split_into_chunks(&self, text: &str) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
         }
-        if text.len() < chunk_size {
-            chunks.push(text.to_owned());
-            return Some(chunks);
-        }
-
-        let sentences: Vec<&str> = text.split_terminator(&['.', ';'][..]).collect();
-
-        for sentence in sentences {
-            let sentence_with_period = format!("{}.", sentence);
-
-            let words: Vec<String> = sentence_with_period
-                .split_whitespace()
-                .map(|word| word.to_owned())
-                .collect();
-
-            chunk.extend(words);
-
-            if chunk.len() >= chunk_size {
-                chunks.push(chunk.join(" "));
-                chunk.clear();
-            }
-        }
-        chunks.push(chunk.join(" ")); // push the remaining words
-
+        let chunks: Vec<String> = self
+            .splitter
+            .chunks(text)
+            .map(|chunk| chunk.to_string())
+            .collect();
         Some(chunks)
     }
 
@@ -81,7 +68,7 @@ impl TextLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embedding_model::{clip::ClipEmbeder, embed::EmbedImage};
+    use crate::embeddings::{embed::EmbedImage, local::clip::ClipEmbeder};
     use std::path::PathBuf;
 
     #[test]
