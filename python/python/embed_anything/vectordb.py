@@ -3,7 +3,7 @@ import re
 import uuid
 from typing import List, Dict
 from abc import ABC, abstractmethod
-from embed_anything import EmbedData
+from ._embed_anything import EmbedData
 
 
 class Adapter(ABC):

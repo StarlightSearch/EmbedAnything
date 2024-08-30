@@ -36,6 +36,14 @@ impl TextEmbed for OpenAIEmbeder {
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
+
+    fn from_pretrained(
+        &self,
+        model_id: &str,
+        _revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self::new(model_id.to_string(), None))
+    }
 }
 
 impl OpenAIEmbeder {

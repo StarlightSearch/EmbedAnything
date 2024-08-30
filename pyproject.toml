@@ -20,10 +20,9 @@ license = {file = "LICENSE"}
 [tool.maturin]
 features = ["extension-module"]
 profile="release"
-include = [{path = "lib/*.dll", format = ["sdist", "wheel"]}]
-python-source = "python"
-manifest-path = "Cargo.toml"
-
+python-source = "python/python"
+manifest-path = "python/Cargo.toml"
+module-name = "embed_anything._embed_anything"
 
 [project.urls]
 Homepage = "https://github.com/StarlightSearch/EmbedAnything/tree/main"
