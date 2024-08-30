@@ -47,7 +47,8 @@ impl ClipEmbeder {
             )),
         };
 
-        let model_file = api.get("model.safetensors")?;
+        let model_file = api.get("model.safetensors")
+            .map_err(|e| anyhow::Error::msg(format!("Safetensor file not found. Try a different revision. Error: {}", e)))?;
 
         let config = clip::ClipConfig::vit_base_patch32();
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
