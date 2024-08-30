@@ -9,8 +9,8 @@ start = time.time()
 
 model = embed_anything.EmbeddingModel.from_pretrained_local(
     embed_anything.WhichModel.Clip,
-    model_id="openai/clip-vit-base-patch32",
-    revision="refs/pr/15",
+    model_id="openai/clip-vit-base-patch16",
+    # revision="refs/pr/15",
 )
 data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
 

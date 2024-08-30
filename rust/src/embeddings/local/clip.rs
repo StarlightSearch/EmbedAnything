@@ -9,7 +9,7 @@ use std::{collections::HashMap, fs};
 use anyhow::Error as E;
 
 use candle_core::{DType, Device, Tensor};
-use candle_transformers::models::clip;
+use candle_transformers::models::clip::{self, ClipConfig};
 
 use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;
@@ -63,7 +63,10 @@ impl ClipEmbeder {
                 }
             },
         };
-        let config = clip::ClipConfig::vit_base_patch32();
+        let config_filename = api.get("config.json")?;
+
+        let config: String = std::fs::read_to_string(config_filename)?;
+        let config: ClipConfig = serde_json::from_str(&config)?;
         let model = clip::ClipModel::new(vb, &config)?;
 
         let tokenizer = Self::get_tokenizer(None)?;
@@ -213,13 +216,6 @@ impl TextEmbed for ClipEmbeder {
         self.embed(text_batch, batch_size)
     }
 
-    fn from_pretrained(
-        &self,
-        model_id: &str,
-        revision: Option<&str>,
-    ) -> Result<Self, anyhow::Error> {
-        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
-    }
 }
 
 impl EmbedImage for ClipEmbeder {
