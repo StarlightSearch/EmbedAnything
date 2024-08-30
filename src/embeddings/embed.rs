@@ -1,23 +1,12 @@
-use super::bert::BertEmbeder;
-use super::clip::ClipEmbeder;
-use super::cohere::CohereEmbeder;
-use super::jina::JinaEmbeder;
-use super::openai::OpenAIEmbeder;
+use super::cloud::cohere::CohereEmbeder;
+use super::cloud::openai::OpenAIEmbeder;
+use super::local::bert::BertEmbeder;
+use super::local::clip::ClipEmbeder;
+use super::local::jina::JinaEmbeder;
 use pyo3::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
-
-#[derive(Deserialize, Debug, Default)]
-pub struct OpenAIEmbedResponse {
-    pub data: Vec<EmbedData>,
-    pub usage: HashMap<String, usize>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-pub struct CohereEmbedResponse {
-    pub embeddings: Vec<Vec<f32>>,
-}
 
 #[pyclass]
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -57,7 +46,11 @@ impl EmbedData {
 }
 
 pub trait TextEmbed {
-    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
 }
 pub enum Embeder {
     Cloud(CloudEmbeder),
@@ -67,7 +60,11 @@ pub enum Embeder {
 }
 
 impl Embeder {
-    pub fn embed(&self, text_batch: &[String], batch_size:Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
             Embeder::Cloud(embeder) => embeder.embed(text_batch),
             Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
@@ -76,7 +73,6 @@ impl Embeder {
         }
     }
 }
-
 
 pub enum CloudEmbeder {
     OpenAI(OpenAIEmbeder),
@@ -90,11 +86,14 @@ impl CloudEmbeder {
             Self::Cohere(embeder) => embeder.embed(text_batch),
         }
     }
-
 }
 
 impl TextEmbed for CloudEmbeder {
-    fn embed(&self, text_batch: &[String], _batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        _batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
             Self::OpenAI(embeder) => embeder.embed(text_batch),
             Self::Cohere(embeder) => embeder.embed(text_batch),

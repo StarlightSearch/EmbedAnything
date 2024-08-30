@@ -24,3 +24,8 @@ If you are Contributing in python;
 4. then call the function, from embed_anything import the function_name
 
 Please open any issues if you have.
+
+## To contribute in Adapters,
+
+All you need is to add Adapter class for your create, add, delete indexes. Kindly check the already existing pinecone and weaviate file.
+

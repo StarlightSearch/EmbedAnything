@@ -15,7 +15,7 @@ use candle_nn::VarBuilder;
 use pyo3::pyclass;
 use tokenizers::Tokenizer;
 
-use super::embed::{EmbedData, EmbedImage};
+use crate::embeddings::embed::{EmbedData, EmbedImage};
 
 #[pyclass]
 pub struct ClipEmbeder {
@@ -219,10 +219,15 @@ impl EmbedImage for ClipEmbeder {
             .iter()
             .zip(image_paths)
             .map(|(data, path)| {
+                let mut metadata = HashMap::new();
+                metadata.insert(
+                    "file_name".to_string(),
+                    path.as_ref().to_str().unwrap().to_string(),
+                );
                 EmbedData::new(
                     data.to_vec(),
                     Some(path.as_ref().to_str().unwrap().to_string()),
-                    None,
+                    Some(metadata),
                 )
             })
             .collect::<Vec<_>>();

@@ -1,17 +1,25 @@
+use std::collections::HashMap;
+
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embedding_model::embed::OpenAIEmbedResponse;
+use crate::embeddings::embed::{EmbedData, TextEmbed};
 
-use super::embed::TextEmbed;
+#[derive(Deserialize, Debug, Default)]
+pub struct OpenAIEmbedResponse {
+    pub data: Vec<EmbedData>,
+    pub usage: HashMap<String, usize>,
+}
 
 /// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct OpenAIEmbeder {
     url: String,
     model: String,
     api_key: String,
+    runtime: tokio::runtime::Runtime,
+    client: Client,
 }
 
 impl Default for OpenAIEmbeder {
@@ -21,7 +29,11 @@ impl Default for OpenAIEmbeder {
 }
 
 impl TextEmbed for OpenAIEmbeder {
-    fn embed(&self, text_batch: &[String], _batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        _batch_size: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
 }
@@ -35,18 +47,18 @@ impl OpenAIEmbeder {
             model,
             url: "https://api.openai.com/v1/embeddings".to_string(),
             api_key,
+            runtime: tokio::runtime::Builder::new_current_thread()
+                .enable_io()
+                .build()
+                .unwrap(),
+            client: Client::new(),
         }
     }
 
     pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let client = Client::new();
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_io()
-            .build()
-            .unwrap();
-
-        let data = runtime.block_on(async move {
-            let response = client
+        let data = self.runtime.block_on(async move {
+            let response = self
+                .client
                 .post(&self.url)
                 .header("Content-Type", "application/json")
                 .header("Authorization", format!("Bearer {}", self.api_key))

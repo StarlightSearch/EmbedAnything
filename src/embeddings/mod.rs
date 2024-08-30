@@ -7,12 +7,9 @@ use embed::{EmbedData, TextEmbed};
 
 use crate::file_processor::audio::audio_processor::Segment;
 
-pub mod bert;
-pub mod clip;
-pub mod cohere;
+pub mod cloud;
 pub mod embed;
-pub mod jina;
-pub mod openai;
+pub mod local;
 
 pub fn get_text_metadata(
     encodings: &[Vec<f32>],
@@ -20,7 +17,7 @@ pub fn get_text_metadata(
     metadata: Option<HashMap<String, String>>,
 ) -> anyhow::Result<Vec<EmbedData>> {
     let final_embeddings = encodings
-        .into_iter()
+        .iter()
         .zip(text_batch)
         .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
         .collect::<Vec<_>>();
