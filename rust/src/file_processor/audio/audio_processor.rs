@@ -488,16 +488,16 @@ pub struct ModelInput {
 
 impl AudioDecoderModel {
     pub fn from_pretrained(
-        model: &str,
         model_id: Option<&str>,
         revision: Option<&str>,
         model_type: &str,
+        quantized: bool,
     ) -> Result<Self> {
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
 
-        match model {
-            "whisper" => {
-                let model_input = build_model(model_id, revision, false, model_type)?;
+        match quantized {
+            false=> {
+                let model_input = build_model(model_id, revision, quantized, model_type)?;
                 let (config_filename, tokenizer_filename, weights_filename) =
                     (model_input.config, model_input.tokenizer, model_input.model);
 
@@ -518,8 +518,8 @@ impl AudioDecoderModel {
                     device,
                 })
             }
-            "whisper-quantized" => {
-                let model_input = build_model(model_id, revision, true, model_type)?;
+            true => {
+                let model_input = build_model(model_id, revision, quantized, model_type)?;
                 let (config_filename, tokenizer_filename, weights_filename) =
                     (model_input.config, model_input.tokenizer, model_input.model);
 
@@ -530,7 +530,7 @@ impl AudioDecoderModel {
                 let tokenizer = Tokenizer::from_file(tokenizer).map_err(E::msg)?;
 
                 let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(
-                    &weights_filename,
+                    weights_filename,
                     &device,
                 )?;
                 let model = WhichAudioDecoderModel::Quantized(m::quantized_model::Whisper::load(
@@ -544,8 +544,6 @@ impl AudioDecoderModel {
                     device,
                 })
             }
-
-            _ => unimplemented!("no support for {model}. Use whisper or whisper-quantized"),
         }
     }
 

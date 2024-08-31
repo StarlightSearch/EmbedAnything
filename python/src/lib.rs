@@ -1,6 +1,9 @@
 pub mod config;
 
-use embed_anything::{self, config::TextEmbedConfig, embeddings::embed::Embeder};
+use embed_anything::{
+    self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
+    file_processor::audio::audio_processor,
+};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use std::{collections::HashMap, path::PathBuf};
 
@@ -92,7 +95,6 @@ impl EmbeddingModel {
     ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
         match model {
-        
             WhichModel::Bert => {
                 let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
                 let model = Embeder::Bert(
@@ -110,12 +112,13 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::clip::ClipEmbeder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
-                    ).map_err(|e| PyValueError::new_err(e.to_string()))?,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 );
                 Ok(EmbeddingModel { inner: model })
             }
             WhichModel::Jina => {
-                let model_id= model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
+                let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
                 let model = Embeder::Jina(
                     embed_anything::embeddings::local::jina::JinaEmbeder::new(
                         model_id.to_string(),
@@ -162,6 +165,35 @@ impl EmbeddingModel {
     }
 }
 
+#[pyclass]
+pub struct AudioDecoderModel {
+    pub inner: audio_processor::AudioDecoderModel,
+}
+
+#[pymethods]
+impl AudioDecoderModel {
+    #[staticmethod]
+    #[pyo3(signature = (model_id, revision=None, model_type=None, quantized=None))]
+    fn from_pretrained(
+        model_id: Option<&str>,
+        revision: Option<&str>,
+        model_type: Option<&str>,
+        quantized: Option<bool>,
+    ) -> PyResult<Self> {
+        let model_id = model_id.unwrap_or("openai/whisper-tiny.en");
+        let model_type = model_type.unwrap_or("tiny-en");
+        let revision = revision.unwrap_or("main");
+        let model = audio_processor::AudioDecoderModel::from_pretrained(
+            Some(model_id),
+            Some(revision),
+            model_type,
+            quantized.unwrap_or(false),
+        )
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        Ok(AudioDecoderModel { inner: model })
+    }
+}
+
 #[pyfunction]
 #[pyo3(signature = (query, embeder, config=None))]
 pub fn embed_query(
@@ -175,7 +207,7 @@ pub fn embed_query(
     Ok(embed_anything::embed_query(
         query,
         embedding_model,
-        Some(&config.unwrap_or(&TextEmbedConfig::default())),
+        Some(config.unwrap_or(&TextEmbedConfig::default())),
     )
     .map_err(|e| PyValueError::new_err(e.to_string()))?
     .into_iter()
@@ -233,6 +265,27 @@ pub fn embed_file(
 }
 
 #[pyfunction]
+#[pyo3(signature = (audio_file, audio_decoder, embeder, text_embed_config=None))]
+pub fn emb_audio_file(
+    audio_file: String,
+    audio_decoder: &mut AudioDecoderModel,
+    embeder: &EmbeddingModel,
+    text_embed_config: Option<&config::TextEmbedConfig>,
+) -> PyResult<Option<Vec<EmbedData>>> {
+    let config = text_embed_config.map(|c| &c.inner);
+    let embedding_model = &embeder.inner;
+    let audio_decoder = &mut audio_decoder.inner;
+
+    let data = emb_audio(audio_file, audio_decoder, embedding_model, config)
+    .map_err(|e| PyValueError::new_err(e.to_string()))?
+    .map(|data| {
+        data.into_iter()
+            .map(|data| EmbedData { inner: data })
+            .collect::<Vec<_>>()
+    });
+    Ok(data)
+}
+#[pyfunction]
 #[pyo3(signature = (directory, embeder, extensions=None, config=None, adapter = None))]
 pub fn embed_directory(
     directory: PathBuf,
@@ -286,7 +339,6 @@ pub fn embed_directory(
         })),
     }
 }
-
 
 #[pyfunction]
 #[pyo3(signature = (url, embeder, config=None, adapter = None))]
@@ -344,6 +396,7 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
     m.add_class::<EmbeddingModel>()?;
+    m.add_class::<AudioDecoderModel>()?;
     m.add_class::<WhichModel>()?;
     m.add_class::<EmbedData>()?;
     m.add_class::<config::TextEmbedConfig>()?;

@@ -39,6 +39,7 @@ impl Default for StatisticalChunker<JinaEmbeder> {
 }
 
 impl<T: TextEmbed> StatisticalChunker<T> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         encoder: T,
         threshold_adjustment: f32,

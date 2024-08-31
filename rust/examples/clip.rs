@@ -5,7 +5,7 @@ use std::{path::PathBuf, time::Instant};
 fn main() {
     let now = Instant::now();
 
-    let model = Embeder::from_pretrained("clip", "openai/clip-vit-base-patch16", None).unwrap();
+    let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap();
     let out = embed_directory(
         PathBuf::from("test_files"),
         &model,
