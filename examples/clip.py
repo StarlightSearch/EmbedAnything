@@ -7,7 +7,7 @@ import time
 
 start = time.time()
 
-model = embed_anything.EmbeddingModel.from_pretrained_local(
+model = embed_anything.EmbeddingModel.from_pretrained_hf(
     embed_anything.WhichModel.Clip,
     model_id="openai/clip-vit-base-patch16",
     # revision="refs/pr/15",
