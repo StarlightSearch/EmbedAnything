@@ -4,22 +4,30 @@ use serde_json::json;
 
 use crate::embeddings::embed::TextEmbed;
 
+/// Represents the response from the Cohere embedding API.
 #[derive(Deserialize, Debug, Default)]
 pub struct CohereEmbedResponse {
+    /// A vector of embeddings, where each embedding is a vector of 32-bit floating point numbers.
     pub embeddings: Vec<Vec<f32>>,
 }
 
-/// Represents an CohereEmebeder struct that contains the URL and API key for making requests to the OpenAI API.
+/// Represents a CohereEmbeder struct that contains the URL and API key for making requests to the Cohere API.
 #[derive(Debug)]
 pub struct CohereEmbeder {
+    /// The URL of the Cohere API endpoint.
     url: String,
+    /// The model to be used for embedding.
     model: String,
+    /// The API key for authenticating requests to the Cohere API.
     api_key: String,
+    /// The Tokio runtime for asynchronous operations.
     runtime: tokio::runtime::Runtime,
+    /// The HTTP client for making requests.
     client: Client,
 }
 
 impl Default for CohereEmbeder {
+    /// Creates a default instance of `CohereEmbeder` with the model set to "embed-english-v3.0" and no API key.
     fn default() -> Self {
         Self::new("embed-english-v3.0".to_string(), None)
     }
@@ -38,6 +46,16 @@ impl TextEmbed for CohereEmbeder {
 }
 
 impl CohereEmbeder {
+    /// Creates a new instance of `CohereEmbeder` with the specified model and API key.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `model` - A string slice that holds the model to be used for embedding. Find available models at https://docs.cohere.com/docs/cohere-embed
+    /// * `api_key` - An optional string slice that holds the API key for authenticating requests to the Cohere API.
+    /// 
+    /// # Returns
+    /// 
+    /// A new instance of `CohereEmbeder`.
     pub fn new(model: String, api_key: Option<String>) -> Self {
         let api_key =
             api_key.unwrap_or_else(|| std::env::var("CO_API_KEY").expect("API key not set"));

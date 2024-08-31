@@ -281,7 +281,7 @@ impl EmbedImage for ClipEmbeder {
         Ok(EmbedData::new(encoding.to_vec(), None, metadata.clone()))
     }
 
-    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    fn from_pretrained( model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {
