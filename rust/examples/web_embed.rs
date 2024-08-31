@@ -1,27 +1,17 @@
 use candle_core::Tensor;
 use embed_anything::{
-    config::{EmbedConfig, JinaConfig},
-    embed_query, embed_webpage,
+    config::TextEmbedConfig,
+    embed_query, embed_webpage, embeddings::embed::{EmbedData, Embeder},
 };
 
 fn main() {
     let start_time = std::time::Instant::now();
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
-    let embeder = "Jina".to_string();
+    
+    let embeder = Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None).unwrap();
 
-    let jina_config = JinaConfig {
-        model_id: Some("jinaai/jina-embeddings-v2-base-en".to_string()),
-        revision: None,
-        chunk_size: Some(1000),
-        batch_size: Some(32),
-    };
-
-    let embed_config = EmbedConfig {
-        jina: Some(jina_config),
-        ..Default::default()
-    };
-
-    let embed_data = embed_webpage(url, &embeder, Some(&embed_config), None)
+    let embed_config = TextEmbedConfig::new(Some(256), Some(32));
+    let embed_data = embed_webpage(url, &embeder, Some(&embed_config), None::<fn(Vec<EmbedData>)>)
         .unwrap()
         .unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data
