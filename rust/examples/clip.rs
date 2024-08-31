@@ -1,5 +1,5 @@
 use candle_core::{Device, Tensor};
-use embed_anything::{ embed_directory, embed_query, embeddings::{embed::{EmbedData, EmbedImage, Embeder}, local::clip::ClipEmbeder}};
+use embed_anything::{ embed_directory, embed_query, embeddings::embed::{EmbedData, Embeder}};
 use std::{path::PathBuf, time::Instant};
 
 fn main() {

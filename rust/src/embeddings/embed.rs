@@ -1,5 +1,8 @@
+use crate::file_processor::audio::audio_processor::Segment;
+
 use super::cloud::cohere::CohereEmbeder;
 use super::cloud::openai::OpenAIEmbeder;
+use super::embed_audio;
 use super::local::bert::BertEmbeder;
 use super::local::clip::ClipEmbeder;
 use super::local::jina::JinaEmbeder;
@@ -46,6 +49,10 @@ pub trait TextEmbed {
 
 }
 
+pub trait AudioDecoder {
+    fn decode_audio(&mut self, audio_file: &std::path::Path) ->Result<Vec<Segment>, anyhow::Error>;
+}
+
 pub enum Embeder {
     OpenAI(OpenAIEmbeder),
     Cohere(CohereEmbeder),
@@ -56,7 +63,7 @@ pub enum Embeder {
 
 impl Embeder {
     pub fn embed(
-        &self,
+        &mut self,
         text_batch: &[String],
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
@@ -66,9 +73,9 @@ impl Embeder {
             Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Clip(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Bert(embeder) => embeder.embed(text_batch, batch_size),
+        
         }
     }
-
     
     pub fn from_pretrained(
         model: &str,
@@ -110,7 +117,6 @@ impl TextEmbed for Embeder {
         }
     }
 
-    
 }
 
 pub enum CloudEmbeder {
