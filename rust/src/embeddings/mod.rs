@@ -43,6 +43,7 @@ pub fn get_audio_metadata<T: AsRef<std::path::Path>>(
                 "file_name".to_string(),
                 audio_file.as_ref().to_str().unwrap().to_string(),
             );
+            metadata.insert("text".to_string(), segments[i].dr.text.clone());
             EmbedData::new(
                 data.to_vec(),
                 Some(segments[i].dr.text.clone()),

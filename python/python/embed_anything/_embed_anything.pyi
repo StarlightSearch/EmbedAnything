@@ -28,13 +28,15 @@ def embed_query(
         A list of EmbedData objects.
 
     Example:
+
     ```python
     import embed_anything
-    model = embed_anything.EmbeddingModel.from_pretrained_local(
+    model = embed_anything.EmbeddingModel.from_pretrained_hf(
         embed_anything.WhichModel.Bert,
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         revision="main",
     )
+    ```
     """
 
 def embed_file(
@@ -58,13 +60,13 @@ def embed_file(
     Example:
     ```python
     import embed_anything
-    model = embed_anything.EmbeddingModel.from_pretrained_local(
+    model = embed_anything.EmbeddingModel.from_pretrained_hf(
         embed_anything.WhichModel.Bert,
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         revision="main",
     )
     data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
-
+    ```
     """
 
 def embed_directory(
@@ -90,12 +92,13 @@ def embed_directory(
     Example:
     ```python
     import embed_anything
-    model = embed_anything.EmbeddingModel.from_pretrained_local(
+    model = embed_anything.EmbeddingModel.from_pretrained_hf(
         embed_anything.WhichModel.Bert,
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         revision="main",
     )
     data = embed_anything.embed_directory("test_files", embeder=model, extensions=[".pdf"])
+    ```
     """
 
 def embed_webpage(
@@ -129,6 +132,51 @@ def embed_webpage(
     ```
     """
 
+def embed_audio_file(
+    file_path: str,
+    audio_decoder: AudioDecoderModel,
+    embeder: EmbeddingModel,
+    text_embed_config: TextEmbedConfig | None = TextEmbedConfig(
+        chunk_size=200, batch_size=32
+    ),
+) -> list[EmbedData]:
+    """
+    Embeds the given audio file and returns a list of EmbedData objects.
+
+    Args:
+        file_path: The path to the audio file to embed.
+        audio_decoder: The audio decoder model to use.
+        embeder: The embedding model to use.
+        text_embed_config: The configuration for the embedding model.
+
+    Returns:
+        A list of EmbedData objects.
+
+    Example:
+    ```python
+
+    import embed_anything
+    audio_decoder = embed_anything.AudioDecoderModel.from_pretrained_hf(
+        "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
+    )
+
+    embeder = embed_anything.EmbeddingModel.from_pretrained_hf(
+        embed_anything.WhichModel.Bert,
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        revision="main",
+    )
+
+    config = embed_anything.TextEmbedConfig(chunk_size=200, batch_size=32)
+    data = embed_anything.embed_audio_file(
+        "test_files/audio/samples_hp0.wav",
+        audio_decoder=audio_decoder,
+        embeder=embeder,
+        text_embed_config=config,
+    )
+    ```
+
+    """
+
 class EmbedData:
     """Represents the data of an embedded file.
 
@@ -155,70 +203,93 @@ class TextEmbedConfig:
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
-    def __init(self, chunk_size: int | None = None, batch_size: int | None = None):
+    def __init__(self, chunk_size: int | None = None, batch_size: int | None = None):
         self.chunk_size = chunk_size
         self.batch_size = batch_size
     chunk_size: int | None
     batch_size: int | None
 
-class ClipConfig:
-    """Represents the configuration for the Clip model.
-
-    Attributes:
-        model_id: The ID of the Clip model from huggingface.
-        revision: The revision of the Clip model.
-        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
-
+class EmbeddingModel:
+    """
+    Represents an embedding model.
     """
 
-    def __init__(
-        self,
+    """
+    Loads an embedding model from the Hugging Face model hub.
+
+    Args:
+        model_id: The ID of the model.
+        revision: The revision of the model.
+    
+    Returns:
+        An EmbeddingModel object.
+
+    Example:
+    ```python
+    model = EmbeddingModel.from_pretrained_hf(
+        model_id="prithivida/miniMiracle_te_v1",
+        revision="main"
+    )
+    ```
+
+    """
+    def from_pretrained_hf(
+        model: WhichModel, model_id: str, revision: str | None = None
+    ) -> EmbeddingModel: ...
+
+    """
+    Loads an embedding model from the Cohere model hub.
+
+    Args:
+        model_id: The ID of the model.
+        api_key: The API key for accessing the model. If not provided it is taken from the environment variable.
+
+    Returns:
+        An EmbeddingModel object.
+
+    Example:
+    ```python
+    model = EmbeddingModel.from_pretrained_cloud(
+        model=WhichModel.Cohere, 
+        model_id = "embed-english-v3.0"
+    )
+    """
+    def from_pretrained_cloud(
+        model: WhichModel, model_id: str, api_key: str | None = None
+    ) -> EmbeddingModel: ...
+
+class AudioDecoderModel:
+    """
+    Represents an audio decoder model.
+
+    Attributes:
+        model_id: The ID of the audio decoder model.
+        revision: The revision of the audio decoder model.
+        model_type: The type of the audio decoder model.
+        quantized: A flag indicating whether the audio decoder model is quantized or not.
+
+    Example:
+    ```python
+
+    model = embed_anything.AudioDecoderModel.from_pretrained_hf(
+        model_id="openai/whisper-tiny.en",
+        revision="main",
+        model_type="tiny-en",
+        quantized=False
+    )
+    ```
+    """
+
+    model_id: str
+    revision: str
+    model_type: str
+    quantized: bool
+
+    def from_pretrained_hf(
         model_id: str | None = None,
         revision: str | None = None,
-        batch_size: int | None = None,
-    ):
-        self.model_id = model_id
-        self.revision = revision
-        self.batch_size = batch_size
-    model_id: str | None
-    revision: str | None
-    batch_size: int | None
-
-class AudioDecoderConfig:
-    """
-    Represents the configuration for the Audio Decoder model. Choose any whisper or
-    distilwhisper model from https://huggingface.co/distil-whisper
-    or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
-
-    Attributes:
-        decoder_model_id: The ID of the Audio Decoder model from huggingface.
-        decoder_revision: The revision of the Audio Decoder model.
-        model_type: The type of the Audio Decoder model.
-        quantized: Whether the Audio Decoder model is quantized.
-    """
-
-    def __init__(
-        self,
-        decoder_model_id: str | None = None,
-        decoder_revision: str | None = None,
         model_type: str | None = None,
         quantized: bool | None = None,
-    ):
-        self.decoder_model_id = decoder_model_id
-        self.decoder_revision = decoder_revision
-        self.model_type = model_type
-        self.quantized = quantized
-    decoder_model_id: str | None
-    decoder_revision: str | None
-    model_type: str | None
-    quantized: bool | None
-
-class EmbeddingModel:
-    def from_pretrained_hf(
-        self, model: WhichModel, model_id: str, revision: str | None = None
-    ): ...
-    def from_pretrained_cloud(
-        self, model: WhichModel, model_id: str, api_key: str | None = None
     ): ...
 
 class WhichModel(Enum):
