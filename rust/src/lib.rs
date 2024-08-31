@@ -22,7 +22,7 @@ use embeddings::{
     local::{bert::BertEmbeder, jina::JinaEmbeder},
 };
 use file_loader::FileParser;
-use file_processor::audio::audio_processor;
+use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use text_loader::TextLoader;
 
 fn get_bert_embeder(config: &BertConfig) -> Result<BertEmbeder> {
@@ -141,7 +141,7 @@ pub fn embed_query(
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let _chunk_size = config.chunk_size.unwrap_or(256);
-    let batch_size = config.batch_size; 
+    let batch_size = config.batch_size;
 
     let encodings = embeder.embed(&query, batch_size)?;
     let embeddings = get_text_metadata(&encodings, &query, None)?;
@@ -189,32 +189,16 @@ where
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
-    let batch_size = config.batch_size; 
+    let batch_size = config.batch_size;
 
     let embeddings = match embeder {
-        Embeder::OpenAI(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
-        }
-        Embeder::Cohere(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
-        }
+        Embeder::OpenAI(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
+        Embeder::Cohere(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
         Embeder::Jina(embeder) => {
-            emb_text(
-                file_name,
-                embeder,
-                Some(chunk_size),
-                batch_size,
-                adapter,
-            )?
+            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
         }
         Embeder::Bert(embeder) => {
-            emb_text(
-                file_name,
-                embeder,
-                Some(chunk_size),
-                batch_size,
-                adapter,
-            )?
+            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
         }
         Embeder::Clip(embeder) => Some(vec![emb_image(file_name, embeder).unwrap()]),
     };
@@ -460,44 +444,14 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
 
 pub fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
-    config: &EmbedConfig,
+    mut audio_decoder: AudioDecoderModel,
+    embeder: &Embeder,
+    text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
-    let model_input = if let Some(audio_decoder_config) = &config.audio_decoder {
-        audio_processor::build_model(
-            audio_decoder_config.decoder_model_id.clone(),
-            audio_decoder_config.decoder_revision.clone(),
-            audio_decoder_config.quantized.unwrap_or(false),
-            audio_decoder_config
-                .model_type
-                .clone()
-                .unwrap_or("tiny-en".to_string())
-                .as_str(),
-        )
-        .unwrap()
-    } else {
-        // error
-        return  anyhow::Result::Err(anyhow::anyhow!(
-            "Provide the config for the audio decoder model. Otherwise, use the embed_audio function without the config parameter.",
-        ));
-    };
-    let segments: Vec<audio_processor::Segment> =
-        audio_processor::process_audio(&audio_file, model_input).unwrap();
-
-    let embeddings = if let Some(bert_config) = &config.bert {
-        let embeder = get_bert_embeder(bert_config).unwrap();
-        embed_audio(&embeder, segments, audio_file).unwrap()
-    } else if let Some(cloud_config) = &config.cloud {
-        let embeder = get_cloud_embeder(cloud_config).unwrap();
-        embed_audio(&embeder, segments, audio_file).unwrap()
-    } else if let Some(jina_config) = &config.jina {
-        let embeder = get_jina_embeder(jina_config).unwrap();
-        embed_audio(&embeder, segments, audio_file).unwrap()
-    } else {
-        // error
-        return  anyhow::Result::Err(anyhow::anyhow!(
-            "Provide the config for the text embedding model. Otherwise, use the embed_audio function without the config parameter.",
-        ));
-    };
+    let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
+    let embeddings = embed_audio(embeder, segments, audio_file, text_embed_config
+                    .unwrap_or(&TextEmbedConfig::default())
+                    .batch_size,)?;
 
     Ok(Some(embeddings))
 }

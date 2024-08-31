@@ -61,14 +61,19 @@ impl BertEmbeder {
         };
         tokenizer.with_padding(Some(pp));
 
+        println!("Loading weights from {:?}", weights_filename);
+
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
-        let vb = if weights_filename.ends_with(".safetensors") {
+        let vb = if weights_filename.ends_with("model.safetensors") {
+            println!("Loading weights from safetensors");
             unsafe {
             VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
             }
         } else {
+            println!("Loading weights from pytorch_model.bin");
             VarBuilder::from_pth(&weights_filename, DTYPE, &device).unwrap()
         };
+     
 
         config.hidden_act = HiddenAct::GeluApproximate;
 
@@ -173,7 +178,7 @@ mod tests {
         ];
         let audio_file = PathBuf::from("tests/data/sample.wav");
         let start = Instant::now();
-        let embeddings = embed_audio(&embeder, segments, audio_file).unwrap();
+        let embeddings = embed_audio(&embeder, segments, audio_file, None).unwrap();
         println!("Time taken: {:?}", start.elapsed());
         assert_eq!(embeddings.len(), 2);
     }

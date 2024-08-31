@@ -85,7 +85,7 @@ pub struct EmbeddingModel {
 impl EmbeddingModel {
     #[staticmethod]
     #[pyo3(signature = (model, model_id, revision=None))]
-    fn from_pretrained_local(
+    fn from_pretrained_hf(
         model: &WhichModel,
         model_id: Option<&str>,
         revision: Option<&str>,
@@ -286,6 +286,7 @@ pub fn embed_directory(
         })),
     }
 }
+
 
 #[pyfunction]
 #[pyo3(signature = (url, embeder, config=None, adapter = None))]
