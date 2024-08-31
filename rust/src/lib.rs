@@ -14,93 +14,15 @@ pub mod text_loader;
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::{anyhow, Result};
-use config::{BertConfig, CloudConfig, EmbedConfig, JinaConfig, TextEmbedConfig};
+use config:: TextEmbedConfig;
 use embeddings::{
-    cloud::{cohere::CohereEmbeder, openai::OpenAIEmbeder},
-    embed::{CloudEmbeder, EmbedData, EmbedImage, Embeder, TextEmbed},
+    embed::{ EmbedData, EmbedImage, Embeder, TextEmbed},
     embed_audio, get_text_metadata,
-    local::{bert::BertEmbeder, jina::JinaEmbeder},
 };
 use file_loader::FileParser;
-use file_processor::audio::audio_processor;
+use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use text_loader::TextLoader;
 
-fn get_bert_embeder(config: &BertConfig) -> Result<BertEmbeder> {
-    let model_id = &config
-        .model_id
-        .clone()
-        .unwrap_or_else(|| "sentence-transformers/all-MiniLM-L12-v2".to_string());
-    let revision = &config.revision;
-    let embeder = if let Some(revision) = revision {
-        BertEmbeder::new(model_id.to_string(), Some(revision.to_string()))?
-    } else {
-        BertEmbeder::new(model_id.to_string(), None)?
-    };
-    Ok(embeder)
-}
-
-fn get_cloud_embeder(config: &CloudConfig) -> Result<CloudEmbeder> {
-    let embeder = match &config.provider {
-        Some(provider) => match provider.as_str() {
-            "OpenAI" => {
-                let model = &config
-                    .model
-                    .clone()
-                    .unwrap_or_else(|| "text-embedding-3-small".to_string());
-                let api_key = &config.api_key;
-                if let Some(api_key) = api_key {
-                    CloudEmbeder::OpenAI(OpenAIEmbeder::new(
-                        model.to_string(),
-                        Some(api_key.to_string()),
-                    ))
-                } else {
-                    CloudEmbeder::OpenAI(OpenAIEmbeder::new(model.to_string(), None))
-                }
-            }
-            "Cohere" => {
-                let model = &config
-                    .model
-                    .clone()
-                    .unwrap_or_else(|| "embed-english-v3.0".to_string());
-                let api_key = &config.api_key;
-                if let Some(api_key) = api_key {
-                    CloudEmbeder::Cohere(CohereEmbeder::new(
-                        model.to_string(),
-                        Some(api_key.to_string()),
-                    ))
-                } else {
-                    CloudEmbeder::Cohere(CohereEmbeder::new(model.to_string(), None))
-                }
-            }
-            _ => {
-                return anyhow::Result::Err(anyhow::anyhow!(
-                    "Invalid provider. Choose between OpenAI and Cohere."
-                ))
-            }
-        },
-        None => {
-            return anyhow::Result::Err(anyhow::anyhow!(
-                "Provide the provider for the cloud embedding model.",
-            ))
-        }
-    };
-
-    Ok(embeder)
-}
-
-fn get_jina_embeder(config: &JinaConfig) -> Result<JinaEmbeder> {
-    let model_id = &config
-        .model_id
-        .clone()
-        .unwrap_or_else(|| "jinaai/jina-embeddings-v2-base-en".to_string());
-    let revision = &config.revision;
-    let embeder = if let Some(revision) = revision {
-        JinaEmbeder::new(model_id.to_string(), Some(revision.to_string()))?
-    } else {
-        JinaEmbeder::new(model_id.to_string(), None)?
-    };
-    Ok(embeder)
-}
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -136,9 +58,14 @@ fn get_jina_embeder(config: &JinaConfig) -> Result<JinaEmbeder> {
 pub fn embed_query(
     query: Vec<String>,
     embeder: &Embeder,
-    config: TextEmbedConfig,
+    config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
-    let encodings = embeder.embed(&query, config.batch_size)?;
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
+    let _chunk_size = config.chunk_size.unwrap_or(256);
+    let batch_size = config.batch_size;
+
+    let encodings = embeder.embed(&query, batch_size)?;
     let embeddings = get_text_metadata(&encodings, &query, None)?;
 
     Ok(embeddings)
@@ -184,32 +111,16 @@ where
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
-    let batch_size = config.batch_size; 
+    let batch_size = config.batch_size;
 
     let embeddings = match embeder {
-        Embeder::OpenAI(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
-        }
-        Embeder::Cohere(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
-        }
+        Embeder::OpenAI(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
+        Embeder::Cohere(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
         Embeder::Jina(embeder) => {
-            emb_text(
-                file_name,
-                embeder,
-                Some(chunk_size),
-                batch_size,
-                adapter,
-            )?
+            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
         }
         Embeder::Bert(embeder) => {
-            emb_text(
-                file_name,
-                embeder,
-                Some(chunk_size),
-                batch_size,
-                adapter,
-            )?
+            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
         }
         Embeder::Clip(embeder) => Some(vec![emb_image(file_name, embeder).unwrap()]),
     };
@@ -325,9 +236,8 @@ where
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
 
-    match embeder {
-        Embeder::Clip(_) => panic!("Clip model not supported for webpages"),
-        _ => {}
+   if let Embeder::Clip(_) = embeder {
+        return Err(anyhow!("Clip model does not support webpage embedding"));
     }
 
     let binding = TextEmbedConfig::default();
@@ -455,44 +365,14 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
 
 pub fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
-    config: &EmbedConfig,
+    audio_decoder: &mut AudioDecoderModel,
+    embeder: &Embeder,
+    text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
-    let model_input = if let Some(audio_decoder_config) = &config.audio_decoder {
-        audio_processor::build_model(
-            audio_decoder_config.decoder_model_id.clone(),
-            audio_decoder_config.decoder_revision.clone(),
-            audio_decoder_config.quantized.unwrap_or(false),
-            audio_decoder_config
-                .model_type
-                .clone()
-                .unwrap_or("tiny-en".to_string())
-                .as_str(),
-        )
-        .unwrap()
-    } else {
-        // error
-        return  anyhow::Result::Err(anyhow::anyhow!(
-            "Provide the config for the audio decoder model. Otherwise, use the embed_audio function without the config parameter.",
-        ));
-    };
-    let segments: Vec<audio_processor::Segment> =
-        audio_processor::process_audio(&audio_file, model_input).unwrap();
-
-    let embeddings = if let Some(bert_config) = &config.bert {
-        let embeder = get_bert_embeder(bert_config).unwrap();
-        embed_audio(&embeder, segments, audio_file).unwrap()
-    } else if let Some(cloud_config) = &config.cloud {
-        let embeder = get_cloud_embeder(cloud_config).unwrap();
-        embed_audio(&embeder, segments, audio_file).unwrap()
-    } else if let Some(jina_config) = &config.jina {
-        let embeder = get_jina_embeder(jina_config).unwrap();
-        embed_audio(&embeder, segments, audio_file).unwrap()
-    } else {
-        // error
-        return  anyhow::Result::Err(anyhow::anyhow!(
-            "Provide the config for the text embedding model. Otherwise, use the embed_audio function without the config parameter.",
-        ));
-    };
+    let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
+    let embeddings = embed_audio(embeder, segments, audio_file, text_embed_config
+                    .unwrap_or(&TextEmbedConfig::default())
+                    .batch_size,)?;
 
     Ok(Some(embeddings))
 }

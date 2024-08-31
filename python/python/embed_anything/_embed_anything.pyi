@@ -214,7 +214,7 @@ class AudioDecoderConfig:
     quantized: bool | None
 
 class EmbeddingModel:
-    def from_pretrained_local(
+    def from_pretrained_hf(
         self, model: WhichModel, model_id: str, revision: str | None = None
     ): ...
     def from_pretrained_cloud(

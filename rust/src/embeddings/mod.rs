@@ -64,9 +64,10 @@ pub fn embed_audio<T: AsRef<std::path::Path>>(
     embeder: &dyn TextEmbed,
     segments: Vec<Segment>,
     audio_file: T,
+    batch_size: Option<usize>,
 ) -> Result<Vec<EmbedData>, anyhow::Error> {
     let text_batch = text_batch_from_audio(&segments);
-    let encodings = embeder.embed(&text_batch, None)?;
+    let encodings = embeder.embed(&text_batch, batch_size)?;
     get_audio_metadata(encodings, segments, audio_file)
 }
 

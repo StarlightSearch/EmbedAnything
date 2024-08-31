@@ -325,7 +325,7 @@ checksum = "8318a53db07bb3f8dca91a600466bdb3f2eaadeedfdbcf02e1accbad9271ba50"
 [[package]]
 name = "candle-core"
 version = "0.6.1"
-source = "git+https://github.com/huggingface/candle.git#fdc262268683b66393250d85bef58dba43161c6a"
+source = "git+https://github.com/akshayballal95/candle.git#bec57dff3390048f2961cbad2ba0f81a5b81f2fb"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -350,7 +350,7 @@ dependencies = [
 [[package]]
 name = "candle-kernels"
 version = "0.6.1"
-source = "git+https://github.com/huggingface/candle.git#fdc262268683b66393250d85bef58dba43161c6a"
+source = "git+https://github.com/akshayballal95/candle.git#bec57dff3390048f2961cbad2ba0f81a5b81f2fb"
 dependencies = [
  "bindgen_cuda",
 ]
@@ -358,7 +358,7 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.6.1"
-source = "git+https://github.com/huggingface/candle.git#fdc262268683b66393250d85bef58dba43161c6a"
+source = "git+https://github.com/akshayballal95/candle.git#bec57dff3390048f2961cbad2ba0f81a5b81f2fb"
 dependencies = [
  "accelerate-src",
  "candle-core",
@@ -374,7 +374,7 @@ dependencies = [
 [[package]]
 name = "candle-transformers"
 version = "0.6.1"
-source = "git+https://github.com/huggingface/candle.git#fdc262268683b66393250d85bef58dba43161c6a"
+source = "git+https://github.com/akshayballal95/candle.git#bec57dff3390048f2961cbad2ba0f81a5b81f2fb"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -560,9 +560,9 @@ dependencies = [
 
 [[package]]
 name = "cudarc"
-version = "0.11.6"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89df33b4eb35d6d3f19ce8015fda23079131afef42cf6ede03e961ab8aeb29af"
+checksum = "e736ec4e22548a5677d65fe191301c243cd63365db2e2def0e263b176f51531c"
 dependencies = [
  "half",
  "libloading",
@@ -772,7 +772,7 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "embed_anything"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "accelerate-src",
  "anyhow",

@@ -36,12 +36,18 @@ impl BertEmbeder {
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
-            let weights = api.get("model.safetensors").map_err(|e| {
-                anyhow::Error::msg(format!(
-                    "Safetensor file not found. Try a different revision. Error: {}",
-                    e
-                ))
-            })?;
+            let weights = match api.get("model.safetensors") {
+                Ok(safetensors) => safetensors,
+                Err(_) => match api.get("pytorch_model.bin") {
+                    Ok(pytorch_model) => pytorch_model,
+                    Err(e) => {
+                        return Err(anyhow::Error::msg(format!(
+                            "Model weights not found. The weights should either be a `model.safetensors` or `pytorch_model.bin` file.  Error: {}",
+                            e
+                        )));
+                    }
+                },
+            };
 
             (config, tokenizer, weights)
         };
@@ -55,10 +61,19 @@ impl BertEmbeder {
         };
         tokenizer.with_padding(Some(pp));
 
+        println!("Loading weights from {:?}", weights_filename);
+
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
-        let vb = unsafe {
+        let vb = if weights_filename.ends_with("model.safetensors") {
+            println!("Loading weights from safetensors");
+            unsafe {
             VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
+            }
+        } else {
+            println!("Loading weights from pytorch_model.bin");
+            VarBuilder::from_pth(&weights_filename, DTYPE, &device).unwrap()
         };
+     
 
         config.hidden_act = HiddenAct::GeluApproximate;
 
@@ -121,9 +136,6 @@ impl TextEmbed for BertEmbeder {
         self.embed(text_batch, batch_size)
     }
 
-    fn from_pretrained(&self, model_id: &str, revision: Option<&str>) -> Result<Self, E> {
-        Self::new(model_id.to_string(), revision.map(|s| s.to_string()))
-    }
 }
 
 #[cfg(test)]
@@ -166,7 +178,7 @@ mod tests {
         ];
         let audio_file = PathBuf::from("tests/data/sample.wav");
         let start = Instant::now();
-        let embeddings = embed_audio(&embeder, segments, audio_file).unwrap();
+        let embeddings = embed_audio(&embeder, segments, audio_file, None).unwrap();
         println!("Time taken: {:?}", start.elapsed());
         assert_eq!(embeddings.len(), 2);
     }
