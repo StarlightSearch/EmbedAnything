@@ -9,7 +9,7 @@
 <div align="center">
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
+[![Open 0.2 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
 [![license]( https://img.shields.io/badge/License-Apache-blue.svg)](https://opensource.org/licenses/Apache2.0)
 [![package]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![discord](https://img.shields.io/discord/1213966302046064711?style=flat&logo=discord&link=https%3A%2F%2Fdiscord.gg%2FHGxDZxNt9G)](https://discord.gg/juETVTMdZu)
@@ -126,7 +126,79 @@ embed_config = EmbedConfig(jina=jina_config)
 pip install embed-anything`
 
 
-## Usage
+# Usage
+
+
+
+## ➡️ Usage For 0.3 and later version
+
+
+### To use local embedding: we support Bert and Jina
+
+```python
+model = EmbeddingModel.from_pretrained_local(
+    WhichModel.Bert, model_id="Hugging_face_link"
+)
+data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
+```
+
+
+
+## For multimodal embedding: we support CLIP
+### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
+
+```python
+import embed_anything
+from embed_anything import EmbedData
+model = embed_anything.EmbeddingModel.from_pretrained_local(
+    embed_anything.WhichModel.Clip,
+    model_id="openai/clip-vit-base-patch16",
+    # revision="refs/pr/15",
+)
+data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
+embeddings = np.array([data.embedding for data in data])
+query = ["Photo of a monkey?"]
+query_embedding = np.array(
+    embed_anything.embed_query(query, embeder=model)[0].embedding
+)
+similarities = np.dot(embeddings, query_embedding)
+max_index = np.argmax(similarities)
+Image.open(data[max_index].text).show()
+```
+
+## Audio Embedding using Whisper
+### requirements:  Audio .wav files.
+
+
+```python
+import embed_anything
+from embed_anything import (
+    AudioDecoderModel,
+    EmbeddingModel,
+    embed_audio_file,
+    TextEmbedConfig,
+)
+# choose any whisper or distilwhisper model from https://huggingface.co/distil-whisper or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
+audio_decoder = AudioDecoderModel.from_pretrained_hf(
+    "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
+)
+embeder = EmbeddingModel.from_pretrained_hf(
+    embed_anything.WhichModel.Bert,
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    revision="main",
+)
+config = TextEmbedConfig(chunk_size=200, batch_size=32)
+data = embed_anything.embed_audio_file(
+    "test_files/audio/samples_hp0.wav",
+    audio_decoder=audio_decoder,
+    embeder=embeder,
+    text_embed_config=config,
+)
+print(data[0].metadata)
+
+```
+
+## ➡️ Usage For 0.2
 
 ### To use local embedding: we support Bert and Jina
 

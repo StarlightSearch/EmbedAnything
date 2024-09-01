@@ -4,7 +4,7 @@ import os
 from typing import Dict, List
 from embed_anything import EmbedData
 from embed_anything.vectordb import Adapter
-from embed_anything import BertConfig, EmbedConfig
+from embed_anything import EmbeddingModel, TextEmbedConfig, WhichModel
 
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
@@ -51,12 +51,13 @@ class ElasticsearchAdapter(Adapter):
             yield doc
 
     def upsert(self, data: List[Dict]):
+        data = self.convert(data)
         bulk(client=self.es, index="anything", actions=self.gendata(data))
 
 
-index_name = "anything"
-elastic_api_key = os.environ.get("ELASTIC_API_KEY")
-elastic_cloud_id = os.environ.get("ELASTIC_CLOUD_ID")
+index_name = "test_anything"
+elastic_api_key = os.environ.get("api_key")
+elastic_cloud_id = os.environ.get("cloud_id")
 
 # Initialize the ElasticsearchAdapter Class
 elasticsearch_adapter = ElasticsearchAdapter(
@@ -66,18 +67,11 @@ elasticsearch_adapter = ElasticsearchAdapter(
 )
 
 # Prase PDF and insert documents into Elasticsearch.
-bert_config = BertConfig(
-    model_id="sentence-transformers/all-MiniLM-L6-v2", chunk_size=100
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L6-v2"
 )
-
-embed_config = EmbedConfig(bert=bert_config)
-
-data = embed_anything.embed_file(
-    "/path/to/my-file.pdf",
-    embeder="Bert",
-    adapter=elasticsearch_adapter,
-    config=embed_config,
-)
+config = TextEmbedConfig(chunk_size=200, batch_size=32)
+data = embed_anything.embed_file("test_files/test.pdf", embeder=model, config=config)
 
 # Create an Index with explicit mappings.
 mappings = {
