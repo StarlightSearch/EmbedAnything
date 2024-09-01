@@ -21,7 +21,6 @@ use embeddings::{
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
-use futures::StreamExt;
 use rayon::prelude::*;
 use text_loader::TextLoader;
 use tokio::sync::{mpsc, Mutex};
@@ -390,31 +389,35 @@ fn emb_image_directory<T: EmbedImage>(
 }
 pub async fn embed_directory_stream<F>(
     directory: PathBuf,
-    embeder: Embeder,
+    embeder: &Arc<Embeder>,
     extensions: Option<Vec<String>>,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
+    adapter: Option<Arc<F>>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>) + Copy + Send + 'static,
+    F: Fn(Vec<EmbedData>) + Send + 'static + std::marker::Sync ,
 {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = 32;
-
+    let rt = tokio::runtime::Runtime::new().unwrap();
     let textloader = TextLoader::new(chunk_size);
-
     let mut file_parser = FileParser::new();
-    file_parser.get_text_files(&directory, extensions).await?;
+
+    rt.block_on(async {
+        file_parser.get_text_files(&directory, extensions).await.unwrap();
+    });
 
     let (tx, mut rx) = mpsc::unbounded_channel();
 
-    let embeder = Arc::new(embeder);
+    // let embeder = Arc::new(embeder);
+    let embeder = embeder.clone();
     let embeddings_collector: Arc<Mutex<Vec<Vec<EmbedData>>>> = Arc::new(Mutex::new(Vec::with_capacity(batch_size)));
 
     let processing_task = tokio::spawn({
         let embeddings_collector = Arc::clone(&embeddings_collector);
+        let adapter = adapter.clone();
         async move {
             let mut chunk_buffer = Vec::with_capacity(batch_size);
             let mut metadata_buffer = Vec::with_capacity(batch_size);
@@ -426,7 +429,7 @@ where
                 if chunk_buffer.len() == batch_size {
                     match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
-                            if let Some(adapter) = adapter {
+                            if let Some(adapter) = adapter.as_ref() {
                                 adapter(embeddings);
                             } else {
                                 embeddings_collector.lock().await.push(embeddings);
@@ -443,7 +446,7 @@ where
             if !chunk_buffer.is_empty() {
                 match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
                     Ok(embeddings) => {
-                        if let Some(adapter) = adapter {
+                        if let Some(adapter) = adapter.as_ref() {
                             adapter(embeddings);
                         } else {
                             embeddings_collector.lock().await.push(embeddings);
