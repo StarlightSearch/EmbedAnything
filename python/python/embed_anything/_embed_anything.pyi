@@ -238,21 +238,37 @@ class EmbeddingModel:
     ) -> EmbeddingModel: ...
 
     """
-    Loads an embedding model from the Cohere model hub.
+    Loads an embedding model from a cloud-based service.
 
     Args:
-        model_id: The ID of the model.
-        api_key: The API key for accessing the model. If not provided it is taken from the environment variable.
+        model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
+        model_id (str): The ID of the model to use.
+            - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
+            - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
+        api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
+            - For OpenAI: OPENAI_API_KEY
+            - For Cohere: CO_API_KEY
 
     Returns:
-        An EmbeddingModel object.
+        EmbeddingModel: An initialized EmbeddingModel object.
+
+    Raises:
+        ValueError: If an unsupported model is specified.
 
     Example:
     ```python
+    # Using Cohere
     model = EmbeddingModel.from_pretrained_cloud(
         model=WhichModel.Cohere, 
-        model_id = "embed-english-v3.0"
+        model_id="embed-english-v3.0"
     )
+
+    # Using OpenAI
+    model = EmbeddingModel.from_pretrained_cloud(
+        model=WhichModel.OpenAI, 
+        model_id="text-embedding-3-small"
+    )
+    ```
     """
     def from_pretrained_cloud(
         model: WhichModel, model_id: str, api_key: str | None = None

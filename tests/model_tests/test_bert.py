@@ -10,7 +10,7 @@ import os
 
 
 def test_bert_model_creation():
-    model = EmbeddingModel.from_pretrained_local(
+    model = EmbeddingModel.from_pretrained_hf(
         WhichModel.Bert,
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         revision="main",
@@ -34,3 +34,11 @@ def test_bert_model_file(bert_model):
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 384
     assert data[0].metadata["file_name"] == path
+
+
+def test_bert_model_directory(bert_model):
+    data = embed_directory("test_files", bert_model)
+    assert len(data) == 2
+    assert data[0].embedding is not None
+    assert len(data[0].embedding) == 384
+    assert data[0].metadata["file_name"] == os.path.abspath("test_files/test.pdf")
