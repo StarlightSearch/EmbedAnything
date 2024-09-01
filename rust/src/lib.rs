@@ -320,6 +320,7 @@ fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed>(
 where
     F: Fn(Vec<EmbedData>),
 {
+    println!("Embedding text file: {:?}", file.as_ref());
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(&text);
