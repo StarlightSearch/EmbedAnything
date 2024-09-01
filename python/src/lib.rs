@@ -4,8 +4,8 @@ use embed_anything::{
     self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
     file_processor::audio::audio_processor,
 };
-use pyo3::{exceptions::PyValueError, prelude::*};
-use std::{collections::HashMap, path::PathBuf};
+use pyo3::{exceptions::PyValueError, prelude::*, types::PyFunction};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use tokio::runtime::Runtime;
 
 #[pyclass]
@@ -82,7 +82,7 @@ impl From<String> for WhichModel {
 
 #[pyclass]
 pub struct EmbeddingModel {
-    pub inner: Embeder,
+    pub inner: Arc<Embeder>,
 }
 
 #[pymethods]
@@ -105,7 +105,9 @@ impl EmbeddingModel {
                     )
                     .unwrap(),
                 );
-                Ok(EmbeddingModel { inner: model })
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
             }
             WhichModel::Clip => {
                 let model_id = model_id.unwrap_or("openai/clip-vit-base-patch32");
@@ -116,7 +118,9 @@ impl EmbeddingModel {
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 );
-                Ok(EmbeddingModel { inner: model })
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
             }
             WhichModel::Jina => {
                 let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
@@ -127,7 +131,9 @@ impl EmbeddingModel {
                     )
                     .unwrap(),
                 );
-                Ok(EmbeddingModel { inner: model })
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
             }
             _ => panic!("Invalid model"),
         }
@@ -149,7 +155,9 @@ impl EmbeddingModel {
                         api_key,
                     ),
                 );
-                Ok(EmbeddingModel { inner: model })
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
             }
             WhichModel::Cohere => {
                 let model_id = model_id.unwrap_or("embed-english-v3.0");
@@ -159,7 +167,9 @@ impl EmbeddingModel {
                         api_key,
                     ),
                 );
-                Ok(EmbeddingModel { inner: model })
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
             }
             _ => panic!("Invalid model"),
         }
@@ -240,44 +250,37 @@ pub fn embed_file(
                     .call1(py, (converted_data,))
                     .map_err(|e| PyValueError::new_err(e.to_string()))
                     .unwrap();
-            }; 
+            };
 
-            let data =  rt.block_on(async {
-                embed_anything::embed_file(
-                    file_name,
-                    embedding_model,
-                    config,
-                    Some(callback),
-                )
-                .await
-                .map_err(|e| PyValueError::new_err(e.to_string())).unwrap()
-                .map(|data| {
-                    data.into_iter()
-                        .map(|data| EmbedData { inner: data })
-                        .collect::<Vec<_>>()
-                })
+            let data = rt.block_on(async {
+                embed_anything::embed_file(file_name, embedding_model, config, Some(callback))
+                    .await
+                    .map_err(|e| PyValueError::new_err(e.to_string()))
+                    .unwrap()
+                    .map(|data| {
+                        data.into_iter()
+                            .map(|data| EmbedData { inner: data })
+                            .collect::<Vec<_>>()
+                    })
             });
             Ok(data)
         }),
-        None => {
-            rt.block_on(async {
-                let data = embed_anything::embed_file(
-                    file_name,
-                    embedding_model,
-                    config,
-                    None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-                )
-                .await
-                .map_err(|e| PyValueError::new_err(e.to_string()))?
-                .map(|data| {
-                    data.into_iter()
-                        .map(|data| EmbedData { inner: data })
-                        .collect::<Vec<_>>()
-                });
-                Ok(data)
-            })
-        }
-        
+        None => rt.block_on(async {
+            let data = embed_anything::embed_file(
+                file_name,
+                embedding_model,
+                config,
+                None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
+            )
+            .await
+            .map_err(|e| PyValueError::new_err(e.to_string()))?
+            .map(|data| {
+                data.into_iter()
+                    .map(|data| EmbedData { inner: data })
+                    .collect::<Vec<_>>()
+            });
+            Ok(data)
+        }),
     }
 }
 
@@ -294,12 +297,12 @@ pub fn embed_audio_file(
     let audio_decoder = &mut audio_decoder.inner;
 
     let data = emb_audio(audio_file, audio_decoder, embedding_model, config)
-    .map_err(|e| PyValueError::new_err(e.to_string()))?
-    .map(|data| {
-        data.into_iter()
-            .map(|data| EmbedData { inner: data })
-            .collect::<Vec<_>>()
-    });
+        .map_err(|e| PyValueError::new_err(e.to_string()))?
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        });
     Ok(data)
 }
 #[pyfunction]
@@ -313,50 +316,52 @@ pub fn embed_directory(
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
-    
-    // Create a new tokio runtime
-    let rt = Runtime::new().map_err(|e: std::io::Error| PyValueError::new_err(e.to_string()))?;
 
     match adapter {
-        Some(adapter) => Python::with_gil(|py| {
-            let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                let converted_data = data
-                    .into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<EmbedData>>();
-                upsert_fn
-                    .call1(py, (converted_data,))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))
-                    .unwrap();
+        Some(adapter) => {
+            let callback = {
+                Arc::new(
+                    move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                        Python::with_gil(|py| {
+                            let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                            let converted_data = data
+                                .into_iter()
+                                .map(|data| EmbedData { inner: data })
+                                .collect::<Vec<EmbedData>>();
+                            upsert_fn
+                                .call1(py, (converted_data,))
+                                .map_err(|e| PyValueError::new_err(e.to_string()))
+                                .unwrap();
+                        });
+                    },
+                )
             };
 
-            // Use the runtime to block on the async function
-           let data =  rt.block_on(async {
-                embed_anything::embed_directory(
+            // Use the existing runtime to block on the async function
+            tokio::runtime::Handle::current().block_on(async {
+                Ok(embed_anything::embed_directory_stream(
                     directory,
-                    embedding_model,
+                    &embedding_model,
                     extensions,
                     config,
                     Some(callback),
                 )
                 .await
-                .map_err(|e| PyValueError::new_err(e.to_string())).unwrap()
+                .map_err(|e| PyValueError::new_err(e.to_string()))
+                .unwrap()
                 .map(|data| {
                     data.into_iter()
                         .map(|data| EmbedData { inner: data })
                         .collect::<Vec<_>>()
-                })
-            });
-            Ok(data)
-            
-        }),
+                }))
+            })
+        }
         None => {
-            // Use the runtime to block on the async function
-            rt.block_on(async {
+            // Use the existing runtime to block on the async function
+            tokio::runtime::Handle::current().block_on(async {
                 let data = embed_anything::embed_directory(
                     directory,
-                    embedding_model,
+                    &embedding_model,
                     extensions,
                     config,
                     None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
