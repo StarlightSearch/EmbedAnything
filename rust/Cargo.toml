@@ -34,7 +34,7 @@ text-splitter = {version="0.14.1", features=["tokenizers"]}
 
 
 # PDF Processing
-pdf-extract = "0.7.7"
+pdf-extract = {git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs/pull/91/head"}
 
 
 # Hugging Face Libraries
@@ -70,6 +70,7 @@ byteorder = "1.5.0"
 
 futures = "0.3.30"
 num_cpus = "1.16.0"
+tokio-stream = "0.1.15"
 
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
