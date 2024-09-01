@@ -38,7 +38,6 @@ impl TextLoader {
         Some(self
             .splitter
             .chunks(text)
-            .par_bridge() // Convert to parallel iterator
             .map(|chunk| {
                 let mut result = String::with_capacity(chunk.len());
                 let mut chars = chunk.chars().peekable();
