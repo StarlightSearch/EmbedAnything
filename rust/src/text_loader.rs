@@ -1,12 +1,14 @@
-use std::{collections::HashMap, fmt::Debug, fs};
 use rayon::prelude::*;
+use std::{collections::HashMap, fmt::Debug, fs, sync::Arc};
 
+use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
-
-use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::Stream;
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
@@ -20,7 +22,7 @@ impl Default for TextLoader {
 
 #[derive(Debug)]
 pub struct TextLoader {
-    splitter: TextSplitter<Tokenizer>,
+   pub splitter: TextSplitter<Tokenizer>,
 }
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
@@ -35,40 +37,12 @@ impl TextLoader {
         if text.is_empty() {
             return None;
         }
-        Some(self
+        let chunks: Vec<String> = self
             .splitter
             .chunks(text)
-            .map(|chunk| {
-                let mut result = String::with_capacity(chunk.len());
-                let mut chars = chunk.chars().peekable();
-                let mut last_char = ' ';
-
-                // Remove consecutive newlines and replace them with a single newline
-                while let Some(c) = chars.next() {
-                    match c {
-                        '\n' if last_char == '\n' => {
-                            result.push('\n');
-                            result.push('\n');
-                            // Skip any additional consecutive newlines
-                            while chars.peek() == Some(&'\n') {
-                                chars.next();
-                            }
-                        }
-                        '\n' => {
-                            if !result.ends_with(' ') {
-                                result.push(' ');
-                            }
-                        }
-                        ' ' if !result.ends_with(' ') => result.push(' '),
-                        ' ' => {} // Skip consecutive spaces
-                        _ => result.push(c),
-                    }
-                    last_char = c;
-                }
-
-                result.trim().to_string()
-            })
-            .collect())
+            .map(|chunk| chunk.to_string())
+            .collect();
+        Some(chunks)
     }
 
     pub fn extract_text(file: &str) -> Result<String, Error> {
@@ -80,7 +54,9 @@ impl TextLoader {
         }
     }
 
-    pub async fn get_metadata<T:AsRef<std::path::Path>>(file: T) -> Result<HashMap<String, String>, Error> {
+    pub async fn get_metadata<T: AsRef<std::path::Path>>(
+        file: T,
+    ) -> Result<HashMap<String, String>, Error> {
         let metadata = tokio::fs::metadata(&file).await?;
         let mut metadata_map = HashMap::new();
         metadata_map.insert(
@@ -91,8 +67,11 @@ impl TextLoader {
             "modified".to_string(),
             format!("{}", DateTime::<Local>::from(metadata.modified()?)),
         );
-        
-        metadata_map.insert("file_name".to_string(), fs::canonicalize(file)?.to_str().unwrap().to_string());
+
+        metadata_map.insert(
+            "file_name".to_string(),
+            fs::canonicalize(file)?.to_str().unwrap().to_string(),
+        );
         Ok(metadata_map)
     }
 }
@@ -106,7 +85,9 @@ mod tests {
     #[tokio::test]
     async fn test_metadata() {
         let file_path = PathBuf::from("test_files/test.pdf");
-        let metadata = TextLoader::get_metadata(file_path.to_str().unwrap()).await.unwrap();
+        let metadata = TextLoader::get_metadata(file_path.to_str().unwrap())
+            .await
+            .unwrap();
 
         // assert the fields that are present
         assert!(metadata.contains_key("created"));
