@@ -9,7 +9,8 @@ use embed_anything::{
 
 use anyhow::Result;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let text_embed_config = TextEmbedConfig::new(Some(256), Some(32));
     let cohere_model = Embeder::Cohere(CohereEmbeder::new("embed-english-v3.0".to_string(), None));
     let openai_model =
@@ -21,7 +22,9 @@ fn main() -> Result<()> {
         Some(vec!["pdf".to_string()]),
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
-    )?.unwrap();
+    )
+    .await?
+    .unwrap();
 
 
     let _cohere_embedding: Option<Vec<EmbedData>> = embed_file(
@@ -29,7 +32,7 @@ fn main() -> Result<()> {
         &cohere_model,
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
-    )?;
+    ).await?;
 
 
 

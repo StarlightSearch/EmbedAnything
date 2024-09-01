@@ -6,6 +6,7 @@ use embed_anything::{
 };
 use pyo3::{exceptions::PyValueError, prelude::*};
 use std::{collections::HashMap, path::PathBuf};
+use tokio::runtime::Runtime;
 
 #[pyclass]
 pub struct EmbedData {
@@ -225,6 +226,8 @@ pub fn embed_file(
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
+    let rt = Runtime::new().map_err(|e: std::io::Error| PyValueError::new_err(e.to_string()))?;
+
     match adapter {
         Some(adapter) => Python::with_gil(|py| {
             let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -239,28 +242,42 @@ pub fn embed_file(
                     .unwrap();
             };
 
-            Ok(
-                embed_anything::embed_file(file_name, embedding_model, config, Some(callback))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))?
-                    .map(|data| {
-                        data.into_iter()
-                            .map(|data| EmbedData { inner: data })
-                            .collect()
-                    }),
-            )
+            let data =  rt.block_on(async {
+                embed_anything::embed_file(
+                    file_name,
+                    embedding_model,
+                    config,
+                    Some(callback),
+                )
+                .await
+                .map_err(|e| PyValueError::new_err(e.to_string())).unwrap()
+                .map(|data| {
+                    data.into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<_>>()
+                })
+            });
+            Ok(data)
         }),
-        None => Ok(embed_anything::embed_file(
-            file_name,
-            embedding_model,
-            config,
-            None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-        )
-        .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .map(|data| {
-            data.into_iter()
-                .map(|data| EmbedData { inner: data })
-                .collect()
-        })),
+        None => {
+            rt.block_on(async {
+                let data = embed_anything::embed_file(
+                    file_name,
+                    embedding_model,
+                    config,
+                    None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
+                )
+                .await
+                .map_err(|e| PyValueError::new_err(e.to_string()))?
+                .map(|data| {
+                    data.into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<_>>()
+                });
+                Ok(data)
+            })
+        }
+        
     }
 }
 
@@ -296,6 +313,10 @@ pub fn embed_directory(
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
+    
+    // Create a new tokio runtime
+    let rt = Runtime::new().map_err(|e: std::io::Error| PyValueError::new_err(e.to_string()))?;
+
     match adapter {
         Some(adapter) => Python::with_gil(|py| {
             let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -310,33 +331,46 @@ pub fn embed_directory(
                     .unwrap();
             };
 
-            Ok(embed_anything::embed_directory(
-                directory,
-                embedding_model,
-                extensions,
-                config,
-                Some(callback),
-            )
-            .map_err(|e| PyValueError::new_err(e.to_string()))?
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect()
-            }))
+            // Use the runtime to block on the async function
+           let data =  rt.block_on(async {
+                embed_anything::embed_directory(
+                    directory,
+                    embedding_model,
+                    extensions,
+                    config,
+                    Some(callback),
+                )
+                .await
+                .map_err(|e| PyValueError::new_err(e.to_string())).unwrap()
+                .map(|data| {
+                    data.into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<_>>()
+                })
+            });
+            Ok(data)
+            
         }),
-        None => Ok(embed_anything::embed_directory(
-            directory,
-            embedding_model,
-            extensions,
-            config,
-            None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-        )
-        .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .map(|data| {
-            data.into_iter()
-                .map(|data| EmbedData { inner: data })
-                .collect()
-        })),
+        None => {
+            // Use the runtime to block on the async function
+            rt.block_on(async {
+                let data = embed_anything::embed_directory(
+                    directory,
+                    embedding_model,
+                    extensions,
+                    config,
+                    None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
+                )
+                .await
+                .map_err(|e| PyValueError::new_err(e.to_string()))?
+                .map(|data| {
+                    data.into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<_>>()
+                });
+                Ok(data)
+            })
+        }
     }
 }
 

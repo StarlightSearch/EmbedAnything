@@ -3,15 +3,35 @@ from typing import Dict, List
 import uuid
 import time
 import embed_anything
-from embed_anything import EmbeddingModel, TextEmbedConfig, WhichModel
+from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
 from embed_anything.vectordb import Adapter
 from pinecone import Pinecone, ServerlessSpec
 import os
+from time import time
 
 
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="prithivida/miniMiracle_te_v1"
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L6-v2"
 )
 config = TextEmbedConfig(chunk_size=200, batch_size=32)
+
+start = time()
 data = embed_anything.embed_file("test_files/test.pdf", embeder=model, config=config)
-print(data[0].embedding)
+
+data: list[EmbedData] = embed_anything.embed_directory(
+    "test_files", embeder=model, config=config
+)
+
+end = time()
+
+for i, d in enumerate(data):
+    print(f"Chunk {i+1}\n")
+    print("-" * 100)
+
+    print(d.text)
+    print("Metadata\n")
+    print(d.metadata)
+    print("-" * 100)
+    print("\n")
+
+print(f"Time taken: {end - start} seconds")
