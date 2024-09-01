@@ -13,7 +13,7 @@ def clip_model() -> EmbeddingModel:
 @pytest.fixture
 def jina_model() -> EmbeddingModel:
     model = EmbeddingModel.from_pretrained_hf(
-        WhichModel.Jina, model_id="jinaai/", revision="main"
+        WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en", revision="main"
     )
     return model
 
