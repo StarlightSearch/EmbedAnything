@@ -8,7 +8,7 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let now = Instant::now();
 
-    let model = Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+    let model = Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L12-v2", None)
         .unwrap();
     let config = TextEmbedConfig::new(Some(256), Some(32));
 
@@ -24,7 +24,7 @@ async fn main() {
         PathBuf::from("test_files"),
         model,
         None,
-        // Some(vec!["pdf".to_string()]),
+        // Some(vec!["txt".to_string()]),
         Some(&config),
         None::<fn(Vec<EmbedData>)>,
     )
