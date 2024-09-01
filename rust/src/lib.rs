@@ -21,6 +21,7 @@ use embeddings::{
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
+use futures::StreamExt;
 use text_loader::TextLoader;
 
 
@@ -99,7 +100,7 @@ pub fn embed_query(
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 
-pub fn embed_file<F>(
+pub async fn embed_file<F>(
     file_name: &str,
     embeder: &Embeder,
     config: Option<&TextEmbedConfig>,
@@ -114,13 +115,13 @@ where
     let batch_size = config.batch_size;
 
     let embeddings = match embeder {
-        Embeder::OpenAI(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
-        Embeder::Cohere(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
+        Embeder::OpenAI(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter).await?,
+        Embeder::Cohere(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter).await?,
         Embeder::Jina(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
+                emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?
         }
         Embeder::Bert(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
+            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?
         }
         Embeder::Clip(embeder) => Some(vec![emb_image(file_name, embeder).unwrap()]),
     };
@@ -158,7 +159,7 @@ where
 /// let embeddings = embed_directory(directory, embeder, extensions, config).unwrap();
 /// ```
 /// This will output the embeddings of the files in the specified directory using the OpenAI embedding model.
-pub fn embed_directory<F>(
+pub async fn embed_directory<F>(
     directory: PathBuf,
     embeder: &Embeder,
     extensions: Option<Vec<String>>,
@@ -181,7 +182,8 @@ where
             Some(chunk_size),
             config.batch_size,
             adapter,
-        ),
+        )
+        .await,
     }
     .unwrap();
     Ok(embeddings)
@@ -256,7 +258,7 @@ where
     }
 }
 
-fn emb_directory<F>(
+async fn emb_directory<F>(
     directory: PathBuf,
     embedding_model: &Embeder,
     extensions: Option<Vec<String>>,
@@ -268,49 +270,35 @@ where
     F: Fn(Vec<EmbedData>) + Copy,
 {
     let mut file_parser = FileParser::new();
-    file_parser.get_text_files(&directory, extensions).unwrap();
+    file_parser.get_text_files(&directory, extensions).await?;
+
+    let futures = file_parser.files.into_iter().map(|file| {
+        emb_text(file, embedding_model, chunk_size, batch_size, adapter)
+    });
+
+    // Use `futures::stream::iter` for potential memory savings
+    let stream = futures::stream::iter(futures);
 
     match adapter {
-        Some(adapter) => {
-            let _ = file_parser
-                .files
-                .into_iter()
-                .filter_map(|file| {
-                    emb_text(file, embedding_model, chunk_size, batch_size, Some(adapter)).unwrap()
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>();
+        Some(_) => {
+            // Process all files, but don't collect results
+            stream.buffer_unordered(num_cpus::get()).for_each(|_| async {}).await;
             Ok(None)
         }
         None => {
-            let embeddings = file_parser
-                .files
-                .into_iter()
-                .map(|file| {
-                    emb_text(
-                        file,
-                        embedding_model,
-                        chunk_size,
-                        batch_size,
-                        None::<fn(Vec<EmbedData>)>,
-                    )
-                    .unwrap()
-                })
+            // Collect and flatten results more efficiently
+            let embeddings = stream
+                .buffer_unordered(num_cpus::get())
+                .filter_map(|result| async move { result.ok().and_then(|e| e) })
+                .flat_map(|v| futures::stream::iter(v))
                 .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>();
+                .await;
             Ok(Some(embeddings))
         }
     }
 }
 
-fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed>(
+async fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed>(
     file: T,
     embedding_model: &E,
     chunk_size: Option<usize>,
@@ -324,7 +312,7 @@ where
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(&text);
-    let metadata = TextLoader::get_metadata(file).ok();
+    let metadata = TextLoader::get_metadata(file).await.ok();
 
     if let Some(adapter) = adapter {
         let embeddings = chunks

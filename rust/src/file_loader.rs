@@ -2,6 +2,7 @@ use std::{collections::HashSet, io::Error, path::PathBuf};
 
 use regex::Regex;
 use walkdir::WalkDir;
+use tokio::fs;
 
 pub struct FileParser {
     pub files: Vec<String>,
@@ -18,50 +19,31 @@ impl FileParser {
         Self { files: Vec::new() }
     }
 
-    pub fn get_text_files(
+    pub async fn get_text_files(
         &mut self,
         directory_path: &PathBuf,
         extensions: Option<Vec<String>>,
     ) -> Result<Vec<String>, Error> {
-        match extensions {
-            Some(extensions) => {
-                let extension_regex =
-                    Regex::new(&format!(r"\.({})$", extensions.join("|"))).unwrap();
-                self.files = WalkDir::new(directory_path)
-                    .into_iter()
-                    .filter_map(|entry| entry.ok())
-                    .filter(|entry| entry.file_type().is_file())
-                    .filter(|entry| {
-                        extension_regex.is_match(entry.file_name().to_str().unwrap_or(""))
-                    })
-                    .map(|entry| {
-                        let absolute_path = entry
-                            .path()
-                            .canonicalize()
-                            .unwrap_or_else(|_| entry.path().to_path_buf());
-                        absolute_path.to_string_lossy().to_string()
-                    })
-                    .collect();
-            }
-            None => {
-                let extension_regex = Regex::new(r"\.(pdf|md|txt)$").unwrap();
-                self.files = WalkDir::new(directory_path)
-                    .into_iter()
-                    .filter_map(|entry| entry.ok())
-                    .filter(|entry| entry.file_type().is_file())
-                    .filter(|entry| {
-                        extension_regex.is_match(entry.file_name().to_str().unwrap_or(""))
-                    })
-                    .map(|entry| {
-                        let absolute_path = entry
-                            .path()
-                            .canonicalize()
-                            .unwrap_or_else(|_| entry.path().to_path_buf());
-                        absolute_path.to_string_lossy().to_string()
-                    })
-                    .collect();
+        let extension_regex = match extensions {
+            Some(exts) => Regex::new(&format!(r"\.({})$", exts.join("|"))).unwrap(),
+            None => Regex::new(r"\.(pdf|md|txt)$").unwrap(),
+        };
+
+        let mut entries = fs::read_dir(directory_path).await?;
+        let mut files = Vec::new();
+
+        while let Some(entry) = entries.next_entry().await? {
+            if entry.file_type().await?.is_file() {
+                let file_name = entry.file_name();
+                if extension_regex.is_match(file_name.to_str().unwrap_or("")) {
+                    let absolute_path = fs::canonicalize(entry.path()).await
+                        .unwrap_or_else(|_| entry.path());
+                    files.push(absolute_path.to_string_lossy().to_string());
+                }
             }
         }
+
+        self.files = files;
         Ok(self.files.clone())
     }
 
@@ -85,7 +67,7 @@ impl FileParser {
         self.files = image_paths;
         Ok(self.files.clone())
     }
-
+    
     pub fn get_audio_files(&mut self, directory_path: &PathBuf) -> Result<Vec<String>, Error> {
         let audio_regex = Regex::new(r".*\.(wav)$").unwrap();
 
@@ -124,8 +106,8 @@ mod tests {
     use std::fs::File;
     use tempdir::TempDir;
 
-    #[test]
-    fn test_get_text_files() {
+    #[tokio::test]
+    async fn test_get_text_files() {
         let temp_dir = TempDir::new("example").unwrap();
         let pdf_file = temp_dir.path().join("test.pdf");
         let txt_file = temp_dir.path().join("test.txt");
@@ -146,18 +128,21 @@ mod tests {
                 &PathBuf::from(temp_dir.path()),
                 Some(vec!["pdf".to_string()]),
             )
+            .await
             .unwrap();
         let text_files = file_parser
             .get_text_files(
                 &PathBuf::from(temp_dir.path()),
                 Some(vec!["txt".to_string()]),
             )
+            .await
             .unwrap();
         let markdown_files = file_parser
             .get_text_files(
                 &PathBuf::from(temp_dir.path()),
                 Some(vec!["md".to_string()]),
             )
+            .await
             .unwrap();
 
         assert_eq!(pdf_files.len(), 1);
@@ -222,8 +207,8 @@ mod tests {
         assert_eq!(audio_files.len(), 2);
     }
 
-    #[test]
-    fn test_get_files_to_index() {
+    #[tokio::test]
+    async fn test_get_files_to_index() {
         let temp_dir = TempDir::new("example").unwrap();
         let pdf_file = temp_dir.path().join("test.pdf");
         let image_file = temp_dir.path().join("test.jpg");
@@ -233,6 +218,7 @@ mod tests {
         let mut file_parser = FileParser::new();
         file_parser
             .get_text_files(&PathBuf::from(temp_dir.path()), None)
+            .await
             .unwrap();
         file_parser
             .get_image_paths(&PathBuf::from(temp_dir.path()))

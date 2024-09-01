@@ -51,6 +51,7 @@ class ElasticsearchAdapter(Adapter):
             yield doc
 
     def upsert(self, data: List[Dict]):
+        data = self.convert(data)
         bulk(client=self.es, index="anything", actions=self.gendata(data))
 
 
