@@ -240,7 +240,7 @@ pub fn embed_file(
                     .call1(py, (converted_data,))
                     .map_err(|e| PyValueError::new_err(e.to_string()))
                     .unwrap();
-            };
+            }; 
 
             let data =  rt.block_on(async {
                 embed_anything::embed_file(
