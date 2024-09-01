@@ -24,7 +24,7 @@ use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use futures::StreamExt;
 use rayon::prelude::*;
 use text_loader::TextLoader;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -117,16 +117,16 @@ where
 
     let embeddings = match embeder {
         Embeder::OpenAI(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter).await?
+            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
         }
         Embeder::Cohere(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter).await?
+            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
         }
         Embeder::Jina(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?
+            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
         }
         Embeder::Bert(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?
+            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
         }
         Embeder::Clip(embeder) => Some(vec![emb_image(file_name, embeder).unwrap()]),
     };
@@ -277,39 +277,29 @@ where
     F: Fn(Vec<EmbedData>) + Copy,
 {
     let mut file_parser = FileParser::new();
-    file_parser.get_text_files(&directory, extensions).await?;
+    file_parser.get_text_files(&directory, extensions).await.unwrap();
 
-    let futures = file_parser
+    let embeddings = file_parser
         .files
         .into_iter()
-        .map(|file| emb_text(file, embedding_model, chunk_size, batch_size, adapter));
+        .filter_map(|file| {
+            emb_text(file, embedding_model, chunk_size, batch_size, adapter)
+                .ok()
+                .and_then(|opt| opt)
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
 
-    // Use `futures::stream::iter` for potential memory savings
-    let stream = futures::stream::iter(futures);
-
-    match adapter {
-        Some(_) => {
-            // Process all files, but don't collect results
-            stream
-                .buffer_unordered(num_cpus::get())
-                .for_each(|_| async {})
-                .await;
-            Ok(None)
-        }
-        None => {
-            // Collect and flatten results more efficiently
-            let embeddings = stream
-                .buffer_unordered(num_cpus::get())
-                .filter_map(|result| async move { result.ok().and_then(|e| e) })
-                .flat_map(|v| futures::stream::iter(v))
-                .collect::<Vec<_>>()
-                .await;
-            Ok(Some(embeddings))
-        }
+    if let Some(_) = adapter {
+        Ok(None)
+    } else {
+        Ok(Some(embeddings))
     }
 }
 
-async fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed + Send + Sync>(
+fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed + Send + Sync>(
     file: T,
     embedding_model: &E,
     chunk_size: Option<usize>,
@@ -323,7 +313,7 @@ where
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(&text);
-    let metadata = TextLoader::get_metadata(file).await.ok();
+    let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
         let embeddings = chunks
@@ -398,7 +388,6 @@ fn emb_image_directory<T: EmbedImage>(
         .unwrap();
     Ok(Some(embeddings))
 }
-
 pub async fn embed_directory_stream<F>(
     directory: PathBuf,
     embeder: Embeder,
@@ -412,36 +401,56 @@ where
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
-    let batch_size = config.batch_size.unwrap_or(32);
+    let batch_size = 32;
 
     let textloader = TextLoader::new(chunk_size);
 
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions).await?;
 
-    let (tx, mut rx) = mpsc::channel(batch_size);
+    let (tx, mut rx) = mpsc::unbounded_channel();
 
-    let adapter = adapter.clone();
     let embeder = Arc::new(embeder);
-    tokio::spawn(async move {
-        let mut chunks_batch = Vec::with_capacity(batch_size);
+    let embeddings_collector: Arc<Mutex<Vec<Vec<EmbedData>>>> = Arc::new(Mutex::new(Vec::with_capacity(batch_size)));
 
-        while let Some(chunk) = rx.recv().await {
-            chunks_batch.push(chunk);
+    let processing_task = tokio::spawn({
+        let embeddings_collector = Arc::clone(&embeddings_collector);
+        async move {
+            let mut chunk_buffer = Vec::with_capacity(batch_size);
+            let mut metadata_buffer = Vec::with_capacity(batch_size);
 
-            if chunks_batch.len() == batch_size {
-                let embeddings = process_chunks(&chunks_batch, embeder.clone()).await;
-                if let Some(adapter) = adapter {
-                    adapter(embeddings);
+            while let Some((chunk, metadata)) = rx.recv().await {
+                chunk_buffer.push(chunk);
+                metadata_buffer.push(metadata);
+
+                if chunk_buffer.len() == batch_size {
+                    match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
+                        Ok(embeddings) => {
+                            if let Some(adapter) = adapter {
+                                adapter(embeddings);
+                            } else {
+                                embeddings_collector.lock().await.push(embeddings);
+                            }
+                        }
+                        Err(e) => eprintln!("Error processing chunks: {:?}", e),
+                    }
+                    chunk_buffer.clear();
+                    metadata_buffer.clear();
                 }
-                chunks_batch.clear();
             }
-        }
 
-        if !chunks_batch.is_empty() {
-            let embeddings = process_chunks(&chunks_batch, embeder).await;
-            if let Some(adapter) = adapter {
-                adapter(embeddings);
+            // Process any remaining chunks
+            if !chunk_buffer.is_empty() {
+                match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
+                    Ok(embeddings) => {
+                        if let Some(adapter) = adapter {
+                            adapter(embeddings);
+                        } else {
+                            embeddings_collector.lock().await.push(embeddings);
+                        }
+                    }
+                    Err(e) => eprintln!("Error processing chunks: {:?}", e),
+                }
             }
         }
     });
@@ -449,18 +458,46 @@ where
     for file in file_parser.files {
         let text = TextLoader::extract_text(&file.to_string()).unwrap();
         let chunks = textloader.split_into_chunks(&text).unwrap();
-        println!("Number of chunks: {}", chunks.len());
+        let metadata = TextLoader::get_metadata(&file).unwrap();
         for chunk in chunks {
-            tx.send(chunk).await.unwrap();
-        }   
+            if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
+                eprintln!("Error sending chunk: {:?}", e);
+            }
+        }
     }
 
-    Ok(Some(vec![]))
+    drop(tx);
+
+    // Wait for the spawned task to complete
+    processing_task.await.unwrap();
+
+    if adapter.is_some() {
+        Ok(None)
+    } else {
+        // Use try_unwrap() and handle potential errors
+        match Arc::try_unwrap(embeddings_collector) {
+            Ok(mutex) => Ok(Some(mutex.into_inner().into_iter().flatten().collect())),
+            Err(_) => Err(anyhow!("Failed to unwrap embeddings collector")),
+        }
+    }
 }
+
 pub async fn process_chunks<E: TextEmbed + Send + Sync>(
     chunks: &Vec<String>,
+    metadata: &Vec<Option<HashMap<String, String>>>,
     embedding_model: Arc<E>,
-) -> Vec<EmbedData> {
-    let encodings = embedding_model.embed(chunks, None).unwrap();
-    get_text_metadata(&encodings, chunks, &None).unwrap()
+) -> Result<Vec<EmbedData>>
+{
+    let encodings = embedding_model.embed(chunks, None)?;
+
+    // zip encodings with chunks and metadata
+    let embeddings = encodings
+        .into_iter()
+        .zip(chunks)
+        .zip(metadata)
+        .map(|((encoding, chunk), metadata)| {
+            EmbedData::new(encoding.to_vec(), Some(chunk.clone()), metadata.clone())
+        })
+        .collect::<Vec<_>>();
+    Ok(embeddings)
 }
