@@ -1,18 +1,13 @@
-use rayon::prelude::*;
-use std::{collections::HashMap, fmt::Debug, fs, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, fs};
 
 use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::ReceiverStream;
-use tokio_stream::Stream;
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
-use text_cleaner::clean::Clean;
 
 impl Default for TextLoader {
     fn default() -> Self {
@@ -54,10 +49,10 @@ impl TextLoader {
         }
     }
 
-    pub async fn get_metadata<T: AsRef<std::path::Path>>(
+    pub fn get_metadata<T: AsRef<std::path::Path>>(
         file: T,
     ) -> Result<HashMap<String, String>, Error> {
-        let metadata = tokio::fs::metadata(&file).await?;
+        let metadata = fs::metadata(&file).unwrap();
         let mut metadata_map = HashMap::new();
         metadata_map.insert(
             "created".to_string(),
@@ -82,12 +77,11 @@ mod tests {
     use crate::embeddings::{embed::EmbedImage, local::clip::ClipEmbeder};
     use std::path::PathBuf;
 
-    #[tokio::test]
-    async fn test_metadata() {
+    #[test]
+    fn test_metadata() {
         let file_path = PathBuf::from("test_files/test.pdf");
-        let metadata = TextLoader::get_metadata(file_path.to_str().unwrap())
-            .await
-            .unwrap();
+        let metadata = TextLoader::get_metadata(file_path.to_str().unwrap()).unwrap();
+            
 
         // assert the fields that are present
         assert!(metadata.contains_key("created"));

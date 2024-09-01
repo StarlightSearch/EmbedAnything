@@ -12,9 +12,6 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::bert::{BertModel, Config, HiddenAct, DTYPE};
 use hf_hub::{api::sync::Api, Repo};
 use tokenizers::{PaddingParams, Tokenizer};
-use std::sync::Arc;
-use rayon::prelude::*;
-use std::sync::Mutex;
 
 pub struct BertEmbeder {
     pub model: BertModel,
@@ -86,8 +83,8 @@ impl BertEmbeder {
         Ok(BertEmbeder { model, tokenizer })
     }
 
-    pub fn tokenize_batch(text_batch: &[String], tokenizer: &Tokenizer, device: &Device) -> anyhow::Result<Tensor> {
-        let tokens = tokenizer
+    pub fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
+        let tokens = self.tokenizer
             .encode_batch(text_batch.to_vec(), true)
             .map_err(E::msg)?;
         let token_ids = tokens
@@ -107,22 +104,24 @@ impl BertEmbeder {
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
-        let chunks = text_batch.chunks(batch_size);
-        let result = Mutex::new(Vec::new());
+        let mut encodings: Vec<Vec<f32>> = Vec::new();
 
-        chunks.par_bridge().try_for_each(|chunk| -> Result<(), anyhow::Error> {
-            let token_ids = Self::tokenize_batch(chunk, &self.tokenizer, &self.model.device)?;
-            let token_type_ids = token_ids.zeros_like()?;
-            let embeddings = self.model.forward(&token_ids, &token_type_ids, None)?;
-            let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3()?;
-            let embeddings = (embeddings.sum(1)? / (n_tokens as f64))?;
-            let embeddings = normalize_l2(&embeddings)?;
-            let embeddings = embeddings.to_vec2::<f32>()?;
-            result.lock().unwrap().extend(embeddings);
-            Ok(())
-        })?;
+        for mini_text_batch in text_batch.chunks(batch_size) {
+            let token_ids = self
+                .tokenize_batch(mini_text_batch, &self.model.device)
+                .unwrap();
+            let token_type_ids = token_ids.zeros_like().unwrap();
+            let embeddings = self.model.forward(&token_ids, &token_type_ids, None).unwrap();
+            let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
 
-        Ok(result.into_inner().unwrap())
+            let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
+            let embeddings = normalize_l2(&embeddings).unwrap();
+            let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
+
+            encodings.extend(batch_encodings);
+        }
+
+        Ok(encodings)
     }
 }
 
