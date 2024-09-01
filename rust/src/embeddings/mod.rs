@@ -14,7 +14,7 @@ pub mod local;
 pub fn get_text_metadata(
     encodings: &[Vec<f32>],
     text_batch: &Vec<String>,
-    metadata: Option<HashMap<String, String>>,
+    metadata: &Option<HashMap<String, String>>,
 ) -> anyhow::Result<Vec<EmbedData>> {
     let final_embeddings = encodings
         .iter()
