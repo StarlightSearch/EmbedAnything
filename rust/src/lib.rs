@@ -14,15 +14,15 @@ pub mod text_loader;
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::{anyhow, Result};
-use config:: TextEmbedConfig;
+use config::TextEmbedConfig;
 use embeddings::{
-    embed::{ EmbedData, EmbedImage, Embeder, TextEmbed},
+    embed::{EmbedData, EmbedImage, Embeder, TextEmbed},
     embed_audio, get_text_metadata,
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
+use rayon::prelude::*;
 use text_loader::TextLoader;
-
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -66,7 +66,7 @@ pub fn embed_query(
     let batch_size = config.batch_size;
 
     let encodings = embeder.embed(&query, batch_size)?;
-    let embeddings = get_text_metadata(&encodings, &query, None)?;
+    let embeddings = get_text_metadata(&encodings, &query, &None)?;
 
     Ok(embeddings)
 }
@@ -236,7 +236,7 @@ where
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
 
-   if let Embeder::Clip(_) = embeder {
+    if let Embeder::Clip(_) = embeder {
         return Err(anyhow!("Clip model does not support webpage embedding"));
     }
 
@@ -270,47 +270,27 @@ where
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions).unwrap();
 
-    match adapter {
-        Some(adapter) => {
-            let _ = file_parser
-                .files
-                .into_iter()
-                .filter_map(|file| {
-                    emb_text(file, embedding_model, chunk_size, batch_size, Some(adapter)).unwrap()
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>();
-            Ok(None)
-        }
-        None => {
-            let embeddings = file_parser
-                .files
-                .into_iter()
-                .map(|file| {
-                    emb_text(
-                        file,
-                        embedding_model,
-                        chunk_size,
-                        batch_size,
-                        None::<fn(Vec<EmbedData>)>,
-                    )
-                    .unwrap()
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>();
-            Ok(Some(embeddings))
-        }
+    let embeddings = file_parser
+        .files
+        .into_iter()
+        .filter_map(|file| {
+            emb_text(file, embedding_model, chunk_size, batch_size, adapter)
+                .ok()
+                .and_then(|opt| opt)
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+
+    if let Some(_) = adapter {
+        Ok(None)
+    } else {
+        Ok(Some(embeddings))
     }
 }
 
-fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed>(
+fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed + Send + Sync>(
     file: T,
     embedding_model: &E,
     chunk_size: Option<usize>,
@@ -320,6 +300,7 @@ fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed>(
 where
     F: Fn(Vec<EmbedData>),
 {
+    println!("Embedding text file: {:?}", file.as_ref());
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(&text);
@@ -327,20 +308,22 @@ where
 
     if let Some(adapter) = adapter {
         let embeddings = chunks
+            .par_iter()
             .map(|chunks| {
                 let encodings = embedding_model.embed(&chunks, batch_size).unwrap();
-                get_text_metadata(&encodings, &chunks, metadata).unwrap()
+                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             })
-            .ok_or_else(|| anyhow::anyhow!("No text found in file"))?;
+            .flatten()
+            .collect::<Vec<_>>();
+
         adapter(embeddings);
         Ok(None)
     } else {
-        let embeddings = chunks
+        let embeddings = chunks.par_iter()
             .map(|chunks| {
                 let encodings = embedding_model.embed(&chunks, batch_size).unwrap();
-                get_text_metadata(&encodings, &chunks, metadata).unwrap()
-            })
-            .ok_or_else(|| anyhow!("No text found in file"))?;
+                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
+            }).flatten().collect::<Vec<_>>();
 
         Ok(Some(embeddings))
     }
@@ -370,9 +353,14 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
     text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
-    let embeddings = embed_audio(embeder, segments, audio_file, text_embed_config
-                    .unwrap_or(&TextEmbedConfig::default())
-                    .batch_size,)?;
+    let embeddings = embed_audio(
+        embeder,
+        segments,
+        audio_file,
+        text_embed_config
+            .unwrap_or(&TextEmbedConfig::default())
+            .batch_size,
+    )?;
 
     Ok(Some(embeddings))
 }

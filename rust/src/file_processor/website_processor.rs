@@ -86,7 +86,7 @@ impl WebPage {
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
             let encodings = embeder.embed(&chunks, batch_size)?;
-            let embeddings = get_text_metadata(&encodings, &chunks, Some(metadata_hashmap))?;
+            let embeddings = get_text_metadata(&encodings, &chunks, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
 

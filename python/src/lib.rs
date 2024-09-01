@@ -174,7 +174,7 @@ pub struct AudioDecoderModel {
 impl AudioDecoderModel {
     #[staticmethod]
     #[pyo3(signature = (model_id, revision=None, model_type=None, quantized=None))]
-    fn from_pretrained(
+    fn from_pretrained_hf(
         model_id: Option<&str>,
         revision: Option<&str>,
         model_type: Option<&str>,
@@ -266,7 +266,7 @@ pub fn embed_file(
 
 #[pyfunction]
 #[pyo3(signature = (audio_file, audio_decoder, embeder, text_embed_config=None))]
-pub fn emb_audio_file(
+pub fn embed_audio_file(
     audio_file: String,
     audio_decoder: &mut AudioDecoderModel,
     embeder: &EmbeddingModel,
@@ -395,17 +395,11 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_directory, m)?)?;
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_audio_file, m)?)?;
     m.add_class::<EmbeddingModel>()?;
     m.add_class::<AudioDecoderModel>()?;
     m.add_class::<WhichModel>()?;
     m.add_class::<EmbedData>()?;
     m.add_class::<config::TextEmbedConfig>()?;
-    m.add_class::<config::BertConfig>()?;
-    m.add_class::<config::ClipConfig>()?;
-    m.add_class::<config::CloudConfig>()?;
-    m.add_class::<config::EmbedConfig>()?;
-    m.add_class::<config::AudioDecoderConfig>()?;
-    m.add_class::<config::JinaConfig>()?;
-
     Ok(())
 }

@@ -1,11 +1,11 @@
 use std::{collections::HashMap, fmt::Debug, fs};
-
+use rayon::prelude::*;
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
-use crate::file_processor::markdown_processor::MarkdownProcessor;
+use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
@@ -33,18 +33,48 @@ impl TextLoader {
         if text.is_empty() {
             return None;
         }
-        let chunks: Vec<String> = self
+        Some(self
             .splitter
             .chunks(text)
-            .map(|chunk| chunk.to_string())
-            .collect();
-        Some(chunks)
+            .par_bridge() // Convert to parallel iterator
+            .map(|chunk| {
+                let mut result = String::with_capacity(chunk.len());
+                let mut chars = chunk.chars().peekable();
+                let mut last_char = ' ';
+
+                // Remove consecutive newlines and replace them with a single newline
+                while let Some(c) = chars.next() {
+                    match c {
+                        '\n' if last_char == '\n' => {
+                            result.push('\n');
+                            result.push('\n');
+                            // Skip any additional consecutive newlines
+                            while chars.peek() == Some(&'\n') {
+                                chars.next();
+                            }
+                        }
+                        '\n' => {
+                            if !result.ends_with(' ') {
+                                result.push(' ');
+                            }
+                        }
+                        ' ' if !result.ends_with(' ') => result.push(' '),
+                        ' ' => {} // Skip consecutive spaces
+                        _ => result.push(c),
+                    }
+                    last_char = c;
+                }
+
+                result.trim().to_string()
+            })
+            .collect())
     }
 
     pub fn extract_text(file: &str) -> Result<String, Error> {
         match file.split('.').last().unwrap() {
             "pdf" => PdfProcessor::extract_text(&PathBuf::from(file)),
             "md" => MarkdownProcessor::extract_text(&PathBuf::from(file)),
+            "txt" => TxtProcessor::extract_text(&PathBuf::from(file)),
             _ => Err(Error::msg("Unsupported file type")),
         }
     }

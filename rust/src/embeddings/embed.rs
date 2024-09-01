@@ -150,32 +150,6 @@ impl TextEmbed for Embeder {
     }
 }
 
-pub enum CloudEmbeder {
-    OpenAI(OpenAIEmbeder),
-    Cohere(CohereEmbeder),
-}
-
-impl CloudEmbeder {
-    pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        match self {
-            Self::OpenAI(embeder) => embeder.embed(text_batch),
-            Self::Cohere(embeder) => embeder.embed(text_batch),
-        }
-    }
-}
-
-impl TextEmbed for CloudEmbeder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        _batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        match self {
-            Self::OpenAI(embeder) => embeder.embed(text_batch),
-            Self::Cohere(embeder) => embeder.embed(text_batch),
-        }
-    }
-}
 
 pub trait EmbedImage {
     fn embed_image<T: AsRef<std::path::Path>>(

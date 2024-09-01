@@ -11,17 +11,18 @@ import os
 
 
 def test_clip_model_creation():
-    model = EmbeddingModel.from_pretrained_local(
+    model = EmbeddingModel.from_pretrained_hf(
         WhichModel.Clip, model_id="openai/clip-vit-base-patch32", revision="refs/pr/15"
     )
 
     assert model is not None
 
-    with pytest.raises(Exception):
-        model = EmbeddingModel.from_pretrained_local(
-            WhichModel.Clip,
-            model_id="openai/clip-vit-base-patch32",
-        )
+    model = EmbeddingModel.from_pretrained_hf(
+        WhichModel.Clip,
+        model_id="openai/clip-vit-base-patch32",
+    )
+
+    assert model is not None
 
 
 def test_clip_model_query(clip_model):
