@@ -5,7 +5,7 @@ use chrono::{DateTime, Local};
 use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
-use crate::file_processor::markdown_processor::MarkdownProcessor;
+use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
@@ -45,6 +45,7 @@ impl TextLoader {
         match file.split('.').last().unwrap() {
             "pdf" => PdfProcessor::extract_text(&PathBuf::from(file)),
             "md" => MarkdownProcessor::extract_text(&PathBuf::from(file)),
+            "txt" => TxtProcessor::extract_text(&PathBuf::from(file)),
             _ => Err(Error::msg("Unsupported file type")),
         }
     }
