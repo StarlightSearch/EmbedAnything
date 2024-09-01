@@ -93,7 +93,7 @@ impl JinaEmbeder {
         text_batch: &[String],
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let mut encodings = Vec::new();
+        let mut encodings: Vec<Vec<f32>> = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
             let token_ids = self
