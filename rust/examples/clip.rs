@@ -2,7 +2,8 @@ use candle_core::{Device, Tensor};
 use embed_anything::{ embed_directory, embed_query, embeddings::embed::{EmbedData, Embeder}};
 use std::{path::PathBuf, time::Instant};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let now = Instant::now();
 
     let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap();
@@ -13,6 +14,7 @@ fn main() {
         None,
         None::<fn(Vec<EmbedData>)>,
     )
+    .await
     .unwrap()
     .unwrap();
     let query_emb_data =

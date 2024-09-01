@@ -1,10 +1,13 @@
+import re
+from typing import Dict, List
+import uuid
 import embed_anything
 import os
 
 from embed_anything.vectordb import Adapter
 from pinecone import Pinecone, ServerlessSpec
 
-from embed_anything import BertConfig, EmbedConfig
+from embed_anything import EmbedData, EmbeddingModel, WhichModel, TextEmbedConfig
 
 
 class PineconeAdapter(Adapter):
@@ -90,6 +93,7 @@ class PineconeAdapter(Adapter):
         Raises:
             ValueError: If the index has not been created before upserting data.
         """
+        data = self.convert(data)
         if not self.index_name:
             raise ValueError("Index must be created before upserting data")
         self.pc.Index(name=self.index_name).upsert(data)
@@ -107,18 +111,18 @@ except:
 
 # Initialize the PineconeEmbedder class
 
-pinecone_adapter.create_index(dimension=1536, metric="cosine")
+pinecone_adapter.create_index(dimension=384, metric="cosine")
 
-bert_config = BertConfig(
-    model_id="sentence-transformers/all-MiniLM-L12-v2", chunk_size=100
+bert_model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, "sentence-transformers/all-MiniLM-L12-v2", revision="main"
 )
-embed_config = EmbedConfig(bert=bert_config)
 
-# Embed the audio files
-# Replace the line with a valid code snippet or remove it if not needed
+embed_config = TextEmbedConfig(chunk_size=100, batch_size=32)
+
+
 data = embed_anything.embed_file(
-    "/content/EmbedAnything/test_files/test.pdf",
-    embeder="Bert",
+    "test_files/test.pdf",
+    embeder=bert_model,
     adapter=pinecone_adapter,
     config=embed_config,
 )

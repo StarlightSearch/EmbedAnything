@@ -47,7 +47,7 @@ candle-core = { git = "https://github.com/akshayballal95/candle.git", version = 
 anyhow = "1.0.81"
 
 # Asynchronous Programming
-tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.40.0", features = ["full"] }
 
 
 # Markdown Processing
@@ -68,6 +68,8 @@ itertools = "0.13.0"
 symphonia = { version = "0.5.3", features = ["all"]}
 byteorder = "1.5.0"
 
+futures = "0.3.30"
+num_cpus = "1.16.0"
 
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
