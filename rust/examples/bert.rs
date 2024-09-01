@@ -17,7 +17,9 @@ fn main() {
         Some(&config),
         None::<fn(Vec<EmbedData>)>,
     )
-    .unwrap();
+    .unwrap().unwrap();
+
+    println!("{:?}", _out.len() );
 
     let out = embed_file(
         "test_files/test.pdf",

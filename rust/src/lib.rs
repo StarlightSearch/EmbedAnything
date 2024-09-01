@@ -269,44 +269,22 @@ where
 {
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions).unwrap();
-
-    match adapter {
-        Some(adapter) => {
-            let _ = file_parser
-                .files
-                .into_iter()
-                .filter_map(|file| {
-                    emb_text(file, embedding_model, chunk_size, batch_size, Some(adapter)).unwrap()
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>();
-            Ok(None)
-        }
-        None => {
-            let embeddings = file_parser
-                .files
-                .into_iter()
-                .map(|file| {
-                    emb_text(
-                        file,
-                        embedding_model,
-                        chunk_size,
-                        batch_size,
-                        None::<fn(Vec<EmbedData>)>,
-                    )
-                    .unwrap()
-                })
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>()
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>();
-            Ok(Some(embeddings))
-        }
+  
+   let embeddings = file_parser
+   .files
+   .into_iter()
+   .filter_map(|file| {
+       emb_text(file, embedding_model, chunk_size, batch_size, adapter).ok().and_then(|opt| opt)
+   })
+   .collect::<Vec<_>>()
+   .into_iter()
+   .flatten()
+   .collect::<Vec<_>>(); 
+    
+    if let Some(_) = adapter {
+        Ok(None)
+    } else {
+        Ok(Some(embeddings))
     }
 }
 
