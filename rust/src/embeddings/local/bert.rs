@@ -17,8 +17,8 @@ use rayon::prelude::*;
 use std::sync::Mutex;
 
 pub struct BertEmbeder {
-    pub model: Arc<BertModel>,
-    pub tokenizer: Arc<Tokenizer>,
+    pub model: BertModel,
+    pub tokenizer: Tokenizer,
 }
 
 impl Default for BertEmbeder {
@@ -80,13 +80,13 @@ impl BertEmbeder {
 
         config.hidden_act = HiddenAct::GeluApproximate;
 
-        let model = Arc::new(BertModel::load(vb, &config).unwrap());
-        let tokenizer = Arc::new(tokenizer);
+        let model =BertModel::load(vb, &config).unwrap();
+        let tokenizer = tokenizer;
   
         Ok(BertEmbeder { model, tokenizer })
     }
 
-    pub fn tokenize_batch(text_batch: &[String], tokenizer: &Arc<Tokenizer>, device: &Device) -> anyhow::Result<Tensor> {
+    pub fn tokenize_batch(text_batch: &[String], tokenizer: &Tokenizer, device: &Device) -> anyhow::Result<Tensor> {
         let tokens = tokenizer
             .encode_batch(text_batch.to_vec(), true)
             .map_err(E::msg)?;
