@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
         &cohere_model,
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
-    ).await?;
+    )?;
 
 
 

@@ -1,6 +1,6 @@
 use embed_anything::config::TextEmbedConfig;
 use embed_anything::embeddings::embed::{EmbedData, Embeder};
-use embed_anything::{ embed_directory_stream, embed_file};
+use embed_anything::{embed_directory_stream, embed_file};
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
 
@@ -8,7 +8,7 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let now = Instant::now();
 
-    let model = Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L12-v2", None)
+    let model = Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
         .unwrap();
     let config = TextEmbedConfig::new(Some(256), Some(32));
 
@@ -18,9 +18,10 @@ async fn main() {
         None,
         None::<fn(Vec<EmbedData>)>,
     )
-    .await.unwrap().unwrap();
+    .unwrap()
+    .unwrap();
 
-    let model = Arc::new(model);
+    let model: Arc<Embeder> = Arc::new(model);
 
     let _out = embed_directory_stream(
         PathBuf::from("test_files"),
@@ -28,11 +29,11 @@ async fn main() {
         None,
         // Some(vec!["txt".to_string()]),
         Some(&config),
-        None::<Arc<fn(Vec<EmbedData>)>>,
+        None::<fn(Vec<EmbedData>)>,
     )
     .await
-    .unwrap().unwrap();
-
+    .unwrap()
+    .unwrap();
 
     println!("\nEmbedded Text from PDF:");
     for (index, embed_data) in _out.iter().enumerate() {
