@@ -4,9 +4,9 @@ use embed_anything::{
     self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
     file_processor::audio::audio_processor,
 };
-use pyo3::{exceptions::PyValueError, prelude::*, types::PyFunction};
+use pyo3::{exceptions::PyValueError, prelude::*};
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
-use tokio::runtime::Runtime;
+use tokio::runtime::{Builder, Runtime};
 
 #[pyclass]
 pub struct EmbedData {
@@ -237,7 +237,6 @@ pub fn embed_file(
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
     let rt = Runtime::new().map_err(|e: std::io::Error| PyValueError::new_err(e.to_string()))?;
-
     match adapter {
         Some(adapter) => Python::with_gil(|py| {
             let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -252,27 +251,25 @@ pub fn embed_file(
                     .unwrap();
             };
 
-            let data = rt.block_on(async {
+            let data = 
                 embed_anything::embed_file(file_name, embedding_model, config, Some(callback))
-                    .await
+                    
                     .map_err(|e| PyValueError::new_err(e.to_string()))
                     .unwrap()
                     .map(|data| {
                         data.into_iter()
                             .map(|data| EmbedData { inner: data })
                             .collect::<Vec<_>>()
-                    })
             });
             Ok(data)
         }),
-        None => rt.block_on(async {
+        None => {
             let data = embed_anything::embed_file(
                 file_name,
                 embedding_model,
                 config,
                 None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
             )
-            .await
             .map_err(|e| PyValueError::new_err(e.to_string()))?
             .map(|data| {
                 data.into_iter()
@@ -280,7 +277,7 @@ pub fn embed_file(
                     .collect::<Vec<_>>()
             });
             Ok(data)
-        }),
+        },
     }
 }
 
@@ -305,6 +302,7 @@ pub fn embed_audio_file(
         });
     Ok(data)
 }
+
 #[pyfunction]
 #[pyo3(signature = (directory, embeder, extensions=None, config=None, adapter = None))]
 pub fn embed_directory(
@@ -317,36 +315,37 @@ pub fn embed_directory(
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
 
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    println!("Runtime created");
     match adapter {
         Some(adapter) => {
             let callback = {
-                Arc::new(
-                    move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                        Python::with_gil(|py| {
-                            let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                            let converted_data = data
-                                .into_iter()
-                                .map(|data| EmbedData { inner: data })
-                                .collect::<Vec<EmbedData>>();
-                            upsert_fn
-                                .call1(py, (converted_data,))
-                                .map_err(|e| PyValueError::new_err(e.to_string()))
-                                .unwrap();
-                        });
-                    },
-                )
+                move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                    let call = Python::with_gil(|py| {
+                        let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                        let converted_data = data
+                            .into_iter()
+                            .map(|data| EmbedData { inner: data })
+                            .collect::<Vec<EmbedData>>();
+                        upsert_fn
+                            .call1(py, (converted_data,))
+                            .map_err(|e| PyValueError::new_err(e.to_string()))
+                            .unwrap()
+                    });
+                }
             };
+            println!("Callback created");
 
             // Use the existing runtime to block on the async function
-            tokio::runtime::Handle::current().block_on(async {
+            rt.block_on(async {
+                println!("Embedding directory");
                 Ok(embed_anything::embed_directory_stream(
                     directory,
                     &embedding_model,
                     extensions,
                     config,
                     Some(callback),
-                )
-                .await
+                ).await
                 .map_err(|e| PyValueError::new_err(e.to_string()))
                 .unwrap()
                 .map(|data| {
@@ -358,15 +357,16 @@ pub fn embed_directory(
         }
         None => {
             // Use the existing runtime to block on the async function
-            tokio::runtime::Handle::current().block_on(async {
-                let data = embed_anything::embed_directory(
+            rt.block_on(async {
+                println!("Embedding directory");
+
+                let data = embed_anything::embed_directory_stream(
                     directory,
                     &embedding_model,
                     extensions,
                     config,
                     None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-                )
-                .await
+                ).await
                 .map_err(|e| PyValueError::new_err(e.to_string()))?
                 .map(|data| {
                     data.into_iter()

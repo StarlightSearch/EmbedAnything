@@ -120,8 +120,8 @@ bert_model = EmbeddingModel.from_pretrained_hf(
 embed_config = TextEmbedConfig(chunk_size=100, batch_size=32)
 
 
-data = embed_anything.embed_file(
-    "test_files/test.pdf",
+data = embed_anything.embed_directory(
+    "test_files",
     embeder=bert_model,
     adapter=pinecone_adapter,
     config=embed_config,

@@ -22,8 +22,8 @@ use embeddings::{
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use rayon::prelude::*;
-use text_loader::TextLoader;
 use tokio::sync::{mpsc, Mutex};
+use text_loader::TextLoader;
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -100,7 +100,7 @@ pub fn embed_query(
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 
-pub async fn embed_file<F>(
+pub fn embed_file<F>(
     file_name: &str,
     embeder: &Embeder,
     config: Option<&TextEmbedConfig>,
@@ -115,12 +115,8 @@ where
     let batch_size = config.batch_size;
 
     let embeddings = match embeder {
-        Embeder::OpenAI(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
-        }
-        Embeder::Cohere(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), None, adapter)?
-        }
+        Embeder::OpenAI(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
+        Embeder::Cohere(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
         Embeder::Jina(embeder) => {
             emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
         }
@@ -276,7 +272,7 @@ where
     F: Fn(Vec<EmbedData>) + Copy,
 {
     let mut file_parser = FileParser::new();
-    file_parser.get_text_files(&directory, extensions).await.unwrap();
+    file_parser.get_text_files(&directory, extensions)?;
 
     let embeddings = file_parser
         .files
@@ -387,33 +383,33 @@ fn emb_image_directory<T: EmbedImage>(
         .unwrap();
     Ok(Some(embeddings))
 }
+
+
 pub async fn embed_directory_stream<F>(
     directory: PathBuf,
     embeder: &Arc<Embeder>,
     extensions: Option<Vec<String>>,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<Arc<F>>,
+    adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>) + Send + 'static + std::marker::Sync ,
+    F: Fn(Vec<EmbedData>) + Send + Sync+ 'static,
 {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = 32;
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let textloader = TextLoader::new(chunk_size);
-    let mut file_parser = FileParser::new();
 
-    rt.block_on(async {
-        file_parser.get_text_files(&directory, extensions).await.unwrap();
-    });
+    let textloader = TextLoader::new(chunk_size);
+
+    let mut file_parser = FileParser::new();
+    file_parser.get_text_files(&directory, extensions)?;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
 
-    // let embeder = Arc::new(embeder);
-    let embeder = embeder.clone();
     let embeddings_collector: Arc<Mutex<Vec<Vec<EmbedData>>>> = Arc::new(Mutex::new(Vec::with_capacity(batch_size)));
+    let embeder = embeder.clone();
+    let adapter = Arc::new(adapter);
 
     let processing_task = tokio::spawn({
         let embeddings_collector = Arc::clone(&embeddings_collector);
@@ -430,6 +426,7 @@ where
                     match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
                             if let Some(adapter) = adapter.as_ref() {
+                                println!("Sending embeddings to adapter");
                                 adapter(embeddings);
                             } else {
                                 embeddings_collector.lock().await.push(embeddings);
