@@ -16,7 +16,7 @@ model = EmbeddingModel.from_pretrained_hf(
 config = TextEmbedConfig(chunk_size=200, batch_size=32)
 
 start = time()
-data = embed_anything.embed_file("test_files/test.pdf", embeder=model, config=config)
+# data = embed_anything.embed_file("test_files/test.pdf", embeder=model, config=config)
 
 data: list[EmbedData] = embed_anything.embed_directory(
     "test_files", embeder=model, config=config
@@ -24,14 +24,14 @@ data: list[EmbedData] = embed_anything.embed_directory(
 
 end = time()
 
-for i, d in enumerate(data):
-    print(f"Chunk {i+1}\n")
-    print("-" * 100)
+# for i, d in enumerate(data):
+#     print(f"Chunk {i+1}\n")
+#     print("-" * 100)
 
-    print(d.text)
-    print("Metadata\n")
-    print(d.metadata)
-    print("-" * 100)
-    print("\n")
+#     print(d.text)
+#     print("Metadata\n")
+#     print(d.metadata)
+#     print("-" * 100)
+#     print("\n")
 
 print(f"Time taken: {end - start} seconds")

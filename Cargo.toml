@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "rust",
-    "python"
+    "python",
     ]
 # Python package needs to be built by maturin.
 exclude = ["python"]
@@ -14,4 +14,3 @@ description = "Embed anything at lightning speed"
 repository = "https://github.com/StarlightSearch/EmbedAnything"
 authors = ["Akshay Ballal <arballal95@gmail.com>"]
 exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/*", "mkdocs.yml", "docs/*", "tests/*"]
-

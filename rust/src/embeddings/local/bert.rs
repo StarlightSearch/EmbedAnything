@@ -65,7 +65,6 @@ impl BertEmbeder {
 
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
         let vb = if weights_filename.ends_with("model.safetensors") {
-            println!("Loading weights from safetensors");
             unsafe {
             VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
             }
