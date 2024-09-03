@@ -236,7 +236,6 @@ pub fn embed_file(
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
-    let rt = Runtime::new().map_err(|e: std::io::Error| PyValueError::new_err(e.to_string()))?;
     match adapter {
         Some(adapter) => Python::with_gil(|py| {
             let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -318,48 +317,74 @@ pub fn embed_directory(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     println!("Runtime created");
     match adapter {
-        Some(adapter) => {
-            let callback = {
-                move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                    let call = Python::with_gil(|py| {
-                        let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                        let converted_data = data
-                            .into_iter()
-                            .map(|data| EmbedData { inner: data })
-                            .collect::<Vec<EmbedData>>();
-                        upsert_fn
-                            .call1(py, (converted_data,))
-                            .map_err(|e| PyValueError::new_err(e.to_string()))
-                            .unwrap()
-                    });
-                }
+        // Some(adapter) => {
+        //     let callback = {
+        //         move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+        //             Python::with_gil(|py| { 
+        //                 let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+        //                 let converted_data = data
+        //                     .into_iter()
+        //                     .map(|data| EmbedData { inner: data })
+        //                     .collect::<Vec<EmbedData>>();
+        //                 upsert_fn
+        //                     .call1(py, (converted_data,))
+        //                     .map_err(|e| PyValueError::new_err(e.to_string()))
+        //                     .unwrap()
+        //             });
+        //         }
+        //     };
+        //     println!("Callback created");
+            
+            
+        //     Python::with_gil(|py| {
+        //     // Use the existing runtime to block on the async function
+        //     rt.block_on(async {
+        //         println!("Embedding directory");
+        //         Ok(embed_anything::embed_directory(
+        //             directory,
+        //             &embedding_model,
+        //             extensions,
+        //             config,
+        //             Some(callback),
+        //         ).await
+        //         .map_err(|e| PyValueError::new_err(e.to_string()))
+        //         .unwrap()
+        //         .map(|data| {
+        //             data.into_iter()
+        //                 .map(|data| EmbedData { inner: data })
+        //                 .collect::<Vec<_>>()
+        //         }))
+        //     })})
+        // }
+        Some(adapter) => Python::with_gil(|py| {
+            let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                let converted_data = data
+                    .into_iter()
+                    .map(|data| EmbedData { inner: data })
+                    .collect::<Vec<EmbedData>>();
+                upsert_fn
+                    .call1(py, (converted_data,))
+                    .map_err(|e| PyValueError::new_err(e.to_string()))
+                    .unwrap();
             };
-            println!("Callback created");
-
-            // Use the existing runtime to block on the async function
-            rt.block_on(async {
-                println!("Embedding directory");
-                Ok(embed_anything::embed_directory_stream(
-                    directory,
-                    &embedding_model,
-                    extensions,
-                    config,
-                    Some(callback),
-                ).await
+            let data = rt.block_on(async {
+                embed_anything::embed_directory(
+                    directory, embedding_model, extensions, config, Some(callback)
+                )
                 .map_err(|e| PyValueError::new_err(e.to_string()))
                 .unwrap()
                 .map(|data| {
                     data.into_iter()
                         .map(|data| EmbedData { inner: data })
                         .collect::<Vec<_>>()
-                }))
-            })
-        }
+                })
+            });
+            Ok(data)
+        }),
         None => {
             // Use the existing runtime to block on the async function
             rt.block_on(async {
-                println!("Embedding directory");
-
                 let data = embed_anything::embed_directory_stream(
                     directory,
                     &embedding_model,
