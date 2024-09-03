@@ -159,7 +159,7 @@ where
 /// let embeddings = embed_directory(directory, embeder, extensions, config).unwrap();
 /// ```
 /// This will output the embeddings of the files in the specified directory using the OpenAI embedding model.
-pub async fn embed_directory<F>(
+pub fn embed_directory<F>(
     directory: PathBuf,
     embeder: &Embeder,
     extensions: Option<Vec<String>>,
@@ -184,7 +184,7 @@ where
                 config.batch_size,
                 adapter,
             )
-            .await
+            
         }
     }
     .unwrap();
@@ -260,7 +260,7 @@ where
     }
 }
 
-async fn emb_directory<F>(
+fn emb_directory<F>(
     directory: PathBuf,
     embedding_model: &Embeder,
     extensions: Option<Vec<String>>,
@@ -393,7 +393,7 @@ pub async fn embed_directory_stream<F>(
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>) + Send + Sync+ 'static,
+    F: Fn(Vec<EmbedData>)  + Sync+Send+ 'static,
 {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
@@ -426,7 +426,6 @@ where
                     match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
                             if let Some(adapter) = adapter.as_ref() {
-                                println!("Sending embeddings to adapter");
                                 adapter(embeddings);
                             } else {
                                 embeddings_collector.lock().await.push(embeddings);
@@ -434,6 +433,7 @@ where
                         }
                         Err(e) => eprintln!("Error processing chunks: {:?}", e),
                     }
+                            
                     chunk_buffer.clear();
                     metadata_buffer.clear();
                 }

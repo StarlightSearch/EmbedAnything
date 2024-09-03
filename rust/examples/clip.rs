@@ -14,7 +14,7 @@ async fn main() {
         None,
         None::<fn(Vec<EmbedData>)>,
     )
-    .await
+    
     .unwrap()
     .unwrap();
     let query_emb_data =

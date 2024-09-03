@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
     )
-    .await?
+    ?
     .unwrap();
 
 

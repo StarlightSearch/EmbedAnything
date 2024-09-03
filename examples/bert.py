@@ -11,9 +11,9 @@ from time import time
 
 
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L6-v2"
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
-config = TextEmbedConfig(chunk_size=200, batch_size=32)
+config = TextEmbedConfig(chunk_size=512, batch_size=32)
 
 start = time()
 # data = embed_anything.embed_file("test_files/test.pdf", embeder=model, config=config)
