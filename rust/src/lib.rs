@@ -393,8 +393,10 @@ pub async fn embed_directory_stream<F>(
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>)  + Sync+Send+ 'static,
+    F: Fn(Vec<EmbedData>),
 {
+    println!("Embedding directory: {:?}", directory);
+    
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
@@ -406,14 +408,11 @@ where
     file_parser.get_text_files(&directory, extensions)?;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
+    let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
-    let embeddings_collector: Arc<Mutex<Vec<Vec<EmbedData>>>> = Arc::new(Mutex::new(Vec::with_capacity(batch_size)));
     let embeder = embeder.clone();
-    let adapter = Arc::new(adapter);
 
     let processing_task = tokio::spawn({
-        let embeddings_collector = Arc::clone(&embeddings_collector);
-        let adapter = adapter.clone();
         async move {
             let mut chunk_buffer = Vec::with_capacity(batch_size);
             let mut metadata_buffer = Vec::with_capacity(batch_size);
@@ -425,15 +424,13 @@ where
                 if chunk_buffer.len() == batch_size {
                     match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
-                            if let Some(adapter) = adapter.as_ref() {
-                                adapter(embeddings);
-                            } else {
-                                embeddings_collector.lock().await.push(embeddings);
+                            if let Err(e) = collector_tx.send(embeddings) {
+                                eprintln!("Error sending embeddings to collector: {:?}", e);
                             }
                         }
                         Err(e) => eprintln!("Error processing chunks: {:?}", e),
                     }
-                            
+
                     chunk_buffer.clear();
                     metadata_buffer.clear();
                 }
@@ -443,10 +440,8 @@ where
             if !chunk_buffer.is_empty() {
                 match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
                     Ok(embeddings) => {
-                        if let Some(adapter) = adapter.as_ref() {
-                            adapter(embeddings);
-                        } else {
-                            embeddings_collector.lock().await.push(embeddings);
+                        if let Err(e) = collector_tx.send(embeddings) {
+                            eprintln!("Error sending embeddings to collector: {:?}", e);
                         }
                     }
                     Err(e) => eprintln!("Error processing chunks: {:?}", e),
@@ -471,14 +466,19 @@ where
     // Wait for the spawned task to complete
     processing_task.await.unwrap();
 
+    let mut all_embeddings = Vec::new();
+    while let Some(embeddings) = collector_rx.recv().await {
+        if let Some(adapter) = &adapter {
+            adapter(embeddings);
+        } else {
+            all_embeddings.extend(embeddings);
+        }
+    }
+
     if adapter.is_some() {
         Ok(None)
     } else {
-        // Use try_unwrap() and handle potential errors
-        match Arc::try_unwrap(embeddings_collector) {
-            Ok(mutex) => Ok(Some(mutex.into_inner().into_iter().flatten().collect())),
-            Err(_) => Err(anyhow!("Failed to unwrap embeddings collector")),
-        }
+        Ok(Some(all_embeddings))
     }
 }
 
