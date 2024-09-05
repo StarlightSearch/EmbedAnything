@@ -117,7 +117,7 @@ bert_model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, "sentence-transformers/all-MiniLM-L12-v2", revision="main"
 )
 
-embed_config = TextEmbedConfig(chunk_size=100, batch_size=32)
+embed_config = TextEmbedConfig(chunk_size=512, batch_size=32)
 
 
 data = embed_anything.embed_directory(
