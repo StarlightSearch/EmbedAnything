@@ -20,7 +20,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Generate and Stream your embeddings with minimalist and lightning fast framework built in rust 🦀</b>
+    <b>Generate and stream your embeddings with minimalist and lightning fast framework built in rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -80,7 +80,7 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings file by file (Or chunk by chunk in future) and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings file by file (Or chunk by chunk in future) and store them in the vector database of your choice, thus it eliminates bulk embeddings storage on RAM at once.
 
 
 ## 🦀 Why Embed Anything 
@@ -98,10 +98,12 @@ We support a range of models, that can be supported by Candle, We have given a s
 
 ## How to add custom model and Chunk Size.
 ```python
-jina_config = JinaConfig(
-    model_id="Custom link given below", revision="main", chunk_size=100
+
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="model link from huggingface"
 )
-embed_config = EmbedConfig(jina=jina_config)
+config = TextEmbedConfig(chunk_size=200, batch_size=32)
+data = embed_anything.embed_file("file_address", embeder=model, config=config)
 ```
 
 
