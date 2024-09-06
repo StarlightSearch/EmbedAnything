@@ -10,7 +10,7 @@ async fn main() {
     // let model = Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
     let model = Embeder::from_pretrained_hf("jina","jinaai/jina-embeddings-v2-small-en", None)
         .unwrap();
-    let config = TextEmbedConfig::new(Some(512), Some(12));
+    let config = TextEmbedConfig::new(Some(512), Some(12), None);
 
     // let out = embed_file(
     //     "test_files/test.pdf",

@@ -10,7 +10,7 @@ fn main() {
     
     let embeder = Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None).unwrap();
 
-    let embed_config = TextEmbedConfig::new(Some(256), Some(32));
+    let embed_config = TextEmbedConfig::new(Some(256), Some(32), None);
     let embed_data = embed_webpage(url, &embeder, Some(&embed_config), None::<fn(Vec<EmbedData>)>)
         .unwrap()
         .unwrap();
