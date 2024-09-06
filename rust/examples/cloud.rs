@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use embed_anything::{
-    config::TextEmbedConfig, embed_directory, embed_file, embeddings::{
+    config::TextEmbedConfig, embed_directory_stream, embed_file, embeddings::{
         cloud::cohere::CohereEmbeder,
         embed::{EmbedData, Embeder},
     }
@@ -16,13 +16,14 @@ async fn main() -> Result<()> {
     let openai_model =
         Embeder::from_pretrained_cloud("openai", "text-embedding-3-small", None).unwrap();
 
-    let _openai_embeddings = embed_directory(
+    let openai_model: Arc<Embeder> = Arc::new(openai_model);
+    let _openai_embeddings = embed_directory_stream(
         PathBuf::from("test_files"),
         &openai_model,
         Some(vec!["pdf".to_string()]),
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
-    )
+    ).await
     ?
     .unwrap();
 

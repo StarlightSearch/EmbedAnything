@@ -1,22 +1,19 @@
 use candle_core::{Device, Tensor};
-use embed_anything::{ embed_directory, embed_query, embeddings::embed::{EmbedData, Embeder}};
-use std::{path::PathBuf, time::Instant};
+use embed_anything::{ embed_image_directory, embed_query, embeddings::embed::{EmbedData, Embeder}};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 #[tokio::main]
 async fn main() {
     let now = Instant::now();
 
     let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap();
-    let out = embed_directory(
+    let model: Arc<Embeder> = Arc::new(model);
+    let out = embed_image_directory(
         PathBuf::from("test_files"),
         &model,
-        None,
-        None,
         None::<fn(Vec<EmbedData>)>,
-    )
-    
-    .unwrap()
-    .unwrap();
+    ).await.unwrap().unwrap();
+
     let query_emb_data =
         embed_query(vec!["Photo of a monkey".to_string()], &model, None).unwrap();
     let n_vectors = out.len();
