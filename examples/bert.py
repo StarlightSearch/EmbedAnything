@@ -1,33 +1,37 @@
-import embed_anything
-from embed_anything import BertConfig, EmbedConfig
+import re
+from typing import Dict, List
+import uuid
 import time
+import embed_anything
+from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
+from embed_anything.vectordb import Adapter
+from pinecone import Pinecone, ServerlessSpec
+import os
+from time import time
 
-from embed_anything.embed_anything import JinaConfig
 
-start_time = time.time()
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+)
+config = TextEmbedConfig(chunk_size=512, batch_size=32)
 
-bert_config = BertConfig(
-    model_id="sentence-transformers/all-MiniLM-L12-v2", chunk_size=100
+start = time()
+# data = embed_anything.embed_file("test_files/test.pdf", embeder=model, config=config)
+
+data: list[EmbedData] = embed_anything.embed_directory(
+    "test_files", embeder=model, config=config
 )
 
-# available model_ids:
-# jinaai/jina-embeddings-v2-base-en,
-# jinaai/jina-embeddings-v2-small-en,
-# jinaai/jina-embeddings-v2-base-zh,
-# jinaai/jina-embeddings-v2-small-de
-jina_config = JinaConfig(
-    model_id="jinaai/jina-embeddings-v2-small-en", revision="main", chunk_size=100
-)
-embed_config = EmbedConfig(bert=bert_config)
+end = time()
 
-data = embed_anything.embed_directory(
-    "test_files", embeder="Bert", extensions=["pdf"], config=embed_config
-)
+# for i, d in enumerate(data):
+#     print(f"Chunk {i+1}\n")
+#     print("-" * 100)
 
-data_file = embed_anything.embed_file(
-    "./test_files/test.pdf", embeder="Bert", config=embed_config
-)
+#     print(d.text)
+#     print("Metadata\n")
+#     print(d.metadata)
+#     print("-" * 100)
+#     print("\n")
 
-print(data_file[0])
-end_time = time.time()
-print("Time taken: ", end_time - start_time)
+print(f"Time taken: {end - start} seconds")

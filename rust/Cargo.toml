@@ -1,0 +1,83 @@
+[package]
+name = "embed_anything"
+version = "0.2.3"
+edition.workspace = true
+license.workspace = true
+description.workspace = true
+repository.workspace  = true
+authors.workspace = true
+
+[dependencies]
+# Data Serialization
+serde = { version = "1.0.196", features = ["derive"] }
+serde_json = "1.0.112"
+
+# HTTP Client
+reqwest = { version = "0.12.2", features = ["json", "blocking"] }
+
+# Filesystem
+walkdir = "2.4.0"
+
+# Regular Expressions
+regex = "1.10.3"
+
+# Parallelism
+rayon = "1.8.1"
+
+# Image Processing
+image = "0.25.1"
+
+# Natural Language Processing
+tokenizers = {version="0.19.1", features=["http"]}
+text-splitter = {version="0.14.1", features=["tokenizers"]}
+
+
+
+# PDF Processing
+pdf-extract = {git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs/pull/91/head"}
+
+
+# Hugging Face Libraries
+hf-hub = "0.3.2"
+candle-nn = { git = "https://github.com/akshayballal95/candle.git", version = "0.6.0" }
+candle-transformers = { git = "https://github.com/akshayballal95/candle.git", version = "0.6.0" }
+candle-core = { git = "https://github.com/akshayballal95/candle.git", version = "0.6.0" }
+
+# Error Handling
+anyhow = "1.0.81"
+
+# Asynchronous Programming
+tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+
+
+# Markdown Processing
+markdown-parser = "0.1.2"
+markdown_to_text = "1.0.0"
+
+# Web Scraping
+scraper = "0.19.0"
+
+# Text Processing
+text-cleaner = "0.1.0"
+url = "2.5.0"
+chrono = "0.4.38"
+rand = "0.8.5"
+itertools = "0.13.0"
+
+# Audio Processing
+symphonia = { version = "0.5.3", features = ["all"]}
+byteorder = "1.5.0"
+
+# Optional Dependency
+intel-mkl-src = { version = "0.8.1", optional = true }
+accelerate-src = { version = "0.3.2", optional = true }
+statistical = "1.0.0"
+
+[dev-dependencies]
+tempdir = "0.3.7"
+
+[features]
+default = []
+mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]
+accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
+cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-core/cuda"]
