@@ -7,14 +7,13 @@ import time
 
 start = time.time()
 
-clip_config = embed_anything.ClipConfig(
-    model_id="openai/clip-vit-base-patch32", revision="refs/pr/15"
+model = embed_anything.EmbeddingModel.from_pretrained_hf(
+    embed_anything.WhichModel.Clip,
+    model_id="openai/clip-vit-base-patch16",
+    # revision="refs/pr/15",
 )
-
-config = embed_anything.EmbedConfig(clip=clip_config)
-
-data: list[EmbedData] = embed_anything.embed_directory(
-    "test_files", embeder="Clip", config=config
+data: list[EmbedData] = embed_anything.embed_image_directory(
+    "test_files", embeder=model
 )
 
 embeddings = np.array([data.embedding for data in data])
@@ -23,7 +22,7 @@ print(data[0])
 
 query = ["Photo of a monkey?"]
 query_embedding = np.array(
-    embed_anything.embed_query(query, embeder="Clip")[0].embedding
+    embed_anything.embed_query(query, embeder=model)[0].embedding
 )
 
 similarities = np.dot(embeddings, query_embedding)
