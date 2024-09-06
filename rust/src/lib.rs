@@ -14,7 +14,7 @@ pub mod text_loader;
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Result};
-use config::TextEmbedConfig;
+use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embeder, TextEmbed},
     embed_audio, get_text_metadata,
@@ -284,6 +284,7 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
 ///
 /// * `directory` - A `PathBuf` representing the directory containing the images to embed.
 /// * `embeder` - A reference to the embedding model to use.
+/// * `config` - An optional `ImageEmbedConfig` object specifying the configuration for the embedding model. Default buffer size is 100.
 /// * `adapter` - An optional callback function to handle the embeddings.
 ///
 /// # Returns
@@ -308,6 +309,7 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
 pub async fn embed_image_directory<T: EmbedImage+Send+Sync+'static, F>(
     directory: PathBuf,
     embedding_model: &Arc<T>,
+    config: Option<&ImageEmbedConfig>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
@@ -316,7 +318,7 @@ where
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
 
-    let buffer_size = 100;
+    let buffer_size = config.unwrap_or(&ImageEmbedConfig::default()).buffer_size.unwrap_or(100);
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
@@ -440,8 +442,9 @@ where
     
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(256);
-    let batch_size = 32;
+    let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
+    let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
+    let batch_size = config.batch_size;
 
     let textloader = TextLoader::new(chunk_size);
 
@@ -455,15 +458,15 @@ where
 
     let processing_task = tokio::spawn({
         async move {
-            let mut chunk_buffer = Vec::with_capacity(batch_size);
-            let mut metadata_buffer = Vec::with_capacity(batch_size);
+            let mut chunk_buffer = Vec::with_capacity(buffer_size);
+            let mut metadata_buffer = Vec::with_capacity(buffer_size);
 
             while let Some((chunk, metadata)) = rx.recv().await {
                 chunk_buffer.push(chunk);
                 metadata_buffer.push(metadata);
 
-                if chunk_buffer.len() == batch_size {
-                    match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
+                if chunk_buffer.len() == buffer_size {
+                    match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone(), batch_size).await {
                         Ok(embeddings) => {
                             if let Err(e) = collector_tx.send(embeddings) {
                                 eprintln!("Error sending embeddings to collector: {:?}", e);
@@ -479,7 +482,7 @@ where
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone()).await {
+                match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone(), batch_size).await {
                     Ok(embeddings) => {
                         if let Err(e) = collector_tx.send(embeddings) {
                             eprintln!("Error sending embeddings to collector: {:?}", e);
@@ -528,9 +531,10 @@ pub async fn process_chunks<E: TextEmbed + Send + Sync>(
     chunks: &Vec<String>,
     metadata: &Vec<Option<HashMap<String, String>>>,
     embedding_model: Arc<E>,
+    batch_size: Option<usize>,
 ) -> Result<Vec<EmbedData>>
 {
-    let encodings = embedding_model.embed(chunks, None)?;
+    let encodings = embedding_model.embed(chunks, batch_size)?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings

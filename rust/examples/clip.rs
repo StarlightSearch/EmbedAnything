@@ -11,6 +11,7 @@ async fn main() {
     let out = embed_image_directory(
         PathBuf::from("test_files"),
         &model,
+        None,
         None::<fn(Vec<EmbedData>)>,
     ).await.unwrap().unwrap();
 

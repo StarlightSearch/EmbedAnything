@@ -371,14 +371,15 @@ pub fn embed_directory(
 }
 
 #[pyfunction]
-#[pyo3(signature = (directory, embeder,  adapter = None))]
+#[pyo3(signature = (directory, embeder, config=None, adapter = None))]
 pub fn embed_image_directory(
     directory: PathBuf,
     embeder: &EmbeddingModel,
+    config: Option<&config::ImageEmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let embedding_model = &embeder.inner;
-
+    let config = config.map(|c| &c.inner);
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     println!("Runtime created");
 
@@ -397,7 +398,7 @@ pub fn embed_image_directory(
             };
 
             let data = rt.block_on(async {
-                embed_anything::embed_image_directory(directory, embedding_model, Some(callback))
+                embed_anything::embed_image_directory(directory, embedding_model, config, Some(callback))
                     .await
                     .map_err(|e| PyValueError::new_err(e.to_string()))
                     .unwrap()
@@ -414,6 +415,7 @@ pub fn embed_image_directory(
                 embed_anything::embed_image_directory(
                     directory,
                     embedding_model,
+                    config,
                     None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
                 )
                 .await
