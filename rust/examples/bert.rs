@@ -1,6 +1,6 @@
 use embed_anything::config::TextEmbedConfig;
 use embed_anything::embeddings::embed::{EmbedData, Embeder};
-use embed_anything::{embed_directory, embed_directory_stream, embed_file};
+use embed_anything::embed_directory_stream;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
 

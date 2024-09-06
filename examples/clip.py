@@ -12,7 +12,9 @@ model = embed_anything.EmbeddingModel.from_pretrained_hf(
     model_id="openai/clip-vit-base-patch16",
     # revision="refs/pr/15",
 )
-data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
+data: list[EmbedData] = embed_anything.embed_image_directory(
+    "test_files", embeder=model
+)
 
 embeddings = np.array([data.embedding for data in data])
 
