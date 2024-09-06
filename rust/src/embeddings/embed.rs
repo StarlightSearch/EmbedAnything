@@ -150,6 +150,41 @@ impl TextEmbed for Embeder {
     }
 }
 
+impl EmbedImage for Embeder {
+    fn embed_image<T: AsRef<std::path::Path>>(
+        &self,
+        image_path: T,
+        metadata: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<EmbedData> {
+        match self {
+            Self::Clip(embeder) => embeder.embed_image(image_path, metadata),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+
+    fn embed_image_batch<T: AsRef<std::path::Path>>(
+        &self,
+        image_paths: &[T],
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        match self {
+            Self::Clip(embeder) => embeder.embed_image_batch(image_paths),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+
+    fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized {
+            match model_id {
+                "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbeder::new(
+                    model_id.to_string(),
+                    revision.map(|s| s.to_string()),
+                )?)),
+                _ => Err(anyhow::anyhow!("Model not supported")),
+            }
+        }
+}
+
 
 pub trait EmbedImage {
     fn embed_image<T: AsRef<std::path::Path>>(

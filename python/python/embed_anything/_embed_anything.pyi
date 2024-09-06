@@ -101,6 +101,23 @@ def embed_directory(
     ```
     """
 
+def embed_image_directory(
+    file_path: str,
+    embeder: EmbeddingModel,
+    adapter: Adapter | None = None,
+) -> list[EmbedData]:
+    """
+    Embeds the images in the given directory and returns a list of EmbedData objects.
+
+    Args:
+        file_path: The path to the directory containing the images to embed.
+        embeder: The embedding model to use.
+        adapter: The adapter to use for storing the embeddings in a vector database.
+
+    Returns:
+        A list of EmbedData objects.
+    """
+
 def embed_webpage(
     url: str,
     embeder: EmbeddingModel,

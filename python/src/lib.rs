@@ -250,22 +250,21 @@ pub fn embed_file(
                     .unwrap();
             };
 
-            let data = 
-                embed_anything::embed_file(file_name, embedding_model, config, Some(callback))
-                    
+            let data =
+                embed_anything::embed_file(file_name, &embedding_model, config, Some(callback))
                     .map_err(|e| PyValueError::new_err(e.to_string()))
                     .unwrap()
                     .map(|data| {
                         data.into_iter()
                             .map(|data| EmbedData { inner: data })
                             .collect::<Vec<_>>()
-            });
+                    });
             Ok(data)
         }),
         None => {
             let data = embed_anything::embed_file(
                 file_name,
-                embedding_model,
+                &embedding_model,
                 config,
                 None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
             )
@@ -276,7 +275,7 @@ pub fn embed_file(
                     .collect::<Vec<_>>()
             });
             Ok(data)
-        },
+        }
     }
 }
 
@@ -317,7 +316,6 @@ pub fn embed_directory(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     println!("Runtime created");
     match adapter {
-        
         Some(adapter) => Python::with_gil(|py| {
             let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
                 let upsert_fn = adapter.getattr(py, "upsert").unwrap();
@@ -332,8 +330,13 @@ pub fn embed_directory(
             };
             let data = rt.block_on(async {
                 embed_anything::embed_directory_stream(
-                    directory, embedding_model, extensions, config, Some(callback)
-                ).await
+                    directory,
+                    embedding_model,
+                    extensions,
+                    config,
+                    Some(callback),
+                )
+                .await
                 .map_err(|e| PyValueError::new_err(e.to_string()))
                 .unwrap()
                 .map(|data| {
@@ -353,7 +356,8 @@ pub fn embed_directory(
                     extensions,
                     config,
                     None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-                ).await
+                )
+                .await
                 .map_err(|e| PyValueError::new_err(e.to_string()))?
                 .map(|data| {
                     data.into_iter()
@@ -362,6 +366,66 @@ pub fn embed_directory(
                 });
                 Ok(data)
             })
+        }
+    }
+}
+
+#[pyfunction]
+#[pyo3(signature = (directory, embeder,  adapter = None))]
+pub fn embed_image_directory(
+    directory: PathBuf,
+    embeder: &EmbeddingModel,
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
+    let embedding_model = &embeder.inner;
+
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    println!("Runtime created");
+
+    match adapter {
+        Some(adapter) => Python::with_gil(|py| {
+            let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                let converted_data = data
+                    .into_iter()
+                    .map(|data| EmbedData { inner: data })
+                    .collect::<Vec<EmbedData>>();
+                upsert_fn
+                    .call1(py, (converted_data,))
+                    .map_err(|e| PyValueError::new_err(e.to_string()))
+                    .unwrap();
+            };
+
+            let data = rt.block_on(async {
+                embed_anything::embed_image_directory(directory, embedding_model, Some(callback))
+                    .await
+                    .map_err(|e| PyValueError::new_err(e.to_string()))
+                    .unwrap()
+                    .map(|data| {
+                        data.into_iter()
+                            .map(|data| EmbedData { inner: data })
+                            .collect::<Vec<_>>()
+                    })
+            });
+            Ok(data)
+        }),
+        None => {
+            let data = rt.block_on(async {
+                embed_anything::embed_image_directory(
+                    directory,
+                    embedding_model,
+                    None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
+                )
+                .await
+                .map_err(|e| PyValueError::new_err(e.to_string()))
+                .unwrap()
+                .map(|data| {
+                    data.into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<_>>()
+                })
+            });
+            Ok(data)
         }
     }
 }
@@ -419,6 +483,7 @@ pub fn embed_webpage(
 fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_file, m)?)?;
     m.add_function(wrap_pyfunction!(embed_directory, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_image_directory, m)?)?;
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
     m.add_function(wrap_pyfunction!(embed_audio_file, m)?)?;
