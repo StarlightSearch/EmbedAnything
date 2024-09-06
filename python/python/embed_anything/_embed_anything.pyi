@@ -104,6 +104,7 @@ def embed_directory(
 def embed_image_directory(
     file_path: str,
     embeder: EmbeddingModel,
+    config: ImageEmbedConfig | None = None,
     adapter: Adapter | None = None,
 ) -> list[EmbedData]:
     """
@@ -112,6 +113,7 @@ def embed_image_directory(
     Args:
         file_path: The path to the directory containing the images to embed.
         embeder: The embedding model to use.
+        config: The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings in a vector database.
 
     Returns:
@@ -225,6 +227,18 @@ class TextEmbedConfig:
         self.batch_size = batch_size
     chunk_size: int | None
     batch_size: int | None
+
+class ImageEmbedConfig:
+    """
+    Represents the configuration for the Image Embedding model.
+
+    Attributes:
+        buffer_size: The buffer size for the Image Embedding model. Default is 100.
+    """
+
+    def __init__(self, buffer_size: int | None = None):
+        self.buffer_size = buffer_size
+    buffer_size: int | None
 
 class EmbeddingModel:
     """
