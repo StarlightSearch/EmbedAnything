@@ -22,8 +22,8 @@ use embeddings::{
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use rayon::prelude::*;
-use tokio::sync::mpsc;
 use text_loader::TextLoader;
+use tokio::sync::mpsc;
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -129,7 +129,6 @@ where
     Ok(embeddings)
 }
 
-
 /// Embeddings of a webpage using the specified embedding model.
 ///
 /// # Arguments
@@ -199,7 +198,6 @@ where
     }
 }
 
-
 fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed + Send + Sync>(
     file: T,
     embedding_model: &E,
@@ -211,7 +209,8 @@ where
     F: Fn(Vec<EmbedData>), // Add Send trait bound here
 {
     println!("Embedding text file: {:?}", file.as_ref());
-    let text = TextLoader::extract_text(file.as_ref().to_str().unwrap()).unwrap();
+
+    let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(&text);
     let metadata = TextLoader::get_metadata(file).ok();
@@ -277,7 +276,6 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
     Ok(Some(embeddings))
 }
 
-
 /// Embeds images in a directory using the specified embedding model.
 ///
 /// # Arguments
@@ -299,14 +297,14 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
 /// use embed_anything::embed_image_directory;
 /// use std::path::PathBuf;
 /// use std::sync::Arc;
-/// 
+///
 /// let directory = PathBuf::from("/path/to/directory");
 /// let embeder = Arc::new(Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
 /// let embeddings = embed_image_directory(directory, &embeder, None).await.unwrap();
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
-/// 
-pub async fn embed_image_directory<T: EmbedImage+Send+Sync+'static, F>(
+///
+pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static, F>(
     directory: PathBuf,
     embedding_model: &Arc<T>,
     config: Option<&ImageEmbedConfig>,
@@ -318,7 +316,10 @@ where
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
 
-    let buffer_size = config.unwrap_or(&ImageEmbedConfig::default()).buffer_size.unwrap_or(100);
+    let buffer_size = config
+        .unwrap_or(&ImageEmbedConfig::default())
+        .buffer_size
+        .unwrap_or(100);
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
@@ -327,13 +328,28 @@ where
 
     let processing_task = tokio::spawn({
         async move {
-        // make image buffer
-        let mut image_buffer = Vec::with_capacity(buffer_size);
+            // make image buffer
+            let mut image_buffer = Vec::with_capacity(buffer_size);
 
-        while let Some(image) = rx.recv().await {
-            image_buffer.push(image);
+            while let Some(image) = rx.recv().await {
+                image_buffer.push(image);
 
-            if image_buffer.len() == buffer_size {
+                if image_buffer.len() == buffer_size {
+                    match process_images(&image_buffer, embeder.clone()).await {
+                        Ok(embeddings) => {
+                            if let Err(e) = collector_tx.send(embeddings) {
+                                eprintln!("Error sending embeddings to collector: {:?}", e);
+                            }
+                        }
+                        Err(e) => eprintln!("Error processing images: {:?}", e),
+                    }
+
+                    image_buffer.clear();
+                }
+            }
+
+            // Process any remaining images
+            if !image_buffer.is_empty() {
                 match process_images(&image_buffer, embeder.clone()).await {
                     Ok(embeddings) => {
                         if let Err(e) = collector_tx.send(embeddings) {
@@ -342,23 +358,8 @@ where
                     }
                     Err(e) => eprintln!("Error processing images: {:?}", e),
                 }
-
-                image_buffer.clear();
             }
         }
-
-        // Process any remaining images
-        if !image_buffer.is_empty() {
-            match process_images(&image_buffer, embeder.clone()).await {
-                Ok(embeddings) => {
-                    if let Err(e) = collector_tx.send(embeddings) {
-                        eprintln!("Error sending embeddings to collector: {:?}", e);
-                    }
-                }
-                Err(e) => eprintln!("Error processing images: {:?}", e),
-            }
-        }
-    }
     });
 
     file_parser.files.par_iter().for_each(|image| {
@@ -390,13 +391,11 @@ where
 
 async fn process_images<E: EmbedImage>(
     image_buffer: &Vec<String>,
-    embeder: Arc<E>,   
-) -> Result<Vec<EmbedData>>
-{
+    embeder: Arc<E>,
+) -> Result<Vec<EmbedData>> {
     let embeddings = embeder.embed_image_batch(image_buffer)?;
     Ok(embeddings)
 }
-
 
 /// Embeds text from files in a directory using the specified embedding model.
 ///
@@ -439,7 +438,7 @@ where
     F: Fn(Vec<EmbedData>),
 {
     println!("Embedding directory: {:?}", directory);
-    
+
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
@@ -466,7 +465,14 @@ where
                 metadata_buffer.push(metadata);
 
                 if chunk_buffer.len() == buffer_size {
-                    match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone(), batch_size).await {
+                    match process_chunks(
+                        &chunk_buffer,
+                        &metadata_buffer,
+                        embeder.clone(),
+                        batch_size,
+                    )
+                    .await
+                    {
                         Ok(embeddings) => {
                             if let Err(e) = collector_tx.send(embeddings) {
                                 eprintln!("Error sending embeddings to collector: {:?}", e);
@@ -482,7 +488,9 @@ where
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone(), batch_size).await {
+                match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone(), batch_size)
+                    .await
+                {
                     Ok(embeddings) => {
                         if let Err(e) = collector_tx.send(embeddings) {
                             eprintln!("Error sending embeddings to collector: {:?}", e);
@@ -507,7 +515,6 @@ where
 
     drop(tx);
 
- 
     let mut all_embeddings = Vec::new();
     while let Some(embeddings) = collector_rx.recv().await {
         if let Some(adapter) = &adapter {
@@ -516,15 +523,14 @@ where
             all_embeddings.extend(embeddings);
         }
     }
-   // Wait for the spawned task to complete
-   processing_task.await.unwrap();
+    // Wait for the spawned task to complete
+    processing_task.await.unwrap();
 
     if adapter.is_some() {
         Ok(None)
     } else {
         Ok(Some(all_embeddings))
     }
-
 }
 
 pub async fn process_chunks<E: TextEmbed + Send + Sync>(
@@ -532,8 +538,7 @@ pub async fn process_chunks<E: TextEmbed + Send + Sync>(
     metadata: &Vec<Option<HashMap<String, String>>>,
     embedding_model: Arc<E>,
     batch_size: Option<usize>,
-) -> Result<Vec<EmbedData>>
-{
+) -> Result<Vec<EmbedData>> {
     let encodings = embedding_model.embed(chunks, batch_size)?;
 
     // zip encodings with chunks and metadata

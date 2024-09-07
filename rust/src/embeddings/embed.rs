@@ -110,10 +110,10 @@ impl Embeder {
     ///     - For Cohere, find available models at https://docs.cohere.com/docs/cohere-embed
     /// * `api_key` - An optional string holds the API key for authenticating requests to the Cohere API. If not provided, it is taken from the environment variable
     ///         - For OpenAI, create environment variable `OPENAI_API_KEY`
-    ///         - For Cohere, create environment variable `CO_API_KEY` 
+    ///         - For Cohere, create environment variable `CO_API_KEY`
     ///
     /// # Returns
-    /// 
+    ///
     /// A new instance of `Embeder`.
     pub fn from_pretrained_cloud(
         model: &str,
@@ -174,17 +174,17 @@ impl EmbedImage for Embeder {
 
     fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
     where
-        Self: Sized {
-            match model_id {
-                "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbeder::new(
-                    model_id.to_string(),
-                    revision.map(|s| s.to_string()),
-                )?)),
-                _ => Err(anyhow::anyhow!("Model not supported")),
-            }
+        Self: Sized,
+    {
+        match model_id {
+            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbeder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
+            _ => Err(anyhow::anyhow!("Model not supported")),
         }
+    }
 }
-
 
 pub trait EmbedImage {
     fn embed_image<T: AsRef<std::path::Path>>(

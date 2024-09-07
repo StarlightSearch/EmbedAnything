@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fmt::Debug, fs};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display},
+    fs,
+};
 
 use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 use anyhow::Error;
@@ -16,8 +20,38 @@ impl Default for TextLoader {
 }
 
 #[derive(Debug)]
+pub enum FileLoadingError {
+    FileNotFound(String),
+    UnsupportedFileType(String),
+}
+impl Display for FileLoadingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileLoadingError::FileNotFound(file) => write!(f, "File not found: {}", file),
+            FileLoadingError::UnsupportedFileType(file) => {
+                write!(f, "Unsupported file type: {}", file)
+            }
+        }
+    }
+}
+
+impl From<FileLoadingError> for Error {
+    fn from(error: FileLoadingError) -> Self {
+        match error {
+            FileLoadingError::FileNotFound(file) => {
+                Error::msg(format!("File not found: {:?}", file))
+            }
+            FileLoadingError::UnsupportedFileType(file) => Error::msg(format!(
+                "Unsupported file type: {:?}. Currently supported file types are: pdf, md, txt",
+                file
+            )),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct TextLoader {
-   pub splitter: TextSplitter<Tokenizer>,
+    pub splitter: TextSplitter<Tokenizer>,
 }
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
@@ -41,11 +75,15 @@ impl TextLoader {
     }
 
     pub fn extract_text(file: &str) -> Result<String, Error> {
-        match file.split('.').last().unwrap() {
+        if !PathBuf::from(file).exists() {
+            return Err(FileLoadingError::FileNotFound(file.to_string()).into());
+        }
+        let file_extension = file.split('.').last().unwrap();
+        match file_extension {
             "pdf" => PdfProcessor::extract_text(&PathBuf::from(file)),
             "md" => MarkdownProcessor::extract_text(&PathBuf::from(file)),
             "txt" => TxtProcessor::extract_text(&PathBuf::from(file)),
-            _ => Err(Error::msg("Unsupported file type")),
+            _ => Err(FileLoadingError::UnsupportedFileType(file.to_string()).into()),
         }
     }
 
@@ -81,7 +119,6 @@ mod tests {
     fn test_metadata() {
         let file_path = PathBuf::from("test_files/test.pdf");
         let metadata = TextLoader::get_metadata(file_path.to_str().unwrap()).unwrap();
-            
 
         // assert the fields that are present
         assert!(metadata.contains_key("created"));

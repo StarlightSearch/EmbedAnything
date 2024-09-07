@@ -37,8 +37,8 @@ impl FileParser {
             if entry.file_type()?.is_file() {
                 let file_name = entry.file_name();
                 if extension_regex.is_match(file_name.to_str().unwrap_or("")) {
-                    let absolute_path = std::fs::canonicalize(entry.path())
-                        .unwrap_or_else(|_| entry.path());
+                    let absolute_path =
+                        std::fs::canonicalize(entry.path()).unwrap_or_else(|_| entry.path());
                     files.push(absolute_path.to_string_lossy().to_string());
                 }
             }
@@ -68,7 +68,7 @@ impl FileParser {
         self.files = image_paths;
         Ok(self.files.clone())
     }
-    
+
     pub fn get_audio_files(&mut self, directory_path: &PathBuf) -> Result<Vec<String>, Error> {
         let audio_regex = Regex::new(r".*\.(wav)$").unwrap();
 
@@ -129,7 +129,6 @@ mod tests {
                 &PathBuf::from(temp_dir.path()),
                 Some(vec!["pdf".to_string()]),
             )
-            
             .unwrap();
         let text_files = file_parser
             .get_text_files(
