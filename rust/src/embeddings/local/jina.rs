@@ -42,7 +42,7 @@ impl JinaEmbeder {
             Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
             None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
         };
- 
+
         let config_filename = api.get("config.json")?;
         let tokenizer_filename = api.get("tokenizer.json")?;
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
@@ -121,6 +121,4 @@ impl TextEmbed for JinaEmbeder {
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch, batch_size)
     }
-
-
 }
