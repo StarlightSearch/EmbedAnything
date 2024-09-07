@@ -10,9 +10,17 @@ pub struct TextEmbedConfig {
 impl TextEmbedConfig {
     #[new]
     #[pyo3(signature = (chunk_size=None, batch_size=None, buffer_size=None))]
-    pub fn new(chunk_size: Option<usize>, batch_size: Option<usize>, buffer_size: Option<usize>) -> Self {
+    pub fn new(
+        chunk_size: Option<usize>,
+        batch_size: Option<usize>,
+        buffer_size: Option<usize>,
+    ) -> Self {
         Self {
-            inner: embed_anything::config::TextEmbedConfig::new(chunk_size, batch_size, buffer_size),
+            inner: embed_anything::config::TextEmbedConfig::new(
+                chunk_size,
+                batch_size,
+                buffer_size,
+            ),
         }
     }
 
@@ -47,4 +55,4 @@ impl ImageEmbedConfig {
     pub fn buffer_size(&self) -> Option<usize> {
         self.inner.buffer_size
     }
-}   
+}

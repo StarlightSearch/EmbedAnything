@@ -181,7 +181,9 @@ impl<'a> Decoder<'a> {
             // The model expects a batch dim but this inference loop does not handle
             // it so we add it at this point.
             let tokens_t = tokens_t.unsqueeze(0)?;
-            let ys = model.model.decoder_forward(&tokens_t, &audio_features, i == 0)?;
+            let ys = model
+                .model
+                .decoder_forward(&tokens_t, &audio_features, i == 0)?;
 
             // Extract the no speech probability on the first iteration by looking at the first
             // token logits and the probability for the according token.
@@ -193,7 +195,8 @@ impl<'a> Decoder<'a> {
             }
 
             let (_, seq_len, _) = ys.dims3()?;
-            let logits = model.model
+            let logits = model
+                .model
                 .decoder_final_linear(&ys.i((..1, seq_len - 1..))?)?
                 .i(0)?
                 .i(0)?;
@@ -223,7 +226,9 @@ impl<'a> Decoder<'a> {
             let prob = softmax(&logits, candle_core::D::Minus1)?
                 .i(next_token as usize)?
                 .to_scalar::<f32>()? as f64;
-            if next_token == self.eot_token || tokens.len() > model.model.config().max_target_positions {
+            if next_token == self.eot_token
+                || tokens.len() > model.model.config().max_target_positions
+            {
                 break;
             }
             sum_logprob += prob.ln();
@@ -301,7 +306,8 @@ impl<'a> Decoder<'a> {
                     if token > self.no_timestamps_token {
                         let timestamp_s = (token - self.no_timestamps_token + 1) as f32 / 50.;
                         if !tokens_to_decode.is_empty() {
-                            let text = self.model
+                            let text = self
+                                .model
                                 .tokenizer
                                 .decode(&tokens_to_decode, true)
                                 .map_err(E::msg)?;
@@ -314,7 +320,8 @@ impl<'a> Decoder<'a> {
                     }
                 }
                 if !tokens_to_decode.is_empty() {
-                    let text = self.model
+                    let text = self
+                        .model
                         .tokenizer
                         .decode(&tokens_to_decode, true)
                         .map_err(E::msg)?;
@@ -485,7 +492,6 @@ pub struct ModelInput {
     pub model: PathBuf,
 }
 
-
 impl AudioDecoderModel {
     pub fn from_pretrained(
         model_id: Option<&str>,
@@ -496,7 +502,7 @@ impl AudioDecoderModel {
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
 
         match quantized {
-            false=> {
+            false => {
                 let model_input = build_model(model_id, revision, quantized, model_type)?;
                 let (config_filename, tokenizer_filename, weights_filename) =
                     (model_input.config, model_input.tokenizer, model_input.model);
@@ -509,7 +515,8 @@ impl AudioDecoderModel {
                     VarBuilder::from_mmaped_safetensors(&[weights_filename], m::DTYPE, &device)?
                 };
 
-                let model = WhichAudioDecoderModel::Normal(m::model::Whisper::load(&vb, config.clone())?);
+                let model =
+                    WhichAudioDecoderModel::Normal(m::model::Whisper::load(&vb, config.clone())?);
 
                 Ok(Self {
                     model,
@@ -534,7 +541,8 @@ impl AudioDecoderModel {
                     &device,
                 )?;
                 let model = WhichAudioDecoderModel::Quantized(m::quantized_model::Whisper::load(
-                    &vb, config.clone(),
+                    &vb,
+                    config.clone(),
                 )?);
 
                 Ok(Self {
@@ -547,7 +555,10 @@ impl AudioDecoderModel {
         }
     }
 
-    pub fn process_audio<T: AsRef<std::path::Path>>(&mut self, audio_path: T) -> Result<Vec<Segment>> {
+    pub fn process_audio<T: AsRef<std::path::Path>>(
+        &mut self,
+        audio_path: T,
+    ) -> Result<Vec<Segment>> {
         let mel_bytes = match self.config.num_mel_bins {
             80 => include_bytes!("melfilters.bytes").as_slice(),
             128 => include_bytes!("melfilters128.bytes").as_slice(),
@@ -581,7 +592,6 @@ impl AudioDecoderModel {
 
         let mut dc = Decoder::new(
             self,
-            
             299792458,
             &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
             language_token,
@@ -596,7 +606,7 @@ impl AudioDecoderModel {
 }
 
 impl AudioDecoder for AudioDecoderModel {
-    fn decode_audio(&mut self, audio_file: &std::path::Path) ->  Result<Vec<Segment>> {
+    fn decode_audio(&mut self, audio_file: &std::path::Path) -> Result<Vec<Segment>> {
         self.process_audio(audio_file)
     }
 }

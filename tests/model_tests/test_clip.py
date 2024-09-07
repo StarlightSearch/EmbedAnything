@@ -5,6 +5,7 @@ from embed_anything import (
     embed_query,
     embed_file,
     embed_directory,
+    embed_image_directory,
 )
 import pytest
 import os
@@ -33,19 +34,18 @@ def test_clip_model_query(clip_model):
     assert len(data[0].embedding) == 512
 
 
-def test_clip_model_file(clip_model):
+def test_clip_model_file(clip_model, test_image_file):
 
-    path = os.path.abspath("test_files/clip/monkey1.jpg")
-    data = embed_file("test_files/clip/monkey1.jpg", clip_model)
+    data = embed_file(test_image_file, clip_model)
 
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512
-    assert data[0].metadata["file_name"] == path
+    assert data[0].metadata["file_name"] == test_image_file
 
 
 def test_clip_model_directory(clip_model):
 
-    data = embed_directory("test_files/clip", clip_model)
+    data = embed_image_directory("test_files/clip", clip_model)
     assert len(data) == 5
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512
