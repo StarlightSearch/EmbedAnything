@@ -1,19 +1,27 @@
 use candle_core::Tensor;
 use embed_anything::{
     config::TextEmbedConfig,
-    embed_query, embed_webpage, embeddings::embed::{EmbedData, Embeder},
+    embed_query, embed_webpage,
+    embeddings::embed::{EmbedData, Embeder},
 };
 
 fn main() {
     let start_time = std::time::Instant::now();
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
-    
-    let embeder = Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None).unwrap();
+
+    let embeder =
+        Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+            .unwrap();
 
     let embed_config = TextEmbedConfig::new(Some(256), Some(32), None);
-    let embed_data = embed_webpage(url, &embeder, Some(&embed_config), None::<fn(Vec<EmbedData>)>)
-        .unwrap()
-        .unwrap();
+    let embed_data = embed_webpage(
+        url,
+        &embeder,
+        Some(&embed_config),
+        None::<fn(Vec<EmbedData>)>,
+    )
+    .unwrap()
+    .unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data
         .iter()
         .map(|data| data.embedding.clone())

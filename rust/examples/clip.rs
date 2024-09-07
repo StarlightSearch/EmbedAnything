@@ -1,5 +1,8 @@
 use candle_core::{Device, Tensor};
-use embed_anything::{ embed_image_directory, embed_query, embeddings::embed::{EmbedData, Embeder}};
+use embed_anything::{
+    embed_image_directory, embed_query,
+    embeddings::embed::{EmbedData, Embeder},
+};
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
 #[tokio::main]
@@ -13,10 +16,12 @@ async fn main() {
         &model,
         None,
         None::<fn(Vec<EmbedData>)>,
-    ).await.unwrap().unwrap();
+    )
+    .await
+    .unwrap()
+    .unwrap();
 
-    let query_emb_data =
-        embed_query(vec!["Photo of a monkey".to_string()], &model, None).unwrap();
+    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], &model, None).unwrap();
     let n_vectors = out.len();
     let out_embeddings = Tensor::from_vec(
         out.iter()

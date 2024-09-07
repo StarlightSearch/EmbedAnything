@@ -1,5 +1,3 @@
-
-
 #[derive(Clone)]
 pub struct TextEmbedConfig {
     pub chunk_size: Option<usize>,
@@ -18,7 +16,11 @@ impl Default for TextEmbedConfig {
 }
 
 impl TextEmbedConfig {
-    pub fn new(chunk_size: Option<usize>, batch_size: Option<usize>, buffer_size: Option<usize>) -> Self {
+    pub fn new(
+        chunk_size: Option<usize>,
+        batch_size: Option<usize>,
+        buffer_size: Option<usize>,
+    ) -> Self {
         Self {
             chunk_size,
             batch_size,
@@ -42,8 +44,6 @@ impl Default for ImageEmbedConfig {
 
 impl ImageEmbedConfig {
     pub fn new(buffer_size: Option<usize>) -> Self {
-        Self {
-            buffer_size,
-        }
+        Self { buffer_size }
     }
 }
