@@ -215,7 +215,6 @@ impl TextEmbed for ClipEmbeder {
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch, batch_size)
     }
-
 }
 
 impl EmbedImage for ClipEmbeder {
@@ -227,7 +226,9 @@ impl EmbedImage for ClipEmbeder {
 
         let mut encodings = Vec::new();
         for image_batch in image_paths.chunks(32) {
-            let images = self.load_images(image_batch, config.vision_config.image_size).unwrap();
+            let images = self
+                .load_images(image_batch, config.vision_config.image_size)
+                .unwrap();
             let batch_encodings = self
                 .model
                 .get_image_features(&images)
@@ -281,7 +282,7 @@ impl EmbedImage for ClipEmbeder {
         Ok(EmbedData::new(encoding.to_vec(), None, metadata.clone()))
     }
 
-    fn from_pretrained( model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
     where
         Self: Sized,
     {

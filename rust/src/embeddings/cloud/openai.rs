@@ -36,8 +36,6 @@ impl TextEmbed for OpenAIEmbeder {
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
-
-
 }
 
 impl OpenAIEmbeder {

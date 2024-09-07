@@ -222,7 +222,7 @@ class TextEmbedConfig:
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
-    def __init__(self, chunk_size: int | None = None, batch_size: int | None = None):
+    def __init__(self, chunk_size: int | None = 256, batch_size: int | None = 32):
         self.chunk_size = chunk_size
         self.batch_size = batch_size
     chunk_size: int | None

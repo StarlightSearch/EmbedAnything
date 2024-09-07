@@ -2,10 +2,14 @@ pub mod config;
 
 use embed_anything::{
     self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
-    file_processor::audio::audio_processor,
+    file_processor::audio::audio_processor, text_loader::FileLoadingError,
 };
-use pyo3::{exceptions::PyValueError, prelude::*};
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use pyo3::{exceptions::PyValueError, exceptions::PyFileNotFoundError, prelude::*};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tokio::runtime::Builder;
 
 #[pyclass]
@@ -236,47 +240,54 @@ pub fn embed_file(
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
-    match adapter {
-        Some(adapter) => Python::with_gil(|py| {
-            let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                let converted_data = data
-                    .into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<EmbedData>>();
-                upsert_fn
-                    .call1(py, (converted_data,))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))
-                    .unwrap();
+    if !Path::new(file_name).exists() {
+        // check if the file exists other wise return a "File not found" error with PyValueError
+        return Err(PyFileNotFoundError::new_err(format!(
+            "File not found: {:?}",
+            file_name
+        )));
+    };
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
             };
-
-            let data =
-                embed_anything::embed_file(file_name, &embedding_model, config, Some(callback))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))
-                    .unwrap()
-                    .map(|data| {
-                        data.into_iter()
-                            .map(|data| EmbedData { inner: data })
-                            .collect::<Vec<_>>()
-                    });
-            Ok(data)
-        }),
-        None => {
-            let data = embed_anything::embed_file(
-                file_name,
-                &embedding_model,
-                config,
-                None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-            )
-            .map_err(|e| PyValueError::new_err(e.to_string()))?
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<_>>()
-            });
-            Ok(data)
+            Some(callback)
         }
-    }
+        None => None,
+    };
+
+    let data = embed_anything::embed_file(file_name, &embedding_model, config, adapter)
+        .map_err(|e| {
+            if let Some(file_loading_error) = e.downcast_ref::<FileLoadingError>() {
+                match file_loading_error {
+                    FileLoadingError::FileNotFound(file) => {
+                        PyFileNotFoundError::new_err(file.clone())
+                    }
+                    FileLoadingError::UnsupportedFileType(file) => {
+                        PyValueError::new_err(file.clone())
+                    }
+                }
+            } else {
+                PyValueError::new_err(e.to_string())
+            }
+        })?
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        });
+    Ok(data)
 }
 
 #[pyfunction]
@@ -315,59 +326,44 @@ pub fn embed_directory(
 
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     println!("Runtime created");
-    match adapter {
-        Some(adapter) => Python::with_gil(|py| {
-            let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                let converted_data = data
-                    .into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<EmbedData>>();
-                upsert_fn
-                    .call1(py, (converted_data,))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))
-                    .unwrap();
-            };
-            let data = rt.block_on(async {
-                embed_anything::embed_directory_stream(
-                    directory,
-                    embedding_model,
-                    extensions,
-                    config,
-                    Some(callback),
-                )
-                .await
-                .map_err(|e| PyValueError::new_err(e.to_string()))
-                .unwrap()
-                .map(|data| {
-                    data.into_iter()
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
                         .map(|data| EmbedData { inner: data })
-                        .collect::<Vec<_>>()
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
                 })
-            });
-            Ok(data)
-        }),
-        None => {
-            // Use the existing runtime to block on the async function
-            rt.block_on(async {
-                let data = embed_anything::embed_directory_stream(
-                    directory,
-                    &embedding_model,
-                    extensions,
-                    config,
-                    None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-                )
-                .await
-                .map_err(|e| PyValueError::new_err(e.to_string()))?
-                .map(|data| {
-                    data.into_iter()
-                        .map(|data| EmbedData { inner: data })
-                        .collect::<Vec<_>>()
-                });
-                Ok(data)
-            })
+            };
+            Some(callback)
         }
-    }
+        None => None,
+    };
+
+    let data = rt.block_on(async {
+        embed_anything::embed_directory_stream(
+            directory,
+            embedding_model,
+            extensions,
+            config,
+            adapter,
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        })
+    });
+    Ok(data)
 }
 
 #[pyfunction]
@@ -383,55 +379,39 @@ pub fn embed_image_directory(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     println!("Runtime created");
 
-    match adapter {
-        Some(adapter) => Python::with_gil(|py| {
-            let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                let converted_data = data
-                    .into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<EmbedData>>();
-                upsert_fn
-                    .call1(py, (converted_data,))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))
-                    .unwrap();
-            };
-
-            let data = rt.block_on(async {
-                embed_anything::embed_image_directory(directory, embedding_model, config, Some(callback))
-                    .await
-                    .map_err(|e| PyValueError::new_err(e.to_string()))
-                    .unwrap()
-                    .map(|data| {
-                        data.into_iter()
-                            .map(|data| EmbedData { inner: data })
-                            .collect::<Vec<_>>()
-                    })
-            });
-            Ok(data)
-        }),
-        None => {
-            let data = rt.block_on(async {
-                embed_anything::embed_image_directory(
-                    directory,
-                    embedding_model,
-                    config,
-                    None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-                )
-                .await
-                .map_err(|e| PyValueError::new_err(e.to_string()))
-                .unwrap()
-                .map(|data| {
-                    data.into_iter()
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
                         .map(|data| EmbedData { inner: data })
-                        .collect::<Vec<_>>()
-                })
-            });
-            Ok(data)
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
+            };
+            Some(callback)
         }
-    }
-}
+        None => None,
+    };
 
+    let data = rt.block_on(async {
+        embed_anything::embed_image_directory(directory, embedding_model, config, adapter)
+            .await
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+            .unwrap()
+            .map(|data| {
+                data.into_iter()
+                    .map(|data| EmbedData { inner: data })
+                    .collect::<Vec<_>>()
+            })
+    });
+    Ok(data)
+}
 #[pyfunction]
 #[pyo3(signature = (url, embeder, config=None, adapter = None))]
 pub fn embed_webpage(
@@ -440,45 +420,37 @@ pub fn embed_webpage(
     config: Option<&config::TextEmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
-    let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
-    match adapter {
-        Some(adapter) => Python::with_gil(|py| {
-            let callback = |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                let converted_data = data
-                    .into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<EmbedData>>();
-                upsert_fn
-                    .call1(py, (converted_data,))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))
-                    .unwrap();
-            };
+    let config = config.map(|c| &c.inner);
 
-            Ok(
-                embed_anything::embed_webpage(url, embedding_model, config, Some(callback))
-                    .map_err(|e| PyValueError::new_err(e.to_string()))?
-                    .map(|data| {
-                        data.into_iter()
-                            .map(|data| EmbedData { inner: data })
-                            .collect()
-                    }),
-            )
-        }),
-        None => Ok(embed_anything::embed_webpage(
-            url,
-            embedding_model,
-            config,
-            None::<fn(Vec<embed_anything::embeddings::embed::EmbedData>)>,
-        )
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
+            };
+            Some(callback)
+        }
+        None => None,
+    };
+
+    let data = embed_anything::embed_webpage(url, embedding_model, config, adapter)
         .map_err(|e| PyValueError::new_err(e.to_string()))?
         .map(|data| {
             data.into_iter()
                 .map(|data| EmbedData { inner: data })
-                .collect()
-        })),
-    }
+                .collect::<Vec<_>>()
+        });
+    Ok(data)
 }
 
 #[pymodule]

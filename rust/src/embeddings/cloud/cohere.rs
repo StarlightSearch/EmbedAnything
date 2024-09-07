@@ -41,20 +41,18 @@ impl TextEmbed for CohereEmbeder {
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         self.embed(text_batch)
     }
-
-
 }
 
 impl CohereEmbeder {
     /// Creates a new instance of `CohereEmbeder` with the specified model and API key.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `model` - A string slice that holds the model to be used for embedding. Find available models at https://docs.cohere.com/docs/cohere-embed
     /// * `api_key` - An optional string slice that holds the API key for authenticating requests to the Cohere API.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new instance of `CohereEmbeder`.
     pub fn new(model: String, api_key: Option<String>) -> Self {
         let api_key =
