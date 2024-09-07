@@ -1,15 +1,14 @@
 use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embeder};
 use embed_anything::embed_directory_stream;
+use embed_anything::embeddings::embed::{EmbedData, Embeder};
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
 
 #[tokio::main]
 async fn main() {
-
     // let model = Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
-    let model = Embeder::from_pretrained_hf("jina","jinaai/jina-embeddings-v2-small-en", None)
-        .unwrap();
+    let model =
+        Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap();
     let config = TextEmbedConfig::new(Some(512), Some(12), None);
 
     // let out = embed_file(
@@ -36,13 +35,11 @@ async fn main() {
     .unwrap()
     .unwrap();
 
-    
     println!("Number of chunks: {:?}", _out.len());
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 
     // println!("\nEmbedded Text from PDF:");
-
 
     // println!("\nEmbedded Text from PDF:");
     // for (index, embed_data) in _out.iter().enumerate() {
@@ -52,6 +49,4 @@ async fn main() {
     //     println!("Metadata: {:?}", embed_data.metadata);
     //     println!("---");
     // }
-
-
 }

@@ -66,24 +66,24 @@ impl BertEmbeder {
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
         let vb = if weights_filename.ends_with("model.safetensors") {
             unsafe {
-            VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
+                VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
             }
         } else {
             println!("Loading weights from pytorch_model.bin");
             VarBuilder::from_pth(&weights_filename, DTYPE, &device).unwrap()
         };
-     
 
         config.hidden_act = HiddenAct::GeluApproximate;
 
-        let model =BertModel::load(vb, &config).unwrap();
+        let model = BertModel::load(vb, &config).unwrap();
         let tokenizer = tokenizer;
-  
+
         Ok(BertEmbeder { model, tokenizer })
     }
 
     pub fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
-        let tokens = self.tokenizer
+        let tokens = self
+            .tokenizer
             .encode_batch(text_batch.to_vec(), true)
             .map_err(E::msg)?;
         let token_ids = tokens
@@ -110,7 +110,10 @@ impl BertEmbeder {
                 .tokenize_batch(mini_text_batch, &self.model.device)
                 .unwrap();
             let token_type_ids = token_ids.zeros_like().unwrap();
-            let embeddings = self.model.forward(&token_ids, &token_type_ids, None).unwrap();
+            let embeddings = self
+                .model
+                .forward(&token_ids, &token_type_ids, None)
+                .unwrap();
             let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
 
             let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();

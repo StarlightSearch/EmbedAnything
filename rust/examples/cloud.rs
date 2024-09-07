@@ -1,10 +1,12 @@
 use std::{path::PathBuf, sync::Arc};
 
 use embed_anything::{
-    config::TextEmbedConfig, embed_directory_stream, embed_file, embeddings::{
+    config::TextEmbedConfig,
+    embed_directory_stream, embed_file,
+    embeddings::{
         cloud::cohere::CohereEmbeder,
         embed::{EmbedData, Embeder},
-    }
+    },
 };
 
 use anyhow::Result;
@@ -23,10 +25,9 @@ async fn main() -> Result<()> {
         Some(vec!["pdf".to_string()]),
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
-    ).await
-    ?
+    )
+    .await?
     .unwrap();
-
 
     let _cohere_embedding: Option<Vec<EmbedData>> = embed_file(
         "test_files/attention.pdf",
@@ -34,8 +35,6 @@ async fn main() -> Result<()> {
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
     )?;
-
-
 
     Ok(())
 }
