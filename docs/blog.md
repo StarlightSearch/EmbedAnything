@@ -1,3 +1,5 @@
+## Blog
+
 # `Embed-anything== 0.3.0 🎉`
 
 1. `Code Refactored: All the major functions are refactored, making calling models more intuitive and optimized. Check out our docs and usage.`
