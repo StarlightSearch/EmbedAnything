@@ -14,45 +14,50 @@ Usage:
 
 ```python
 import embed_anything
+from embed_anything import EmbedData
 
-# Create a config
-config = embed_anything.EmbedConfig(
-    jina=embed_anything.JinaConfig(
-        model_id="jinaai/jina-embeddings-v2-small-en",
-        revision="main",
-        chunk_size=100
-    )
+#For text files
+
+model = EmbeddingModel.from_pretrained_local(
+    WhichModel.Bert, model_id="Hugging_face_link"
 )
+data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
 
-# Embed a file
-data = embed_anything.embed_file("test_files/test.pdf",
-                embeder="Jina",
-                config=config)
 
-# Embed a directory
-data = embed_anything.embed_directory("test_files",
-                embeder="Jina",
-                config=config)
-
-# Embed Audio
-audio_decoder_config = embed_anything.AudioDecoderConfig(
-    decoder_model_id="openai/whisper-tiny.en",
-    decoder_revision="main",
-    model_type="tiny-en",
-    quantized=False,
+#For images
+model = embed_anything.EmbeddingModel.from_pretrained_local(
+    embed_anything.WhichModel.Clip,
+    model_id="openai/clip-vit-base-patch16",
+    # revision="refs/pr/15",
 )
-jina_config = embed_anything.JinaConfig(
-    model_id="jinaai/jina-embeddings-v2-small-en",
+data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
+embeddings = np.array([data.embedding for data in data])
+query = ["Photo of a monkey?"]
+query_embedding = np.array(
+    embed_anything.embed_query(query, embeder=model)[0].embedding
+)
+# For audio files
+from embed_anything import (
+    AudioDecoderModel,
+    EmbeddingModel,
+    embed_audio_file,
+    TextEmbedConfig,
+)
+# choose any whisper or distilwhisper model from https://huggingface.co/distil-whisper or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
+audio_decoder = AudioDecoderModel.from_pretrained_hf(
+    "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
+)
+embeder = EmbeddingModel.from_pretrained_hf(
+    embed_anything.WhichModel.Bert,
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
     revision="main",
-    chunk_size=100
 )
-
-config = embed_anything.EmbedConfig(jina=jina_config,
-            audio_decoder=audio_decoder_config)
-data = embed_anything.embed_file(
+config = TextEmbedConfig(chunk_size=200, batch_size=32)
+data = embed_anything.embed_audio_file(
     "test_files/audio/samples_hp0.wav",
-    embeder="Audio",
-    config=config
+    audio_decoder=audio_decoder,
+    embeder=embeder,
+    text_embed_config=config,
 )
 
 ```
@@ -78,17 +83,24 @@ except:
 
 # Initialize the PineconeEmbedder class
 
-pinecone_adapter.create_index(
-        dimension=1536,
-        metric="cosine",
-        index_name=index_name
-        )
+pinecone_adapter.create_index(dimension=512, metric="cosine")
 
-data = embed_anything.embed_file(
-        "test_files/test.pdf",
-        embeder="OpenAI",
-        adapter=pinecone_adapter
-        )
+# bert_model = EmbeddingModel.from_pretrained_hf(
+#     WhichModel.Bert, "sentence-transformers/all-MiniLM-L12-v2", revision="main"
+# )
+
+clip_model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Clip, "openai/clip-vit-base-patch16", revision="main"
+)
+
+embed_config = TextEmbedConfig(chunk_size=512, batch_size=32)
+
+
+data = embed_anything.embed_image_directory(
+    "test_files",
+    embeder=clip_model,
+    adapter=pinecone_adapter,
+    # config=embed_config,
 ```
 
 
