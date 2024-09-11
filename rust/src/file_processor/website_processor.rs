@@ -6,10 +6,7 @@ use serde_json::json;
 use url::Url;
 
 use crate::{
-    embeddings::{
-        embed::{EmbedData, Embeder, TextEmbed},
-        get_text_metadata,
-    },
+    embeddings::{embed::EmbedData, embed::Embeder, get_text_metadata},
     text_loader::TextLoader,
 };
 

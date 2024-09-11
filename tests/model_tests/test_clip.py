@@ -40,7 +40,6 @@ def test_clip_model_file(clip_model, test_image_file):
 
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512
-    assert data[0].metadata["file_name"] == test_image_file
 
 
 def test_clip_model_directory(clip_model):

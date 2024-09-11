@@ -272,31 +272,15 @@ pub fn embed_file(
         None => None,
     };
 
-    let data = rt.block_on(async {
-        embed_anything::embed_file(file_name, &embedding_model, config, adapter)
-            .await
-            .map_err(|e| {
-                if let Some(file_loading_error) = e.downcast_ref::<FileLoadingError>() {
-                    match file_loading_error {
-                        FileLoadingError::FileNotFound(file) => {
-                            PyFileNotFoundError::new_err(file.clone())
-                        }
-                        FileLoadingError::UnsupportedFileType(file) => {
-                            PyValueError::new_err(file.clone())
-                        }
-                    }
-                } else {
-                    PyValueError::new_err(e.to_string())
-                }
-            })
-            .unwrap()
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<_>>()
-            })
-    });
-    Ok(data)
+    let embeddings = rt.block_on(async {
+        embed_anything::embed_file(file_name, &embedding_model, config, adapter).await
+    }).map_err(|e| match e.downcast_ref::<FileLoadingError>() {
+        Some(FileLoadingError::FileNotFound(file)) => PyFileNotFoundError::new_err(file.clone()),
+        Some(FileLoadingError::UnsupportedFileType(file)) => PyValueError::new_err(file.clone()),
+        None => PyValueError::new_err(e.to_string()),
+    })?;
+
+    Ok(embeddings.map(|embs| embs.into_iter().map(|data| EmbedData { inner: data }).collect()))
 }
 
 #[pyfunction]
