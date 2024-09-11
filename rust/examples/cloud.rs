@@ -29,6 +29,16 @@ async fn main() -> Result<()> {
     .await?
     .unwrap();
 
+
+    let _file_embedding = embed_file(
+        "test_files/attention.pdf",
+        &openai_model,
+        Some(&text_embed_config),
+        None::<fn(Vec<EmbedData>)>,
+    ).await
+    ?
+    .unwrap();
+
     let _cohere_embedding = embed_file(
         "test_files/attention.pdf",
         &cohere_model,
