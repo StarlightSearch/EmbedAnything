@@ -162,9 +162,9 @@ where
 /// };
 /// ```
 
-pub async fn embed_webpage<F, E:TextEmbed>(
+pub async fn embed_webpage<F>(
     url: String,
-    embeder: &E,
+    embeder: &Embeder,
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<F>,
@@ -217,7 +217,7 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
+                let encodings = embedding_model.embed(&chunks[..], batch_size).unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
@@ -229,7 +229,7 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
+                let encodings = embedding_model.embed(&chunks[..], batch_size).unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
@@ -256,10 +256,10 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
     Ok(embedding)
 }
 
-pub async fn emb_audio<T: AsRef<std::path::Path>, E:TextEmbed>(
+pub async fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
-    embeder: &E,
+    embeder: &Embeder,
     text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
@@ -532,10 +532,10 @@ where
     }
 }
 
-pub async fn process_chunks<E: TextEmbed + Send + Sync>(
+pub async fn process_chunks(
     chunks: &Vec<String>,
     metadata: &Vec<Option<HashMap<String, String>>>,
-    embedding_model: Arc<E>,
+    embedding_model: Arc<Embeder>,
     batch_size: Option<usize>,
 ) -> Result<Vec<EmbedData>> {
     let encodings = embedding_model.embed(chunks, batch_size).await?;
