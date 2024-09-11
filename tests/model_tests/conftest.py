@@ -77,6 +77,13 @@ def audio_decoder() -> AudioDecoderModel:
     )
     return model
 
+@pytest.fixture
+def openai_model() -> EmbeddingModel:
+    model = EmbeddingModel.from_pretrained_cloud(
+        WhichModel.OpenAI, model_id="text-embedding-3-small"
+    )
+    return model
+
 
 class DummyAdapter(Adapter):
 

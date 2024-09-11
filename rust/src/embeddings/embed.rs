@@ -61,14 +61,14 @@ pub enum Embeder {
 }
 
 impl Embeder {
-    pub fn embed(
-        &mut self,
+    pub async fn embed(
+        &self,
         text_batch: &[String],
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
-            Embeder::OpenAI(embeder) => embeder.embed(text_batch),
-            Embeder::Cohere(embeder) => embeder.embed(text_batch),
+            Embeder::OpenAI(embeder) => embeder.embed(text_batch).await,
+            Embeder::Cohere(embeder) => embeder.embed(text_batch).await,
             Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Clip(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Bert(embeder) => embeder.embed(text_batch, batch_size),
@@ -134,21 +134,7 @@ impl Embeder {
     }
 }
 
-impl TextEmbed for Embeder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        match self {
-            Self::OpenAI(embeder) => embeder.embed(text_batch),
-            Self::Cohere(embeder) => embeder.embed(text_batch),
-            Self::Jina(embeder) => embeder.embed(text_batch, batch_size),
-            Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
-            Self::Bert(embeder) => embeder.embed(text_batch, batch_size),
-        }
-    }
-}
+
 
 impl EmbedImage for Embeder {
     fn embed_image<T: AsRef<std::path::Path>>(
