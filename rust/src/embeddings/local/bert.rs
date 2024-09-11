@@ -128,7 +128,7 @@ impl BertEmbeder {
 }
 
 impl TextEmbed for BertEmbeder {
-    async fn embed(
+    fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
@@ -140,6 +140,7 @@ impl TextEmbed for BertEmbeder {
 #[cfg(test)]
 
 mod tests {
+    use crate::embeddings::embed::Embeder;
     use crate::embeddings::embed_audio;
     use crate::file_processor::audio::audio_processor::Segment;
 
@@ -162,7 +163,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_bert_embeder_audio() {
-        let embeder = BertEmbeder::default();
+        let bert_model =
+            Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+                .unwrap();
         let segments = vec![
             Segment {
                 start: 0.0,
@@ -177,7 +180,9 @@ mod tests {
         ];
         let audio_file = PathBuf::from("tests/data/sample.wav");
         let start = Instant::now();
-        let embeddings = embed_audio(&embeder, segments, audio_file, None).await.unwrap();
+        let embeddings = embed_audio(&bert_model, segments, audio_file, None)
+            .await
+            .unwrap();
         println!("Time taken: {:?}", start.elapsed());
         assert_eq!(embeddings.len(), 2);
     }

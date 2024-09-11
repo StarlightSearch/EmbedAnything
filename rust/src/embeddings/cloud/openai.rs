@@ -28,7 +28,7 @@ impl Default for OpenAIEmbeder {
 }
 
 impl TextEmbed for OpenAIEmbeder {
-    async fn embed(
+    fn embed(
         &self,
         text_batch: &[String],
         _batch_size: Option<usize>,

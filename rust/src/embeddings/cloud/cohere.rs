@@ -32,7 +32,7 @@ impl Default for CohereEmbeder {
 }
 
 impl TextEmbed for CohereEmbeder {
-    async fn embed(
+     fn embed(
         &self,
         text_batch: &[String],
         _batch_size: Option<usize>,

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use candle_core::Tensor;
-use embed::{EmbedData, TextEmbed};
+use embed::{EmbedData, Embeder, TextEmbed};
 
 use crate::file_processor::audio::audio_processor::Segment;
 
@@ -61,8 +61,8 @@ pub fn text_batch_from_audio(segments: &[Segment]) -> Vec<String> {
         .collect()
 }
 
-pub async fn embed_audio<T: AsRef<std::path::Path>, E:TextEmbed>(
-    embeder: &E,
+pub async fn embed_audio<T: AsRef<std::path::Path>>(
+    embeder: &Embeder,
     segments: Vec<Segment>,
     audio_file: T,
     batch_size: Option<usize>,
