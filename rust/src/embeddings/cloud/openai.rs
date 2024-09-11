@@ -4,7 +4,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embeddings::embed::{EmbedData, TextEmbed};
+use crate::embeddings::embed::EmbedData;
 
 #[derive(Deserialize, Debug, Default)]
 pub struct OpenAIEmbedResponse {
@@ -24,16 +24,6 @@ pub struct OpenAIEmbeder {
 impl Default for OpenAIEmbeder {
     fn default() -> Self {
         Self::new("text-embedding-3-small".to_string(), None)
-    }
-}
-
-impl TextEmbed for OpenAIEmbeder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        _batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        tokio::runtime::Runtime::new()?.block_on(self.embed(text_batch))
     }
 }
 

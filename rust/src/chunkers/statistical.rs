@@ -1,13 +1,12 @@
 use std::cmp::max;
 
-use crate::embeddings::{embed::TextEmbed, local::jina::JinaEmbeder};
+use crate::embeddings::{embed::Embeder,  local::jina::JinaEmbeder};
 use candle_core::Tensor;
 use itertools::{enumerate, Itertools};
 use tokenizers::Tokenizer;
 
-#[derive(Debug)]
-pub struct StatisticalChunker<T: TextEmbed> {
-    pub encoder: T,
+pub struct StatisticalChunker {
+    pub encoder: Embeder,
     pub device: candle_core::Device,
     pub threshold_adjustment: f32,
     pub dynamic_threshold: bool,
@@ -18,10 +17,10 @@ pub struct StatisticalChunker<T: TextEmbed> {
     pub tokenizer: Tokenizer,
     pub verbose: bool,
 }
-impl Default for StatisticalChunker<JinaEmbeder> {
+impl Default for StatisticalChunker {
     fn default() -> Self {
         let tokenizer = Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap();
-        let encoder = JinaEmbeder::default();
+        let encoder = Embeder::Jina(JinaEmbeder::default());
         let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
         Self {
             encoder,
@@ -38,10 +37,10 @@ impl Default for StatisticalChunker<JinaEmbeder> {
     }
 }
 
-impl<T: TextEmbed> StatisticalChunker<T> {
+impl StatisticalChunker {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        encoder: T,
+        encoder: Embeder,
         threshold_adjustment: f32,
         dynamic_threshold: bool,
         window_size: usize,
@@ -101,7 +100,7 @@ impl<T: TextEmbed> StatisticalChunker<T> {
         Some(chunks)
     }
 
-    pub fn _chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
+    pub async fn _chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
         let splits = self.split_into_sentences(text, 50).unwrap();
 
         if self.verbose {
@@ -126,7 +125,7 @@ impl<T: TextEmbed> StatisticalChunker<T> {
                     .collect::<Vec<_>>();
             }
 
-            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).unwrap();
+            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).await.unwrap();
             let similarities = self._calculate_similarity_scores(&encoded_splits);
             let calculated_threshold = self._find_optimal_threshold(&batch_splits, &similarities);
 
@@ -331,15 +330,15 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_statistical_chunker() {
+    #[tokio::test]
+    async fn test_statistical_chunker() {
         let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf").unwrap();
         let chunker = StatisticalChunker{
             verbose: true,
             ..Default::default()
         };
         println!("-----Text---\n{}", text);
-        let chunks = chunker._chunk(&text, 10);
+        let chunks = chunker._chunk(&text, 10).await;
         assert_eq!(chunks.len(), 1);
     }
 }
