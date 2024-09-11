@@ -24,7 +24,7 @@ pub struct WebPage {
 }
 
 impl WebPage {
-    pub fn embed_webpage<T: TextEmbed>(
+    pub async fn embed_webpage<T: TextEmbed>(
         &self,
         embeder: &T,
         chunk_size: usize,
@@ -33,21 +33,21 @@ impl WebPage {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
-            embed_data.extend(self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size)?);
+            embed_data.extend(self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size).await?);
         }
 
         if let Some(headers) = &self.headers {
-            embed_data.extend(self.embed_tag("h1", headers, embeder, chunk_size, batch_size)?);
+            embed_data.extend(self.embed_tag("h1", headers, embeder, chunk_size, batch_size).await?);
         }
 
         if let Some(codes) = &self.codes {
-            embed_data.extend(self.embed_tag("code", codes, embeder, chunk_size, batch_size)?);
+            embed_data.extend(self.embed_tag("code", codes, embeder, chunk_size, batch_size).await?);
         }
 
         Ok(embed_data)
     }
 
-    pub fn embed_tag<T: TextEmbed>(
+    pub async fn embed_tag<T: TextEmbed>(
         &self,
         tag: &str,
         tag_content: &[String],
@@ -85,7 +85,7 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let encodings = embeder.embed(&chunks, batch_size)?;
+            let encodings = embeder.embed(&chunks, batch_size).await?;
             let embeddings = get_text_metadata(&encodings, &chunks, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
