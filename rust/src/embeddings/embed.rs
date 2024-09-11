@@ -39,13 +39,6 @@ impl EmbedData {
     }
 }
 
-pub trait TextEmbed {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
-}
 
 pub trait AudioDecoder {
     fn decode_audio(&mut self, audio_file: &std::path::Path)
