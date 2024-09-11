@@ -91,5 +91,9 @@ def test_bert_model_empty_directory(bert_model, tmp_path):
 
 def test_bert_model_unsupported_file_type(bert_model, tmp_path):
 
-    with pytest.raises(FileNotFoundError):
-        embed_file("nonexistent_file.txt", bert_model)
+    # Create a file with an unsupported extension
+    with open(tmp_path / "unsupported.mp3", "w") as f:
+        f.write("This is a test file")
+
+    with pytest.raises(ValueError):
+        embed_file(str(tmp_path / "unsupported.mp3"), bert_model)

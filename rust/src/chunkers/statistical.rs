@@ -30,7 +30,7 @@ impl Default for StatisticalChunker<JinaEmbeder> {
             dynamic_threshold: true,
             window_size: 5,
             min_split_tokens: 100,
-            max_split_tokens: 300,
+            max_split_tokens: 512,
             split_token_tolerance: 10,
             tokenizer,
             verbose: false,
@@ -322,5 +322,24 @@ impl<T: TextEmbed> StatisticalChunker<T> {
         }
 
         chunks
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::text_loader::TextLoader;
+
+    use super::*;
+
+    #[test]
+    fn test_statistical_chunker() {
+        let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf").unwrap();
+        let chunker = StatisticalChunker{
+            verbose: true,
+            ..Default::default()
+        };
+        println!("-----Text---\n{}", text);
+        let chunks = chunker._chunk(&text, 10);
+        assert_eq!(chunks.len(), 1);
     }
 }

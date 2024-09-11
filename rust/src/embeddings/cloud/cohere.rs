@@ -20,8 +20,6 @@ pub struct CohereEmbeder {
     model: String,
     /// The API key for authenticating requests to the Cohere API.
     api_key: String,
-    /// The Tokio runtime for asynchronous operations.
-    runtime: tokio::runtime::Runtime,
     /// The HTTP client for making requests.
     client: Client,
 }
@@ -34,12 +32,12 @@ impl Default for CohereEmbeder {
 }
 
 impl TextEmbed for CohereEmbeder {
-    fn embed(
+     fn embed(
         &self,
         text_batch: &[String],
         _batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        self.embed(text_batch)
+        tokio::runtime::Runtime::new()?.block_on(self.embed(text_batch))
     }
 }
 
@@ -62,33 +60,26 @@ impl CohereEmbeder {
             model,
             url: "https://api.cohere.com/v1/embed".to_string(),
             api_key,
-            runtime: tokio::runtime::Builder::new_current_thread()
-                .enable_io()
-                .build()
-                .unwrap(),
             client: Client::new(),
         }
     }
 
-    pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let data = self.runtime.block_on(async move {
-            let response = self
-                .client
-                .post(&self.url)
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/json")
-                .header("Authorization", format!("Bearer {}", self.api_key))
-                .json(&json!({
-                    "texts": text_batch,
-                    "model": self.model,
-                    "input_type": "search_document"
-                }))
-                .send()
-                .await
-                .unwrap();
-            response.json::<CohereEmbedResponse>().await.unwrap()
-        });
+    pub async fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        let response = self
+            .client
+            .post(&self.url)
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&json!({
+                "texts": text_batch,
+                "model": self.model,
+                "input_type": "search_document"
+            }))
+            .send()
+            .await?;
 
+        let data = response.json::<CohereEmbedResponse>().await?;
         let encodings = data.embeddings;
 
         Ok(encodings)
@@ -99,15 +90,15 @@ impl CohereEmbeder {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_cohere_embed() {
+    #[tokio::test]
+    async fn test_cohere_embed() {
         let cohere = CohereEmbeder::default();
         let text_batch = vec![
             "Once upon a time".to_string(),
             "The quick brown fox jumps over the lazy dog".to_string(),
         ];
 
-        let embeddings = cohere.embed(&text_batch).unwrap();
+        let embeddings = cohere.embed(&text_batch).await.unwrap();
         assert_eq!(embeddings.len(), 2);
     }
 }

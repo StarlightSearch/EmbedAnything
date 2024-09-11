@@ -2,7 +2,6 @@ from embed_anything import AudioDecoderModel, EmbeddingModel, embed_audio_file
 import pytest
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_audio_decoder(audio_decoder: AudioDecoderModel):
     assert audio_decoder is not None
 
