@@ -14,7 +14,7 @@ use candle_transformers::models::clip::{self, ClipConfig};
 use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;
 
-use crate::embeddings::embed::{EmbedData, EmbedImage, TextEmbed};
+use crate::embeddings::embed::{EmbedData, EmbedImage};
 
 pub struct ClipEmbeder {
     pub model: clip::ClipModel,
@@ -207,15 +207,6 @@ impl ClipEmbeder {
     }
 }
 
-impl TextEmbed for ClipEmbeder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        self.embed(text_batch, batch_size)
-    }
-}
 
 impl EmbedImage for ClipEmbeder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
