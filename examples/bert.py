@@ -5,13 +5,16 @@ import time
 import embed_anything
 from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
 from embed_anything.vectordb import Adapter
-from pinecone import Pinecone, ServerlessSpec
 import os
 from time import time
 
 
-model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+# model = EmbeddingModel.from_pretrained_hf(
+#     WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+# )
+
+model = EmbeddingModel.from_pretrained_cloud(
+    WhichModel.OpenAI, model_id="text-embedding-3-small"
 )
 config = TextEmbedConfig(chunk_size=512, batch_size=32)
 

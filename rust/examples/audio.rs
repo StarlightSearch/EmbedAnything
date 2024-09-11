@@ -3,7 +3,8 @@ use embed_anything::{
     file_processor::audio::audio_processor::AudioDecoderModel,
 };
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let audio_path = std::path::PathBuf::from("test_files/audio/samples_hp0.wav");
     let mut audio_decoder = AudioDecoderModel::from_pretrained(
         Some("openai/whisper-tiny.en"),
@@ -24,6 +25,8 @@ fn main() {
         &bert_model,
         Some(&text_embed_config),
     )
+    .await
+    .unwrap()
     .unwrap();
 
     println!("{:?}", embeddings);

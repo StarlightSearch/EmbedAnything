@@ -128,7 +128,7 @@ impl BertEmbeder {
 }
 
 impl TextEmbed for BertEmbeder {
-    fn embed(
+    async fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
@@ -160,8 +160,8 @@ mod tests {
         assert_eq!(embeddings.len(), 2);
     }
 
-    #[test]
-    fn test_bert_embeder_audio() {
+    #[tokio::test]
+    async fn test_bert_embeder_audio() {
         let embeder = BertEmbeder::default();
         let segments = vec![
             Segment {
@@ -177,7 +177,7 @@ mod tests {
         ];
         let audio_file = PathBuf::from("tests/data/sample.wav");
         let start = Instant::now();
-        let embeddings = embed_audio(&embeder, segments, audio_file, None).unwrap();
+        let embeddings = embed_audio(&embeder, segments, audio_file, None).await.unwrap();
         println!("Time taken: {:?}", start.elapsed());
         assert_eq!(embeddings.len(), 2);
     }

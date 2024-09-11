@@ -208,7 +208,7 @@ impl ClipEmbeder {
 }
 
 impl TextEmbed for ClipEmbeder {
-    fn embed(
+    async fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,

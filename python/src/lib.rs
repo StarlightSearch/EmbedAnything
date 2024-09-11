@@ -223,7 +223,7 @@ pub fn embed_query(
         query,
         embedding_model,
         Some(config.unwrap_or(&TextEmbedConfig::default())),
-    )
+    ).await
     .map_err(|e| PyValueError::new_err(e.to_string()))?
     .into_iter()
     .map(|data| EmbedData { inner: data })
