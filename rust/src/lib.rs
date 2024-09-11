@@ -9,10 +9,10 @@ pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
-use anyhow::{anyhow, Result};
+use anyhow:: Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
-    embed::{EmbedData, EmbedImage, Embeder, TextEmbed},
+    embed::{EmbedData, EmbedImage, Embeder},
     embed_audio, get_text_metadata,
 };
 use file_loader::FileParser;
@@ -111,19 +111,14 @@ where
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let embeddings = match embeder {
-        Embeder::OpenAI(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter).await?,
-        Embeder::Cohere(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter).await?,
-        Embeder::Jina(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?
-        }
-        Embeder::Bert(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?
-        }
-        Embeder::Clip(embeder) => Some(vec![emb_image(file_name, embeder).unwrap()]),
-    };
+    if let Embeder::Clip(embeder) = embeder {
+        return Ok(Some(vec![emb_image(file_name, embeder).unwrap()]));
+    }
+    else {
+        let embeddings = emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?;
+        Ok(embeddings)
+    }
 
-    Ok(embeddings)
 }
 
 /// Embeddings of a webpage using the specified embedding model.
@@ -195,9 +190,9 @@ where
     }
 }
 
-async fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed + Send + Sync>(
+async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
-    embedding_model: &E,
+    embedding_model: &Embeder,
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
     adapter: Option<F>,
@@ -217,7 +212,7 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).unwrap();
+                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
@@ -229,7 +224,7 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).unwrap();
+                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
