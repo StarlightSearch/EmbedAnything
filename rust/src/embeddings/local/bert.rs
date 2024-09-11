@@ -4,7 +4,6 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use crate::embeddings::embed::TextEmbed;
 use crate::embeddings::normalize_l2;
 use anyhow::Error as E;
 use candle_core::{Device, Tensor};
@@ -124,16 +123,6 @@ impl BertEmbeder {
         }
 
         Ok(encodings)
-    }
-}
-
-impl TextEmbed for BertEmbeder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        self.embed(text_batch, batch_size)
     }
 }
 
