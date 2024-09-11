@@ -20,7 +20,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Generate and Stream your embeddings with minimalist and lightning fast framework built in rust 🦀</b>
+    <b>Generate and stream your embeddings with minimalist and lightning fast framework built in rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -98,10 +98,11 @@ We support a range of models, that can be supported by Candle, We have given a s
 
 ## How to add custom model and Chunk Size.
 ```python
-jina_config = JinaConfig(
-    model_id="Custom link given below", revision="main", chunk_size=100
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="model link from huggingface"
 )
-embed_config = EmbedConfig(jina=jina_config)
+config = TextEmbedConfig(chunk_size=200, batch_size=32)
+data = embed_anything.embed_file("file_address", embeder=model, config=config)
 ```
 
 
@@ -126,7 +127,79 @@ embed_config = EmbedConfig(jina=jina_config)
 pip install embed-anything`
 
 
-## Usage
+# Usage
+
+
+
+## ➡️ Usage For 0.3 and later version
+
+
+### To use local embedding: we support Bert and Jina
+
+```python
+model = EmbeddingModel.from_pretrained_local(
+    WhichModel.Bert, model_id="Hugging_face_link"
+)
+data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
+```
+
+
+
+## For multimodal embedding: we support CLIP
+### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
+
+```python
+import embed_anything
+from embed_anything import EmbedData
+model = embed_anything.EmbeddingModel.from_pretrained_local(
+    embed_anything.WhichModel.Clip,
+    model_id="openai/clip-vit-base-patch16",
+    # revision="refs/pr/15",
+)
+data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
+embeddings = np.array([data.embedding for data in data])
+query = ["Photo of a monkey?"]
+query_embedding = np.array(
+    embed_anything.embed_query(query, embeder=model)[0].embedding
+)
+similarities = np.dot(embeddings, query_embedding)
+max_index = np.argmax(similarities)
+Image.open(data[max_index].text).show()
+```
+
+## Audio Embedding using Whisper
+### requirements:  Audio .wav files.
+
+
+```python
+import embed_anything
+from embed_anything import (
+    AudioDecoderModel,
+    EmbeddingModel,
+    embed_audio_file,
+    TextEmbedConfig,
+)
+# choose any whisper or distilwhisper model from https://huggingface.co/distil-whisper or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
+audio_decoder = AudioDecoderModel.from_pretrained_hf(
+    "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
+)
+embeder = EmbeddingModel.from_pretrained_hf(
+    embed_anything.WhichModel.Bert,
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    revision="main",
+)
+config = TextEmbedConfig(chunk_size=200, batch_size=32)
+data = embed_anything.embed_audio_file(
+    "test_files/audio/samples_hp0.wav",
+    audio_decoder=audio_decoder,
+    embeder=embeder,
+    text_embed_config=config,
+)
+print(data[0].metadata)
+
+```
+
+## ➡️ Usage For 0.2
 
 ### To use local embedding: we support Bert and Jina
 
@@ -191,6 +264,7 @@ print("Time taken: ", end_time - start_time)
 
 
 
+
 ## 🚧 Contributing to EmbedAnything
 
 
@@ -216,35 +290,15 @@ One of the aims of EmbedAnything is to allow AI engineers to easily use state of
 ✅Custom chunk size <br />
 ✅Pinecone Adapter, to directly save it on it. <br />
 ✅Zero-shot application <br />
-✅Vector database integration via streaming adapters
+✅Vector database integration via streaming adapters <br />
+✅Refactoring for intuitive functions
 
 Yet to do be done <br />
 ☑️Introducing chunkwise streaming instead of file <br />
 ☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-
-
-## ✔️ Code of Conduct:
-
-Please read our [Code of Conduct] to understand the expectations we have for all contributors participating in this project. By participating, you agree to abide by our Code of Conduct.
-
-## Quick Start
-
-You can quickly get started with contributing by searching for issues with the labels **"Good First Issue"** or **"Help Needed"** in the [Issues Section]. If you think you can contribute, comment on the issue and we will assign it to you.  
-
-To set up your development environment, please follow the steps mentioned below : 
-
-1. Fork the repository from dev, We don't allow direct contribution to main
-
-
-## Contributing Guidelines 
- 
-### 🔍 Reporting Bugs
-
-
-1. Title describing the issue clearly and concisely with relevant labels
-2. Provide a detailed description of the problem and the necessary steps to reproduce the issue.
-3. Include any relevant logs, screenshots, or other helpful information supporting the issue.
-
+☑️Video Embedding
+☑️ Yolo Clip
+☑️ Add more Vector Database Adapters
 
 
 
