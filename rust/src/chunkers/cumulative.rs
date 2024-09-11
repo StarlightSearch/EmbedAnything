@@ -1,22 +1,21 @@
-use crate::embeddings::{embed::TextEmbed, local::jina::JinaEmbeder};
+use crate::embeddings::{embed::Embeder, local::jina::JinaEmbeder};
 use candle_core::Tensor;
 use text_splitter::{ChunkConfig, ChunkSizer, TextSplitter};
 use tokenizers::Tokenizer;
 
-#[derive(Debug)]
-pub struct CumulativeChunker<T: TextEmbed, Sizer: ChunkSizer> {
-    pub encoder: T,
+pub struct CumulativeChunker<Sizer: ChunkSizer> {
+    pub encoder: Embeder,
     pub splitter: TextSplitter<Sizer>,
     pub score_threshold: f32,
     pub device: candle_core::Device,
 }
 
-impl Default for CumulativeChunker<JinaEmbeder, Tokenizer> {
+impl Default for CumulativeChunker<Tokenizer> {
     fn default() -> Self {
         let splitter = TextSplitter::new(ChunkConfig::new(200).with_sizer(
             Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
         ));
-        let encoder = JinaEmbeder::default();
+        let encoder = Embeder::Jina(JinaEmbeder::default());
         let score_threshold = 0.9;
         let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
         Self {
@@ -28,8 +27,8 @@ impl Default for CumulativeChunker<JinaEmbeder, Tokenizer> {
     }
 }
 
-impl<T: TextEmbed, Sizer: ChunkSizer> CumulativeChunker<T, Sizer> {
-    pub fn new(encoder: T, splitter: TextSplitter<Sizer>, score_threshold: f32) -> Self {
+impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
+    pub fn new(encoder: Embeder, splitter: TextSplitter<Sizer>, score_threshold: f32) -> Self {
         Self {
             encoder,
             splitter,
@@ -70,7 +69,7 @@ impl<T: TextEmbed, Sizer: ChunkSizer> CumulativeChunker<T, Sizer> {
                 let curr_chunk_docs_embed = self
                     .encoder
                     .embed(&[curr_chunk_docs.to_string()], Some(32))
-                    
+                    .await
                     .unwrap()
                     .into_iter()
                     .flatten()
@@ -78,7 +77,7 @@ impl<T: TextEmbed, Sizer: ChunkSizer> CumulativeChunker<T, Sizer> {
                 let next_doc_embed = self
                     .encoder
                     .embed(&[next_doc.to_string()], Some(32))
-    
+                    .await
                     .unwrap()
                     .into_iter()
                     .flatten()

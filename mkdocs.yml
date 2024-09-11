@@ -3,10 +3,15 @@ theme:
   name: "material"
 plugins:
 - mkdocstrings
+- blog:
+    archive: false
 
 nav:
 - index.md
 - references.md
+- Blog: 
+  - blog/index.md
+
 
 markdown_extensions:
   - pymdownx.highlight:
