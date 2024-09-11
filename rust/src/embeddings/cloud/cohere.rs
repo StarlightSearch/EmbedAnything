@@ -2,8 +2,6 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embeddings::embed::TextEmbed;
-
 /// Represents the response from the Cohere embedding API.
 #[derive(Deserialize, Debug, Default)]
 pub struct CohereEmbedResponse {
@@ -31,15 +29,6 @@ impl Default for CohereEmbeder {
     }
 }
 
-impl TextEmbed for CohereEmbeder {
-     fn embed(
-        &self,
-        text_batch: &[String],
-        _batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        tokio::runtime::Runtime::new()?.block_on(self.embed(text_batch))
-    }
-}
 
 impl CohereEmbeder {
     /// Creates a new instance of `CohereEmbeder` with the specified model and API key.

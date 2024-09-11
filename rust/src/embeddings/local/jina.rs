@@ -4,7 +4,6 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use crate::embeddings::embed::TextEmbed;
 use crate::embeddings::normalize_l2;
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
@@ -113,12 +112,4 @@ impl JinaEmbeder {
     }
 }
 
-impl TextEmbed for JinaEmbeder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        self.embed(text_batch, batch_size)
-    }
-}
+
