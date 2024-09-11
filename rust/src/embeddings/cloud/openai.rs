@@ -18,7 +18,6 @@ pub struct OpenAIEmbeder {
     url: String,
     model: String,
     api_key: String,
-    runtime: tokio::runtime::Runtime,
     client: Client,
 }
 
@@ -29,12 +28,12 @@ impl Default for OpenAIEmbeder {
 }
 
 impl TextEmbed for OpenAIEmbeder {
-    fn embed(
+    async fn embed(
         &self,
         text_batch: &[String],
         _batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        self.embed(text_batch)
+        tokio::runtime::Runtime::new()?.block_on(self.embed(text_batch))
     }
 }
 
@@ -47,33 +46,27 @@ impl OpenAIEmbeder {
             model,
             url: "https://api.openai.com/v1/embeddings".to_string(),
             api_key,
-            runtime: tokio::runtime::Builder::new_current_thread()
-                .enable_io()
-                .build()
-                .unwrap(),
             client: Client::new(),
         }
     }
 
-    pub fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let data = self.runtime.block_on(async move {
-            let response = self
-                .client
-                .post(&self.url)
-                .header("Content-Type", "application/json")
-                .header("Authorization", format!("Bearer {}", self.api_key))
-                .json(&json!({
-                    "input": text_batch,
-                    "model": self.model,
-                }))
-                .send()
-                .await
-                .unwrap();
+    pub async fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        let response = self
+            .client
+            .post(&self.url)
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&json!({
+                "input": text_batch,
+                "model": self.model,
+            }))
+            .send()
+            .await?;
 
-            let data = response.json::<OpenAIEmbedResponse>().await.unwrap();
-            println!("{:?}", data.usage);
-            data
-        });
+        let data = response.json::<OpenAIEmbedResponse>().await?;
+
+      
+        println!("{:?}", data.usage);
 
         let encodings = data
             .data
@@ -89,15 +82,15 @@ impl OpenAIEmbeder {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_openai_embed() {
+    #[tokio::test]
+    async fn test_openai_embed() {
         let openai = OpenAIEmbeder::default();
         let text_batch = vec![
             "Once upon a time".to_string(),
             "The quick brown fox jumps over the lazy dog".to_string(),
         ];
 
-        let embeddings = openai.embed(&text_batch).unwrap();
+        let embeddings = openai.embed(&text_batch).await.unwrap();
         assert_eq!(embeddings.len(), 2);
     }
 }

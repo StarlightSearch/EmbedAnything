@@ -38,7 +38,7 @@ impl<T: TextEmbed, Sizer: ChunkSizer> CumulativeChunker<T, Sizer> {
         }
     }
 
-    pub fn _chunk(&self, text: &str) {
+    pub async fn _chunk(&self, text: &str) {
         let splits = self
             .splitter
             .chunks(text)
@@ -70,6 +70,7 @@ impl<T: TextEmbed, Sizer: ChunkSizer> CumulativeChunker<T, Sizer> {
                 let curr_chunk_docs_embed = self
                     .encoder
                     .embed(&[curr_chunk_docs.to_string()], Some(32))
+                    .await
                     .unwrap()
                     .into_iter()
                     .flatten()
@@ -77,6 +78,7 @@ impl<T: TextEmbed, Sizer: ChunkSizer> CumulativeChunker<T, Sizer> {
                 let next_doc_embed = self
                     .encoder
                     .embed(&[next_doc.to_string()], Some(32))
+                    .await
                     .unwrap()
                     .into_iter()
                     .flatten()

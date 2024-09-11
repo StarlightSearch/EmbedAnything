@@ -101,7 +101,7 @@ impl<T: TextEmbed> StatisticalChunker<T> {
         Some(chunks)
     }
 
-    pub fn _chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
+    pub async fn _chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
         let splits = self.split_into_sentences(text, 50).unwrap();
 
         if self.verbose {
@@ -126,7 +126,7 @@ impl<T: TextEmbed> StatisticalChunker<T> {
                     .collect::<Vec<_>>();
             }
 
-            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).unwrap();
+            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).await.unwrap();
             let similarities = self._calculate_similarity_scores(&encoded_splits);
             let calculated_threshold = self._find_optimal_threshold(&batch_splits, &similarities);
 
