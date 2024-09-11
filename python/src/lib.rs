@@ -4,7 +4,7 @@ use embed_anything::{
     self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
     file_processor::audio::audio_processor, text_loader::FileLoadingError,
 };
-use pyo3::{exceptions::PyValueError, exceptions::PyFileNotFoundError, prelude::*};
+use pyo3::{exceptions::PyFileNotFoundError, exceptions::PyValueError, prelude::*};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -218,16 +218,20 @@ pub fn embed_query(
 ) -> PyResult<Vec<EmbedData>> {
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
-
-    Ok(embed_anything::embed_query(
-        query,
-        embedding_model,
-        Some(config.unwrap_or(&TextEmbedConfig::default())),
-    ).await
-    .map_err(|e| PyValueError::new_err(e.to_string()))?
-    .into_iter()
-    .map(|data| EmbedData { inner: data })
-    .collect())
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    Ok(rt.block_on(async {
+        embed_anything::embed_query(
+            query,
+            embedding_model,
+            Some(config.unwrap_or(&TextEmbedConfig::default())),
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .into_iter()
+        .map(|data| EmbedData { inner: data })
+        .collect()
+    }))
 }
 
 #[pyfunction]
@@ -240,6 +244,7 @@ pub fn embed_file(
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     if !Path::new(file_name).exists() {
         // check if the file exists other wise return a "File not found" error with PyValueError
         return Err(PyFileNotFoundError::new_err(format!(
@@ -267,26 +272,30 @@ pub fn embed_file(
         None => None,
     };
 
-    let data = embed_anything::embed_file(file_name, &embedding_model, config, adapter)
-        .map_err(|e| {
-            if let Some(file_loading_error) = e.downcast_ref::<FileLoadingError>() {
-                match file_loading_error {
-                    FileLoadingError::FileNotFound(file) => {
-                        PyFileNotFoundError::new_err(file.clone())
+    let data = rt.block_on(async {
+        embed_anything::embed_file(file_name, &embedding_model, config, adapter)
+            .await
+            .map_err(|e| {
+                if let Some(file_loading_error) = e.downcast_ref::<FileLoadingError>() {
+                    match file_loading_error {
+                        FileLoadingError::FileNotFound(file) => {
+                            PyFileNotFoundError::new_err(file.clone())
+                        }
+                        FileLoadingError::UnsupportedFileType(file) => {
+                            PyValueError::new_err(file.clone())
+                        }
                     }
-                    FileLoadingError::UnsupportedFileType(file) => {
-                        PyValueError::new_err(file.clone())
-                    }
+                } else {
+                    PyValueError::new_err(e.to_string())
                 }
-            } else {
-                PyValueError::new_err(e.to_string())
-            }
-        })?
-        .map(|data| {
-            data.into_iter()
-                .map(|data| EmbedData { inner: data })
-                .collect::<Vec<_>>()
-        });
+            })
+            .unwrap()
+            .map(|data| {
+                data.into_iter()
+                    .map(|data| EmbedData { inner: data })
+                    .collect::<Vec<_>>()
+            })
+    });
     Ok(data)
 }
 
@@ -301,14 +310,18 @@ pub fn embed_audio_file(
     let config = text_embed_config.map(|c| &c.inner);
     let embedding_model = &embeder.inner;
     let audio_decoder = &mut audio_decoder.inner;
-
-    let data = emb_audio(audio_file, audio_decoder, embedding_model, config)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .map(|data| {
-            data.into_iter()
-                .map(|data| EmbedData { inner: data })
-                .collect::<Vec<_>>()
-        });
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    let data = rt.block_on(async {
+        emb_audio(audio_file, audio_decoder, embedding_model, config)
+            .await
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+            .unwrap()
+            .map(|data| {
+                data.into_iter()
+                    .map(|data| EmbedData { inner: data })
+                    .collect::<Vec<_>>()
+            })
+    });
     Ok(data)
 }
 
@@ -339,7 +352,7 @@ pub fn embed_directory(
                         .call1(py, (converted_data,))
                         .map_err(|e| PyValueError::new_err(e.to_string()))
                         .unwrap();
-                })
+                });
             };
             Some(callback)
         }
@@ -422,7 +435,7 @@ pub fn embed_webpage(
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let embedding_model = &embeder.inner;
     let config = config.map(|c| &c.inner);
-
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     let adapter = match adapter {
         Some(adapter) => {
             let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -443,13 +456,17 @@ pub fn embed_webpage(
         None => None,
     };
 
-    let data = embed_anything::embed_webpage(url, embedding_model, config, adapter)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?
-        .map(|data| {
-            data.into_iter()
-                .map(|data| EmbedData { inner: data })
-                .collect::<Vec<_>>()
-        });
+    let data = rt.block_on(async {
+        embed_anything::embed_webpage(url, embedding_model, config, adapter)
+            .await
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+            .unwrap()
+            .map(|data| {
+                data.into_iter()
+                    .map(|data| EmbedData { inner: data })
+                    .collect::<Vec<_>>()
+            })
+    });
     Ok(data)
 }
 

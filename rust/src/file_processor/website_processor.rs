@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::{
     embeddings::{
-        embed::{EmbedData, TextEmbed},
+        embed::{EmbedData, Embeder, TextEmbed},
         get_text_metadata,
     },
     text_loader::TextLoader,
@@ -24,9 +24,9 @@ pub struct WebPage {
 }
 
 impl WebPage {
-    pub async fn embed_webpage<T: TextEmbed>(
+    pub async fn embed_webpage(
         &self,
-        embeder: &T,
+        embeder: &Embeder,
         chunk_size: usize,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
@@ -47,11 +47,11 @@ impl WebPage {
         Ok(embed_data)
     }
 
-    pub async fn embed_tag<T: TextEmbed>(
+    pub async fn embed_tag(
         &self,
         tag: &str,
         tag_content: &[String],
-        embeder: &T,
+        embeder: &Embeder,
         chunk_size: usize,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {

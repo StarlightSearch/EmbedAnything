@@ -16,3 +16,4 @@ tokio = { version = "1.39.0", features = ["rt-multi-thread"]}
 extension-module = ["pyo3/extension-module"]
 mkl = ["embed_anything/mkl"]
 accelerate = ["embed_anything/accelerate"]
+cuda = ["embed_anything/cuda"]

@@ -114,7 +114,7 @@ impl JinaEmbeder {
 }
 
 impl TextEmbed for JinaEmbeder {
-    async fn embed(
+    fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
