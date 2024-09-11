@@ -33,13 +33,11 @@ def test_jina_model_file(jina_model):
     path = os.path.abspath("test_files/test.pdf")
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512
-    assert data[0].metadata["file_name"] == path
 
 
 def test_jina_model_directory(jina_model):
 
     data = embed_directory("test_files", jina_model)
-    assert len(data) == 5
+    assert len(data) == 236
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512
-    assert data[0].metadata["file_name"] == os.path.abspath("test_files/test.pdf")

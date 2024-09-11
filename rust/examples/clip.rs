@@ -21,7 +21,7 @@ async fn main() {
     .unwrap()
     .unwrap();
 
-    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], &model, None).unwrap();
+    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], &model, None).await.unwrap();
     let n_vectors = out.len();
     let out_embeddings = Tensor::from_vec(
         out.iter()

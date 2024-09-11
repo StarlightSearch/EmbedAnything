@@ -1,9 +1,5 @@
 //! # Embed Anything
 //! This library provides a simple interface to embed text and images using various embedding models.
-
-#[cfg(feature = "mkl")]
-extern crate intel_mkl_src;
-
 pub mod chunkers;
 pub mod config;
 pub mod embeddings;
@@ -13,14 +9,15 @@ pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
-use anyhow::{anyhow, Result};
+use anyhow:: Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
-    embed::{EmbedData, EmbedImage, Embeder, TextEmbed},
+    embed::{EmbedData, EmbedImage, Embeder},
     embed_audio, get_text_metadata,
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
+use futures::future::join_all;
 use rayon::prelude::*;
 use text_loader::TextLoader;
 use tokio::sync::mpsc;
@@ -56,7 +53,7 @@ use tokio::sync::mpsc;
 /// ```
 /// This will output the embeddings of the queries using the OpenAI embedding model.
 
-pub fn embed_query(
+pub async fn embed_query(
     query: Vec<String>,
     embeder: &Embeder,
     config: Option<&TextEmbedConfig>,
@@ -66,7 +63,7 @@ pub fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embeder.embed(&query, batch_size)?;
+    let encodings = embeder.embed(&query, batch_size).await?;
     let embeddings = get_text_metadata(&encodings, &query, &None)?;
 
     Ok(embeddings)
@@ -100,7 +97,7 @@ pub fn embed_query(
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 
-pub fn embed_file<F>(
+pub async fn embed_file<F>(
     file_name: &str,
     embeder: &Embeder,
     config: Option<&TextEmbedConfig>,
@@ -114,19 +111,14 @@ where
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let embeddings = match embeder {
-        Embeder::OpenAI(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
-        Embeder::Cohere(embeder) => emb_text(file_name, embeder, Some(chunk_size), None, adapter)?,
-        Embeder::Jina(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
-        }
-        Embeder::Bert(embeder) => {
-            emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter)?
-        }
-        Embeder::Clip(embeder) => Some(vec![emb_image(file_name, embeder).unwrap()]),
-    };
+    if let Embeder::Clip(embeder) = embeder {
+        return Ok(Some(vec![emb_image(file_name, embeder).unwrap()]));
+    }
+    else {
+        let embeddings = emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?;
+        Ok(embeddings)
+    }
 
-    Ok(embeddings)
 }
 
 /// Embeddings of a webpage using the specified embedding model.
@@ -165,7 +157,7 @@ where
 /// };
 /// ```
 
-pub fn embed_webpage<F>(
+pub async fn embed_webpage<F>(
     url: String,
     embeder: &Embeder,
     config: Option<&TextEmbedConfig>,
@@ -178,16 +170,16 @@ where
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
 
-    if let Embeder::Clip(_) = embeder {
-        return Err(anyhow!("Clip model does not support webpage embedding"));
-    }
+    // if let Embeder::Clip(_) = embeder {
+    //     return Err(anyhow!("Clip model does not support webpage embedding"));
+    // }
 
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let embeddings = webpage.embed_webpage(embeder, chunk_size, batch_size)?;
+    let embeddings = webpage.embed_webpage(embeder, chunk_size, batch_size).await?;
 
     // Send embeddings to vector database
     if let Some(adapter) = adapter {
@@ -198,9 +190,9 @@ where
     }
 }
 
-fn emb_text<T: AsRef<std::path::Path>, F, E: TextEmbed + Send + Sync>(
+async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
-    embedding_model: &E,
+    embedding_model: &Embeder,
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
     adapter: Option<F>,
@@ -216,25 +208,27 @@ where
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
-        let embeddings = chunks
-            .par_iter()
-            .map(|chunks| {
-                let encodings = embedding_model.embed(&chunks, batch_size).unwrap();
+        let futures = chunks.iter().map(|chunks| {
+            let chunks = chunks.clone();
+            let metadata = metadata.clone();
+            async move {
+                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            })
-            .flatten()
-            .collect::<Vec<_>>();
+            }
+        });
+        let embeddings = join_all(futures).await.into_iter().flatten().collect::<Vec<_>>();
         adapter(embeddings);
         Ok(None)
     } else {
-        let embeddings = chunks
-            .par_iter()
-            .map(|chunks| {
-                let encodings = embedding_model.embed(&chunks, batch_size).unwrap();
+        let futures = chunks.iter().map(|chunks| {
+            let chunks = chunks.clone();
+            let metadata = metadata.clone();
+            async move {
+                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            })
-            .flatten()
-            .collect::<Vec<_>>();
+            }
+        });
+        let embeddings = join_all(futures).await.into_iter().flatten().collect::<Vec<_>>();
 
         Ok(Some(embeddings))
     }
@@ -257,7 +251,7 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
     Ok(embedding)
 }
 
-pub fn emb_audio<T: AsRef<std::path::Path>>(
+pub async fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
     embeder: &Embeder,
@@ -271,7 +265,7 @@ pub fn emb_audio<T: AsRef<std::path::Path>>(
         text_embed_config
             .unwrap_or(&TextEmbedConfig::default())
             .batch_size,
-    )?;
+    ).await?;
 
     Ok(Some(embeddings))
 }
@@ -533,13 +527,13 @@ where
     }
 }
 
-pub async fn process_chunks<E: TextEmbed + Send + Sync>(
+pub async fn process_chunks(
     chunks: &Vec<String>,
     metadata: &Vec<Option<HashMap<String, String>>>,
-    embedding_model: Arc<E>,
+    embedding_model: Arc<Embeder>,
     batch_size: Option<usize>,
 ) -> Result<Vec<EmbedData>> {
-    let encodings = embedding_model.embed(chunks, batch_size)?;
+    let encodings = embedding_model.embed(chunks, batch_size).await?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings

@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use embed_anything::{
     config::TextEmbedConfig,
-    embed_directory_stream, embed_file,
+    embed_directory_stream, embed_file, embed_query,
     embeddings::{
         cloud::cohere::CohereEmbeder,
         embed::{EmbedData, Embeder},
@@ -29,12 +29,24 @@ async fn main() -> Result<()> {
     .await?
     .unwrap();
 
-    let _cohere_embedding: Option<Vec<EmbedData>> = embed_file(
+
+    let _file_embedding = embed_file(
+        "test_files/attention.pdf",
+        &openai_model,
+        Some(&text_embed_config),
+        None::<fn(Vec<EmbedData>)>,
+    ).await
+    ?
+    .unwrap();
+
+    let _cohere_embedding = embed_file(
         "test_files/attention.pdf",
         &cohere_model,
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
-    )?;
+    )
+    .await?
+    .unwrap();
 
     Ok(())
 }

@@ -5,7 +5,8 @@ use embed_anything::{
     embeddings::embed::{EmbedData, Embeder},
 };
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let start_time = std::time::Instant::now();
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
 
@@ -19,9 +20,8 @@ fn main() {
         &embeder,
         Some(&embed_config),
         None::<fn(Vec<EmbedData>)>,
-    )
-    .unwrap()
-    .unwrap();
+    ).await
+    .unwrap().unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data
         .iter()
         .map(|data| data.embedding.clone())
@@ -37,6 +37,7 @@ fn main() {
 
     let query = vec!["Rust for web scraping".to_string()];
     let query_embedding: Vec<f32> = embed_query(query, &embeder, Some(&embed_config))
+        .await
         .unwrap()
         .iter()
         .map(|data| data.embedding.clone())
