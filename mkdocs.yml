@@ -1,10 +1,47 @@
-site_name: EmbedAnything Docs
+site_name: Starlight Search
+site_url: https://starlight-search.com
+repo_url: https://github.com/StarlightSearch/EmbedAnything
+repo_name: StarlightSearch/EmbedAnything
+
 theme:
   name: "material"
+  logo: "assets/128x128.png"
+  icon:
+    repo: fontawesome/brands/github
+
+  features:
+    - search.suggest
+    - search.highlight
+    - navigation.instant
+    - navigation.tracking
+    - navigation.expand
+    - navigation.sections
+    - content.code.annotate
+    - toc.follow
+    - header.autohide
+    - announce.dismiss
+
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+        
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: black
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+        
 plugins:
-- mkdocstrings
-- blog:
-    archive: false
+  - mkdocstrings
+  - search
+  - blog:
+      archive: false
 
 nav:
 - index.md
