@@ -2,7 +2,7 @@ use candle_core::Tensor;
 use embed_anything::{
     config::TextEmbedConfig,
     embed_query, embed_webpage,
-    embeddings::embed::{EmbedData, Embeder},
+    embeddings::embed::{EmbedData, Embeder}, text_loader::SplittingStrategy,
 };
 
 #[tokio::main]
@@ -14,7 +14,7 @@ async fn main() {
         Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
             .unwrap();
 
-    let embed_config = TextEmbedConfig::new(Some(256), Some(32), None);
+    let embed_config = TextEmbedConfig::new(Some(256), Some(32), None, Some(SplittingStrategy::Sentence));
     let embed_data = embed_webpage(
         url,
         &embeder,

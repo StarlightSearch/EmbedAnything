@@ -6,8 +6,8 @@ use serde_json::json;
 use url::Url;
 
 use crate::{
-    embeddings::{embed::EmbedData, embed::Embeder, get_text_metadata},
-    text_loader::TextLoader,
+    embeddings::{embed::{EmbedData, Embeder}, get_text_metadata},
+    text_loader::{SplittingStrategy, TextLoader},
 };
 
 #[derive(Debug)]
@@ -56,7 +56,7 @@ impl WebPage {
 
         for content in tag_content {
             let textloader = TextLoader::new(chunk_size);
-            let chunks = match textloader.split_into_chunks(content) {
+            let chunks = match textloader.split_into_chunks(content, SplittingStrategy::Sentence).await {
                 Some(chunks) => chunks,
                 None => continue,
             };
@@ -82,7 +82,7 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let encodings = embeder.embed(&chunks, batch_size).await?;
+            let encodings = embeder.embed(&chunks, batch_size).await.unwrap();
             let embeddings = get_text_metadata(&encodings, &chunks, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
