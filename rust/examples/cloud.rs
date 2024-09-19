@@ -6,18 +6,17 @@ use embed_anything::{
     embeddings::{
         cloud::cohere::CohereEmbeder,
         embed::{EmbedData, Embeder},
-    },
+    }, text_loader::SplittingStrategy,
 };
 
 use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let text_embed_config = TextEmbedConfig::new(Some(256), Some(32), None);
-    let cohere_model = Embeder::Cohere(CohereEmbeder::new("embed-english-v3.0".to_string(), None));
+    let text_embed_config = TextEmbedConfig::new(Some(256), Some(32), None, Some(SplittingStrategy::Sentence));
+    let cohere_model =Embeder::from_pretrained_cloud("cohere", "embed-english-v3.0", None).unwrap();
     let openai_model =
         Embeder::from_pretrained_cloud("openai", "text-embedding-3-small", None).unwrap();
-
     let openai_model: Arc<Embeder> = Arc::new(openai_model);
     let _openai_embeddings = embed_directory_stream(
         PathBuf::from("test_files"),

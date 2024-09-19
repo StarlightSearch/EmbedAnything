@@ -19,7 +19,7 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use futures::future::join_all;
 use rayon::prelude::*;
-use text_loader::TextLoader;
+use text_loader::{SplittingStrategy, TextLoader};
 use tokio::sync::mpsc;
 
 /// Embeds a list of queries using the specified embedding model.
@@ -63,7 +63,7 @@ pub async fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embeder.embed(&query, batch_size).await?;
+    let encodings = embeder.embed(&query, batch_size).await.unwrap();
     let embeddings = get_text_metadata(&encodings, &query, &None)?;
 
     Ok(embeddings)
@@ -110,12 +110,13 @@ where
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
+    let splitting_strategy = config.splitting_strategy.unwrap_or(SplittingStrategy::Sentence);
 
     if let Embeder::Clip(embeder) = embeder {
         return Ok(Some(vec![emb_image(file_name, embeder).unwrap()]));
     }
     else {
-        let embeddings = emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?;
+        let embeddings = emb_text(file_name, embeder, Some(chunk_size), batch_size, Some(splitting_strategy), adapter).await?;
         Ok(embeddings)
     }
 
@@ -195,6 +196,7 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     embedding_model: &Embeder,
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
+    splitting_strategy: Option<SplittingStrategy>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
@@ -204,7 +206,7 @@ where
 
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
-    let chunks = textloader.split_into_chunks(&text);
+    let chunks = textloader.split_into_chunks(&text, splitting_strategy.unwrap_or(SplittingStrategy::Sentence)).await;
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
@@ -450,6 +452,7 @@ where
     let embeder = embeder.clone();
 
     let processing_task = tokio::spawn({
+   
         async move {
             let mut chunk_buffer = Vec::with_capacity(buffer_size);
             let mut metadata_buffer = Vec::with_capacity(buffer_size);
@@ -498,7 +501,13 @@ where
 
     file_parser.files.par_iter().for_each(|file| {
         let text = TextLoader::extract_text(&file.to_string()).unwrap();
-        let chunks = textloader.split_into_chunks(&text).unwrap();
+        let chunks = tokio::task::block_in_place(|| {
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(async {
+                    textloader.split_into_chunks(&text, SplittingStrategy::Sentence).await
+                })
+        }).unwrap();
         let metadata = TextLoader::get_metadata(&file).unwrap();
         for chunk in chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {

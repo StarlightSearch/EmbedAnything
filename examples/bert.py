@@ -16,14 +16,18 @@ from time import time
 model = EmbeddingModel.from_pretrained_cloud(
     WhichModel.OpenAI, model_id="text-embedding-3-small"
 )
-config = TextEmbedConfig(chunk_size=512, batch_size=32)
+config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic")
 
 start = time()
-# data = embed_anything.embed_file("test_files/test.pdf", embeder=model, config=config)
+data = embed_anything.embed_file("test_files/bank.txt", embeder=model, config=config)
 
-data: list[EmbedData] = embed_anything.embed_directory(
-    "test_files", embeder=model, config=config
-)
+for d in data:
+    print(d.text)
+    print("---"*20)
+
+# data: list[EmbedData] = embed_anything.embed_directory(
+#     "test_files", embeder=model, config=config
+# )
 
 end = time()
 
