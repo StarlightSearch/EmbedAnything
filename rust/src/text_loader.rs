@@ -1,9 +1,10 @@
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    fs,
+    fs, sync::Arc,
 };
 
+use crate::{chunkers::statistical::StatisticalChunker, embeddings::{embed::Embeder, local::jina::JinaEmbeder}};
 use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 use anyhow::Error;
 use chrono::{DateTime, Local};
@@ -12,6 +13,12 @@ use tokenizers::Tokenizer;
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
+
+#[derive(Clone, Copy)]
+pub enum SplittingStrategy {
+    Sentence,
+    Semantic,
+}
 
 impl Default for TextLoader {
     fn default() -> Self {
@@ -58,19 +65,31 @@ impl TextLoader {
         Self {
             splitter: TextSplitter::new(
                 ChunkConfig::new(chunk_size)
-                    .with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()),
+                    .with_sizer(Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap()),
             ),
         }
     }
-    pub fn split_into_chunks(&self, text: &str) -> Option<Vec<String>> {
+    pub async fn split_into_chunks(
+        &self,
+        text: &str,
+        splitting_strategy: SplittingStrategy,
+    ) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
         }
-        let chunks: Vec<String> = self
-            .splitter
-            .chunks(text)
-            .map(|chunk| chunk.to_string())
-            .collect();
+        let chunks: Vec<String> = match splitting_strategy {
+            SplittingStrategy::Sentence => self
+                .splitter
+                .chunks(text)
+                .map(|chunk| chunk.to_string())
+                .collect(),
+            SplittingStrategy::Semantic => {
+                let embeder = Arc::new(Embeder::Jina(JinaEmbeder::default()));
+                let chunker = StatisticalChunker{encoder:embeder, ..Default::default()};
+                chunker.chunk(text, 64).await
+            },
+        };
+
         Some(chunks)
     }
 

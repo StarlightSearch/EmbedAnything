@@ -8,6 +8,6 @@ async fn main() {
         verbose: true,
         ..Default::default()
     };
-    let chunks = chunker._chunk(&text, 32).await;
+    let chunks = chunker.chunk(&text, 32).await;
 
 }
