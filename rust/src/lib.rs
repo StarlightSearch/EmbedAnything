@@ -9,7 +9,7 @@ pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
-use anyhow:: Result;
+use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embeder},
@@ -110,16 +110,24 @@ where
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
-    let splitting_strategy = config.splitting_strategy.unwrap_or(SplittingStrategy::Sentence);
+    let splitting_strategy = config
+        .splitting_strategy
+        .unwrap_or(SplittingStrategy::Sentence);
 
     if let Embeder::Clip(embeder) = embeder {
         return Ok(Some(vec![emb_image(file_name, embeder).unwrap()]));
-    }
-    else {
-        let embeddings = emb_text(file_name, embeder, Some(chunk_size), batch_size, Some(splitting_strategy), adapter).await?;
+    } else {
+        let embeddings = emb_text(
+            file_name,
+            embeder,
+            Some(chunk_size),
+            batch_size,
+            Some(splitting_strategy),
+            adapter,
+        )
+        .await?;
         Ok(embeddings)
     }
-
 }
 
 /// Embeddings of a webpage using the specified embedding model.
@@ -180,7 +188,9 @@ where
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let embeddings = webpage.embed_webpage(embeder, chunk_size, batch_size).await?;
+    let embeddings = webpage
+        .embed_webpage(embeder, chunk_size, batch_size)
+        .await?;
 
     // Send embeddings to vector database
     if let Some(adapter) = adapter {
@@ -206,7 +216,12 @@ where
 
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
-    let chunks = textloader.split_into_chunks(&text, splitting_strategy.unwrap_or(SplittingStrategy::Sentence)).await;
+    let chunks = textloader
+        .split_into_chunks(
+            &text,
+            splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
+        )
+        ;
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
@@ -214,11 +229,18 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
+                let encodings = embedding_model
+                    .embed(&chunks[..], batch_size)
+                    .await
+                    .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
-        let embeddings = join_all(futures).await.into_iter().flatten().collect::<Vec<_>>();
+        let embeddings = join_all(futures)
+            .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
         adapter(embeddings);
         Ok(None)
     } else {
@@ -226,11 +248,18 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
+                let encodings = embedding_model
+                    .embed(&chunks[..], batch_size)
+                    .await
+                    .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
-        let embeddings = join_all(futures).await.into_iter().flatten().collect::<Vec<_>>();
+        let embeddings = join_all(futures)
+            .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
 
         Ok(Some(embeddings))
     }
@@ -267,7 +296,8 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
         text_embed_config
             .unwrap_or(&TextEmbedConfig::default())
             .batch_size,
-    ).await?;
+    )
+    .await?;
 
     Ok(Some(embeddings))
 }
@@ -441,8 +471,6 @@ where
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
 
-    let textloader = TextLoader::new(chunk_size);
-
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
 
@@ -452,7 +480,6 @@ where
     let embeder = embeder.clone();
 
     let processing_task = tokio::spawn({
-   
         async move {
             let mut chunk_buffer = Vec::with_capacity(buffer_size);
             let mut metadata_buffer = Vec::with_capacity(buffer_size);
@@ -499,15 +526,14 @@ where
         }
     });
 
+    let textloader = TextLoader::new(chunk_size);
+
     file_parser.files.par_iter().for_each(|file| {
         let text = TextLoader::extract_text(&file.to_string()).unwrap();
-        let chunks = tokio::task::block_in_place(|| {
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    textloader.split_into_chunks(&text, SplittingStrategy::Sentence).await
-                })
-        }).unwrap();
+        let chunks = textloader
+            .split_into_chunks(&text, SplittingStrategy::Sentence)
+            .unwrap();
+
         let metadata = TextLoader::get_metadata(&file).unwrap();
         for chunk in chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {

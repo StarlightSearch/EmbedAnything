@@ -2,19 +2,19 @@ use std::{path::PathBuf, sync::Arc};
 
 use embed_anything::{
     config::TextEmbedConfig,
-    embed_directory_stream, embed_file, embed_query,
-    embeddings::{
-        cloud::cohere::CohereEmbeder,
-        embed::{EmbedData, Embeder},
-    }, text_loader::SplittingStrategy,
+    embed_directory_stream, embed_file,
+    embeddings::embed::{EmbedData, Embeder},
+    text_loader::SplittingStrategy,
 };
 
 use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let text_embed_config = TextEmbedConfig::new(Some(256), Some(32), None, Some(SplittingStrategy::Sentence));
-    let cohere_model =Embeder::from_pretrained_cloud("cohere", "embed-english-v3.0", None).unwrap();
+    let text_embed_config =
+        TextEmbedConfig::new(Some(256), Some(32), None, Some(SplittingStrategy::Semantic));
+    let cohere_model =
+        Embeder::from_pretrained_cloud("cohere", "embed-english-v3.0", None).unwrap();
     let openai_model =
         Embeder::from_pretrained_cloud("openai", "text-embedding-3-small", None).unwrap();
     let openai_model: Arc<Embeder> = Arc::new(openai_model);
@@ -28,15 +28,19 @@ async fn main() -> Result<()> {
     .await?
     .unwrap();
 
-
     let _file_embedding = embed_file(
         "test_files/attention.pdf",
         &openai_model,
         Some(&text_embed_config),
         None::<fn(Vec<EmbedData>)>,
-    ).await
-    ?
+    )
+    .await?
     .unwrap();
+
+    for chunk in _file_embedding.into_iter() {
+        println!("{}", chunk.text.unwrap());
+        println!("----------------------------------------");
+    }
 
     let _cohere_embedding = embed_file(
         "test_files/attention.pdf",
