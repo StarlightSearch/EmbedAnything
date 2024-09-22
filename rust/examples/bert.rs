@@ -10,19 +10,19 @@ async fn main() {
     // let model = Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
     let model =
         Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap();
-    let config = TextEmbedConfig::new(Some(256), Some(32), None, Some(SplittingStrategy::Semantic));
+    let config = TextEmbedConfig::new(Some(256), Some(32), Some(32), Some(SplittingStrategy::Semantic));
 
-    let out = embed_file(
-        "test_files/ethics.pdf",
-        &model,
-        Some(&config),
-        None::<fn(Vec<EmbedData>)>,
-    )
-    .await
-    .unwrap()
-    .unwrap();
+    // let out = embed_file(
+    //     "test_files/ethics.pdf",
+    //     &model,
+    //     Some(&config),
+    //     None::<fn(Vec<EmbedData>)>,
+    // )
+    // .await
+    // .unwrap()
+    // .unwrap();
 
-    let chunks = out.into_iter().map(|x| x.text.unwrap()).collect::<Vec<String>>();
+    // let chunks = out.into_iter().map(|x| x.text.unwrap()).collect::<Vec<String>>();
 
     // print the chunks pretty
     // for chunk in chunks {
