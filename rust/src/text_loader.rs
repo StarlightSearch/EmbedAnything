@@ -69,7 +69,7 @@ impl TextLoader {
             ),
         }
     }
-    pub async fn split_into_chunks(
+    pub fn split_into_chunks(
         &self,
         text: &str,
         splitting_strategy: SplittingStrategy,
@@ -86,7 +86,14 @@ impl TextLoader {
             SplittingStrategy::Semantic => {
                 let embeder = Arc::new(Embeder::Jina(JinaEmbeder::default()));
                 let chunker = StatisticalChunker{encoder:embeder, ..Default::default()};
-                chunker.chunk(text, 64).await
+                
+                tokio::task::block_in_place(|| {
+                    tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(async {
+                            chunker.chunk(text, 64).await
+                        })
+                })
             },
         };
 

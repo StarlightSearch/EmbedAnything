@@ -6,10 +6,8 @@ use super::local::bert::BertEmbeder;
 use super::local::clip::ClipEmbeder;
 use super::local::jina::JinaEmbeder;
 use serde::Deserialize;
-use tokio::runtime::{Builder, Handle, Runtime};
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::Arc;
 
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct EmbedData {
