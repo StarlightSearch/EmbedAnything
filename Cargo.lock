@@ -784,6 +784,7 @@ dependencies = [
  "futures",
  "hf-hub",
  "image",
+ "indicatif",
  "intel-mkl-src",
  "itertools 0.13.0",
  "markdown-parser",
