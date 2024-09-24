@@ -2,9 +2,14 @@ use std::{
     collections::HashMap,
     fmt::{Debug, Display},
     fs,
+    sync::Arc,
 };
 
 use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
+use crate::{
+    chunkers::statistical::StatisticalChunker,
+    embeddings::{embed::Embeder, local::jina::JinaEmbeder},
+};
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{ChunkConfig, TextSplitter};
@@ -12,6 +17,12 @@ use tokenizers::Tokenizer;
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
+
+#[derive(Clone, Copy)]
+pub enum SplittingStrategy {
+    Sentence,
+    Semantic,
+}
 
 impl Default for TextLoader {
     fn default() -> Self {
@@ -56,21 +67,41 @@ pub struct TextLoader {
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
         Self {
-            splitter: TextSplitter::new(
-                ChunkConfig::new(chunk_size)
-                    .with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()),
-            ),
+            splitter: TextSplitter::new(ChunkConfig::new(chunk_size).with_sizer(
+                Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
+            )),
         }
     }
-    pub fn split_into_chunks(&self, text: &str) -> Option<Vec<String>> {
+    pub fn split_into_chunks(
+        &self,
+        text: &str,
+        splitting_strategy: SplittingStrategy,
+        semantic_encoder: Option<Arc<Embeder>>,
+    ) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
         }
-        let chunks: Vec<String> = self
-            .splitter
-            .chunks(text)
-            .map(|chunk| chunk.to_string())
-            .collect();
+        let chunks: Vec<String> = match splitting_strategy {
+            SplittingStrategy::Sentence => self
+                .splitter
+                .chunks(text)
+                .map(|chunk| chunk.to_string())
+                .collect(),
+            SplittingStrategy::Semantic => {
+                let embeder = semantic_encoder.unwrap();
+                let chunker = StatisticalChunker {
+                    encoder: embeder,
+                    ..Default::default()
+                };
+
+                tokio::task::block_in_place(|| {
+                    tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(async { chunker.chunk(text, 64).await })
+                })
+            }
+        };
+
         Some(chunks)
     }
 
