@@ -1,6 +1,3 @@
-import re
-from typing import Dict, List
-import uuid
 import time
 import embed_anything
 from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
