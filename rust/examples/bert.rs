@@ -7,30 +7,34 @@ use std::{path::PathBuf, time::Instant};
 
 #[tokio::main]
 async fn main() {
-    // let model = Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
-    let model =
-        Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap();
-    let config = TextEmbedConfig::new(Some(256), Some(32), Some(32), Some(SplittingStrategy::Semantic));
+    let model = Arc::new(
+        Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
+    );
+    let config = TextEmbedConfig::new(
+        Some(256),
+        Some(32),
+        Some(32),
+        Some(SplittingStrategy::Semantic),
+        Some(model.clone()),
+    );
 
-    // let out = embed_file(
-    //     "test_files/ethics.pdf",
-    //     &model,
-    //     Some(&config),
-    //     None::<fn(Vec<EmbedData>)>,
-    // )
-    // .await
-    // .unwrap()
-    // .unwrap();
+    let out = embed_file(
+        "test_files/ethics.pdf",
+        &model,
+        Some(&config),
+        None::<fn(Vec<EmbedData>)>,
+    )
+    .await
+    .unwrap()
+    .unwrap();
 
     // let chunks = out.into_iter().map(|x| x.text.unwrap()).collect::<Vec<String>>();
 
-    // print the chunks pretty
     // for chunk in chunks {
     //     println!("{}", chunk);
     //     println!("---");
     // }
 
-    let model: Arc<Embeder> = Arc::new(model);
     let now = Instant::now();
 
     let _out = embed_directory_stream(

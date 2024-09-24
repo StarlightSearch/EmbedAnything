@@ -29,7 +29,6 @@ impl Default for CohereEmbeder {
     }
 }
 
-
 impl CohereEmbeder {
     /// Creates a new instance of `CohereEmbeder` with the specified model and API key.
     ///

@@ -6,7 +6,10 @@ use serde_json::json;
 use url::Url;
 
 use crate::{
-    embeddings::{embed::{EmbedData, Embeder}, get_text_metadata},
+    embeddings::{
+        embed::{EmbedData, Embeder},
+        get_text_metadata,
+    },
     text_loader::{SplittingStrategy, TextLoader},
 };
 
@@ -30,15 +33,24 @@ impl WebPage {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
-            embed_data.extend(self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size).await?);
+            embed_data.extend(
+                self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size)
+                    .await?,
+            );
         }
 
         if let Some(headers) = &self.headers {
-            embed_data.extend(self.embed_tag("h1", headers, embeder, chunk_size, batch_size).await?);
+            embed_data.extend(
+                self.embed_tag("h1", headers, embeder, chunk_size, batch_size)
+                    .await?,
+            );
         }
 
         if let Some(codes) = &self.codes {
-            embed_data.extend(self.embed_tag("code", codes, embeder, chunk_size, batch_size).await?);
+            embed_data.extend(
+                self.embed_tag("code", codes, embeder, chunk_size, batch_size)
+                    .await?,
+            );
         }
 
         Ok(embed_data)
@@ -56,10 +68,11 @@ impl WebPage {
 
         for content in tag_content {
             let textloader = TextLoader::new(chunk_size);
-            let chunks = match textloader.split_into_chunks(content, SplittingStrategy::Sentence) {
-                Some(chunks) => chunks,
-                None => continue,
-            };
+            let chunks =
+                match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
+                    Some(chunks) => chunks,
+                    None => continue,
+                };
 
             if chunks.is_empty() {
                 continue;

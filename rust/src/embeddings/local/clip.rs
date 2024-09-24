@@ -207,7 +207,6 @@ impl ClipEmbeder {
     }
 }
 
-
 impl EmbedImage for ClipEmbeder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
