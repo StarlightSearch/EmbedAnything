@@ -1,9 +1,9 @@
 use std::{cmp::max, sync::Arc};
 
-use crate::{embeddings::{embed::Embeder,  local::jina::JinaEmbeder}, text_loader::{SplittingStrategy, TextLoader}};
+use crate::embeddings::{embed::Embeder, local::jina::JinaEmbeder};
 use candle_core::Tensor;
 use itertools::{enumerate, Itertools};
-use text_splitter::{ChunkConfig, TextSplitter};
+// use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
 pub struct StatisticalChunker {
@@ -335,8 +335,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_statistical_chunker() {
-        let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf").unwrap();
-        let chunker = StatisticalChunker{
+        let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf")
+            .unwrap();
+        let chunker = StatisticalChunker {
             verbose: true,
             ..Default::default()
         };

@@ -39,7 +39,6 @@ impl EmbedData {
     }
 }
 
-
 pub trait AudioDecoder {
     fn decode_audio(&mut self, audio_file: &std::path::Path)
         -> Result<Vec<Segment>, anyhow::Error>;
@@ -60,13 +59,9 @@ impl Embeder {
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
-            Embeder::OpenAI(embeder) => {
-           embeder.embed(text_batch).await
-            },
-            Embeder::Cohere(embeder) => {
-             embeder.embed(text_batch).await
-            },
-            Embeder::Jina(embeder) =>embeder.embed(text_batch, batch_size),
+            Embeder::OpenAI(embeder) => embeder.embed(text_batch).await,
+            Embeder::Cohere(embeder) => embeder.embed(text_batch).await,
+            Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Clip(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Bert(embeder) => embeder.embed(text_batch, batch_size),
         }
@@ -130,8 +125,6 @@ impl Embeder {
         }
     }
 }
-
-
 
 impl EmbedImage for Embeder {
     fn embed_image<T: AsRef<std::path::Path>>(

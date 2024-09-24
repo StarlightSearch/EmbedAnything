@@ -1,11 +1,15 @@
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    fs, sync::Arc,
+    fs,
+    sync::Arc,
 };
 
-use crate::{chunkers::statistical::StatisticalChunker, embeddings::{embed::Embeder, local::jina::JinaEmbeder}};
 use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
+use crate::{
+    chunkers::statistical::StatisticalChunker,
+    embeddings::{embed::Embeder, local::jina::JinaEmbeder},
+};
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{ChunkConfig, TextSplitter};
@@ -63,16 +67,16 @@ pub struct TextLoader {
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
         Self {
-            splitter: TextSplitter::new(
-                ChunkConfig::new(chunk_size)
-                    .with_sizer(Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap()),
-            ),
+            splitter: TextSplitter::new(ChunkConfig::new(chunk_size).with_sizer(
+                Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
+            )),
         }
     }
     pub fn split_into_chunks(
         &self,
         text: &str,
         splitting_strategy: SplittingStrategy,
+        semantic_encoder: Option<Arc<Embeder>>,
     ) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
@@ -84,17 +88,18 @@ impl TextLoader {
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic => {
-                let embeder = Arc::new(Embeder::Jina(JinaEmbeder::default()));
-                let chunker = StatisticalChunker{encoder:embeder, ..Default::default()};
-                
+                let embeder = semantic_encoder.unwrap();
+                let chunker = StatisticalChunker {
+                    encoder: embeder,
+                    ..Default::default()
+                };
+
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Runtime::new()
                         .unwrap()
-                        .block_on(async {
-                            chunker.chunk(text, 64).await
-                        })
+                        .block_on(async { chunker.chunk(text, 64).await })
                 })
-            },
+            }
         };
 
         Some(chunks)

@@ -221,15 +221,19 @@ class TextEmbedConfig:
         chunk_size: The chunk size for the Text Embedding model.
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
         splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence".
+        semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
     """
 
-    def __init__(self, chunk_size: int | None = 256, batch_size: int | None = 32, splitting_strategy: str | None = "sentence"):
+    def __init__(self, chunk_size: int | None = 256, batch_size: int | None = 32, splitting_strategy: str | None = "sentence", semantic_encoder: EmbeddingModel | None = None):
         self.chunk_size = chunk_size
         self.batch_size = batch_size
         self.splitting_strategy = splitting_strategy
+        self.semantic_encoder = semantic_encoder
     chunk_size: int | None
     batch_size: int | None
     splitting_strategy: str | None
+    semantic_encoder: EmbeddingModel | None
+
 class ImageEmbedConfig:
     """
     Represents the configuration for the Image Embedding model.

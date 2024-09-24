@@ -111,5 +111,3 @@ impl JinaEmbeder {
         Ok(encodings)
     }
 }
-
-

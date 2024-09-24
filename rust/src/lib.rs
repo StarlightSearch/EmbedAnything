@@ -18,10 +18,10 @@ use embeddings::{
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use futures::future::join_all;
+use itertools::Itertools;
 use rayon::prelude::*;
 use text_loader::{SplittingStrategy, TextLoader};
-use tokio::sync::mpsc;
-use itertools::Itertools; // Add this at the top of your file
+use tokio::sync::mpsc; // Add this at the top of your file
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -114,6 +114,7 @@ where
     let splitting_strategy = config
         .splitting_strategy
         .unwrap_or(SplittingStrategy::Sentence);
+    let semantic_encoder = config.semantic_encoder.clone();
 
     if let Embeder::Clip(embeder) = embeder {
         return Ok(Some(vec![emb_image(file_name, embeder).unwrap()]));
@@ -124,6 +125,7 @@ where
             Some(chunk_size),
             batch_size,
             Some(splitting_strategy),
+            semantic_encoder,
             adapter,
         )
         .await?;
@@ -208,6 +210,7 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
     splitting_strategy: Option<SplittingStrategy>,
+    semantic_encoder: Option<Arc<Embeder>>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
@@ -217,12 +220,11 @@ where
 
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
-    let chunks = textloader
-        .split_into_chunks(
-            &text,
-            splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
-        )
-        ;
+    let chunks = textloader.split_into_chunks(
+        &text,
+        splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
+        semantic_encoder,
+    );
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
@@ -353,24 +355,32 @@ where
 
     let embeder = embedding_model.clone();
 
-    
     let pb = indicatif::ProgressBar::new(file_parser.files.len() as u64);
-    pb.set_style(indicatif::ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})").unwrap());
-
+    pb.set_style(
+        indicatif::ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+        )
+        .unwrap(),
+    );
 
     let processing_task = tokio::spawn({
         async move {
             // make image buffer
             let mut image_buffer = Vec::with_capacity(buffer_size);
-            let mut files_processed: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut files_processed: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
             while let Some(image) = rx.recv().await {
                 image_buffer.push(image);
 
                 if image_buffer.len() == buffer_size {
                     match process_images(&image_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
-                            let files = embeddings.to_vec().into_iter().map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string()).collect::<Vec<_>>();
-                            
+                            let files = embeddings
+                                .to_vec()
+                                .into_iter()
+                                .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                                .collect::<Vec<_>>();
+
                             let unique_files = files.into_iter().unique().collect::<Vec<_>>();
                             let old_len = files_processed.len() as u64;
                             files_processed.extend(unique_files);
@@ -393,7 +403,11 @@ where
             if !image_buffer.is_empty() {
                 match process_images(&image_buffer, embeder.clone()).await {
                     Ok(embeddings) => {
-                        let files = embeddings.to_vec().into_iter().map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string()).collect::<Vec<_>>();
+                        let files = embeddings
+                            .to_vec()
+                            .into_iter()
+                            .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                            .collect::<Vec<_>>();
                         let unique_files = files.into_iter().unique().collect::<Vec<_>>();
                         let old_len = files_processed.len() as u64;
                         files_processed.extend(unique_files);
@@ -419,7 +433,6 @@ where
 
     drop(tx);
 
-
     let mut all_embeddings = Vec::new();
     while let Some(embeddings) = collector_rx.recv().await {
         if let Some(adapter) = &adapter {
@@ -429,7 +442,6 @@ where
         }
     }
 
-    
     // Wait for the spawned task to complete
     processing_task.await.unwrap();
 
@@ -495,6 +507,7 @@ where
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
+    let semantic_encoder = config.semantic_encoder.clone();
 
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
@@ -504,14 +517,19 @@ where
 
     let embeder = embeder.clone();
     let pb = indicatif::ProgressBar::new(files.len() as u64);
-    pb.set_style(indicatif::ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})").unwrap());
+    pb.set_style(
+        indicatif::ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+        )
+        .unwrap(),
+    );
 
     let processing_task = tokio::spawn({
         async move {
             let mut chunk_buffer = Vec::with_capacity(buffer_size);
             let mut metadata_buffer = Vec::with_capacity(buffer_size);
-            let mut files_processed: std::collections::HashSet<String> = std::collections::HashSet::new();
- 
+            let mut files_processed: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
 
             while let Some((chunk, metadata)) = rx.recv().await {
                 chunk_buffer.push(chunk);
@@ -527,15 +545,19 @@ where
                     .await
                     {
                         Ok(embeddings) => {
-                            let files = embeddings.to_vec().into_iter().map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string()).collect::<Vec<_>>();
-                            
+                            let files = embeddings
+                                .to_vec()
+                                .into_iter()
+                                .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                                .collect::<Vec<_>>();
+
                             let unique_files = files.into_iter().unique().collect::<Vec<_>>();
                             let old_len = files_processed.len() as u64;
                             files_processed.extend(unique_files);
                             let new_len = files_processed.len() as u64;
 
                             pb.inc(new_len - old_len);
-                  
+
                             if let Err(e) = collector_tx.send(embeddings) {
                                 eprintln!("Error sending embeddings to collector: {:?}", e);
                             }
@@ -554,7 +576,11 @@ where
                     .await
                 {
                     Ok(embeddings) => {
-                        let files = embeddings.to_vec().into_iter().map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string()).collect::<Vec<_>>();
+                        let files = embeddings
+                            .to_vec()
+                            .into_iter()
+                            .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                            .collect::<Vec<_>>();
                         let unique_files = files.into_iter().unique().collect::<Vec<_>>();
                         let old_len = files_processed.len() as u64;
                         files_processed.extend(unique_files);
@@ -577,7 +603,7 @@ where
     file_parser.files.iter().for_each(|file| {
         let text = TextLoader::extract_text(&file.to_string()).unwrap();
         let chunks = textloader
-            .split_into_chunks(&text, SplittingStrategy::Sentence)
+            .split_into_chunks(&text, SplittingStrategy::Sentence, None)
             .unwrap();
 
         let metadata = TextLoader::get_metadata(&file).unwrap();
