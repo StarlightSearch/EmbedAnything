@@ -7,7 +7,7 @@ name: CI
 
 on:
   push:
-    - main
+    - 'main'
     tags:
       - '*'
   pull_request:
