@@ -1,12 +1,13 @@
-use std::cmp::max;
+use std::{cmp::max, sync::Arc};
 
-use crate::embeddings::{embed::Embeder,  local::jina::JinaEmbeder};
+use crate::embeddings::{embed::Embeder, local::jina::JinaEmbeder};
 use candle_core::Tensor;
 use itertools::{enumerate, Itertools};
+// use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
 pub struct StatisticalChunker {
-    pub encoder: Embeder,
+    pub encoder: Arc<Embeder>,
     pub device: candle_core::Device,
     pub threshold_adjustment: f32,
     pub dynamic_threshold: bool,
@@ -20,7 +21,7 @@ pub struct StatisticalChunker {
 impl Default for StatisticalChunker {
     fn default() -> Self {
         let tokenizer = Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap();
-        let encoder = Embeder::Jina(JinaEmbeder::default());
+        let encoder = Arc::new(Embeder::Jina(JinaEmbeder::default()));
         let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
         Self {
             encoder,
@@ -40,7 +41,7 @@ impl Default for StatisticalChunker {
 impl StatisticalChunker {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        encoder: Embeder,
+        encoder: Arc<Embeder>,
         threshold_adjustment: f32,
         dynamic_threshold: bool,
         window_size: usize,
@@ -100,9 +101,11 @@ impl StatisticalChunker {
         Some(chunks)
     }
 
-    pub async fn _chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
+    pub async fn chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
+        // let splitter = TextSplitter::new(ChunkConfig::new(256)
+        // .with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()));
+        // let splits = splitter.chunks(text).collect::<Vec<_>>();
         let splits = self.split_into_sentences(text, 50).unwrap();
-
         if self.verbose {
             for split in splits.iter() {
                 println!("-----Split---\n{}", split);
@@ -300,14 +303,14 @@ impl StatisticalChunker {
             {
                 current_split.push(doc);
 
-                chunks.push(current_split.join(""));
+                chunks.push(current_split.join("\n"));
                 current_split = Vec::new();
                 current_tokens_count = 0;
                 continue;
             }
             if current_tokens_count + doc_token_count > self.max_split_tokens {
                 if current_tokens_count >= self.min_split_tokens {
-                    chunks.push(current_split.join(""));
+                    chunks.push(current_split.join("\n"));
                 }
                 current_split = Vec::new();
                 current_tokens_count = 0;
@@ -317,7 +320,7 @@ impl StatisticalChunker {
         }
 
         if !current_split.is_empty() {
-            chunks.push(current_split.join(""));
+            chunks.push(current_split.join("\n"));
         }
 
         chunks
@@ -332,13 +335,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_statistical_chunker() {
-        let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf").unwrap();
-        let chunker = StatisticalChunker{
+        let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf")
+            .unwrap();
+        let chunker = StatisticalChunker {
             verbose: true,
             ..Default::default()
         };
         println!("-----Text---\n{}", text);
-        let chunks = chunker._chunk(&text, 10).await;
+        let chunks = chunker.chunk(&text, 10).await;
         assert_eq!(chunks.len(), 1);
     }
 }
