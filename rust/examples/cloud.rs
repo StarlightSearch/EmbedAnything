@@ -11,8 +11,15 @@ use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let text_embed_config =
-        TextEmbedConfig::new(Some(256), Some(32), None, Some(SplittingStrategy::Semantic));
+    let semantic_encoder =
+        Arc::new(Embeder::from_pretrained_cloud("openai", "text-embedding-3-small", None).unwrap());
+    let text_embed_config = TextEmbedConfig::new(
+        Some(256),
+        Some(32),
+        None,
+        Some(SplittingStrategy::Semantic),
+        Some(semantic_encoder.clone()),
+    );
     let cohere_model =
         Embeder::from_pretrained_cloud("cohere", "embed-english-v3.0", None).unwrap();
     let openai_model =

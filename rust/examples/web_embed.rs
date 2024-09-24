@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use candle_core::Tensor;
 use embed_anything::{
     config::TextEmbedConfig,
     embed_query, embed_webpage,
-    embeddings::embed::{EmbedData, Embeder}, text_loader::SplittingStrategy,
+    embeddings::embed::{EmbedData, Embeder},
+    text_loader::SplittingStrategy,
 };
 
 #[tokio::main]
@@ -10,18 +13,27 @@ async fn main() {
     let start_time = std::time::Instant::now();
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
 
-    let embeder =
+    let embeder = Arc::new(
         Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
-            .unwrap();
+            .unwrap(),
+    );
 
-    let embed_config = TextEmbedConfig::new(Some(256), Some(32), None, Some(SplittingStrategy::Sentence));
+    let embed_config = TextEmbedConfig::new(
+        Some(256),
+        Some(32),
+        None,
+        Some(SplittingStrategy::Sentence),
+        Some(embeder.clone()),
+    );
     let embed_data = embed_webpage(
         url,
         &embeder,
         Some(&embed_config),
         None::<fn(Vec<EmbedData>)>,
-    ).await
-    .unwrap().unwrap();
+    )
+    .await
+    .unwrap()
+    .unwrap();
     let embeddings: Vec<Vec<f32>> = embed_data
         .iter()
         .map(|data| data.embedding.clone())
