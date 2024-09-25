@@ -325,7 +325,7 @@ checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
 [[package]]
 name = "candle-core"
 version = "0.7.1"
-source = "git+https://github.com/akshayballal95/candle.git#7c7460258e45fd2ed85fee4462bd120cf72981ae"
+source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -350,7 +350,7 @@ dependencies = [
 [[package]]
 name = "candle-kernels"
 version = "0.7.1"
-source = "git+https://github.com/akshayballal95/candle.git#7c7460258e45fd2ed85fee4462bd120cf72981ae"
+source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
 dependencies = [
  "bindgen_cuda",
 ]
@@ -358,7 +358,7 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.7.1"
-source = "git+https://github.com/akshayballal95/candle.git#7c7460258e45fd2ed85fee4462bd120cf72981ae"
+source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
 dependencies = [
  "accelerate-src",
  "candle-core",
@@ -374,7 +374,7 @@ dependencies = [
 [[package]]
 name = "candle-transformers"
 version = "0.7.1"
-source = "git+https://github.com/akshayballal95/candle.git#7c7460258e45fd2ed85fee4462bd120cf72981ae"
+source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
 dependencies = [
  "accelerate-src",
  "byteorder",

@@ -8,7 +8,7 @@ use crate::embeddings::normalize_l2;
 use anyhow::Error as E;
 use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
-use candle_transformers::models::bert::{BertModel, Config, HiddenAct, DTYPE};
+use crate::models::bert::{BertModel, Config, HiddenAct, DTYPE};
 use hf_hub::{api::sync::Api, Repo};
 use tokenizers::{PaddingParams, Tokenizer};
 
