@@ -9,7 +9,7 @@ use std::{path::PathBuf, sync::Arc, time::Instant};
 async fn main() {
     let now = Instant::now();
 
-    let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap();
+    let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch32", None).unwrap();
     let model: Arc<Embeder> = Arc::new(model);
     let out = embed_image_directory(
         PathBuf::from("test_files"),
