@@ -28,10 +28,7 @@ impl TextEmbedConfig {
             },
             None => None,
         };
-        let semantic_encoder = match semantic_encoder {
-            Some(model) => Some(model.inner.clone()),
-            None => None,
-        };
+        let semantic_encoder = semantic_encoder.map(|model| model.inner.clone());
         Self {
             inner: embed_anything::config::TextEmbedConfig::new(
                 chunk_size,

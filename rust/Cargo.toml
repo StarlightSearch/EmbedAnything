@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.3.2"
+version = "0.3.3"
 edition.workspace = true
 license.workspace = true
 description.workspace = true
@@ -31,23 +31,20 @@ image = "0.25.1"
 tokenizers = {version="0.19.1", features=["http"]}
 text-splitter = {version="0.14.1", features=["tokenizers"]}
 
-
-
-# PDF Processing
-pdf-extract = {git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs/pull/91/head"}
+tracing = "0.1.37"
 
 
 # Hugging Face Libraries
 hf-hub = "0.3.2"
-candle-nn = { git = "https://github.com/akshayballal95/candle.git", version = "0.6.0" }
-candle-transformers = { git = "https://github.com/akshayballal95/candle.git", version = "0.6.0" }
-candle-core = { git = "https://github.com/akshayballal95/candle.git", version = "0.6.0" }
+candle-nn = { workspace = true }
+candle-transformers = { workspace = true }
+candle-core = { workspace = true }
 
 # Error Handling
-anyhow = "1.0.81"
+anyhow = "1.0.89"
 
 # Asynchronous Programming
-tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 
 
 # Markdown Processing
@@ -55,7 +52,7 @@ markdown-parser = "0.1.2"
 markdown_to_text = "1.0.0"
 
 # Web Scraping
-scraper = "0.19.0"
+scraper = "0.20.0"
 
 # Text Processing
 text-cleaner = "0.1.0"
@@ -69,6 +66,8 @@ symphonia = { version = "0.5.3", features = ["all"]}
 byteorder = "1.5.0"
 
 futures = "0.3.30"
+
+pdf-extract = {workspace = true}
 
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
