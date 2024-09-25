@@ -18,8 +18,8 @@ async fn main() {
         Some(model.clone()),
     );
 
-    let out = embed_file(
-        "test_files/ethics.pdf",
+    let _out = embed_file(
+        "test_files/test.pdf",
         &model,
         Some(&config),
         None::<fn(Vec<EmbedData>)>,
