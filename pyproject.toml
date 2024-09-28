@@ -8,6 +8,7 @@ requires-python = ">=3.8"
 description = "Embed anything at lightning speed"
 readme = "README.md"
 
+
 dynamic = ["version"]
 license = {file = "LICENSE"}
 

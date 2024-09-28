@@ -6,6 +6,7 @@ pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
 pub mod text_loader;
+pub mod models;
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
@@ -117,7 +118,7 @@ where
     let semantic_encoder = config.semantic_encoder.clone();
 
     if let Embeder::Clip(embeder) = embeder {
-        return Ok(Some(vec![emb_image(file_name, embeder).unwrap()]));
+        Ok(Some(vec![emb_image(file_name, embeder).unwrap()]))
     } else {
         let embeddings = emb_text(
             file_name,
@@ -376,8 +377,8 @@ where
                     match process_images(&image_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
                             let files = embeddings
-                                .to_vec()
-                                .into_iter()
+                                .iter()
+                                .cloned()
                                 .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
                                 .collect::<Vec<_>>();
 
@@ -404,8 +405,8 @@ where
                 match process_images(&image_buffer, embeder.clone()).await {
                     Ok(embeddings) => {
                         let files = embeddings
-                            .to_vec()
-                            .into_iter()
+                            .iter()
+                            .cloned()
                             .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
                             .collect::<Vec<_>>();
                         let unique_files = files.into_iter().unique().collect::<Vec<_>>();
@@ -436,9 +437,9 @@ where
     let mut all_embeddings = Vec::new();
     while let Some(embeddings) = collector_rx.recv().await {
         if let Some(adapter) = &adapter {
-            adapter(embeddings);
+            adapter(embeddings.to_vec());
         } else {
-            all_embeddings.extend(embeddings);
+            all_embeddings.extend(embeddings.to_vec());
         }
     }
 
@@ -453,11 +454,11 @@ where
 }
 
 async fn process_images<E: EmbedImage>(
-    image_buffer: &Vec<String>,
+    image_buffer: &[String],
     embeder: Arc<E>,
-) -> Result<Vec<EmbedData>> {
+) -> Result<Arc<Vec<EmbedData>>> {
     let embeddings = embeder.embed_image_batch(image_buffer)?;
-    Ok(embeddings)
+    Ok(Arc::new(embeddings))
 }
 
 /// Embeds text from files in a directory using the specified embedding model.
@@ -507,7 +508,6 @@ where
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
-    let semantic_encoder = config.semantic_encoder.clone();
 
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
@@ -546,8 +546,8 @@ where
                     {
                         Ok(embeddings) => {
                             let files = embeddings
-                                .to_vec()
-                                .into_iter()
+                                .iter()
+                                .cloned()
                                 .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
                                 .collect::<Vec<_>>();
 
@@ -577,8 +577,8 @@ where
                 {
                     Ok(embeddings) => {
                         let files = embeddings
-                            .to_vec()
-                            .into_iter()
+                            .iter()
+                            .cloned()
                             .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
                             .collect::<Vec<_>>();
                         let unique_files = files.into_iter().unique().collect::<Vec<_>>();
@@ -606,7 +606,7 @@ where
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
             .unwrap();
 
-        let metadata = TextLoader::get_metadata(&file).unwrap();
+        let metadata = TextLoader::get_metadata(file).unwrap();
         for chunk in chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
                 eprintln!("Error sending chunk: {:?}", e);
