@@ -88,7 +88,8 @@ impl TextLoader {
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic => {
-                let embeder = semantic_encoder.unwrap();
+                let embeder =
+                    semantic_encoder.unwrap_or(Arc::new(Embeder::Jina(JinaEmbeder::default())));
                 let chunker = StatisticalChunker {
                     encoder: embeder,
                     ..Default::default()

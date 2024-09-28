@@ -274,7 +274,7 @@ pub fn embed_file(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_file(file_name, &embedding_model, config, adapter).await
+            embed_anything::embed_file(file_name, embedding_model, config, adapter).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
