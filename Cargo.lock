@@ -772,7 +772,7 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "embed_anything"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "accelerate-src",
  "anyhow",
