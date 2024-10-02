@@ -13,4 +13,15 @@ license = "Apache-2.0"
 description = "Embed anything at lightning speed"
 repository = "https://github.com/StarlightSearch/EmbedAnything"
 authors = ["Akshay Ballal <arballal95@gmail.com>"]
-exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/*", "mkdocs.yml", "docs/*", "tests/*"]
+exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/*", "mkdocs.yml", "docs/*", "tests/*", ".github", "Dockerfile", "docs"]
+
+[workspace.dependencies]
+pdf-extract = "0.7.7"
+candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.7.1" }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.7.1" }
+candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.7.1" }
+
+
+[patch.crates-io]
+pdf-extract = { git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs/pull/91/head" }
+
