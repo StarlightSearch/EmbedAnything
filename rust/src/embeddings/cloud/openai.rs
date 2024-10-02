@@ -55,7 +55,6 @@ impl OpenAIEmbeder {
 
         let data = response.json::<OpenAIEmbedResponse>().await?;
 
-      
         println!("{:?}", data.usage);
 
         let encodings = data

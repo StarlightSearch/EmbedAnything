@@ -8,7 +8,7 @@ use crate::embeddings::normalize_l2;
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
-use candle_transformers::models::jina_bert::{BertModel, Config};
+use crate::models::jina_bert::{BertModel, Config};
 use hf_hub::Repo;
 use tokenizers::Tokenizer;
 
@@ -111,5 +111,3 @@ impl JinaEmbeder {
         Ok(encodings)
     }
 }
-
-

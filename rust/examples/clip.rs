@@ -9,7 +9,7 @@ use std::{path::PathBuf, sync::Arc, time::Instant};
 async fn main() {
     let now = Instant::now();
 
-    let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap();
+    let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch32", None).unwrap();
     let model: Arc<Embeder> = Arc::new(model);
     let out = embed_image_directory(
         PathBuf::from("test_files"),
@@ -21,7 +21,9 @@ async fn main() {
     .unwrap()
     .unwrap();
 
-    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], &model, None).await.unwrap();
+    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], &model, None)
+        .await
+        .unwrap();
     let n_vectors = out.len();
     let out_embeddings = Tensor::from_vec(
         out.iter()

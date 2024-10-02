@@ -9,7 +9,7 @@ use std::{collections::HashMap, fs};
 use anyhow::Error as E;
 
 use candle_core::{DType, Device, Tensor};
-use candle_transformers::models::clip::{self, ClipConfig};
+use crate::models::clip::{self, ClipConfig};
 
 use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;
@@ -206,7 +206,6 @@ impl ClipEmbeder {
         Ok(encodings)
     }
 }
-
 
 impl EmbedImage for ClipEmbeder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(

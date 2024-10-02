@@ -49,7 +49,7 @@ def test_bert_model_query(bert_model):
 def test_bert_model_directory(bert_model, config, test_text_directory):
 
     data = embed_directory(test_text_directory, bert_model, config=config)
-    assert len(data) == 236
+    assert len(data) == 243
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 384
 

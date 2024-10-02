@@ -6,10 +6,11 @@ pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
 pub mod text_loader;
+pub mod models;
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
-use anyhow:: Result;
+use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embeder},
@@ -18,9 +19,10 @@ use embeddings::{
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use futures::future::join_all;
+use itertools::Itertools;
 use rayon::prelude::*;
-use text_loader::TextLoader;
-use tokio::sync::mpsc;
+use text_loader::{SplittingStrategy, TextLoader};
+use tokio::sync::mpsc; // Add this at the top of your file
 
 /// Embeds a list of queries using the specified embedding model.
 ///
@@ -63,7 +65,7 @@ pub async fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embeder.embed(&query, batch_size).await?;
+    let encodings = embeder.embed(&query, batch_size).await.unwrap();
     let embeddings = get_text_metadata(&encodings, &query, &None)?;
 
     Ok(embeddings)
@@ -110,15 +112,26 @@ where
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
+    let splitting_strategy = config
+        .splitting_strategy
+        .unwrap_or(SplittingStrategy::Sentence);
+    let semantic_encoder = config.semantic_encoder.clone();
 
     if let Embeder::Clip(embeder) = embeder {
-        return Ok(Some(vec![emb_image(file_name, embeder).unwrap()]));
-    }
-    else {
-        let embeddings = emb_text(file_name, embeder, Some(chunk_size), batch_size, adapter).await?;
+        Ok(Some(vec![emb_image(file_name, embeder).unwrap()]))
+    } else {
+        let embeddings = emb_text(
+            file_name,
+            embeder,
+            Some(chunk_size),
+            batch_size,
+            Some(splitting_strategy),
+            semantic_encoder,
+            adapter,
+        )
+        .await?;
         Ok(embeddings)
     }
-
 }
 
 /// Embeddings of a webpage using the specified embedding model.
@@ -179,7 +192,9 @@ where
     let chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let embeddings = webpage.embed_webpage(embeder, chunk_size, batch_size).await?;
+    let embeddings = webpage
+        .embed_webpage(embeder, chunk_size, batch_size)
+        .await?;
 
     // Send embeddings to vector database
     if let Some(adapter) = adapter {
@@ -195,6 +210,8 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     embedding_model: &Embeder,
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
+    splitting_strategy: Option<SplittingStrategy>,
+    semantic_encoder: Option<Arc<Embeder>>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
@@ -204,7 +221,11 @@ where
 
     let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
-    let chunks = textloader.split_into_chunks(&text);
+    let chunks = textloader.split_into_chunks(
+        &text,
+        splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
+        semantic_encoder,
+    );
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
@@ -212,11 +233,18 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
+                let encodings = embedding_model
+                    .embed(&chunks[..], batch_size)
+                    .await
+                    .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
-        let embeddings = join_all(futures).await.into_iter().flatten().collect::<Vec<_>>();
+        let embeddings = join_all(futures)
+            .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
         adapter(embeddings);
         Ok(None)
     } else {
@@ -224,11 +252,18 @@ where
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
-                let encodings = embedding_model.embed(&chunks[..], batch_size).await.unwrap();
+                let encodings = embedding_model
+                    .embed(&chunks[..], batch_size)
+                    .await
+                    .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
         });
-        let embeddings = join_all(futures).await.into_iter().flatten().collect::<Vec<_>>();
+        let embeddings = join_all(futures)
+            .await
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
 
         Ok(Some(embeddings))
     }
@@ -265,7 +300,8 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
         text_embed_config
             .unwrap_or(&TextEmbedConfig::default())
             .batch_size,
-    ).await?;
+    )
+    .await?;
 
     Ok(Some(embeddings))
 }
@@ -320,17 +356,39 @@ where
 
     let embeder = embedding_model.clone();
 
+    let pb = indicatif::ProgressBar::new(file_parser.files.len() as u64);
+    pb.set_style(
+        indicatif::ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+        )
+        .unwrap(),
+    );
+
     let processing_task = tokio::spawn({
         async move {
             // make image buffer
             let mut image_buffer = Vec::with_capacity(buffer_size);
-
+            let mut files_processed: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
             while let Some(image) = rx.recv().await {
                 image_buffer.push(image);
 
                 if image_buffer.len() == buffer_size {
                     match process_images(&image_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
+                            let files = embeddings
+                                .iter()
+                                .cloned()
+                                .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                                .collect::<Vec<_>>();
+
+                            let unique_files = files.into_iter().unique().collect::<Vec<_>>();
+                            let old_len = files_processed.len() as u64;
+                            files_processed.extend(unique_files);
+                            let new_len = files_processed.len() as u64;
+
+                            pb.inc(new_len - old_len);
+
                             if let Err(e) = collector_tx.send(embeddings) {
                                 eprintln!("Error sending embeddings to collector: {:?}", e);
                             }
@@ -346,6 +404,18 @@ where
             if !image_buffer.is_empty() {
                 match process_images(&image_buffer, embeder.clone()).await {
                     Ok(embeddings) => {
+                        let files = embeddings
+                            .iter()
+                            .cloned()
+                            .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                            .collect::<Vec<_>>();
+                        let unique_files = files.into_iter().unique().collect::<Vec<_>>();
+                        let old_len = files_processed.len() as u64;
+                        files_processed.extend(unique_files);
+                        let new_len = files_processed.len() as u64;
+
+                        pb.inc(new_len - old_len);
+
                         if let Err(e) = collector_tx.send(embeddings) {
                             eprintln!("Error sending embeddings to collector: {:?}", e);
                         }
@@ -364,17 +434,17 @@ where
 
     drop(tx);
 
-    // Wait for the spawned task to complete
-    processing_task.await.unwrap();
-
     let mut all_embeddings = Vec::new();
     while let Some(embeddings) = collector_rx.recv().await {
         if let Some(adapter) = &adapter {
-            adapter(embeddings);
+            adapter(embeddings.to_vec());
         } else {
-            all_embeddings.extend(embeddings);
+            all_embeddings.extend(embeddings.to_vec());
         }
     }
+
+    // Wait for the spawned task to complete
+    processing_task.await.unwrap();
 
     if adapter.is_some() {
         Ok(None)
@@ -384,11 +454,11 @@ where
 }
 
 async fn process_images<E: EmbedImage>(
-    image_buffer: &Vec<String>,
+    image_buffer: &[String],
     embeder: Arc<E>,
-) -> Result<Vec<EmbedData>> {
+) -> Result<Arc<Vec<EmbedData>>> {
     let embeddings = embeder.embed_image_batch(image_buffer)?;
-    Ok(embeddings)
+    Ok(Arc::new(embeddings))
 }
 
 /// Embeds text from files in a directory using the specified embedding model.
@@ -439,20 +509,27 @@ where
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
 
-    let textloader = TextLoader::new(chunk_size);
-
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
-
+    let files = file_parser.files.clone();
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
     let embeder = embeder.clone();
+    let pb = indicatif::ProgressBar::new(files.len() as u64);
+    pb.set_style(
+        indicatif::ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+        )
+        .unwrap(),
+    );
 
     let processing_task = tokio::spawn({
         async move {
             let mut chunk_buffer = Vec::with_capacity(buffer_size);
             let mut metadata_buffer = Vec::with_capacity(buffer_size);
+            let mut files_processed: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
 
             while let Some((chunk, metadata)) = rx.recv().await {
                 chunk_buffer.push(chunk);
@@ -468,6 +545,19 @@ where
                     .await
                     {
                         Ok(embeddings) => {
+                            let files = embeddings
+                                .iter()
+                                .cloned()
+                                .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                                .collect::<Vec<_>>();
+
+                            let unique_files = files.into_iter().unique().collect::<Vec<_>>();
+                            let old_len = files_processed.len() as u64;
+                            files_processed.extend(unique_files);
+                            let new_len = files_processed.len() as u64;
+
+                            pb.inc(new_len - old_len);
+
                             if let Err(e) = collector_tx.send(embeddings) {
                                 eprintln!("Error sending embeddings to collector: {:?}", e);
                             }
@@ -486,6 +576,18 @@ where
                     .await
                 {
                     Ok(embeddings) => {
+                        let files = embeddings
+                            .iter()
+                            .cloned()
+                            .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                            .collect::<Vec<_>>();
+                        let unique_files = files.into_iter().unique().collect::<Vec<_>>();
+                        let old_len = files_processed.len() as u64;
+                        files_processed.extend(unique_files);
+                        let new_len = files_processed.len() as u64;
+
+                        pb.inc(new_len - old_len);
+
                         if let Err(e) = collector_tx.send(embeddings) {
                             eprintln!("Error sending embeddings to collector: {:?}", e);
                         }
@@ -496,10 +598,15 @@ where
         }
     });
 
-    file_parser.files.par_iter().for_each(|file| {
+    let textloader = TextLoader::new(chunk_size);
+
+    file_parser.files.iter().for_each(|file| {
         let text = TextLoader::extract_text(&file.to_string()).unwrap();
-        let chunks = textloader.split_into_chunks(&text).unwrap();
-        let metadata = TextLoader::get_metadata(&file).unwrap();
+        let chunks = textloader
+            .split_into_chunks(&text, SplittingStrategy::Sentence, None)
+            .unwrap();
+
+        let metadata = TextLoader::get_metadata(file).unwrap();
         for chunk in chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
                 eprintln!("Error sending chunk: {:?}", e);
@@ -512,9 +619,9 @@ where
     let mut all_embeddings = Vec::new();
     while let Some(embeddings) = collector_rx.recv().await {
         if let Some(adapter) = &adapter {
-            adapter(embeddings);
+            adapter(embeddings.to_vec());
         } else {
-            all_embeddings.extend(embeddings);
+            all_embeddings.extend(embeddings.to_vec());
         }
     }
     // Wait for the spawned task to complete
@@ -532,7 +639,7 @@ pub async fn process_chunks(
     metadata: &Vec<Option<HashMap<String, String>>>,
     embedding_model: Arc<Embeder>,
     batch_size: Option<usize>,
-) -> Result<Vec<EmbedData>> {
+) -> Result<Arc<Vec<EmbedData>>> {
     let encodings = embedding_model.embed(chunks, batch_size).await?;
 
     // zip encodings with chunks and metadata
@@ -544,5 +651,5 @@ pub async fn process_chunks(
             EmbedData::new(encoding.to_vec(), Some(chunk.clone()), metadata.clone())
         })
         .collect::<Vec<_>>();
-    Ok(embeddings)
+    Ok(Arc::new(embeddings))
 }
