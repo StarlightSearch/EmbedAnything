@@ -7,7 +7,7 @@ from time import time
 
 
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+    WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
 # with semantic encoder
