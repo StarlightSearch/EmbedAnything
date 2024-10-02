@@ -324,8 +324,8 @@ checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
 
 [[package]]
 name = "candle-core"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#683ab698def755c24cec9987069d25efcf831fc4"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -349,16 +349,16 @@ dependencies = [
 
 [[package]]
 name = "candle-kernels"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#683ab698def755c24cec9987069d25efcf831fc4"
 dependencies = [
  "bindgen_cuda",
 ]
 
 [[package]]
 name = "candle-nn"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#683ab698def755c24cec9987069d25efcf831fc4"
 dependencies = [
  "accelerate-src",
  "candle-core",
@@ -373,8 +373,8 @@ dependencies = [
 
 [[package]]
 name = "candle-transformers"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#683ab698def755c24cec9987069d25efcf831fc4"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -781,6 +781,7 @@ dependencies = [
  "candle-nn",
  "candle-transformers",
  "chrono",
+ "cudarc",
  "futures",
  "hf-hub",
  "image",
@@ -811,7 +812,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything_python"
-version = "0.4.1"
+version = "0.4.4"
 dependencies = [
  "embed_anything",
  "pyo3",
