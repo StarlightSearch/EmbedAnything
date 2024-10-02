@@ -1,8 +1,13 @@
-#[derive(Clone)]
+use std::sync::Arc;
+
+use crate::{embeddings::embed::Embeder, text_loader::SplittingStrategy};
+
 pub struct TextEmbedConfig {
     pub chunk_size: Option<usize>,
     pub batch_size: Option<usize>,
     pub buffer_size: Option<usize>, // Required for adapter. Default is 100.
+    pub splitting_strategy: Option<SplittingStrategy>,
+    pub semantic_encoder: Option<Arc<Embeder>>,
 }
 
 impl Default for TextEmbedConfig {
@@ -11,6 +16,8 @@ impl Default for TextEmbedConfig {
             chunk_size: Some(256),
             batch_size: Some(32),
             buffer_size: Some(100),
+            splitting_strategy: None,
+            semantic_encoder: None,
         }
     }
 }
@@ -20,11 +27,15 @@ impl TextEmbedConfig {
         chunk_size: Option<usize>,
         batch_size: Option<usize>,
         buffer_size: Option<usize>,
+        splitting_strategy: Option<SplittingStrategy>,
+        semantic_encoder: Option<Arc<Embeder>>,
     ) -> Self {
         Self {
             chunk_size,
             batch_size,
             buffer_size,
+            splitting_strategy,
+            semantic_encoder,
         }
     }
 }

@@ -39,7 +39,6 @@ impl EmbedData {
     }
 }
 
-
 pub trait AudioDecoder {
     fn decode_audio(&mut self, audio_file: &std::path::Path)
         -> Result<Vec<Segment>, anyhow::Error>;
@@ -126,8 +125,6 @@ impl Embeder {
         }
     }
 }
-
-
 
 impl EmbedImage for Embeder {
     fn embed_image<T: AsRef<std::path::Path>>(
