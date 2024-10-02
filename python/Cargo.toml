@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything_python"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2021"
 
 [lib]
@@ -17,3 +17,4 @@ extension-module = ["pyo3/extension-module"]
 mkl = ["embed_anything/mkl"]
 accelerate = ["embed_anything/accelerate"]
 cuda = ["embed_anything/cuda"]
+cudnn = ["embed_anything/cudnn"]
