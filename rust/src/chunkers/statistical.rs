@@ -1,6 +1,9 @@
 use std::{cmp::max, sync::Arc};
 
-use crate::embeddings::{embed::Embeder, local::jina::JinaEmbeder};
+use crate::embeddings::{
+    embed::{EmbeddingResult, Embeder},
+    local::jina::JinaEmbeder,
+};
 use candle_core::Tensor;
 use itertools::{enumerate, Itertools};
 // use text_splitter::{ChunkConfig, TextSplitter};
@@ -128,7 +131,16 @@ impl StatisticalChunker {
                     .collect::<Vec<_>>();
             }
 
-            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).await.unwrap();
+            let encoded_splits = self
+                .encoder
+                .embed(&batch_splits, Some(16), Some(false))
+                .await
+                .unwrap();
+            let encoded_splits = encoded_splits
+                .into_iter()
+                .map(|x| x.to_dense().unwrap())
+                .collect::<Vec<_>>();
+
             let similarities = self._calculate_similarity_scores(&encoded_splits);
             let calculated_threshold = self._find_optimal_threshold(&batch_splits, &similarities);
 
