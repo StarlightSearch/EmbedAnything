@@ -24,6 +24,7 @@ async fn main() {
         None,
         Some(SplittingStrategy::Sentence),
         Some(embeder.clone()),
+        Some(false),
     );
     let embed_data = embed_webpage(
         url,
@@ -34,10 +35,10 @@ async fn main() {
     .await
     .unwrap()
     .unwrap();
-    let embeddings: Vec<Vec<f32>> = embed_data
+    let embeddings = embed_data
         .iter()
-        .map(|data| data.embedding.clone())
-        .collect();
+        .map(|data| data.embedding.to_dense().unwrap())
+        .collect::<Vec<_>>();
 
     // Convert embeddings to a tensor
     let embeddings = Tensor::from_vec(
@@ -52,7 +53,7 @@ async fn main() {
         .await
         .unwrap()
         .iter()
-        .map(|data| data.embedding.clone())
+        .map(|data| data.embedding.to_dense().unwrap())
         .flatten()
         .collect();
 

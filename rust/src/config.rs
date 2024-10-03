@@ -8,6 +8,7 @@ pub struct TextEmbedConfig {
     pub buffer_size: Option<usize>, // Required for adapter. Default is 100.
     pub splitting_strategy: Option<SplittingStrategy>,
     pub semantic_encoder: Option<Arc<Embeder>>,
+    pub sparse_embeddings: Option<bool>,
 }
 
 impl Default for TextEmbedConfig {
@@ -18,6 +19,7 @@ impl Default for TextEmbedConfig {
             buffer_size: Some(100),
             splitting_strategy: None,
             semantic_encoder: None,
+            sparse_embeddings: Some(false),
         }
     }
 }
@@ -29,6 +31,7 @@ impl TextEmbedConfig {
         buffer_size: Option<usize>,
         splitting_strategy: Option<SplittingStrategy>,
         semantic_encoder: Option<Arc<Embeder>>,
+        sparse_embeddings: Option<bool>,
     ) -> Self {
         Self {
             chunk_size,
@@ -36,6 +39,7 @@ impl TextEmbedConfig {
             buffer_size,
             splitting_strategy,
             semantic_encoder,
+            sparse_embeddings,
         }
     }
 }

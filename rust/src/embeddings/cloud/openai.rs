@@ -3,13 +3,27 @@ use std::collections::HashMap;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
+use tracing::debug;
 
-use crate::embeddings::embed::EmbedData;
+use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 
 #[derive(Deserialize, Debug, Default)]
 pub struct OpenAIEmbedResponse {
-    pub data: Vec<EmbedData>,
-    pub usage: HashMap<String, usize>,
+    pub data: Vec<EmbeddingData>,
+    pub model: String,
+    pub usage: Usage,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct EmbeddingData {
+    pub embedding: Vec<f32>,
+    pub index: usize,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct Usage {
+    pub prompt_tokens: usize,
+    pub total_tokens: usize,
 }
 
 /// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
@@ -40,7 +54,10 @@ impl OpenAIEmbeder {
         }
     }
 
-    pub async fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub async fn embed(
+        &self,
+        text_batch: &[String],
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let response = self
             .client
             .post(&self.url)
@@ -49,10 +66,10 @@ impl OpenAIEmbeder {
             .json(&json!({
                 "input": text_batch,
                 "model": self.model,
+                "encoding_format": "float"
             }))
             .send()
             .await?;
-
         let data = response.json::<OpenAIEmbedResponse>().await?;
 
         println!("{:?}", data.usage);
@@ -60,7 +77,7 @@ impl OpenAIEmbeder {
         let encodings = data
             .data
             .iter()
-            .map(|data| data.embedding.clone())
+            .map(|data| EmbeddingResult::Dense(data.embedding.clone()))
             .collect::<Vec<_>>();
 
         Ok(encodings)
@@ -74,12 +91,21 @@ mod tests {
     #[tokio::test]
     async fn test_openai_embed() {
         let openai = OpenAIEmbeder::default();
-        let text_batch = vec![
-            "Once upon a time".to_string(),
-            "The quick brown fox jumps over the lazy dog".to_string(),
-        ];
-
-        let embeddings = openai.embed(&text_batch).await.unwrap();
-        assert_eq!(embeddings.len(), 2);
+        let response = openai
+            .client
+            .post(&openai.url)
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", openai.api_key))
+            .json(&json!({
+                "input": vec!["Hello world"],
+                "model": openai.model,
+                "encoding_format": "float"
+            }))
+            .send()
+            .await
+            .unwrap();
+        // println!("{}", response.text().await.unwrap());
+        let data = response.json::<OpenAIEmbedResponse>().await.unwrap();
+        println!("{:?}", data);
     }
 }

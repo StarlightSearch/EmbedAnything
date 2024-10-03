@@ -1,10 +1,18 @@
 pub mod config;
 
 use embed_anything::{
-    self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
-    file_processor::audio::audio_processor, text_loader::FileLoadingError,
+    self,
+    config::TextEmbedConfig,
+    emb_audio,
+    embeddings::embed::{EmbeddingResult, Embeder},
+    file_processor::audio::audio_processor,
+    text_loader::FileLoadingError,
 };
-use pyo3::{exceptions::PyFileNotFoundError, exceptions::PyValueError, prelude::*};
+use pyo3::{
+    exceptions::{PyFileNotFoundError, PyValueError},
+    prelude::*,
+    types::PyList,
+};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -20,8 +28,16 @@ pub struct EmbedData {
 #[pymethods]
 impl EmbedData {
     #[getter(embedding)]
-    fn embedding(&self) -> Vec<f32> {
-        self.inner.embedding.clone()
+    fn embedding(&self) -> Py<PyList> {
+        Python::with_gil(|py| {
+            let embedding = self.inner.embedding.clone();
+            match embedding {
+                EmbeddingResult::Dense(x) => PyList::new_bound(py, x).into(),
+                EmbeddingResult::Sparse(x) => {
+                    PyList::new_bound(py, x.iter().map(|inner| PyList::new_bound(py, inner))).into()
+                }
+            }
+        })
     }
 
     #[getter(text)]
@@ -32,6 +48,16 @@ impl EmbedData {
     #[getter(metadata)]
     fn metadata(&self) -> Option<HashMap<String, String>> {
         self.inner.metadata.clone()
+    }
+
+    #[setter(text)]
+    fn set_text(&mut self, text: Option<String>) {
+        self.inner.text = text;
+    }
+
+    #[setter(metadata)]
+    fn set_metadata(&mut self, metadata: Option<HashMap<String, String>>) {
+        self.inner.metadata = metadata;
     }
 
     fn __str__(&self) -> String {
