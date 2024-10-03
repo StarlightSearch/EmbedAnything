@@ -5,20 +5,59 @@ use super::cloud::openai::OpenAIEmbeder;
 use super::local::bert::BertEmbeder;
 use super::local::clip::ClipEmbeder;
 use super::local::jina::JinaEmbeder;
+use anyhow::anyhow;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-#[derive(Deserialize, Debug, Clone, Default)]
+#[derive(Deserialize, Debug, Clone)]
+pub enum EmbeddingResult {
+    Dense(Vec<f32>),
+    Sparse(Vec<Vec<f32>>),
+}
+
+impl From<Vec<f32>> for EmbeddingResult {
+    fn from(value: Vec<f32>) -> Self {
+        EmbeddingResult::Dense(value)
+    }
+}
+
+impl From<Vec<Vec<f32>>> for EmbeddingResult {
+    fn from(value: Vec<Vec<f32>>) -> Self {
+        EmbeddingResult::Sparse(value)
+    }
+}
+
+impl EmbeddingResult {
+    pub fn to_dense(&self) -> Result<Vec<f32>, anyhow::Error> {
+        match self {
+            EmbeddingResult::Dense(x) => Ok(x.to_vec()),
+            EmbeddingResult::Sparse(_) => Err(anyhow!(
+                "Sparse Embedding are not supported for this operation"
+            )),
+        }
+    }
+
+    pub fn to_sparse(&self) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        match self {
+            EmbeddingResult::Sparse(x) => Ok(x.to_vec()),
+            EmbeddingResult::Dense(_) => Err(anyhow!(
+                "Dense Embedding are not supported for this operation"
+            )),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct EmbedData {
-    pub embedding: Vec<f32>,
+    pub embedding: EmbeddingResult,
     pub text: Option<String>,
     pub metadata: Option<HashMap<String, String>>,
 }
 
 impl EmbedData {
     pub fn new(
-        embedding: Vec<f32>,
+        embedding: EmbeddingResult,
         text: Option<String>,
         metadata: Option<HashMap<String, String>>,
     ) -> Self {
@@ -57,13 +96,21 @@ impl Embeder {
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        sparse: Option<bool>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        let sparse = sparse.unwrap_or(false);
         match self {
             Embeder::OpenAI(embeder) => embeder.embed(text_batch).await,
             Embeder::Cohere(embeder) => embeder.embed(text_batch).await,
             Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
             Embeder::Clip(embeder) => embeder.embed(text_batch, batch_size),
-            Embeder::Bert(embeder) => embeder.embed(text_batch, batch_size),
+            Embeder::Bert(embeder) => {
+                if sparse {
+                    embeder.sparse_embed(text_batch, batch_size)
+                } else {
+                    embeder.embed(text_batch, batch_size)
+                }
+            }
         }
     }
 
