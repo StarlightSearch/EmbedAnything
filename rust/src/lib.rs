@@ -209,6 +209,7 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
     embedding_model: &Embeder,
@@ -220,7 +221,7 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>), // Add Send trait bound here
+    F: Fn(Vec<EmbedData>) 
 {
     println!("Embedding text file: {:?}", file.as_ref());
 
