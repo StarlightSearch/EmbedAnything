@@ -1,11 +1,8 @@
-use std::collections::HashMap;
-
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
-use tracing::debug;
 
-use crate::embeddings::embed::{EmbedData, EmbeddingResult};
+use crate::embeddings::embed::EmbeddingResult;
 
 #[derive(Deserialize, Debug, Default)]
 pub struct OpenAIEmbedResponse {

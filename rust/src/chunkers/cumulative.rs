@@ -1,5 +1,5 @@
 use crate::embeddings::{
-    embed::{EmbeddingResult, Embeder},
+    embed::Embeder,
     local::jina::JinaEmbeder,
 };
 use candle_core::Tensor;
