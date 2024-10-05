@@ -2,6 +2,8 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
+use crate::embeddings::embed::EmbeddingResult;
+
 /// Represents the response from the Cohere embedding API.
 #[derive(Deserialize, Debug, Default)]
 pub struct CohereEmbedResponse {
@@ -52,7 +54,10 @@ impl CohereEmbeder {
         }
     }
 
-    pub async fn embed(&self, text_batch: &[String]) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub async fn embed(
+        &self,
+        text_batch: &[String],
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let response = self
             .client
             .post(&self.url)
@@ -69,6 +74,11 @@ impl CohereEmbeder {
 
         let data = response.json::<CohereEmbedResponse>().await?;
         let encodings = data.embeddings;
+
+        let encodings = encodings
+            .iter()
+            .map(|embedding| EmbeddingResult::Dense(embedding.clone()))
+            .collect::<Vec<_>>();
 
         Ok(encodings)
     }

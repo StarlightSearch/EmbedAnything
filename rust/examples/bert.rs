@@ -16,6 +16,7 @@ async fn main() {
         Some(32),
         Some(SplittingStrategy::Semantic),
         Some(model.clone()),
+        Some(false),
     );
 
     let _out = embed_file(

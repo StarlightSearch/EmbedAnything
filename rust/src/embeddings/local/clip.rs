@@ -8,8 +8,11 @@ use std::{collections::HashMap, fs};
 
 use anyhow::Error as E;
 
+use crate::{
+    embeddings::embed::EmbeddingResult,
+    models::clip::{self, ClipConfig},
+};
 use candle_core::{DType, Device, Tensor};
-use crate::models::clip::{self, ClipConfig};
 
 use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;
@@ -180,7 +183,7 @@ impl ClipEmbeder {
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let mut encodings = Vec::new();
 
         let batch_size = batch_size.unwrap_or(32);
@@ -200,7 +203,11 @@ impl ClipEmbeder {
                 .to_vec2::<f32>()
                 .unwrap();
 
-            encodings.extend(batch_encodings);
+            encodings.extend(
+                batch_encodings
+                    .iter()
+                    .map(|embedding| EmbeddingResult::Dense(embedding.to_vec())),
+            );
         }
 
         Ok(encodings)
@@ -243,7 +250,7 @@ impl EmbedImage for ClipEmbeder {
                 );
 
                 EmbedData::new(
-                    data.to_vec(),
+                    EmbeddingResult::Dense(data.to_vec()),
                     Some(path.as_ref().to_str().unwrap().to_string()),
                     Some(metadata),
                 )
@@ -269,7 +276,11 @@ impl EmbedImage for ClipEmbeder {
             .unwrap()
             .to_vec2::<f32>()
             .unwrap()[0];
-        Ok(EmbedData::new(encoding.to_vec(), None, metadata.clone()))
+        Ok(EmbedData::new(
+            EmbeddingResult::Dense(encoding.to_vec()),
+            None,
+            metadata.clone(),
+        ))
     }
 
     fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>

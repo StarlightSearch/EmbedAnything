@@ -17,8 +17,9 @@ async fn main() -> Result<()> {
         Some(256),
         Some(32),
         None,
-        Some(SplittingStrategy::Semantic),
+        Some(SplittingStrategy::Sentence),
         Some(semantic_encoder.clone()),
+        Some(false),
     );
     let cohere_model =
         Embeder::from_pretrained_cloud("cohere", "embed-english-v3.0", None).unwrap();
@@ -57,6 +58,8 @@ async fn main() -> Result<()> {
     )
     .await?
     .unwrap();
+
+    println!("Cohere embedding: {:?}", _cohere_embedding);
 
     Ok(())
 }

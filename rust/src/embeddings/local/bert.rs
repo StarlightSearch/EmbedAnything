@@ -4,11 +4,12 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::normalize_l2;
+use crate::models::bert::{BertModel, Config, HiddenAct, DTYPE};
 use anyhow::Error as E;
 use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
-use crate::models::bert::{BertModel, Config, HiddenAct, DTYPE};
 use hf_hub::{api::sync::Api, Repo};
 use tokenizers::{PaddingParams, Tokenizer};
 
@@ -100,9 +101,9 @@ impl BertEmbeder {
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
-        let mut encodings: Vec<Vec<f32>> = Vec::new();
+        let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
             let token_ids = self
@@ -119,9 +120,45 @@ impl BertEmbeder {
             let embeddings = normalize_l2(&embeddings).unwrap();
             let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
 
-            encodings.extend(batch_encodings);
+            encodings.extend(
+                batch_encodings
+                    .iter()
+                    .map(|embedding| EmbeddingResult::Dense(embedding.to_vec())),
+            );
         }
 
+        Ok(encodings)
+    }
+
+    pub fn sparse_embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        let batch_size = batch_size.unwrap_or(32);
+        let mut encodings: Vec<EmbeddingResult> = Vec::new();
+
+        for mini_text_batch in text_batch.chunks(batch_size) {
+            let token_ids = self
+                .tokenize_batch(mini_text_batch, &self.model.device)
+                .unwrap();
+            let token_type_ids = token_ids.zeros_like().unwrap();
+            let embeddings = self
+                .model
+                .forward(&token_ids, &token_type_ids, None)
+                .unwrap();
+            let (_n_sentence, _n_tokens, _hidden_size) = embeddings.dims3().unwrap();
+
+            let embeddings =
+                embeddings.broadcast_div(&embeddings.sqr()?.sum_keepdim(2)?.sqrt()?)?;
+
+            let batch_encodings = embeddings.to_vec3::<f32>().unwrap();
+            encodings.extend(
+                batch_encodings
+                    .iter()
+                    .map(|embedding| EmbeddingResult::Sparse(embedding.to_vec())),
+            );
+        }
         Ok(encodings)
     }
 }
