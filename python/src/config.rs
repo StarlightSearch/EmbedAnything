@@ -12,13 +12,14 @@ pub struct TextEmbedConfig {
 #[pymethods]
 impl TextEmbedConfig {
     #[new]
-    #[pyo3(signature = (chunk_size=None, batch_size=None, buffer_size=None, splitting_strategy=None, semantic_encoder=None))]
+    #[pyo3(signature = (chunk_size=None, batch_size=None, buffer_size=None, splitting_strategy=None, semantic_encoder=None, sparse_embeddings=None))]
     pub fn new(
         chunk_size: Option<usize>,
         batch_size: Option<usize>,
         buffer_size: Option<usize>,
         splitting_strategy: Option<&str>,
         semantic_encoder: Option<&EmbeddingModel>,
+        sparse_embeddings: Option<bool>,
     ) -> Self {
         let strategy = match splitting_strategy {
             Some(strategy) => match strategy {
@@ -36,6 +37,7 @@ impl TextEmbedConfig {
                 buffer_size,
                 strategy,
                 semantic_encoder,
+                sparse_embeddings,
             ),
         }
     }

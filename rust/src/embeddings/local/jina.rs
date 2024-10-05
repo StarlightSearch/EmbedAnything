@@ -4,11 +4,11 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use crate::embeddings::normalize_l2;
+use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
+use crate::models::jina_bert::{BertModel, Config};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
-use crate::models::jina_bert::{BertModel, Config};
 use hf_hub::Repo;
 use tokenizers::Tokenizer;
 
@@ -91,8 +91,8 @@ impl JinaEmbeder {
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
-        let mut encodings: Vec<Vec<f32>> = Vec::new();
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        let mut encodings: Vec<EmbeddingResult> = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
             let token_ids = self
@@ -103,11 +103,29 @@ impl JinaEmbeder {
 
             let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
             let embeddings = normalize_l2(&embeddings).unwrap();
-            let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
 
-            encodings.extend(batch_encodings);
+            // Avoid using to_vec2() and instead work with the Tensor directly
+            encodings
+                .extend((0..embeddings.dim(0)?).map(|i| {
+                    EmbeddingResult::Dense(embeddings.get(i).unwrap().to_vec1().unwrap())
+                }));
         }
 
         Ok(encodings)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_embed() {
+        let embeder =
+            JinaEmbeder::new("jinaai/jina-embeddings-v2-small-en".to_string(), None).unwrap();
+        let text_batch = vec!["Hello, world!".to_string()];
+
+        let encodings = embeder.embed(&text_batch, None).unwrap();
+        println!("{:?}", encodings);
     }
 }
