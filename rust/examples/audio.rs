@@ -29,6 +29,7 @@ async fn main() {
         None,
         Some(SplittingStrategy::Sentence),
         Some(semantic_encoder),
+        Some(false),
     );
     let embeddings = emb_audio(
         audio_path,

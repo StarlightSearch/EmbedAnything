@@ -5,8 +5,8 @@ pub mod config;
 pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
-pub mod text_loader;
 pub mod models;
+pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
@@ -65,7 +65,10 @@ pub async fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embeder.embed(&query, batch_size).await.unwrap();
+    let encodings = embeder
+        .embed(&query, batch_size, config.sparse_embeddings)
+        .await
+        .unwrap();
     let embeddings = get_text_metadata(&encodings, &query, &None)?;
 
     Ok(embeddings)
@@ -127,6 +130,7 @@ where
             batch_size,
             Some(splitting_strategy),
             semantic_encoder,
+            config.sparse_embeddings,
             adapter,
         )
         .await?;
@@ -205,6 +209,7 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
     embedding_model: &Embeder,
@@ -212,10 +217,11 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     batch_size: Option<usize>,
     splitting_strategy: Option<SplittingStrategy>,
     semantic_encoder: Option<Arc<Embeder>>,
+    sparse_embeddings: Option<bool>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>), // Add Send trait bound here
+    F: Fn(Vec<EmbedData>) 
 {
     println!("Embedding text file: {:?}", file.as_ref());
 
@@ -234,7 +240,7 @@ where
             let metadata = metadata.clone();
             async move {
                 let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
+                    .embed(&chunks[..], batch_size, Some(false))
                     .await
                     .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
@@ -253,7 +259,7 @@ where
             let metadata = metadata.clone();
             async move {
                 let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
+                    .embed(&chunks[..], batch_size, sparse_embeddings)
                     .await
                     .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
@@ -508,6 +514,9 @@ where
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
+    let sparse_embedding = config
+        .sparse_embeddings
+        .unwrap_or(binding.sparse_embeddings.unwrap());
 
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
@@ -541,6 +550,7 @@ where
                         &metadata_buffer,
                         embeder.clone(),
                         batch_size,
+                        sparse_embedding,
                     )
                     .await
                     {
@@ -572,8 +582,14 @@ where
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone(), batch_size)
-                    .await
+                match process_chunks(
+                    &chunk_buffer,
+                    &metadata_buffer,
+                    embeder.clone(),
+                    batch_size,
+                    sparse_embedding,
+                )
+                .await
                 {
                     Ok(embeddings) => {
                         let files = embeddings
@@ -639,8 +655,11 @@ pub async fn process_chunks(
     metadata: &Vec<Option<HashMap<String, String>>>,
     embedding_model: Arc<Embeder>,
     batch_size: Option<usize>,
+    sparse_embeddings: bool,
 ) -> Result<Arc<Vec<EmbedData>>> {
-    let encodings = embedding_model.embed(chunks, batch_size).await?;
+    let encodings = embedding_model
+        .embed(chunks, batch_size, Some(sparse_embeddings))
+        .await?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings
@@ -648,7 +667,7 @@ pub async fn process_chunks(
         .zip(chunks)
         .zip(metadata)
         .map(|((encoding, chunk), metadata)| {
-            EmbedData::new(encoding.to_vec(), Some(chunk.clone()), metadata.clone())
+            EmbedData::new(encoding.clone(), Some(chunk.clone()), metadata.clone())
         })
         .collect::<Vec<_>>();
     Ok(Arc::new(embeddings))
