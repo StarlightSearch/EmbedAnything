@@ -221,7 +221,7 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>) 
+    F: Fn(Vec<EmbedData>),
 {
     println!("Embedding text file: {:?}", file.as_ref());
 
@@ -620,8 +620,13 @@ where
         let text = TextLoader::extract_text(&file.to_string()).unwrap();
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
-            .unwrap();
-
+            .unwrap_or_else(|| vec![text.clone()])
+            .into_iter()
+            .filter(|chunk| !chunk.trim().is_empty())
+            .collect::<Vec<_>>();
+        if chunks.is_empty() {
+            return;  // Skip this file if all chunks are empty
+        }
         let metadata = TextLoader::get_metadata(file).unwrap();
         for chunk in chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
