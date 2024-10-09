@@ -2,7 +2,7 @@ use crate::file_processor::audio::audio_processor::Segment;
 
 use super::cloud::cohere::CohereEmbeder;
 use super::cloud::openai::OpenAIEmbeder;
-use super::local::bert::BertEmbeder;
+use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder};
 use super::local::clip::ClipEmbeder;
 use super::local::jina::JinaEmbeder;
 use serde::Deserialize;
@@ -49,7 +49,7 @@ pub enum Embeder {
     Cohere(CohereEmbeder),
     Jina(JinaEmbeder),
     Clip(ClipEmbeder),
-    Bert(BertEmbeder),
+    Bert(Box<dyn BertEmbed + Send + Sync>),
 }
 
 impl Embeder {
@@ -81,10 +81,24 @@ impl Embeder {
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
             )?)),
-            "Bert" | "bert" => Ok(Self::Bert(BertEmbeder::new(
+            "Bert" | "bert" => Ok(Self::Bert(Box::new(BertEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
-            )?)),
+            )?))),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+
+    pub fn from_pretrained_ort(
+        model: &str,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
+        match model {
+            "Bert" | "bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
