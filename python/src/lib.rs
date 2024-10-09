@@ -102,13 +102,13 @@ impl EmbeddingModel {
         match model {
             WhichModel::Bert => {
                 let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
-                let model = Embeder::Bert(
-                    embed_anything::embeddings::local::bert::BertEmbeder::new(
+                let model = Embeder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::BertEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .unwrap(),
-                );
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
@@ -175,6 +175,32 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
+            _ => panic!("Invalid model"),
+        }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (model, model_id, revision=None))]
+    fn from_pretrained_onnx(
+        model: &WhichModel,
+        model_id: Option<&str>,
+        revision: Option<&str>,
+    ) -> PyResult<Self> {
+        match model {
+            WhichModel::Bert => {
+                let model_id = model_id.unwrap_or("text-embedding-3-small");
+                let model = Embeder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
+                        model_id.to_string(),
+                        revision.map(|s| s.to_string()),
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                ));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+
             _ => panic!("Invalid model"),
         }
     }

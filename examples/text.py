@@ -6,8 +6,12 @@ import os
 from time import time
 
 
-model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+# model = EmbeddingModel.from_pretrained_hf(
+#     WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+# )
+
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, model_id="BAAI/bge-small-en-v1.5", revision="main"
 )
 
 # with semantic encoder
@@ -17,15 +21,15 @@ model = EmbeddingModel.from_pretrained_hf(
 # without semantic encoder
 config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "sentence")
 
-start = time()
 data = embed_anything.embed_file("test_files/bank.txt", embeder=model, config=config)
 
 for d in data:
     print(d.text)
     print("---"*20)
+start = time()
 
 data: list[EmbedData] = embed_anything.embed_directory(
-    "test_files", embeder=model, config=config
+    "bench", embeder=model, config=config
 )
 
 end = time()
