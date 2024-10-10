@@ -4,7 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use std::sync::Arc;
+use std::path::PathBuf;
 
 use crate::embeddings::normalize_l2;
 use crate::models::bert::{BertModel, Config, HiddenAct, DTYPE};
@@ -14,10 +14,10 @@ use candle_nn::VarBuilder;
 use hf_hub::{api::sync::Api, Repo};
 use ndarray::prelude::*;
 use ort::{
-    CUDAExecutionProvider, ExecutionProviderDispatch, GraphOptimizationLevel,
+    CUDAExecutionProvider, GraphOptimizationLevel,
     Session,
 };
-use tokenizers::{PaddingParams, Tokenizer};
+use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 
 pub trait BertEmbed {
@@ -40,7 +40,7 @@ impl OrtBertEmbedder {
         model_id: String,
         revision: Option<String>,
     ) -> Result<Self, E> {
-        let (_, tokenizer_filename, weights_filename) = {
+        let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
@@ -51,25 +51,34 @@ impl OrtBertEmbedder {
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
-            let weights = api.get("onnx/model.onnx")?;
+            // let weights = api.get("onnx/model.onnx")?;
+            let weights = PathBuf::from("model_optimized.onnx");
 
             (config, tokenizer, weights)
         };
 
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
 
+        let config = std::fs::read_to_string(config_filename)?;
+        let config: Config = serde_json::from_str(&config)?;
+
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
             ..Default::default()
         };
-        tokenizer.with_padding(Some(pp));
-
+        let trunc = TruncationParams {
+            strategy: tokenizers::TruncationStrategy::LongestFirst,
+            max_length: config.max_position_embeddings as usize,
+            ..Default::default()
+        };
+ 
+        tokenizer.with_padding(Some(pp)).with_truncation(Some(trunc)).unwrap();
         let model = Session::builder()?
-            // .with_execution_providers([CUDAExecutionProvider::default().build()])?
+            .with_execution_providers([CUDAExecutionProvider::default().build()])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(8)?
             .commit_from_file(weights_filename)?;
-
+    
         Ok(OrtBertEmbedder {
             tokenizer,
             model,
@@ -159,7 +168,14 @@ impl BertEmbedder {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
             ..Default::default()
         };
-        tokenizer.with_padding(Some(pp));
+        let trunc = TruncationParams {
+            strategy: tokenizers::TruncationStrategy::LongestFirst,
+            max_length: config.max_position_embeddings as usize,
+            ..Default::default()
+        };
+ 
+        tokenizer.with_padding(Some(pp)).with_truncation(Some(trunc)).unwrap();
+
 
         println!("Loading weights from {:?}", weights_filename);
 
@@ -246,7 +262,7 @@ impl BertEmbed for BertEmbedder {
                 .tokenize_batch(mini_text_batch, &self.model.device)
                 .unwrap();
             let token_type_ids = token_ids.zeros_like().unwrap();
-            let embeddings = self
+            let embeddings: Tensor = self
                 .model
                 .forward(&token_ids, &token_type_ids, None)
                 .unwrap();
