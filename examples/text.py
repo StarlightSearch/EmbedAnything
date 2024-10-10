@@ -21,11 +21,11 @@ model = EmbeddingModel.from_pretrained_onnx(
 # without semantic encoder
 config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "sentence")
 
-data = embed_anything.embed_file("test_files/bank.txt", embeder=model, config=config)
+# data = embed_anything.embed_file("test_files/bank.txt", embeder=model, config=config)
 
-for d in data:
-    print(d.text)
-    print("---"*20)
+# for d in data:
+#     print(d.text)
+#     print("---"*20)
 start = time()
 
 data: list[EmbedData] = embed_anything.embed_directory(
@@ -34,4 +34,5 @@ data: list[EmbedData] = embed_anything.embed_directory(
 
 end = time()
 
+print(embed_anything.embed_query(["What is the capital of India?"], embeder=model, config=config))
 print(f"Time taken: {end - start} seconds")
