@@ -71,6 +71,7 @@ futures = "0.3.30"
 pdf-extract = {workspace = true}
 ort = {version = "=2.0.0-rc.6", features = ["cuda"]}
 ndarray = "0.16.1"
+ndarray-linalg = {version = "0.16.0"}
 
 
 # Optional Dependency
