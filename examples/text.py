@@ -19,7 +19,7 @@ model = EmbeddingModel.from_pretrained_onnx(
 # config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
 
 # without semantic encoder
-config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "sentence")
+config = TextEmbedConfig(chunk_size=256, batch_size=32, buffer_size  = 64,splitting_strategy = "sentence")
 
 # data = embed_anything.embed_file("test_files/bank.txt", embeder=model, config=config)
 

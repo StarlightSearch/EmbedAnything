@@ -12,8 +12,8 @@ async fn main() {
     );
     let config = TextEmbedConfig::new(
         Some(256),
-        Some(1),
-        Some(1),
+        Some(4),
+        Some(4),
         Some(SplittingStrategy::Sentence),
         Some(model.clone()),
     );

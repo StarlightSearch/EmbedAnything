@@ -13,12 +13,8 @@ use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
 use hf_hub::{api::sync::Api, Repo};
 use ndarray::prelude::*;
-use ort::{
-    CUDAExecutionProvider, GraphOptimizationLevel,
-    Session,
-};
+use ort::{CUDAExecutionProvider, GraphOptimizationLevel, Session};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
-
 
 pub trait BertEmbed {
     fn embed(
@@ -36,10 +32,7 @@ pub struct OrtBertEmbedder {
 }
 
 impl OrtBertEmbedder {
-    pub fn new(
-        model_id: String,
-        revision: Option<String>,
-    ) -> Result<Self, E> {
+    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
@@ -71,14 +64,17 @@ impl OrtBertEmbedder {
             max_length: config.max_position_embeddings as usize,
             ..Default::default()
         };
- 
-        tokenizer.with_padding(Some(pp)).with_truncation(Some(trunc)).unwrap();
+
+        tokenizer
+            .with_padding(Some(pp))
+            .with_truncation(Some(trunc))
+            .unwrap();
         let model = Session::builder()?
             .with_execution_providers([CUDAExecutionProvider::default().build()])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(8)?
             .commit_from_file(weights_filename)?;
-    
+
         Ok(OrtBertEmbedder {
             tokenizer,
             model,
@@ -173,9 +169,11 @@ impl BertEmbedder {
             max_length: config.max_position_embeddings as usize,
             ..Default::default()
         };
- 
-        tokenizer.with_padding(Some(pp)).with_truncation(Some(trunc)).unwrap();
 
+        tokenizer
+            .with_padding(Some(pp))
+            .with_truncation(Some(trunc))
+            .unwrap();
 
         println!("Loading weights from {:?}", weights_filename);
 
@@ -230,7 +228,7 @@ impl BertEmbed for OrtBertEmbedder {
                 .try_extract_tensor::<f32>()
                 .unwrap();
             let shape = embeddings.shape();
-            let (_, n_tokens, _hidden_size) = (shape[0], shape[1], shape[2]);
+            let (_, n_tokens, hidden_size) = (shape[0], shape[1], shape[2]);
             let embeddings = embeddings.sum_axis(Axis(1)) / n_tokens as f32;
             let denominator = embeddings
                 .mapv(|x| x * x)
@@ -238,12 +236,14 @@ impl BertEmbed for OrtBertEmbedder {
                 .sqrt()
                 .insert_axis(Axis(1));
             let embeddings = embeddings.clone() / denominator;
+
+            let norm = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).sqrt();
             let batch_encodings: (Vec<f32>, Option<usize>) = embeddings.into_raw_vec_and_offset();
+
             let batch_encodings =
-                self.reshape_into_2d_vector(batch_encodings.0, Some(n_tokens as usize));
+                self.reshape_into_2d_vector(batch_encodings.0, Some(hidden_size as usize));
             encodings.extend(batch_encodings);
         }
-
         Ok(encodings)
     }
 }
