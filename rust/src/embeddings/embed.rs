@@ -5,6 +5,7 @@ use super::cloud::openai::OpenAIEmbeder;
 use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder};
 use super::local::clip::ClipEmbeder;
 use super::local::jina::JinaEmbeder;
+use super::local::text_embedding::ONNXModel;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -90,13 +91,13 @@ impl Embeder {
     }
 
     pub fn from_pretrained_ort(
-        model: &str,
-        model_id: &str,
+        model_architecture: &str,
+        model_name: ONNXModel,
         revision: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
-        match model {
+        match model_architecture {
             "Bert" | "bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
-                model_id.to_string(),
+                model_name,
                 revision.map(|s| s.to_string()),
             )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),

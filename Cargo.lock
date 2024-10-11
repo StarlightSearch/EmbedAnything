@@ -31,9 +31,9 @@ checksum = "512761e0bb2578dd7380c6baaa0f4ce03e84f95e960231d1dec8bf4d7d6e2627"
 
 [[package]]
 name = "adobe-cmap-parser"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "261a937a307ddc70a1605dec925987d7256adb00232161a1855ef9cc820bd8d5"
+checksum = "ae8abfa9a4688de8fc9f42b3f013b6fffec18ed8a554f5f113577e0b9b3212a3"
 dependencies = [
  "pom",
 ]
@@ -333,8 +333,8 @@ checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
 
 [[package]]
 name = "candle-core"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#0d96ec31e8be03f844ed0aed636d6217dee9c7bc"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -358,16 +358,16 @@ dependencies = [
 
 [[package]]
 name = "candle-kernels"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#0d96ec31e8be03f844ed0aed636d6217dee9c7bc"
 dependencies = [
  "bindgen_cuda",
 ]
 
 [[package]]
 name = "candle-nn"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#0d96ec31e8be03f844ed0aed636d6217dee9c7bc"
 dependencies = [
  "accelerate-src",
  "candle-core",
@@ -382,8 +382,8 @@ dependencies = [
 
 [[package]]
 name = "candle-transformers"
-version = "0.7.1"
-source = "git+https://github.com/huggingface/candle.git#d01207dbf3fb0ad614e7915c8f5706fbc09902fb"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#0d96ec31e8be03f844ed0aed636d6217dee9c7bc"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -831,6 +831,8 @@ dependencies = [
  "serde",
  "serde_json",
  "statistical",
+ "strum",
+ "strum_macros",
  "symphonia",
  "tempdir",
  "text-cleaner",

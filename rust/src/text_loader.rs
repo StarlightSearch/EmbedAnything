@@ -17,6 +17,7 @@ use tokenizers::Tokenizer;
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use std::path::PathBuf;
+use rayon::prelude::*;
 
 #[derive(Clone, Copy)]
 pub enum SplittingStrategy {
@@ -85,6 +86,7 @@ impl TextLoader {
             SplittingStrategy::Sentence => self
                 .splitter
                 .chunks(text)
+                .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic => {
@@ -106,16 +108,16 @@ impl TextLoader {
         Some(chunks)
     }
 
-    pub fn extract_text(file: &str) -> Result<String, Error> {
-        if !PathBuf::from(file).exists() {
-            return Err(FileLoadingError::FileNotFound(file.to_string()).into());
+    pub fn extract_text<T: AsRef<std::path::Path>>(file: &T) -> Result<String, Error> {
+        if !file.as_ref().exists() {
+            return Err(FileLoadingError::FileNotFound(file.as_ref().to_str().unwrap().to_string()).into());
         }
-        let file_extension = file.split('.').last().unwrap();
-        match file_extension {
-            "pdf" => PdfProcessor::extract_text(&PathBuf::from(file)),
-            "md" => MarkdownProcessor::extract_text(&PathBuf::from(file)),
-            "txt" => TxtProcessor::extract_text(&PathBuf::from(file)),
-            _ => Err(FileLoadingError::UnsupportedFileType(file.to_string()).into()),
+        let file_extension = file.as_ref().extension().unwrap();
+        match file_extension.to_str().unwrap() {
+            "pdf" => PdfProcessor::extract_text(file),
+            "md" => MarkdownProcessor::extract_text(file),
+            "txt" => TxtProcessor::extract_text(file),
+            _ => Err(FileLoadingError::UnsupportedFileType(file.as_ref().extension().unwrap().to_str().unwrap().to_string()).into()),
         }
     }
 
