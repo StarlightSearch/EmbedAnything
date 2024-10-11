@@ -329,13 +329,15 @@ impl StatisticalChunker {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::text_loader::TextLoader;
 
     use super::*;
 
     #[tokio::test]
     async fn test_statistical_chunker() {
-        let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf")
+        let text = TextLoader::extract_text(&PathBuf::from("/home/akshay/EmbedAnything/test_files/attention.pdf"))
             .unwrap();
         let chunker = StatisticalChunker {
             verbose: true,

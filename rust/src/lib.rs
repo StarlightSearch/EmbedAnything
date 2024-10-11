@@ -66,9 +66,8 @@ pub async fn embed_query(
     let batch_size = config.batch_size;
 
     let encodings = embeder.embed(&query, batch_size).await.unwrap();
-    let embeddings = get_text_metadata(&encodings, &query, &None)?;
+    Ok(get_text_metadata(&encodings, &query, &None)?)
 
-    Ok(embeddings)
 }
 /// Embeds the text from a file using the specified embedding model.
 ///
@@ -219,7 +218,7 @@ where
 {
     println!("Embedding text file: {:?}", file.as_ref());
 
-    let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
+    let text = TextLoader::extract_text(&file)?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(
         &text,
@@ -229,7 +228,7 @@ where
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
-        let futures = chunks.iter().map(|chunks| {
+        let futures = chunks.par_iter().map(|chunks| {
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
@@ -239,7 +238,7 @@ where
                     .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
-        });
+        }).collect::<Vec<_>>();
         let embeddings = join_all(futures)
             .await
             .into_iter()
@@ -248,7 +247,7 @@ where
         adapter(embeddings);
         Ok(None)
     } else {
-        let futures = chunks.iter().map(|chunks| {
+        let futures = chunks.par_iter().map(|chunks| {
             let chunks = chunks.clone();
             let metadata = metadata.clone();
             async move {
@@ -258,7 +257,7 @@ where
                     .unwrap();
                 get_text_metadata(&encodings, &chunks, &metadata).unwrap()
             }
-        });
+        }).collect::<Vec<_>>();
         let embeddings = join_all(futures)
             .await
             .into_iter()
@@ -601,7 +600,7 @@ where
     let textloader = TextLoader::new(chunk_size);
 
     file_parser.files.iter().for_each(|file| {
-        let text = TextLoader::extract_text(&file.to_string()).unwrap();
+        let text = TextLoader::extract_text(file).unwrap();
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
             .unwrap();
