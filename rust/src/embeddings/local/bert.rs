@@ -6,6 +6,7 @@ extern crate accelerate_src;
 
 use std::path::PathBuf;
 
+use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
 use crate::embeddings::normalize_l2;
 use crate::models::bert::{BertModel, Config, HiddenAct, DTYPE};
 use anyhow::Error as E;
@@ -13,8 +14,12 @@ use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
 use hf_hub::{api::sync::Api, Repo};
 use ndarray::prelude::*;
-use ort::{CUDAExecutionProvider, GraphOptimizationLevel, Session};
+use ort::{CUDAExecutionProvider, ExecutionProvider, GraphOptimizationLevel, Session};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
+use rayon::prelude::*;
+
+use super::pooling::{ModelOutput, Pooling};
+use super::text_embedding::ONNXModel;
 
 pub trait BertEmbed {
     fn embed(
@@ -28,24 +33,26 @@ pub trait BertEmbed {
 pub struct OrtBertEmbedder {
     pub tokenizer: Tokenizer,
     pub model: Session,
-    // pub providers: Arc<Vec<ExecutionProviderDispatch>>,
+    pub pooling: Pooling,
 }
 
 impl OrtBertEmbedder {
-    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+    pub fn new(model: ONNXModel, revision: Option<String>) -> Result<Self, E> {
+        let model_info = models_map().get(&model).unwrap();
+        let pooling = model_info.model.get_default_pooling_method().unwrap_or(Pooling::Mean);
+
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
+                Some(rev) => api.repo(Repo::with_revision(model_info.model_code.to_string(), hf_hub::RepoType::Model, rev)),
                 None => api.repo(hf_hub::Repo::new(
-                    model_id.to_string(),
+                    model_info.model_code.to_string(),
                     hf_hub::RepoType::Model,
                 )),
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
-            // let weights = api.get("onnx/model.onnx")?;
-            let weights = PathBuf::from("model_optimized.onnx");
+            let weights = api.get(model_info.model_file.as_str())?;
 
             (config, tokenizer, weights)
         };
@@ -69,8 +76,19 @@ impl OrtBertEmbedder {
             .with_padding(Some(pp))
             .with_truncation(Some(trunc))
             .unwrap();
+
+        
+        let cuda = CUDAExecutionProvider::default();
+        println!("CUDAExecutionProvider is available: {}", cuda.is_available()?);
+        if !cuda.is_available()? {
+            eprintln!("CUDAExecutionProvider is not available");
+        }
+        else {
+            println!("Session is using CUDAExecutionProvider");
+        }
+
         let model = Session::builder()?
-            .with_execution_providers([CUDAExecutionProvider::default().build()])?
+            .with_execution_providers([CUDAExecutionProvider::default().build().error_on_failure()])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(8)?
             .commit_from_file(weights_filename)?;
@@ -78,25 +96,17 @@ impl OrtBertEmbedder {
         Ok(OrtBertEmbedder {
             tokenizer,
             model,
-            // providers,
+            pooling,
         })
     }
 
     fn tokenize_batch(&self, text_batch: &[String]) -> Result<Array2<i64>, E> {
-        let tokens = self
+        let token_ids = self
             .tokenizer
             .encode_batch(text_batch.to_vec(), true)
-            .map_err(E::msg)?;
-        let token_ids = tokens
-            .iter()
-            .map(|tokens| {
-                tokens
-                    .get_ids()
-                    .iter()
-                    .map(|&id| id as i64)
-                    .collect::<Vec<i64>>()
-            })
-            .collect::<Vec<Vec<i64>>>();
+            .map_err(E::msg)?.iter().map(|tokens| {
+               tokens.get_ids().iter().map(|&id| id as i64).collect::<Vec<i64>>()
+            }).collect::<Vec<Vec<i64>>>();
 
         let token_ids_array = Array2::from_shape_vec(
             (token_ids.len(), token_ids[0].len()),
@@ -108,18 +118,15 @@ impl OrtBertEmbedder {
 
     fn reshape_into_2d_vector(&self, raw_data: Vec<f32>, dim: Option<usize>) -> Vec<Vec<f32>> {
         let dim = dim.expect("Dimension must be provided");
-        let mut reshaped: Vec<Vec<f32>> = Vec::new();
-
-        for chunk in raw_data.chunks(dim) {
-            reshaped.push(chunk.to_vec());
-        }
-
-        reshaped
+        raw_data.chunks(dim)
+        .map(|chunk| chunk.to_vec())
+        .collect()
     }
 }
 
 pub struct BertEmbedder {
     pub model: BertModel,
+    pub pooling: Pooling,
     pub tokenizer: Tokenizer,
 }
 
@@ -130,6 +137,9 @@ impl Default for BertEmbedder {
 }
 impl BertEmbedder {
     pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+        let model_info = get_model_info_by_hf_id(&model_id).unwrap();
+        let pooling = model_info.model.get_default_pooling_method().unwrap_or(Pooling::Mean);
+
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
@@ -192,7 +202,7 @@ impl BertEmbedder {
         let model = BertModel::load(vb, &config).unwrap();
         let tokenizer = tokenizer;
 
-        Ok(BertEmbedder { model, tokenizer })
+        Ok(BertEmbedder { model, tokenizer, pooling })
     }
     fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
         let tokens = self
@@ -214,39 +224,33 @@ impl BertEmbedder {
 impl BertEmbed for OrtBertEmbedder {
     fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, E> {
         let batch_size = batch_size.unwrap_or(32);
-        let mut encodings: Vec<Vec<f32>> = Vec::new();
-
-        for mini_text_batch in text_batch.chunks(batch_size) {
-            let token_ids: Array2<i64> = self.tokenize_batch(mini_text_batch).unwrap();
-            let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
-            let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
-            let outputs = self
-                .model
-                .run(ort::inputs![token_ids, token_type_ids, attention_mask]?)
-                .unwrap();
-            let embeddings = outputs["last_hidden_state"]
-                .try_extract_tensor::<f32>()
-                .unwrap();
-            let shape = embeddings.shape();
-            let (_, n_tokens, hidden_size) = (shape[0], shape[1], shape[2]);
-            let embeddings = embeddings.sum_axis(Axis(1)) / n_tokens as f32;
-            let denominator = embeddings
-                .mapv(|x| x * x)
-                .sum_axis(Axis(1))
-                .sqrt()
-                .insert_axis(Axis(1));
-            let embeddings = embeddings.clone() / denominator;
-
-            let norm = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).sqrt();
-            let batch_encodings: (Vec<f32>, Option<usize>) = embeddings.into_raw_vec_and_offset();
-
-            let batch_encodings =
-                self.reshape_into_2d_vector(batch_encodings.0, Some(hidden_size as usize));
-            encodings.extend(batch_encodings);
-        }
+        let encodings = text_batch
+            .par_chunks(batch_size)
+            .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
+                let token_ids: Array2<i64> = self.tokenize_batch(mini_text_batch)?;
+                let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
+                let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
+                let outputs = self
+                    .model
+                    .run(ort::inputs![token_ids, token_type_ids, attention_mask]?)?;
+                let embeddings: Array3<f32> = outputs["last_hidden_state"]
+                    .try_extract_tensor::<f32>()?
+                    .to_owned()
+                    .into_dimensionality::<ndarray::Ix3>()?;
+                let (_, _, _) = embeddings.dim();
+                let embeddings = self.pooling.pool(&ModelOutput::Array(embeddings))?.to_array()?;
+                let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
+                let embeddings = &embeddings / &norms.insert_axis(Axis(1));
+                
+                Ok(embeddings.outer_iter().par_bridge().map(|row| row.to_vec()).collect())
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+  
         Ok(encodings)
     }
 }
+
 
 impl BertEmbed for BertEmbedder {
     fn embed(
@@ -266,10 +270,9 @@ impl BertEmbed for BertEmbedder {
                 .model
                 .forward(&token_ids, &token_type_ids, None)
                 .unwrap();
-            let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
-
-            let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
-            let embeddings = normalize_l2(&embeddings).unwrap();
+            let pooled_output = self.pooling.pool(&ModelOutput::Tensor(embeddings.clone()))?.to_tensor()?;
+                
+            let embeddings = normalize_l2(&pooled_output).unwrap();
             let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
 
             encodings.extend(batch_encodings);
