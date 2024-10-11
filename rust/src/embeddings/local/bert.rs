@@ -4,8 +4,6 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use std::path::PathBuf;
-
 use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
 use crate::embeddings::normalize_l2;
 use crate::models::bert::{BertModel, Config, HiddenAct, DTYPE};
@@ -15,8 +13,8 @@ use candle_nn::VarBuilder;
 use hf_hub::{api::sync::Api, Repo};
 use ndarray::prelude::*;
 use ort::{CUDAExecutionProvider, ExecutionProvider, GraphOptimizationLevel, Session};
-use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 use rayon::prelude::*;
+use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use super::pooling::{ModelOutput, Pooling};
 use super::text_embedding::ONNXModel;
@@ -39,12 +37,19 @@ pub struct OrtBertEmbedder {
 impl OrtBertEmbedder {
     pub fn new(model: ONNXModel, revision: Option<String>) -> Result<Self, E> {
         let model_info = models_map().get(&model).unwrap();
-        let pooling = model_info.model.get_default_pooling_method().unwrap_or(Pooling::Mean);
+        let pooling = model_info
+            .model
+            .get_default_pooling_method()
+            .unwrap_or(Pooling::Mean);
 
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(model_info.model_code.to_string(), hf_hub::RepoType::Model, rev)),
+                Some(rev) => api.repo(Repo::with_revision(
+                    model_info.model_code.to_string(),
+                    hf_hub::RepoType::Model,
+                    rev,
+                )),
                 None => api.repo(hf_hub::Repo::new(
                     model_info.model_code.to_string(),
                     hf_hub::RepoType::Model,
@@ -77,18 +82,21 @@ impl OrtBertEmbedder {
             .with_truncation(Some(trunc))
             .unwrap();
 
-        
         let cuda = CUDAExecutionProvider::default();
-        println!("CUDAExecutionProvider is available: {}", cuda.is_available()?);
+        println!(
+            "CUDAExecutionProvider is available: {}",
+            cuda.is_available()?
+        );
         if !cuda.is_available()? {
             eprintln!("CUDAExecutionProvider is not available");
-        }
-        else {
+        } else {
             println!("Session is using CUDAExecutionProvider");
         }
 
         let model = Session::builder()?
-            .with_execution_providers([CUDAExecutionProvider::default().build().error_on_failure()])?
+            .with_execution_providers([CUDAExecutionProvider::default()
+                .build()
+                .error_on_failure()])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(8)?
             .commit_from_file(weights_filename)?;
@@ -104,9 +112,16 @@ impl OrtBertEmbedder {
         let token_ids = self
             .tokenizer
             .encode_batch(text_batch.to_vec(), true)
-            .map_err(E::msg)?.iter().map(|tokens| {
-               tokens.get_ids().iter().map(|&id| id as i64).collect::<Vec<i64>>()
-            }).collect::<Vec<Vec<i64>>>();
+            .map_err(E::msg)?
+            .iter()
+            .map(|tokens| {
+                tokens
+                    .get_ids()
+                    .iter()
+                    .map(|&id| id as i64)
+                    .collect::<Vec<i64>>()
+            })
+            .collect::<Vec<Vec<i64>>>();
 
         let token_ids_array = Array2::from_shape_vec(
             (token_ids.len(), token_ids[0].len()),
@@ -116,12 +131,10 @@ impl OrtBertEmbedder {
         Ok(token_ids_array)
     }
 
-    fn reshape_into_2d_vector(&self, raw_data: Vec<f32>, dim: Option<usize>) -> Vec<Vec<f32>> {
-        let dim = dim.expect("Dimension must be provided");
-        raw_data.chunks(dim)
-        .map(|chunk| chunk.to_vec())
-        .collect()
-    }
+    // fn reshape_into_2d_vector(&self, raw_data: Vec<f32>, dim: Option<usize>) -> Vec<Vec<f32>> {
+    //     let dim = dim.expect("Dimension must be provided");
+    //     raw_data.chunks(dim).map(|chunk| chunk.to_vec()).collect()
+    // }
 }
 
 pub struct BertEmbedder {
@@ -138,7 +151,10 @@ impl Default for BertEmbedder {
 impl BertEmbedder {
     pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
         let model_info = get_model_info_by_hf_id(&model_id).unwrap();
-        let pooling = model_info.model.get_default_pooling_method().unwrap_or(Pooling::Mean);
+        let pooling = model_info
+            .model
+            .get_default_pooling_method()
+            .unwrap_or(Pooling::Mean);
 
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
@@ -202,7 +218,11 @@ impl BertEmbedder {
         let model = BertModel::load(vb, &config).unwrap();
         let tokenizer = tokenizer;
 
-        Ok(BertEmbedder { model, tokenizer, pooling })
+        Ok(BertEmbedder {
+            model,
+            tokenizer,
+            pooling,
+        })
     }
     fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
         let tokens = self
@@ -230,27 +250,33 @@ impl BertEmbed for OrtBertEmbedder {
                 let token_ids: Array2<i64> = self.tokenize_batch(mini_text_batch)?;
                 let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
                 let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
-                let outputs = self
-                    .model
-                    .run(ort::inputs![token_ids, token_type_ids, attention_mask]?)?;
+                let outputs =
+                    self.model
+                        .run(ort::inputs![token_ids, token_type_ids, attention_mask]?)?;
                 let embeddings: Array3<f32> = outputs["last_hidden_state"]
                     .try_extract_tensor::<f32>()?
                     .to_owned()
                     .into_dimensionality::<ndarray::Ix3>()?;
                 let (_, _, _) = embeddings.dim();
-                let embeddings = self.pooling.pool(&ModelOutput::Array(embeddings))?.to_array()?;
+                let embeddings = self
+                    .pooling
+                    .pool(&ModelOutput::Array(embeddings))?
+                    .to_array()?;
                 let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
                 let embeddings = &embeddings / &norms.insert_axis(Axis(1));
-                
-                Ok(embeddings.outer_iter().par_bridge().map(|row| row.to_vec()).collect())
+
+                Ok(embeddings
+                    .outer_iter()
+                    .par_bridge()
+                    .map(|row| row.to_vec())
+                    .collect())
             })
             .flatten()
             .collect::<Vec<_>>();
-  
+
         Ok(encodings)
     }
 }
-
 
 impl BertEmbed for BertEmbedder {
     fn embed(
@@ -270,8 +296,11 @@ impl BertEmbed for BertEmbedder {
                 .model
                 .forward(&token_ids, &token_type_ids, None)
                 .unwrap();
-            let pooled_output = self.pooling.pool(&ModelOutput::Tensor(embeddings.clone()))?.to_tensor()?;
-                
+            let pooled_output = self
+                .pooling
+                .pool(&ModelOutput::Tensor(embeddings.clone()))?
+                .to_tensor()?;
+
             let embeddings = normalize_l2(&pooled_output).unwrap();
             let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
 

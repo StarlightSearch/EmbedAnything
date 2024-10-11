@@ -67,9 +67,6 @@ pub enum ONNXModel {
     GTELargeENV15Q,
 }
 
-
-
-
 /// Centralized function to initialize the models map.
 fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
     let models_list = vec![
@@ -203,7 +200,9 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             description: String::from(
                 "Sentence-transformers model for tasks like clustering or semantic search",
             ),
-            hf_model_id: String::from("sentence-transformers/paraphrase-multilingual-mpnet-base-v2"),
+            hf_model_id: String::from(
+                "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+            ),
             model_code: String::from("Xenova/paraphrase-multilingual-mpnet-base-v2"),
             model_file: String::from("onnx/model.onnx"),
         },
@@ -316,7 +315,9 @@ pub fn get_model_info(model: &ONNXModel) -> Option<&ModelInfo<ONNXModel>> {
 }
 
 pub fn get_model_info_by_hf_id(hf_model_id: &str) -> Option<&ModelInfo<ONNXModel>> {
-    models_map().values().find(|model| model.hf_model_id == hf_model_id)
+    models_map()
+        .values()
+        .find(|model| model.hf_model_id == hf_model_id)
 }
 
 /// Get a list of all available models.
@@ -326,8 +327,6 @@ pub fn get_model_info_by_hf_id(hf_model_id: &str) -> Option<&ModelInfo<ONNXModel
 pub fn models_list() -> Vec<ModelInfo<ONNXModel>> {
     models_map().values().cloned().collect()
 }
-
-
 
 impl ONNXModel {
     pub fn get_default_pooling_method(&self) -> Option<Pooling> {
