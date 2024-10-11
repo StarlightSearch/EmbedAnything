@@ -1,6 +1,5 @@
 use anyhow::Error;
 use markdown_parser::read_file;
-use std::path::PathBuf;
 
 /// A struct that provides functionality to process Markdown files.
 pub struct MarkdownProcessor;

@@ -2,8 +2,9 @@ use candle_core::Tensor;
 use ndarray::prelude::*;
 use ndarray::{Array2, Array3};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum Pooling {
+    #[default]
     Mean,
     Cls,
 }
@@ -33,12 +34,6 @@ impl PooledOutput {
 pub enum ModelOutput {
     Tensor(Tensor),
     Array(Array3<f32>),
-}
-
-impl Default for Pooling {
-    fn default() -> Self {
-        Pooling::Mean
-    }
 }
 
 impl Pooling {
