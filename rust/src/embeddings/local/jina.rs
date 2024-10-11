@@ -5,10 +5,10 @@ extern crate intel_mkl_src;
 extern crate accelerate_src;
 
 use crate::embeddings::normalize_l2;
+use crate::models::jina_bert::{BertModel, Config};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
-use crate::models::jina_bert::{BertModel, Config};
 use hf_hub::Repo;
 use tokenizers::Tokenizer;
 

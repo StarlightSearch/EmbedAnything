@@ -1,7 +1,5 @@
 pub mod config;
-use embed_anything::embeddings::local::text_embedding::{
-    models_list, ONNXModel,
-};
+use embed_anything::embeddings::local::text_embedding::{models_list, ONNXModel};
 use embed_anything::{
     self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
     file_processor::audio::audio_processor, text_loader::FileLoadingError,
