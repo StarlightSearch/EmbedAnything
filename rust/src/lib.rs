@@ -5,8 +5,8 @@ pub mod config;
 pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
-pub mod text_loader;
 pub mod models;
+pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
@@ -66,8 +66,7 @@ pub async fn embed_query(
     let batch_size = config.batch_size;
 
     let encodings = embeder.embed(&query, batch_size).await.unwrap();
-    Ok(get_text_metadata(&encodings, &query, &None)?)
-
+    get_text_metadata(&encodings, &query, &None)
 }
 /// Embeds the text from a file using the specified embedding model.
 ///
@@ -228,17 +227,20 @@ where
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
-        let futures = chunks.par_iter().map(|chunks| {
-            let chunks = chunks.clone();
-            let metadata = metadata.clone();
-            async move {
-                let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
-                    .await
-                    .unwrap();
-                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            }
-        }).collect::<Vec<_>>();
+        let futures = chunks
+            .par_iter()
+            .map(|chunks| {
+                let chunks = chunks.clone();
+                let metadata = metadata.clone();
+                async move {
+                    let encodings = embedding_model
+                        .embed(&chunks[..], batch_size)
+                        .await
+                        .unwrap();
+                    get_text_metadata(&encodings, &chunks, &metadata).unwrap()
+                }
+            })
+            .collect::<Vec<_>>();
         let embeddings = join_all(futures)
             .await
             .into_iter()
@@ -247,17 +249,20 @@ where
         adapter(embeddings);
         Ok(None)
     } else {
-        let futures = chunks.par_iter().map(|chunks| {
-            let chunks = chunks.clone();
-            let metadata = metadata.clone();
-            async move {
-                let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
-                    .await
-                    .unwrap();
-                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            }
-        }).collect::<Vec<_>>();
+        let futures = chunks
+            .par_iter()
+            .map(|chunks| {
+                let chunks = chunks.clone();
+                let metadata = metadata.clone();
+                async move {
+                    let encodings = embedding_model
+                        .embed(&chunks[..], batch_size)
+                        .await
+                        .unwrap();
+                    get_text_metadata(&encodings, &chunks, &metadata).unwrap()
+                }
+            })
+            .collect::<Vec<_>>();
         let embeddings = join_all(futures)
             .await
             .into_iter()
