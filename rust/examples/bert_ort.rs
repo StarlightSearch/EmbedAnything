@@ -1,12 +1,12 @@
 use candle_core::{Device, Tensor};
 use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embeder};
+use embed_anything::embed_query;
+use embed_anything::embeddings::embed::Embeder;
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
 use embed_anything::text_loader::{SplittingStrategy, TextLoader};
-use embed_anything::{embed_directory_stream, embed_file, embed_query};
-use std::sync::Arc;
-use std::{path::PathBuf, time::Instant};
 use rayon::prelude::*;
+use std::sync::Arc;
+use std::time::Instant;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -21,7 +21,10 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     // get files in bench
-    let files = std::fs::read_dir("bench").unwrap().into_iter().map(|f| f.unwrap().path()).collect::<Vec<_>>();
+    let files = std::fs::read_dir("bench")
+        .unwrap()
+        .map(|f| f.unwrap().path())
+        .collect::<Vec<_>>();
     let text_loader = TextLoader::new(1000);
 
     // for file in files {
@@ -34,31 +37,45 @@ async fn main() -> Result<(), anyhow::Error> {
     // }
     let now = Instant::now();
 
-    let futures = files.par_iter().map(|file| {
-        let text = TextLoader::extract_text(file).unwrap();
-        let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence, None).unwrap();
-        embed_query(chunks, &model, Some(&config))
-    }).collect::<Vec<_>>();
+    let futures = files
+        .par_iter()
+        .map(|file| {
+            let text = TextLoader::extract_text(file).unwrap();
+            let chunks = text_loader
+                .split_into_chunks(&text, SplittingStrategy::Sentence, None)
+                .unwrap();
+            embed_query(chunks, &model, Some(&config))
+        })
+        .collect::<Vec<_>>();
 
-    let data = futures::future::join_all(futures).await.into_iter().flatten().collect::<Vec<_>>();
+    let data = futures::future::join_all(futures)
+        .await
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
 
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 
-
-    let sentences = vec![
+    let sentences = [
         "The quick brown fox jumps over the lazy dog",
         "The cat is sleeping on the mat",
         "The dog is barking at the moon",
         "I love pizza",
         "I like to have pasta",
         "The dog is sitting in the park",
-    ].iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect::<Vec<_>>();
 
-    let doc_embeddings = embed_query(sentences.clone(), &model, Some(&config)).await.unwrap();
+    let doc_embeddings = embed_query(sentences.clone(), &model, Some(&config))
+        .await
+        .unwrap();
     let n_vectors = doc_embeddings.len();
     let out_embeddings = Tensor::from_vec(
-        doc_embeddings.iter()
+        doc_embeddings
+            .iter()
             .map(|embed| embed.embedding.clone())
             .collect::<Vec<_>>()
             .iter()

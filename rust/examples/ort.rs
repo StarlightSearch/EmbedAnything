@@ -2,7 +2,6 @@ use anyhow::Error as E;
 use anyhow::Result;
 
 use candle_core::Device;
-use candle_core::Tensor;
 use hf_hub::{api::sync::Api, Repo};
 use ndarray::Array2;
 use ndarray::Axis;
@@ -41,10 +40,14 @@ fn main() -> Result<()> {
     };
     tokenizer.with_padding(Some(pp));
 
-
     println!("{:?}", model.inputs);
 
-    let outputs  = embed(&tokenizer, &model, &vec!["Hello world".to_string(), "Bye World".to_string()], None)?;
+    let outputs = embed(
+        &tokenizer,
+        &model,
+        &["Hello world".to_string(), "Bye World".to_string()],
+        None,
+    )?;
     Ok(())
 }
 
@@ -58,7 +61,13 @@ pub fn tokenize_batch(
         .map_err(E::msg)?;
     let token_ids = tokens
         .iter()
-        .map(|tokens| tokens.get_ids().iter().map(|&id| id as i64).collect::<Vec<i64>>())
+        .map(|tokens| {
+            tokens
+                .get_ids()
+                .iter()
+                .map(|&id| id as i64)
+                .collect::<Vec<i64>>()
+        })
         .collect::<Vec<Vec<i64>>>();
 
     let token_ids_array = Array2::from_shape_vec(
@@ -79,29 +88,35 @@ pub fn embed(
     let mut encodings: Vec<Vec<f32>> = Vec::new();
 
     for mini_text_batch in text_batch.chunks(batch_size) {
-        let token_ids: Array2<i64> = tokenize_batch(tokenizer, mini_text_batch, &Device::Cpu).unwrap();
+        let token_ids: Array2<i64> =
+            tokenize_batch(tokenizer, mini_text_batch, &Device::Cpu).unwrap();
         let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
         let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
-        let outputs = model.run(ort::inputs![token_ids, token_type_ids, attention_mask]?).unwrap();
-        let embeddings = outputs["last_hidden_state"].try_extract_tensor::<f32>().unwrap();
+        let outputs = model
+            .run(ort::inputs![token_ids, token_type_ids, attention_mask]?)
+            .unwrap();
+        let embeddings = outputs["last_hidden_state"]
+            .try_extract_tensor::<f32>()
+            .unwrap();
         let shape = embeddings.shape();
-        let (_, n_tokens, _hidden_size) = (shape[0], shape[1], shape[2]); 
+        let (_, n_tokens, _hidden_size) = (shape[0], shape[1], shape[2]);
         let embeddings = embeddings.sum_axis(Axis(1)) / n_tokens as f32;
-        let denominator = embeddings.mapv(|x| x*x).sum_axis(Axis(1)).sqrt().insert_axis(Axis(1));
-        let embeddings = embeddings.clone()/ denominator;
+        let denominator = embeddings
+            .mapv(|x| x * x)
+            .sum_axis(Axis(1))
+            .sqrt()
+            .insert_axis(Axis(1));
+        let embeddings = embeddings.clone() / denominator;
         println!("{:?}", embeddings);
         let batch_encodings: (Vec<f32>, Option<usize>) = embeddings.into_raw_vec_and_offset();
-        let batch_encodings = reshape_into_2d_vector(batch_encodings.0, Some(n_tokens as usize));
+        let batch_encodings = reshape_into_2d_vector(batch_encodings.0, Some(n_tokens));
         encodings.extend(batch_encodings);
     }
 
     Ok(encodings)
 }
 
-fn reshape_into_2d_vector(
-    raw_data: Vec<f32>, 
-    dim: Option<usize>
-) -> Vec<Vec<f32>> {
+fn reshape_into_2d_vector(raw_data: Vec<f32>, dim: Option<usize>) -> Vec<Vec<f32>> {
     let dim = dim.expect("Dimension must be provided");
     let mut reshaped: Vec<Vec<f32>> = Vec::new();
 
