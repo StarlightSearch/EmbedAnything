@@ -74,4 +74,3 @@ start = time.time()
 embed_anything()
 
 print(time.time() - start)
-
