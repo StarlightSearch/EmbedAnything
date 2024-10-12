@@ -5,10 +5,10 @@ pub mod config;
 pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
-pub mod text_loader;
 pub mod models;
+pub mod text_loader;
 
-use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
@@ -18,7 +18,6 @@ use embeddings::{
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
-use futures::future::join_all;
 use itertools::Itertools;
 use rayon::prelude::*;
 use text_loader::{SplittingStrategy, TextLoader};
@@ -65,10 +64,8 @@ pub async fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embeder.embed(&query, batch_size).await.unwrap();
-    let embeddings = get_text_metadata(&encodings, &query, &None)?;
-
-    Ok(embeddings)
+    let encodings = Rc::new(embeder.embed(&query, batch_size).await.unwrap());
+    get_text_metadata(&encodings, &query, &None)
 }
 /// Embeds the text from a file using the specified embedding model.
 ///
@@ -99,8 +96,8 @@ pub async fn embed_query(
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 
-pub async fn embed_file<F>(
-    file_name: &str,
+pub async fn embed_file<T: AsRef<std::path::Path>, F>(
+    file_name: T,
     embeder: &Embeder,
     config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
@@ -217,53 +214,23 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
 where
     F: Fn(Vec<EmbedData>), // Add Send trait bound here
 {
-    println!("Embedding text file: {:?}", file.as_ref());
-
-    let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
+    let text = TextLoader::extract_text(&file)?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader.split_into_chunks(
         &text,
         splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
         semantic_encoder,
-    );
+    ).unwrap();
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
-        let futures = chunks.iter().map(|chunks| {
-            let chunks = chunks.clone();
-            let metadata = metadata.clone();
-            async move {
-                let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
-                    .await
-                    .unwrap();
-                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            }
-        });
-        let embeddings = join_all(futures)
-            .await
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
+        let encodings = embedding_model.embed(&chunks, batch_size).await.unwrap();
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &metadata).unwrap();
         adapter(embeddings);
         Ok(None)
     } else {
-        let futures = chunks.iter().map(|chunks| {
-            let chunks = chunks.clone();
-            let metadata = metadata.clone();
-            async move {
-                let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
-                    .await
-                    .unwrap();
-                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            }
-        });
-        let embeddings = join_all(futures)
-            .await
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
+        let encodings = embedding_model.embed(&chunks, batch_size).await.unwrap();
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &metadata).unwrap();
 
         Ok(Some(embeddings))
     }
@@ -601,7 +568,7 @@ where
     let textloader = TextLoader::new(chunk_size);
 
     file_parser.files.iter().for_each(|file| {
-        let text = TextLoader::extract_text(&file.to_string()).unwrap();
+        let text = TextLoader::extract_text(file).unwrap();
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
             .unwrap();
