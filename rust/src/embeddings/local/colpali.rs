@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, sync::RwLock};
 
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
@@ -6,10 +6,10 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::{colpali::Model, paligemma};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use crate::embeddings::embed::{EmbedData, EmbedImage};
+use crate::embeddings::embed::{EmbedData, EmbedImage, EmbeddingResult};
 
 pub struct ColPaliEmbedder {
-    pub model: Model,
+    pub model: RwLock<Model>,
     pub tokenizer: Tokenizer,
     pub config: paligemma::Config,
     dummy_input: Tensor,
@@ -91,7 +91,7 @@ impl ColPaliEmbedder {
         let dummy_input = tokenize_batch(&tokenizer, vec![dummy_prompt], &device)?;
 
         Ok(Self {
-            model,
+            model: RwLock::new(model),
             tokenizer,
             config,
             dummy_input,
@@ -125,6 +125,23 @@ impl ColPaliEmbedder {
         // .unsqueeze(0)?;
         Ok(img)
     }
+
+    fn load_images<T: AsRef<std::path::Path>>(
+        &self,
+        paths: &[T],
+        image_size: usize,
+    ) -> anyhow::Result<Tensor> {
+        let mut images = vec![];
+
+        for path in paths {
+            let tensor = self.load_image(path, image_size)?;
+            images.push(tensor);
+        }
+
+        let images = Tensor::stack(&images, 0)?;
+
+        Ok(images)
+    }
 }
 
 impl EmbedImage for ColPaliEmbedder {
@@ -138,9 +155,33 @@ impl EmbedImage for ColPaliEmbedder {
             .unsqueeze(0)?;
         let encoding = self
             .model
-            .forward_images(&pixel_values, &self.dummy_input)?.to_vec3::<f32>();
+            .write()
+            .unwrap()
+            .forward_images(&pixel_values, &self.dummy_input)?
+            .to_vec3::<f32>()?
+            .iter()
+            .map(|x| EmbeddingResult::Sparse(x.to_vec()))
+            .collect::<Vec<_>>();
 
-        Ok(EmbedData::new(encoding.to_vec(), None, metadata.clone()))
+        Ok(EmbedData::new(encoding[0].clone(), None, metadata.clone()))
+    }
+
+    fn embed_image_batch<T: AsRef<std::path::Path>>(
+        &self,
+        image_paths: &[T],
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        let pixel_values = self.load_images(image_paths, self.config.vision_config.image_size)?;
+        let encodings = self
+            .model
+            .write()
+            .unwrap()
+            .forward_images(&pixel_values, &self.dummy_input)?
+            .to_vec3::<f32>()?;
+
+        Ok(encodings
+            .iter()
+            .map(|x| EmbedData::new(EmbeddingResult::Sparse(x.to_vec()), None, None))
+            .collect::<Vec<_>>())
     }
 }
 
