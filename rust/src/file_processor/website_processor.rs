@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, rc::Rc, sync::Arc};
+use std::{collections::{HashMap, HashSet}, rc::Rc};
 
 use anyhow::Result;
 use scraper::{Html, Selector};
@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::{
     embeddings::{
-        embed::{EmbedData, TextEmbedder},
+        embed::{EmbedData, Embedder},
         get_text_metadata,
     },
     text_loader::{SplittingStrategy, TextLoader},
@@ -26,7 +26,7 @@ pub struct WebPage {
 impl WebPage {
     pub async fn embed_webpage(
         &self,
-        embeder: &TextEmbedder,
+        embeder: &Embedder,
         chunk_size: usize,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
@@ -60,7 +60,7 @@ impl WebPage {
         &self,
         tag: &str,
         tag_content: &[String],
-        embeder: &TextEmbedder,
+        embeder: &Embedder,
         chunk_size: usize,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
@@ -95,7 +95,10 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let encodings = embeder.embed(&chunks, batch_size).await.unwrap();
+            let encodings = embeder
+                .embed(&chunks, batch_size)
+                .await
+                .unwrap();
             let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
