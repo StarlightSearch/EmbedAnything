@@ -84,6 +84,7 @@ pub enum WhichModel {
     Bert,
     Clip,
     Jina,
+    Colpali,
 }
 
 #[pyclass]
@@ -98,6 +99,7 @@ impl From<&str> for WhichModel {
             "bert" | "Bert" => WhichModel::Bert,
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
+            "colpali" | "Colpali" => WhichModel::Colpali,
             _ => panic!("Invalid model"),
         }
     }
@@ -111,6 +113,7 @@ impl From<String> for WhichModel {
             "bert" | "Bert" => WhichModel::Bert,
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
+            "colpali" | "Colpali" => WhichModel::Colpali,
             _ => panic!("Invalid model"),
         }
     }
@@ -171,6 +174,19 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
+            WhichModel::Colpali => {
+                let model_id = model_id.unwrap_or("vidore/colpali-v1.2-merged");
+                let model = Embedder::Vision(VisionEmbedder::ColPali(embed_anything::embeddings::local::colpali::ColPaliEmbedder::new(
+                    model_id,
+                        revision.map(|s| s),
+                    )
+                    .unwrap(),
+                ));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+        
             _ => panic!("Invalid model"),
         }
     }
