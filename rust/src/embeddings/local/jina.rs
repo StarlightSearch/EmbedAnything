@@ -23,18 +23,18 @@ use tokenizers::Tokenizer;
 ///- jina-embeddings-v2-base-zh: Chinese-English Bilingual embeddings.
 ///- jina-embeddings-v2-base-de: German-English Bilingual embeddings.
 ///- jina-embeddings-v2-base-es: Spanish-English Bilingual embedding
-pub struct JinaEmbeder {
+pub struct JinaEmbedder {
     pub model: BertModel,
     pub tokenizer: Tokenizer,
 }
 
-impl Default for JinaEmbeder {
+impl Default for JinaEmbedder {
     fn default() -> Self {
         Self::new("jinaai/jina-embeddings-v2-small-en".to_string(), None).unwrap()
     }
 }
 
-impl JinaEmbeder {
+impl JinaEmbedder {
     pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
         let api = hf_hub::api::sync::Api::new()?;
         let api = match revision {

@@ -14,20 +14,20 @@ pub struct OpenAIEmbedResponse {
 
 /// Represents an OpenAIEmbeder struct that contains the URL and API key for making requests to the OpenAI API.
 #[derive(Debug)]
-pub struct OpenAIEmbeder {
+pub struct OpenAIEmbedder {
     url: String,
     model: String,
     api_key: String,
     client: Client,
 }
 
-impl Default for OpenAIEmbeder {
+impl Default for OpenAIEmbedder {
     fn default() -> Self {
         Self::new("text-embedding-3-small".to_string(), None)
     }
 }
 
-impl OpenAIEmbeder {
+impl OpenAIEmbedder {
     pub fn new(model: String, api_key: Option<String>) -> Self {
         let api_key =
             api_key.unwrap_or_else(|| std::env::var("OPENAI_API_KEY").expect("API Key not set"));
@@ -73,7 +73,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_openai_embed() {
-        let openai = OpenAIEmbeder::default();
+        let openai = OpenAIEmbedder::default();
         let text_batch = vec![
             "Once upon a time".to_string(),
             "The quick brown fox jumps over the lazy dog".to_string(),
