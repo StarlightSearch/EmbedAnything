@@ -9,8 +9,6 @@ use super::local::jina::JinaEmbedder;
 use super::local::text_embedding::ONNXModel;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::fmt::Debug;
-use std::future::Future;
 use anyhow::anyhow;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -319,7 +317,6 @@ impl TextEmbed for VisionEmbedder {
         match self {
             Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
             Self::ColPali(embeder) => embeder.embed(text_batch, batch_size),
-            _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
 }
@@ -347,7 +344,6 @@ impl EmbedImage for VisionEmbedder {
         match self {
             Self::Clip(embeder) => embeder.embed_image(image_path, metadata),
             Self::ColPali(embeder) => embeder.embed_image(image_path, metadata),
-            _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
 
@@ -358,7 +354,6 @@ impl EmbedImage for VisionEmbedder {
         match self {
             Self::Clip(embeder) => embeder.embed_image_batch(image_paths),
             Self::ColPali(embeder) => embeder.embed_image_batch(image_paths),
-            _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
 

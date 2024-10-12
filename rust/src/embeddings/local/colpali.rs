@@ -1,4 +1,5 @@
-use std::{cell::RefCell, collections::HashMap, sync::RwLock};
+use std::collections::HashMap;
+use std::sync::RwLock;
 
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};

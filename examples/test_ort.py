@@ -3,13 +3,12 @@ from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichMode
 from embed_anything.vectordb import Adapter
 import os
 from time import time
-from fastembed import TextEmbedding
 import numpy as np
 
 
 
 model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, "AllMiniLM6V2"
+    WhichModel.Bert, "BGESmallENV15Q"
 )
 
 sentences = [
@@ -27,17 +26,6 @@ embed_vector = np.array([e.embedding for e in embedddings])
 
 print("shape of embed_vector", embed_vector.shape)
 similarities = np.matmul(embed_vector, embed_vector.T)
-
-print(similarities)
-
-model = TextEmbedding(model_name = "BAAI/bge-small-en-v1.5",
-                      providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
-
-embeddings = np.array(list(model.embed(sentences)))
-
-print(embeddings.shape)
-
-similarities = np.matmul(embeddings, embeddings.T)
 
 print(similarities)
 
