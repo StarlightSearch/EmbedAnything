@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use anyhow::Error;
 
 /// A struct for processing PDF files.
@@ -16,7 +14,7 @@ impl TxtProcessor {
     ///
     /// Returns a `Result` containing the extracted text as a `String` if successful,
     /// or an `Error` if an error occurred during the extraction process.
-    pub fn extract_text(file_path: &PathBuf) -> Result<String, Error> {
+    pub fn extract_text<T: AsRef<std::path::Path>>(file_path: &T) -> Result<String, Error> {
         let bytes = std::fs::read(file_path)?;
         let out = String::from_utf8_lossy(&bytes);
         Ok(out.to_string())
@@ -40,7 +38,7 @@ mod tests {
         assert_eq!(text, "");
 
         let txt_file = "test_files/test.txt";
-        let text = TxtProcessor::extract_text(&PathBuf::from(txt_file)).unwrap();
+        let text = TxtProcessor::extract_text(&txt_file).unwrap();
         assert_eq!(
             text,
             "This is a test file to see how txt embedding works !\n"
@@ -50,7 +48,7 @@ mod tests {
     // Returns an error if the file path is invalid.
     #[test]
     fn test_extract_text_invalid_file_path() {
-        let invalid_file_path = PathBuf::from("invalid.txt");
+        let invalid_file_path = "invalid.txt";
 
         let result = TxtProcessor::extract_text(&invalid_file_path);
         assert!(result.is_err());

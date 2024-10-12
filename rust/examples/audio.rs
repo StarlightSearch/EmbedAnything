@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use embed_anything::{
-    config, emb_audio, embeddings::embed::Embeder,
+    config, emb_audio, embeddings::embed::Embedder,
     file_processor::audio::audio_processor::AudioDecoderModel, text_loader::SplittingStrategy,
 };
 
@@ -16,12 +16,13 @@ async fn main() {
     )
     .unwrap();
 
-    let bert_model =
-        Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
-            .unwrap();
+    let bert_model = Arc::new(
+        Embedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+            .unwrap(),
+    );
 
     let semantic_encoder = Arc::new(
-        Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
+        Embedder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
     );
     let text_embed_config = config::TextEmbedConfig::new(
         Some(256),
