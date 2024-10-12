@@ -1,10 +1,11 @@
 use crate::file_processor::audio::audio_processor::Segment;
 
-use super::cloud::cohere::CohereEmbeder;
-use super::cloud::openai::OpenAIEmbeder;
+use super::cloud::cohere::CohereEmbedder;
+use super::cloud::openai::OpenAIEmbedder;
 use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder};
-use super::local::clip::ClipEmbeder;
-use super::local::jina::JinaEmbeder;
+use super::local::clip::ClipEmbedder;
+use super::local::colpali::ColPaliEmbedder;
+use super::local::jina::JinaEmbedder;
 use super::local::text_embedding::ONNXModel;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -45,26 +46,24 @@ pub trait AudioDecoder {
         -> Result<Vec<Segment>, anyhow::Error>;
 }
 
-pub enum Embeder {
-    OpenAI(OpenAIEmbeder),
-    Cohere(CohereEmbeder),
-    Jina(JinaEmbeder),
-    Clip(ClipEmbeder),
+pub enum TextEmbedder {
+    OpenAI(OpenAIEmbedder),
+    Cohere(CohereEmbedder),
+    Jina(JinaEmbedder),
     Bert(Box<dyn BertEmbed + Send + Sync>),
 }
 
-impl Embeder {
+impl TextEmbedder {
     pub async fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
-            Embeder::OpenAI(embeder) => embeder.embed(text_batch).await,
-            Embeder::Cohere(embeder) => embeder.embed(text_batch).await,
-            Embeder::Jina(embeder) => embeder.embed(text_batch, batch_size),
-            Embeder::Clip(embeder) => embeder.embed(text_batch, batch_size),
-            Embeder::Bert(embeder) => embeder.embed(text_batch, batch_size),
+            TextEmbedder::OpenAI(embeder) => embeder.embed(text_batch).await,
+            TextEmbedder::Cohere(embeder) => embeder.embed(text_batch).await,
+            TextEmbedder::Jina(embeder) => embeder.embed(text_batch, batch_size),
+            TextEmbedder::Bert(embeder) => embeder.embed(text_batch, batch_size),
         }
     }
 
@@ -74,14 +73,11 @@ impl Embeder {
         revision: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "jina" | "Jina" => Ok(Self::Jina(JinaEmbeder::new(
+            "jina" | "Jina" => Ok(Self::Jina(JinaEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
             )?)),
-            "CLIP" | "Clip" | "clip" => Ok(Self::Clip(ClipEmbeder::new(
-                model_id.to_string(),
-                revision.map(|s| s.to_string()),
-            )?)),
+
             "Bert" | "bert" => Ok(Self::Bert(Box::new(BertEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
@@ -128,11 +124,11 @@ impl Embeder {
         api_key: Option<String>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "openai" | "OpenAI" => Ok(Self::OpenAI(OpenAIEmbeder::new(
+            "openai" | "OpenAI" => Ok(Self::OpenAI(OpenAIEmbedder::new(
                 model_id.to_string(),
                 api_key,
             ))),
-            "cohere" | "Cohere" => Ok(Self::Cohere(CohereEmbeder::new(
+            "cohere" | "Cohere" => Ok(Self::Cohere(CohereEmbedder::new(
                 model_id.to_string(),
                 api_key,
             ))),
@@ -141,7 +137,60 @@ impl Embeder {
     }
 }
 
-impl EmbedImage for Embeder {
+
+
+
+
+
+
+
+pub enum VisionEmbedder {
+    Clip(ClipEmbedder),
+    ColPali(ColPaliEmbedder),
+}
+
+impl VisionEmbedder {
+    pub fn from_pretrained_hf ( model: &str, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+        match model {
+            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
+            "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(ColPaliEmbedder::new(model_id, revision.map(|s| s))?)),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+}
+
+pub trait TextEmbed {
+    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+}
+
+impl TextEmbed for VisionEmbedder {
+    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        match self {
+            Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+}
+
+
+pub trait EmbedImage {
+    fn embed_image<T: AsRef<std::path::Path>>(
+        &self,
+        image_path: T,
+        metadata: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<EmbedData>;
+    fn embed_image_batch<T: AsRef<std::path::Path>>(
+        &self,
+        image_paths: &[T],
+    ) -> anyhow::Result<Vec<EmbedData>>;
+
+    fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
+    where
+        Self: Sized;
+}
+
+
+impl EmbedImage for VisionEmbedder {
     fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
@@ -168,27 +217,12 @@ impl EmbedImage for Embeder {
         Self: Sized,
     {
         match model_id {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbeder::new(
+            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
             )?)),
+            
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
-}
-
-pub trait EmbedImage {
-    fn embed_image<T: AsRef<std::path::Path>>(
-        &self,
-        image_path: T,
-        metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData>;
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
-        &self,
-        image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>>;
-
-    fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
-    where
-        Self: Sized;
 }

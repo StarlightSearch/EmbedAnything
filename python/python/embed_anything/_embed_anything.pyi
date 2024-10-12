@@ -312,28 +312,32 @@ class EmbeddingModel:
     def from_pretrained_cloud(
         model: WhichModel, model_id: str, api_key: str | None = None
     ) -> EmbeddingModel: ...
-
     """
-    Loads an onnx embedding model.
+    Loads an ONNX embedding model.
 
     Args:
-        model: The embedding model to use.
-        model_id: The ID of the model.
-        revision: The revision of the model.
+        model_architecture (WhichModel): The architecture of the embedding model to use.
+        model_id (str): The ID of the model.
+        revision (str | None, optional): The revision of the model. Defaults to None.
 
     Returns:
-        An EmbeddingModel object.
+        EmbeddingModel: An initialized EmbeddingModel object.
 
     Example:
     ```python
     model = EmbeddingModel.from_pretrained_onnx(
-        model=WhichModel.Bert,
-        model_id="BAAI/bge-small-en-v1.5"
+        model_architecture=WhichModel.Bert,
+        model_id="BGESmallENV15Q"
     )
     ```
+
+    Note:
+    This method loads a pre-trained model in ONNX format, which can offer improved inference speed
+    compared to standard PyTorch models. ONNX models are particularly useful for deployment
+    scenarios where performance is critical.
     """
     def from_pretrained_onnx(
-            model: WhichModel, model_id: str, revision: str | None = None
+            model_architecture: WhichModel, model_id: str, revision: str | None = None
     ) -> EmbeddingModel: ...
 
 class AudioDecoderModel:

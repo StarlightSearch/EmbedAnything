@@ -1,10 +1,10 @@
-use crate::embeddings::{embed::Embeder, local::jina::JinaEmbeder};
+use crate::embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder};
 use candle_core::Tensor;
 use text_splitter::{ChunkConfig, ChunkSizer, TextSplitter};
 use tokenizers::Tokenizer;
 
 pub struct CumulativeChunker<Sizer: ChunkSizer> {
-    pub encoder: Embeder,
+    pub encoder: TextEmbedder,
     pub splitter: TextSplitter<Sizer>,
     pub score_threshold: f32,
     pub device: candle_core::Device,
@@ -15,7 +15,7 @@ impl Default for CumulativeChunker<Tokenizer> {
         let splitter = TextSplitter::new(ChunkConfig::new(200).with_sizer(
             Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
         ));
-        let encoder = Embeder::Jina(JinaEmbeder::default());
+        let encoder = TextEmbedder::Jina(JinaEmbedder::default());
         let score_threshold = 0.9;
         let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
         Self {
@@ -28,7 +28,7 @@ impl Default for CumulativeChunker<Tokenizer> {
 }
 
 impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
-    pub fn new(encoder: Embeder, splitter: TextSplitter<Sizer>, score_threshold: f32) -> Self {
+    pub fn new(encoder: TextEmbedder, splitter: TextSplitter<Sizer>, score_threshold: f32) -> Self {
         Self {
             encoder,
             splitter,
