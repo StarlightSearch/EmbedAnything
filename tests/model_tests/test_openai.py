@@ -1,4 +1,5 @@
-from embed_anything import embed_directory, embed_file, embed_query
+from embed_anything import TextEmbedConfig, embed_directory, embed_file, embed_query
+import pytest
 
 
 def test_openai_model_file(openai_model, test_pdf_file):
@@ -6,8 +7,11 @@ def test_openai_model_file(openai_model, test_pdf_file):
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 1536
 
-def test_openai_model_directory(openai_model, test_files_directory):
-    data = embed_directory(test_files_directory, openai_model)
+@pytest.mark.parametrize(
+    "config", [TextEmbedConfig(batch_size=32, chunk_size=256)]
+)
+def test_openai_model_directory(openai_model, config, test_files_directory):
+    data = embed_directory(test_files_directory, openai_model, config=config)
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 1536
 

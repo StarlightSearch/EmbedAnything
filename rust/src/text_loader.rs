@@ -12,8 +12,7 @@ use crate::{
 };
 use anyhow::Error;
 use chrono::{DateTime, Local};
-use text_splitter::{ChunkConfig, TextSplitter};
-use tokenizers::Tokenizer;
+use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use rayon::prelude::*;
@@ -62,14 +61,15 @@ impl From<FileLoadingError> for Error {
 
 #[derive(Debug)]
 pub struct TextLoader {
-    pub splitter: TextSplitter<Tokenizer>,
+    pub splitter: TextSplitter<Characters>,
 }
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
         Self {
-            splitter: TextSplitter::new(ChunkConfig::new(chunk_size).with_sizer(
-                Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
-            )),
+            // splitter: TextSplitter::new(ChunkConfig::new(chunk_size).with_sizer(
+            //     Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
+            // )),
+            splitter: TextSplitter::new(ChunkConfig::new(chunk_size)),
         }
     }
     pub fn split_into_chunks(
