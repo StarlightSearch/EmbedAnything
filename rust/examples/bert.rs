@@ -1,5 +1,5 @@
 use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embeder};
+use embed_anything::embeddings::embed::{EmbedData, Embedder, TextEmbedder};
 use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::{embed_directory_stream, embed_file};
 use std::sync::Arc;
@@ -7,9 +7,10 @@ use std::{path::PathBuf, time::Instant};
 
 #[tokio::main]
 async fn main() {
-    let model = Arc::new(
-        Embeder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
-    );
+    let model = Arc::new(Embedder::Text(
+        TextEmbedder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
+            .unwrap(),
+    ));
     let config = TextEmbedConfig::new(
         Some(256),
         Some(32),
@@ -38,7 +39,7 @@ async fn main() {
     let now = Instant::now();
 
     let _out = embed_directory_stream(
-        PathBuf::from("test_files"),
+        PathBuf::from("bench"),
         &model,
         None,
         // Some(vec!["txt".to_string()]),

@@ -1,13 +1,13 @@
 use std::{cmp::max, sync::Arc};
 
-use crate::embeddings::{embed::Embeder, local::jina::JinaEmbeder};
+use crate::embeddings::{embed::{Embedder, TextEmbedder}, local::jina::JinaEmbedder};
 use candle_core::Tensor;
 use itertools::{enumerate, Itertools};
 // use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
 pub struct StatisticalChunker {
-    pub encoder: Arc<Embeder>,
+    pub encoder: Arc<Embedder>,
     pub device: candle_core::Device,
     pub threshold_adjustment: f32,
     pub dynamic_threshold: bool,
@@ -21,7 +21,7 @@ pub struct StatisticalChunker {
 impl Default for StatisticalChunker {
     fn default() -> Self {
         let tokenizer = Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap();
-        let encoder = Arc::new(Embeder::Jina(JinaEmbeder::default()));
+        let encoder = Arc::new(Embedder::Text(TextEmbedder::Jina(JinaEmbedder::default())));
         let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
         Self {
             encoder,
@@ -41,7 +41,7 @@ impl Default for StatisticalChunker {
 impl StatisticalChunker {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        encoder: Arc<Embeder>,
+        encoder: Arc<Embedder>,
         threshold_adjustment: f32,
         dynamic_threshold: bool,
         window_size: usize,
@@ -128,7 +128,16 @@ impl StatisticalChunker {
                     .collect::<Vec<_>>();
             }
 
-            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).await.unwrap();
+            let encoded_splits = self
+                .encoder
+                .embed(&batch_splits, Some(16))
+                .await
+                .unwrap();
+            let encoded_splits = encoded_splits
+                .into_iter()
+                .map(|x| x.to_dense().unwrap())
+                .collect::<Vec<_>>();
+
             let similarities = self._calculate_similarity_scores(&encoded_splits);
             let calculated_threshold = self._find_optimal_threshold(&batch_splits, &similarities);
 
@@ -329,14 +338,18 @@ impl StatisticalChunker {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::text_loader::TextLoader;
 
     use super::*;
 
     #[tokio::test]
     async fn test_statistical_chunker() {
-        let text = TextLoader::extract_text("/home/akshay/EmbedAnything/test_files/attention.pdf")
-            .unwrap();
+        let text = TextLoader::extract_text(&PathBuf::from(
+            "/home/akshay/EmbedAnything/test_files/attention.pdf",
+        ))
+        .unwrap();
         let chunker = StatisticalChunker {
             verbose: true,
             ..Default::default()
