@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{embeddings::embed::Embeder, text_loader::SplittingStrategy};
 
+#[derive(Clone)]
 pub struct TextEmbedConfig {
     pub chunk_size: Option<usize>,
     pub batch_size: Option<usize>,
