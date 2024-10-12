@@ -224,13 +224,15 @@ class TextEmbedConfig:
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
     """
 
-    def __init__(self, chunk_size: int | None = 256, batch_size: int | None = 32, splitting_strategy: str | None = "sentence", semantic_encoder: EmbeddingModel | None = None):
+    def __init__(self, chunk_size: int | None = 256, batch_size: int | None = 32, buffer_size: int | None = 64, splitting_strategy: str | None = "sentence", semantic_encoder: EmbeddingModel | None = None):
         self.chunk_size = chunk_size
         self.batch_size = batch_size
+        self.buffer_size = buffer_size
         self.splitting_strategy = splitting_strategy
         self.semantic_encoder = semantic_encoder
     chunk_size: int | None
     batch_size: int | None
+    buffer_size: int | None
     splitting_strategy: str | None
     semantic_encoder: EmbeddingModel | None
 
@@ -311,6 +313,29 @@ class EmbeddingModel:
         model: WhichModel, model_id: str, api_key: str | None = None
     ) -> EmbeddingModel: ...
 
+    """
+    Loads an onnx embedding model.
+
+    Args:
+        model: The embedding model to use.
+        model_id: The ID of the model.
+        revision: The revision of the model.
+
+    Returns:
+        An EmbeddingModel object.
+
+    Example:
+    ```python
+    model = EmbeddingModel.from_pretrained_onnx(
+        model=WhichModel.Bert,
+        model_id="BAAI/bge-small-en-v1.5"
+    )
+    ```
+    """
+    def from_pretrained_onnx(
+            model: WhichModel, model_id: str, revision: str | None = None
+    ) -> EmbeddingModel: ...
+
 class AudioDecoderModel:
     """
     Represents an audio decoder model.
@@ -351,3 +376,4 @@ class WhichModel(Enum):
     Bert = ("Bert",)
     Jina = ("Jina",)
     Clip = ("Clip",)
+

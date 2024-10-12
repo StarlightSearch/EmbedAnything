@@ -38,7 +38,7 @@ async fn main() {
     let now = Instant::now();
 
     let _out = embed_directory_stream(
-        PathBuf::from("test_files"),
+        PathBuf::from("bench"),
         &model,
         None,
         // Some(vec!["txt".to_string()]),

@@ -12,11 +12,10 @@ use crate::{
 };
 use anyhow::Error;
 use chrono::{DateTime, Local};
-use text_splitter::{ChunkConfig, TextSplitter};
-use tokenizers::Tokenizer;
+use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
 use super::file_processor::pdf_processor::PdfProcessor;
-use std::path::PathBuf;
+use rayon::prelude::*;
 
 #[derive(Clone, Copy)]
 pub enum SplittingStrategy {
@@ -62,14 +61,15 @@ impl From<FileLoadingError> for Error {
 
 #[derive(Debug)]
 pub struct TextLoader {
-    pub splitter: TextSplitter<Tokenizer>,
+    pub splitter: TextSplitter<Characters>,
 }
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
         Self {
-            splitter: TextSplitter::new(ChunkConfig::new(chunk_size).with_sizer(
-                Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
-            )),
+            // splitter: TextSplitter::new(ChunkConfig::new(chunk_size).with_sizer(
+            //     Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
+            // )),
+            splitter: TextSplitter::new(ChunkConfig::new(chunk_size)),
         }
     }
     pub fn split_into_chunks(
@@ -85,6 +85,7 @@ impl TextLoader {
             SplittingStrategy::Sentence => self
                 .splitter
                 .chunks(text)
+                .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic => {
@@ -106,16 +107,27 @@ impl TextLoader {
         Some(chunks)
     }
 
-    pub fn extract_text(file: &str) -> Result<String, Error> {
-        if !PathBuf::from(file).exists() {
-            return Err(FileLoadingError::FileNotFound(file.to_string()).into());
+    pub fn extract_text<T: AsRef<std::path::Path>>(file: &T) -> Result<String, Error> {
+        if !file.as_ref().exists() {
+            return Err(FileLoadingError::FileNotFound(
+                file.as_ref().to_str().unwrap().to_string(),
+            )
+            .into());
         }
-        let file_extension = file.split('.').last().unwrap();
-        match file_extension {
-            "pdf" => PdfProcessor::extract_text(&PathBuf::from(file)),
-            "md" => MarkdownProcessor::extract_text(&PathBuf::from(file)),
-            "txt" => TxtProcessor::extract_text(&PathBuf::from(file)),
-            _ => Err(FileLoadingError::UnsupportedFileType(file.to_string()).into()),
+        let file_extension = file.as_ref().extension().unwrap();
+        match file_extension.to_str().unwrap() {
+            "pdf" => PdfProcessor::extract_text(file),
+            "md" => MarkdownProcessor::extract_text(file),
+            "txt" => TxtProcessor::extract_text(file),
+            _ => Err(FileLoadingError::UnsupportedFileType(
+                file.as_ref()
+                    .extension()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            )
+            .into()),
         }
     }
 
