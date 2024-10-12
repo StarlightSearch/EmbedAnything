@@ -1,6 +1,6 @@
 use candle_core::{Device, Tensor};
 use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embeder};
+use embed_anything::embeddings::embed::{EmbedData, Embedder};
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
 use embed_anything::text_loader::{SplittingStrategy, TextLoader};
 use embed_anything::{embed_file, embed_query};
@@ -12,7 +12,7 @@ use std::time::Instant;
 async fn main() -> Result<(), anyhow::Error> {
     let model =
 
-        Arc::new(Embeder::from_pretrained_ort("bert", ONNXModel::BGESmallENV15Q, None).unwrap());
+        Arc::new(Embedder::from_pretrained_onnx("bert", ONNXModel::AllMiniLML6V2, None).unwrap());
     let config = TextEmbedConfig::new(
         Some(1000),
         Some(256),
@@ -67,11 +67,11 @@ async fn main() -> Result<(), anyhow::Error> {
             .iter()
             .map(|embed| embed.embedding.clone())
             .collect::<Vec<_>>()
-            .iter()
+            .into_iter()
+            .map(|x| x.to_dense().unwrap())
             .flatten()
-            .cloned()
-            .collect::<Vec<f32>>(),
-        (n_vectors, doc_embeddings[0].embedding.len()),
+            .collect::<Vec<_>>(),
+        (n_vectors, doc_embeddings[0].embedding.to_dense().unwrap().len()),
         &Device::Cpu,
     )
     .unwrap();
@@ -95,36 +95,4 @@ async fn main() -> Result<(), anyhow::Error> {
 
     Ok(())
 
-    // let now = Instant::now();
-
-    // let _out = embed_directory_stream(
-    //     PathBuf::from("bench"),
-    //     &model,
-    //     None,
-    //     // Some(vec!["txt".to_string()]),
-    //     Some(&config),
-    //     None::<fn(Vec<EmbedData>)>,
-    // )
-    // .await
-    // .unwrap()
-    // .unwrap();
-
-    // println!("Number of chunks: {:?}", _out.len());
-    // let elapsed_time = now.elapsed();
-    // println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
-
-    // let now = Instant::now();
-
-    // let _out = embed_file(
-    //     "bench/attention.pdf",
-    //     &model,
-    //     Some(&config),
-    //     None::<fn(Vec<EmbedData>)>,
-    // )
-    // .await
-    // .unwrap()
-    // .unwrap();
-
-    // let elapsed_time = now.elapsed();
-    // println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 }

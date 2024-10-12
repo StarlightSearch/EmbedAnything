@@ -5,10 +5,10 @@ use std::{
     sync::Arc,
 };
 
-use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
+use crate::{embeddings::embed::Embedder, file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor}};
 use crate::{
     chunkers::statistical::StatisticalChunker,
-    embeddings::{embed::Embeder, local::jina::JinaEmbeder},
+    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
 };
 use anyhow::Error;
 use chrono::{DateTime, Local};
@@ -76,7 +76,7 @@ impl TextLoader {
         &self,
         text: &str,
         splitting_strategy: SplittingStrategy,
-        semantic_encoder: Option<Arc<Embeder>>,
+        semantic_encoder: Option<Arc<Embedder>>,
     ) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
@@ -90,7 +90,7 @@ impl TextLoader {
                 .collect(),
             SplittingStrategy::Semantic => {
                 let embeder =
-                    semantic_encoder.unwrap_or(Arc::new(Embeder::Jina(JinaEmbeder::default())));
+                    semantic_encoder.unwrap_or(Arc::new(Embedder::Text(TextEmbedder::Jina(JinaEmbedder::default()))));
                 let chunker = StatisticalChunker {
                     encoder: embeder,
                     ..Default::default()
@@ -156,7 +156,7 @@ impl TextLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embeddings::{embed::EmbedImage, local::clip::ClipEmbeder};
+    use crate::embeddings::{embed::EmbedImage, local::clip::ClipEmbedder};
     use std::path::PathBuf;
 
     #[test]
@@ -173,8 +173,8 @@ mod tests {
     #[test]
     fn test_image_embeder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
-        let embeder = ClipEmbeder::default();
+        let mut embeder = ClipEmbedder::default();
         let emb_data = embeder.embed_image(file_path, None).unwrap();
-        assert_eq!(emb_data.embedding.len(), 512);
+        assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }
 }

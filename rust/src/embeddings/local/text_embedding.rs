@@ -76,6 +76,12 @@ pub enum ONNXModel {
 
 }
 
+// impl From<&str> for ONNXModel {
+//     fn from(s: &str) -> Self {
+//         ONNXModel::from(s)
+//     }
+// }
+
 /// Centralized function to initialize the models map.
 fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
     let models_list = vec![
@@ -328,6 +334,7 @@ pub fn get_model_info_by_hf_id(hf_model_id: &str) -> Option<&ModelInfo<ONNXModel
         .values()
         .find(|model| model.hf_model_id == hf_model_id)
 }
+
 
 /// Get a list of all available models.
 ///
