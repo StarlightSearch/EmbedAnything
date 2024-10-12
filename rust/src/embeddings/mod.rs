@@ -1,9 +1,9 @@
 //! This module contains the different embedding models that can be used to generate embeddings for the text data.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use candle_core::Tensor;
-use embed::{EmbedData, Embeder};
+use embed::{EmbedData, Embedder, EmbeddingResult, TextEmbedder};
 
 use crate::file_processor::audio::audio_processor::Segment;
 
@@ -11,21 +11,22 @@ pub mod cloud;
 pub mod embed;
 pub mod local;
 
+use rayon::prelude::*;
 pub fn get_text_metadata(
-    encodings: &[Vec<f32>],
+    encodings: &Rc<Vec<EmbeddingResult>>,
     text_batch: &Vec<String>,
     metadata: &Option<HashMap<String, String>>,
 ) -> anyhow::Result<Vec<EmbedData>> {
     let final_embeddings = encodings
-        .iter()
+        .par_iter()
         .zip(text_batch)
-        .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
+        .map(|(data, text)| EmbedData::new(data.clone(), Some(text.clone()), metadata.clone()))
         .collect::<Vec<_>>();
     Ok(final_embeddings)
 }
 
 pub fn get_audio_metadata<T: AsRef<std::path::Path>>(
-    encodings: Vec<Vec<f32>>,
+    encodings: Vec<EmbeddingResult>,
     segments: Vec<Segment>,
     audio_file: T,
 ) -> Result<Vec<EmbedData>, anyhow::Error> {
@@ -45,7 +46,7 @@ pub fn get_audio_metadata<T: AsRef<std::path::Path>>(
             );
             metadata.insert("text".to_string(), segments[i].dr.text.clone());
             EmbedData::new(
-                data.to_vec(),
+                data.clone(),
                 Some(segments[i].dr.text.clone()),
                 Some(metadata),
             )
@@ -62,7 +63,7 @@ pub fn text_batch_from_audio(segments: &[Segment]) -> Vec<String> {
 }
 
 pub async fn embed_audio<T: AsRef<std::path::Path>>(
-    embeder: &Embeder,
+    embeder: &Embedder,
     segments: Vec<Segment>,
     audio_file: T,
     batch_size: Option<usize>,
