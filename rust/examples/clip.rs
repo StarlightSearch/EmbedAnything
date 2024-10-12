@@ -1,7 +1,7 @@
 use candle_core::{Device, Tensor};
 use embed_anything::{
     embed_image_directory, embed_query,
-    embeddings::embed::{EmbedData, Embeder},
+    embeddings::embed::{EmbedData, Embedder},
 };
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
@@ -9,8 +9,8 @@ use std::{path::PathBuf, sync::Arc, time::Instant};
 async fn main() {
     let now = Instant::now();
 
-    let model = Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch32", None).unwrap();
-    let model: Arc<Embeder> = Arc::new(model);
+    let model = Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch32", None).unwrap();
+    let model: Arc<Embedder> = Arc::new(model);
     let out = embed_image_directory(
         PathBuf::from("test_files"),
         &model,
@@ -25,15 +25,19 @@ async fn main() {
         .await
         .unwrap();
     let n_vectors = out.len();
+
+    let vector = out
+        .iter()
+        .map(|embed| embed.embedding.clone())
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|x| x.to_dense().unwrap())
+        .flatten()
+        .collect::<Vec<_>>();
+
     let out_embeddings = Tensor::from_vec(
-        out.iter()
-            .map(|embed| embed.embedding.clone())
-            .collect::<Vec<_>>()
-            .iter()
-            .flatten()
-            .cloned()
-            .collect::<Vec<f32>>(),
-        (n_vectors, out[0].embedding.len()),
+        vector,
+        (n_vectors, out[0].embedding.to_dense().unwrap().len()),
         &Device::Cpu,
     )
     .unwrap();
@@ -48,11 +52,11 @@ async fn main() {
             .iter()
             .map(|embed| embed.embedding.clone())
             .collect::<Vec<_>>()
-            .iter()
+            .into_iter()
+            .map(|x| x.to_dense().unwrap())
             .flatten()
-            .cloned()
-            .collect::<Vec<f32>>(),
-        (1, query_emb_data[0].embedding.len()),
+            .collect::<Vec<_>>(),
+        (1, query_emb_data[0].embedding.to_dense().unwrap().len()),
         &Device::Cpu,
     )
     .unwrap();
