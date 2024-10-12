@@ -16,12 +16,12 @@ use tokenizers::Tokenizer;
 
 use crate::embeddings::embed::{EmbedData, EmbedImage};
 
-pub struct ClipEmbeder {
+pub struct ClipEmbedder {
     pub model: clip::ClipModel,
     pub tokenizer: Tokenizer,
 }
 
-impl Default for ClipEmbeder {
+impl Default for ClipEmbedder {
     fn default() -> Self {
         Self::new(
             "openai/clip-vit-base-patch32".to_string(),
@@ -31,7 +31,7 @@ impl Default for ClipEmbeder {
     }
 }
 
-impl ClipEmbeder {
+impl ClipEmbedder {
     pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
         let api = hf_hub::api::sync::Api::new()?;
 
@@ -70,7 +70,7 @@ impl ClipEmbeder {
         let model = clip::ClipModel::new(vb, &config)?;
 
         let tokenizer = Self::get_tokenizer(None)?;
-        Ok(ClipEmbeder { model, tokenizer })
+        Ok(ClipEmbedder { model, tokenizer })
     }
 
     pub fn get_tokenizer(tokenizer: Option<String>) -> anyhow::Result<Tokenizer> {
@@ -186,7 +186,7 @@ impl ClipEmbeder {
         let batch_size = batch_size.unwrap_or(32);
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let (input_ids, _vec_seq) = ClipEmbeder::tokenize_sequences(
+            let (input_ids, _vec_seq) = ClipEmbedder::tokenize_sequences(
                 Some(mini_text_batch.to_vec()),
                 &self.tokenizer,
                 &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
@@ -207,7 +207,7 @@ impl ClipEmbeder {
     }
 }
 
-impl EmbedImage for ClipEmbeder {
+impl EmbedImage for ClipEmbedder {
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
@@ -287,13 +287,13 @@ mod tests {
     // Tests the tokenize_sequences method.
     #[test]
     fn test_tokenize_sequences() {
-        let clip_embeder = ClipEmbeder::default();
+        let clip_embeder = ClipEmbedder::default();
         let sequences = Some(vec![
             "Hey there how are you?".to_string(),
             "EmbedAnything is the best!".to_string(),
         ]);
         let (input_ids, vec_seq) =
-            ClipEmbeder::tokenize_sequences(sequences, &clip_embeder.tokenizer, &Device::Cpu)
+            ClipEmbedder::tokenize_sequences(sequences, &clip_embeder.tokenizer, &Device::Cpu)
                 .unwrap();
         assert_eq!(
             vec_seq,
@@ -308,7 +308,7 @@ mod tests {
     // Tests the load_image method.
     #[test]
     fn test_load_image() {
-        let clip_embeder = ClipEmbeder::default();
+        let clip_embeder = ClipEmbedder::default();
         let image = clip_embeder
             .load_image("test_files/clip/cat1.jpg", 224)
             .unwrap();
@@ -318,7 +318,7 @@ mod tests {
     // Tests the load_images method.
     #[test]
     fn test_load_images() {
-        let clip_embeder = ClipEmbeder::default();
+        let clip_embeder = ClipEmbedder::default();
         let images = clip_embeder
             .load_images(
                 &["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"],
@@ -331,7 +331,7 @@ mod tests {
     // Tests the embed_image_batch method.
     #[test]
     fn test_embed_image_batch() {
-        let clip_embeder = ClipEmbeder::default();
+        let clip_embeder = ClipEmbedder::default();
         let embeddings = clip_embeder
             .embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"])
             .unwrap();

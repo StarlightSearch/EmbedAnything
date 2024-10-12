@@ -13,7 +13,7 @@ use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
-    embed::{EmbedData, EmbedImage, Embeder},
+    embed::{EmbedData, EmbedImage, TextEmbedder},
     embed_audio, get_text_metadata,
 };
 use file_loader::FileParser;
@@ -56,7 +56,7 @@ use tokio::sync::mpsc; // Add this at the top of your file
 
 pub async fn embed_query(
     query: Vec<String>,
-    embeder: &Embeder,
+    embeder: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
     let binding = TextEmbedConfig::default();
@@ -98,7 +98,7 @@ pub async fn embed_query(
 
 pub async fn embed_file<T: AsRef<std::path::Path>, F>(
     file_name: T,
-    embeder: &Embeder,
+    embeder: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
@@ -114,7 +114,7 @@ where
         .unwrap_or(SplittingStrategy::Sentence);
     let semantic_encoder = config.semantic_encoder.clone();
 
-    if let Embeder::Clip(embeder) = embeder {
+    if let TextEmbedder::Clip(embeder) = embeder {
         Ok(Some(vec![emb_image(file_name, embeder).unwrap()]))
     } else {
         let embeddings = emb_text(
@@ -169,7 +169,7 @@ where
 
 pub async fn embed_webpage<F>(
     url: String,
-    embeder: &Embeder,
+    embeder: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<F>,
@@ -204,11 +204,11 @@ where
 
 async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
-    embedding_model: &Embeder,
+    embedding_model: &TextEmbedder,
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
     splitting_strategy: Option<SplittingStrategy>,
-    semantic_encoder: Option<Arc<Embeder>>,
+    semantic_encoder: Option<Arc<TextEmbedder>>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
@@ -256,7 +256,7 @@ fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
 pub async fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
-    embeder: &Embeder,
+    embeder: &TextEmbedder,
     text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
@@ -460,7 +460,7 @@ async fn process_images<E: EmbedImage>(
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
 pub async fn embed_directory_stream<F>(
     directory: PathBuf,
-    embeder: &Arc<Embeder>,
+    embeder: &Arc<TextEmbedder>,
     extensions: Option<Vec<String>>,
     config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
@@ -604,7 +604,7 @@ where
 pub async fn process_chunks(
     chunks: &Vec<String>,
     metadata: &Vec<Option<HashMap<String, String>>>,
-    embedding_model: Arc<Embeder>,
+    embedding_model: Arc<TextEmbedder>,
     batch_size: Option<usize>,
 ) -> Result<Arc<Vec<EmbedData>>> {
     let encodings = embedding_model.embed(chunks, batch_size).await?;
