@@ -14,6 +14,7 @@ use hf_hub::{api::sync::Api, Repo};
 use ndarray::prelude::*;
 use ort::{CUDAExecutionProvider, ExecutionProvider, GraphOptimizationLevel, Session};
 use rayon::prelude::*;
+use serde::Deserialize;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use super::pooling::{ModelOutput, Pooling};
@@ -25,6 +26,11 @@ pub trait BertEmbed {
         text_batch: &[String],
         batch_size: Option<usize>,
     ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+}
+#[derive(Debug, Deserialize)]
+pub struct TokenizerConfig {
+    pub max_length: Option<usize>,
+    pub model_max_length: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -42,7 +48,7 @@ impl OrtBertEmbedder {
             .get_default_pooling_method()
             .unwrap_or(Pooling::Mean);
 
-        let (config_filename, tokenizer_filename, weights_filename) = {
+        let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
@@ -57,23 +63,30 @@ impl OrtBertEmbedder {
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
+            let tokenizer_config = api.get("tokenizer_config.json")?;
             let weights = api.get(model_info.model_file.as_str())?;
+            (config, tokenizer, weights, tokenizer_config)
+        };
+        let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
+        let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
 
-            (config, tokenizer, weights)
+        // Set max_length to the minimum of max_length and model_max_length if both are present
+        let max_length = match (tokenizer_config.max_length, tokenizer_config.model_max_length) {
+            (Some(max_len), Some(model_max_len)) => std::cmp::min(max_len, model_max_len),
+            (Some(max_len), None) => max_len,
+            (None, Some(model_max_len)) => model_max_len,
+            (None, None) => 128,
         };
 
+        
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
-
-        let config = std::fs::read_to_string(config_filename)?;
-        let config: Config = serde_json::from_str(&config)?;
 
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
             ..Default::default()
         };
         let trunc = TruncationParams {
-            strategy: tokenizers::TruncationStrategy::LongestFirst,
-            max_length: config.max_position_embeddings as usize,
+            max_length,
             ..Default::default()
         };
 
@@ -83,22 +96,19 @@ impl OrtBertEmbedder {
             .unwrap();
 
         let cuda = CUDAExecutionProvider::default();
-        println!(
-            "CUDAExecutionProvider is available: {}",
-            cuda.is_available()?
-        );
+ 
         if !cuda.is_available()? {
             eprintln!("CUDAExecutionProvider is not available");
         } else {
             println!("Session is using CUDAExecutionProvider");
         }
 
+        let threads = std::thread::available_parallelism().unwrap().get();
         let model = Session::builder()?
             .with_execution_providers([CUDAExecutionProvider::default()
-                .build()
-                .error_on_failure()])?
+                .build()])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(8)?
+            .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
 
         Ok(OrtBertEmbedder {
@@ -267,7 +277,6 @@ impl BertEmbed for OrtBertEmbedder {
 
                 Ok(embeddings
                     .outer_iter()
-                    .par_bridge()
                     .map(|row| row.to_vec())
                     .collect())
             })
