@@ -1,10 +1,11 @@
 pub mod config;
-
+use embed_anything::embeddings::local::text_embedding::{models_list, ONNXModel};
 use embed_anything::{
     self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
     file_processor::audio::audio_processor, text_loader::FileLoadingError,
 };
 use pyo3::{exceptions::PyFileNotFoundError, exceptions::PyValueError, prelude::*};
+use std::str::FromStr;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -58,6 +59,10 @@ pub enum WhichModel {
     Jina,
 }
 
+#[pyclass]
+#[derive(Clone)]
+pub struct ONNXModelWrapper(pub ONNXModel);
+
 impl From<&str> for WhichModel {
     fn from(s: &str) -> Self {
         match s {
@@ -102,13 +107,13 @@ impl EmbeddingModel {
         match model {
             WhichModel::Bert => {
                 let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
-                let model = Embeder::Bert(
-                    embed_anything::embeddings::local::bert::BertEmbeder::new(
+                let model = Embeder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::BertEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .unwrap(),
-                );
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
@@ -175,6 +180,40 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
+            _ => panic!("Invalid model"),
+        }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (model, model_id, revision=None))]
+    fn from_pretrained_onnx(
+        model: &WhichModel,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> PyResult<Self> {
+        match model {
+            WhichModel::Bert => {
+                let model = Embeder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
+                        ONNXModel::from_str(model_id).unwrap_or_else(|e| {
+                            panic!(
+                                "Invalid model: {:?}. Choose from {:?}",
+                                e,
+                                models_list()
+                                    .iter()
+                                    .map(|m| m.model.clone())
+                                    .collect::<Vec<_>>()
+                            )
+                        }),
+                        revision.map(|s| s.to_string()),
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                ));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+
             _ => panic!("Invalid model"),
         }
     }
