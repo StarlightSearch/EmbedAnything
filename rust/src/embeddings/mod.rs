@@ -1,6 +1,6 @@
 //! This module contains the different embedding models that can be used to generate embeddings for the text data.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use candle_core::Tensor;
 use embed::{EmbedData, Embeder};
@@ -11,13 +11,14 @@ pub mod cloud;
 pub mod embed;
 pub mod local;
 
+use rayon::prelude::*;
 pub fn get_text_metadata(
-    encodings: &[Vec<f32>],
-    text_batch: &Vec<String>,
+    encodings: &Rc<Vec<Vec<f32>>>,
+    text_batch: &[String],
     metadata: &Option<HashMap<String, String>>,
 ) -> anyhow::Result<Vec<EmbedData>> {
     let final_embeddings = encodings
-        .iter()
+        .par_iter()
         .zip(text_batch)
         .map(|(data, text)| EmbedData::new(data.to_vec(), Some(text.clone()), metadata.clone()))
         .collect::<Vec<_>>();

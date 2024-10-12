@@ -28,7 +28,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_extract_text() {
-        let file_path = PathBuf::from("test_files/test.md");
+        let file_path = "test_files/test.md";
 
         let result = MarkdownProcessor::extract_text(&file_path).unwrap();
         assert_eq!(result, "Hello, world!\n\nHow are you\n\nI am good");
@@ -37,7 +37,7 @@ mod tests {
     // returns Err if file does not exist
     #[test]
     fn test_extract_text_file_not_exist() {
-        let file_path = PathBuf::from("nonexistent_file.md");
+        let file_path = "nonexistent_file.md";
 
         let result = MarkdownProcessor::extract_text(&file_path);
         assert!(result.is_err());

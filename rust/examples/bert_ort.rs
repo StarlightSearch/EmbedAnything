@@ -1,9 +1,9 @@
 use candle_core::{Device, Tensor};
 use embed_anything::config::TextEmbedConfig;
-use embed_anything::embed_query;
-use embed_anything::embeddings::embed::Embeder;
+use embed_anything::embeddings::embed::{EmbedData, Embeder};
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
 use embed_anything::text_loader::{SplittingStrategy, TextLoader};
+use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
 use std::sync::Arc;
 use std::time::Instant;
@@ -11,11 +11,12 @@ use std::time::Instant;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let model =
+
         Arc::new(Embeder::from_pretrained_ort("bert", ONNXModel::BGESmallENV15Q, None).unwrap());
     let config = TextEmbedConfig::new(
+        Some(1000),
         Some(256),
-        Some(2),
-        Some(2),
+        Some(256),
         Some(SplittingStrategy::Sentence),
         Some(model.clone()),
     );
@@ -25,34 +26,19 @@ async fn main() -> Result<(), anyhow::Error> {
         .unwrap()
         .map(|f| f.unwrap().path())
         .collect::<Vec<_>>();
-    let text_loader = TextLoader::new(1000);
 
-    // for file in files {
-    //     let text = TextLoader::extract_text(file.to_str().unwrap()).unwrap();
-    //     let chunks = text_loader
-    //         .split_into_chunks(&text, SplittingStrategy::Sentence, None)
-    //         .unwrap();
-
-    //     let data = embed_query(chunks, &model, Some(&config)).await.unwrap();
-    // }
     let now = Instant::now();
+
 
     let futures = files
         .par_iter()
         .map(|file| {
-            let text = TextLoader::extract_text(file).unwrap();
-            let chunks = text_loader
-                .split_into_chunks(&text, SplittingStrategy::Sentence, None)
-                .unwrap();
-            embed_query(chunks, &model, Some(&config))
+            embed_file(file, &model, Some(&config), None::<fn(Vec<EmbedData>)>)
         })
         .collect::<Vec<_>>();
 
-    let data = futures::future::join_all(futures)
-        .await
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
+    let _data = futures.into_iter().next().unwrap().await;
+
 
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
@@ -64,6 +50,9 @@ async fn main() -> Result<(), anyhow::Error> {
         "I love pizza",
         "I like to have pasta",
         "The dog is sitting in the park",
+        "The winodw is broken",
+        "pizza is the best",
+
     ]
     .iter()
     .map(|s| s.to_string())
