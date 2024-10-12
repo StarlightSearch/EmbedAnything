@@ -318,6 +318,7 @@ impl TextEmbed for VisionEmbedder {
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
+            Self::ColPali(embeder) => embeder.embed(text_batch, batch_size),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -345,6 +346,7 @@ impl EmbedImage for VisionEmbedder {
     ) -> anyhow::Result<EmbedData> {
         match self {
             Self::Clip(embeder) => embeder.embed_image(image_path, metadata),
+            Self::ColPali(embeder) => embeder.embed_image(image_path, metadata),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -355,6 +357,7 @@ impl EmbedImage for VisionEmbedder {
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
             Self::Clip(embeder) => embeder.embed_image_batch(image_paths),
+            Self::ColPali(embeder) => embeder.embed_image_batch(image_paths),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
