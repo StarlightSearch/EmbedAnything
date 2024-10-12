@@ -389,4 +389,4 @@ class WhichModel(Enum):
     Bert = ("Bert",)
     Jina = ("Jina",)
     Clip = ("Clip",)
-
+    Colpali = ("Colpali",)
