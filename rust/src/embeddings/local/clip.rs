@@ -8,8 +8,8 @@ use std::{collections::HashMap, fs};
 
 use anyhow::Error as E;
 
-use candle_core::{DType, Device, Tensor};
 use crate::models::clip::{self, ClipConfig};
+use candle_core::{DType, Device, Tensor};
 
 use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;

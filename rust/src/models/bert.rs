@@ -52,7 +52,7 @@ pub struct Config {
     intermediate_size: usize,
     pub hidden_act: HiddenAct,
     hidden_dropout_prob: f64,
-    max_position_embeddings: usize,
+    pub max_position_embeddings: usize,
     type_vocab_size: usize,
     initializer_range: f64,
     layer_norm_eps: f64,
