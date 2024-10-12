@@ -7,9 +7,6 @@ from fastembed import TextEmbedding
 import numpy as np
 
 
-# model = EmbeddingModel.from_pretrained_hf(
-#     WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
-# )
 
 model = EmbeddingModel.from_pretrained_onnx(
     WhichModel.Bert, "BGESmallENV15Q"
@@ -57,7 +54,7 @@ model = EmbeddingModel.from_pretrained_onnx(
     WhichModel.Bert, "BGESmallENV15Q"
 )
 splitter = TextSplitter(1000)
-config = TextEmbedConfig()
+config = TextEmbedConfig(batch_size=128)
 
 def embed_anything():
 # get all pdfs from test_files
@@ -75,4 +72,36 @@ def embed_anything():
 
 start = time.time()
 embed_anything()
+
 print(time.time() - start)
+
+
+# from fastembed import TextEmbedding
+# import pymupdf
+# from semantic_text_splitter import TextSplitter
+# import time
+# import os
+# import numpy as np
+# splitter = TextSplitter(1000)
+# files = []
+# model = TextEmbedding(model_name = "BAAI/bge-small-en-v1.5",
+#                       providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+
+# def fastembed():
+# # get all pdfs from test_files
+
+#   for file in os.listdir("bench"):
+
+#     text = []
+#     doc = pymupdf.open("bench/" + file)
+
+#     for page in doc:
+#         text.append(page.get_text())
+
+#     text = " ".join(text)
+#     chunks = splitter.chunks(text)
+#     embeddings = list(model.embed(chunks))
+
+# start = time.time()
+# fastembed()
+# print(time.time() - start)
