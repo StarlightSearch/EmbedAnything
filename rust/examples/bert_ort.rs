@@ -50,7 +50,7 @@ async fn main() -> Result<(), anyhow::Error> {
         "I love pizza",
         "I like to have pasta",
         "The dog is sitting in the park",
-        "The winodw is broken",
+        "The window is broken",
         "pizza is the best",
 
     ]
