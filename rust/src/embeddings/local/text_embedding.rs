@@ -65,6 +65,15 @@ pub enum ONNXModel {
     GTELargeENV15,
     /// Quantized Alibaba-NLP/gte-large-en-v1.5
     GTELargeENV15Q,
+
+    /// jinaai/jina-embeddings-v2-small-en
+    JINAV2SMALLEN,
+    /// jinaai/jina-embeddings-v2-base-en
+    JINAV2BASEEN,
+    /// jinaai/jina-embeddings-v2-large-en
+    JINAV2LARGEEN,
+    
+
 }
 
 /// Centralized function to initialize the models map.
@@ -363,6 +372,10 @@ impl ONNXModel {
             ONNXModel::GTEBaseENV15Q => Some(Pooling::Cls),
             ONNXModel::GTELargeENV15 => Some(Pooling::Cls),
             ONNXModel::GTELargeENV15Q => Some(Pooling::Cls),
+
+            ONNXModel::JINAV2SMALLEN => Some(Pooling::Mean),
+            ONNXModel::JINAV2BASEEN => Some(Pooling::Mean),
+            ONNXModel::JINAV2LARGEEN => Some(Pooling::Mean),
         }
     }
 

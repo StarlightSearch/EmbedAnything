@@ -14,10 +14,10 @@ async fn main() -> Result<()> {
     let semantic_encoder =
         Arc::new(Embeder::from_pretrained_cloud("openai", "text-embedding-3-small", None).unwrap());
     let text_embed_config = TextEmbedConfig::new(
+        Some(1000),
         Some(256),
-        Some(32),
-        None,
-        Some(SplittingStrategy::Semantic),
+        Some(2000),
+        Some(SplittingStrategy::Sentence),
         Some(semantic_encoder.clone()),
     );
     let cohere_model =
@@ -44,10 +44,6 @@ async fn main() -> Result<()> {
     .await?
     .unwrap();
 
-    for chunk in _file_embedding.into_iter() {
-        println!("{}", chunk.text.unwrap());
-        println!("----------------------------------------");
-    }
 
     let _cohere_embedding = embed_file(
         "test_files/attention.pdf",
