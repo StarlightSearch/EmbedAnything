@@ -216,16 +216,16 @@ impl BertEmbedder {
         let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
         let vb = if weights_filename.ends_with("model.safetensors") {
             unsafe {
-                VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device).unwrap()
+                VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)?
             }
         } else {
             println!("Loading weights from pytorch_model.bin");
-            VarBuilder::from_pth(&weights_filename, DTYPE, &device).unwrap()
+            VarBuilder::from_pth(&weights_filename, DTYPE, &device)?
         };
 
         config.hidden_act = HiddenAct::GeluApproximate;
 
-        let model = BertModel::load(vb, &config).unwrap();
+        let model = BertModel::load(vb, &config)?;
         let tokenizer = tokenizer;
 
         Ok(BertEmbedder {
@@ -323,7 +323,7 @@ impl BertEmbed for BertEmbedder {
 #[cfg(test)]
 
 mod tests {
-    use crate::embeddings::embed::Embeder;
+    use crate::embeddings::embed::TextEmbedder;
     use crate::embeddings::embed_audio;
     use crate::file_processor::audio::audio_processor::Segment;
 
@@ -347,7 +347,7 @@ mod tests {
     #[tokio::test]
     async fn test_bert_embeder_audio() {
         let bert_model =
-            Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+            TextEmbedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
                 .unwrap();
         let segments = vec![
             Segment {

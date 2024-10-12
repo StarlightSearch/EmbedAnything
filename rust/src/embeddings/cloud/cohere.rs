@@ -11,7 +11,7 @@ pub struct CohereEmbedResponse {
 
 /// Represents a CohereEmbeder struct that contains the URL and API key for making requests to the Cohere API.
 #[derive(Debug)]
-pub struct CohereEmbeder {
+pub struct CohereEmbedder {
     /// The URL of the Cohere API endpoint.
     url: String,
     /// The model to be used for embedding.
@@ -22,14 +22,14 @@ pub struct CohereEmbeder {
     client: Client,
 }
 
-impl Default for CohereEmbeder {
+impl Default for CohereEmbedder {
     /// Creates a default instance of `CohereEmbeder` with the model set to "embed-english-v3.0" and no API key.
     fn default() -> Self {
         Self::new("embed-english-v3.0".to_string(), None)
     }
 }
 
-impl CohereEmbeder {
+impl CohereEmbedder {
     /// Creates a new instance of `CohereEmbeder` with the specified model and API key.
     ///
     /// # Arguments
@@ -80,7 +80,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cohere_embed() {
-        let cohere = CohereEmbeder::default();
+        let cohere = CohereEmbedder::default();
         let text_batch = vec![
             "Once upon a time".to_string(),
             "The quick brown fox jumps over the lazy dog".to_string(),
