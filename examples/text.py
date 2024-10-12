@@ -10,13 +10,13 @@ from time import time
 #     WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
 # )
 
-model = EmbeddingModel.from_pretrained_onnx(
+model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, model_id="BAAI/bge-small-en-v1.5", revision="main"
 )
 
-# with semantic encoder
-# semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
-# config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
+# # with semantic encoder
+# # semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
+# # config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
 
 # without semantic encoder
 config = TextEmbedConfig(chunk_size=256, batch_size=32, buffer_size  = 64,splitting_strategy = "sentence")
@@ -31,6 +31,14 @@ start = time()
 data: list[EmbedData] = embed_anything.embed_directory(
     "bench", embeder=model, config=config
 )
+
+config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "sentence")
+model = EmbeddingModel.from_pretrained_hf(WhichModel.Bert, model_id="prithivida/Splade_PP_en_v1")
+
+embeddings:EmbedData = embed_anything.embed_query(["Hello world my"], embeder=model, config=config)[0]
+
+import numpy as np
+print(np.array(embeddings.embedding).shape)
 
 end = time()
 

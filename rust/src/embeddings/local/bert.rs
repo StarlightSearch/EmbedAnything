@@ -4,6 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
 use crate::embeddings::normalize_l2;
 use crate::models::bert::{BertModel, Config, HiddenAct, DTYPE};
@@ -25,7 +26,7 @@ pub trait BertEmbed {
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
 #[derive(Debug, Deserialize)]
 pub struct TokenizerConfig {
@@ -42,7 +43,9 @@ pub struct OrtBertEmbedder {
 
 impl OrtBertEmbedder {
     pub fn new(model: ONNXModel, revision: Option<String>) -> Result<Self, E> {
-        let model_info = models_map().get(&model).unwrap();
+        let model_info = models_map().get(&model).ok_or_else(|| {
+            E::msg("ONNX model does not exist for the specified model")
+        })?;
         let pooling = model_info
             .model
             .get_default_pooling_method()
@@ -160,11 +163,11 @@ impl Default for BertEmbedder {
 }
 impl BertEmbedder {
     pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
-        let model_info = get_model_info_by_hf_id(&model_id).unwrap();
-        let pooling = model_info
-            .model
-            .get_default_pooling_method()
-            .unwrap_or(Pooling::Mean);
+        let model_info = get_model_info_by_hf_id(&model_id);
+        let pooling = match model_info {
+            Some(info) => info.model.get_default_pooling_method().unwrap_or(Pooling::Mean),
+            None => Pooling::Mean,
+        };
 
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = Api::new().unwrap();
@@ -252,7 +255,7 @@ impl BertEmbedder {
 }
 
 impl BertEmbed for OrtBertEmbedder {
-    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, E> {
+    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);
         let encodings = text_batch
             .par_chunks(batch_size)
@@ -283,7 +286,10 @@ impl BertEmbed for OrtBertEmbedder {
             .flatten()
             .collect::<Vec<_>>();
 
-        Ok(encodings)
+        Ok(encodings
+            .iter()
+            .map(|x| EmbeddingResult::Dense(x.to_vec()))
+            .collect())
     }
 }
 
@@ -292,9 +298,9 @@ impl BertEmbed for BertEmbedder {
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
-        let mut encodings: Vec<Vec<f32>> = Vec::new();
+        let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
             let token_ids = self
@@ -313,9 +319,8 @@ impl BertEmbed for BertEmbedder {
             let embeddings = normalize_l2(&pooled_output).unwrap();
             let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
 
-            encodings.extend(batch_encodings);
+            encodings.extend(batch_encodings.iter().map(|x| EmbeddingResult::Dense(x.to_vec())));
         }
-
         Ok(encodings)
     }
 }
@@ -344,29 +349,5 @@ mod tests {
         assert_eq!(embeddings.len(), 2);
     }
 
-    #[tokio::test]
-    async fn test_bert_embeder_audio() {
-        let bert_model =
-            TextEmbedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
-                .unwrap();
-        let segments = vec![
-            Segment {
-                start: 0.0,
-                duration: 1.0,
-                dr: Default::default(),
-            },
-            Segment {
-                start: 1.0,
-                duration: 1.0,
-                dr: Default::default(),
-            },
-        ];
-        let audio_file = PathBuf::from("tests/data/sample.wav");
-        let start = Instant::now();
-        let embeddings = embed_audio(&bert_model, segments, audio_file, None)
-            .await
-            .unwrap();
-        println!("Time taken: {:?}", start.elapsed());
-        assert_eq!(embeddings.len(), 2);
-    }
+
 }

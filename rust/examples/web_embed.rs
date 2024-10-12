@@ -4,7 +4,7 @@ use candle_core::Tensor;
 use embed_anything::{
     config::TextEmbedConfig,
     embed_query, embed_webpage,
-    embeddings::embed::{EmbedData, Embeder},
+    embeddings::embed::{EmbedData, Embedder},
     text_loader::SplittingStrategy,
 };
 
@@ -14,7 +14,7 @@ async fn main() {
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
 
     let embeder = Arc::new(
-        Embeder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+        Embedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
             .unwrap(),
     );
 
@@ -23,7 +23,7 @@ async fn main() {
         Some(32),
         None,
         Some(SplittingStrategy::Sentence),
-        Some(embeder.clone()),
+        None,
     );
     let embed_data = embed_webpage(
         url,
@@ -34,10 +34,10 @@ async fn main() {
     .await
     .unwrap()
     .unwrap();
-    let embeddings: Vec<Vec<f32>> = embed_data
+    let embeddings = embed_data
         .iter()
-        .map(|data| data.embedding.clone())
-        .collect();
+        .map(|data| data.embedding.to_dense().unwrap())
+        .collect::<Vec<_>>();
 
     // Convert embeddings to a tensor
     let embeddings = Tensor::from_vec(
@@ -52,7 +52,8 @@ async fn main() {
         .await
         .unwrap()
         .iter()
-        .flat_map(|data| data.embedding.clone())
+        .map(|data| data.embedding.to_dense().unwrap())
+        .flatten()
         .collect();
 
     let query_embedding_tensor = Tensor::from_vec(
