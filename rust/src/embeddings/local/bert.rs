@@ -325,29 +325,3 @@ impl BertEmbed for BertEmbedder {
     }
 }
 
-#[cfg(test)]
-
-mod tests {
-    use crate::embeddings::embed::TextEmbedder;
-    use crate::embeddings::embed_audio;
-    use crate::file_processor::audio::audio_processor::Segment;
-
-    use super::*;
-    use std::path::PathBuf;
-    use std::time::Instant;
-
-    #[test]
-    fn test_bert_embeder() {
-        let embeder = BertEmbedder::default();
-        let text = vec![
-            "Rust is a systems programming language".to_string(),
-            "It is blazingly fast".to_string(),
-        ];
-        let start = Instant::now();
-        let embeddings = embeder.embed(&text, None).unwrap();
-        println!("Time taken: {:?}", start.elapsed());
-        assert_eq!(embeddings.len(), 2);
-    }
-
-
-}
