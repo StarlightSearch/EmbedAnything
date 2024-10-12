@@ -1,10 +1,19 @@
 pub mod config;
+use embed_anything::embeddings::embed::{TextEmbedder, VisionEmbedder};
 use embed_anything::embeddings::local::text_embedding::{models_list, ONNXModel};
 use embed_anything::{
-    self, config::TextEmbedConfig, emb_audio, embeddings::embed::Embeder,
-    file_processor::audio::audio_processor, text_loader::FileLoadingError,
+    self,
+    config::TextEmbedConfig,
+    emb_audio,
+    embeddings::embed::{EmbeddingResult, Embedder},
+    file_processor::audio::audio_processor,
+    text_loader::FileLoadingError,
 };
-use pyo3::{exceptions::PyFileNotFoundError, exceptions::PyValueError, prelude::*};
+use pyo3::{
+    exceptions::{PyFileNotFoundError, PyValueError},
+    prelude::*,
+    types::PyList,
+};
 use std::str::FromStr;
 use std::{
     collections::HashMap,
@@ -21,8 +30,16 @@ pub struct EmbedData {
 #[pymethods]
 impl EmbedData {
     #[getter(embedding)]
-    fn embedding(&self) -> Vec<f32> {
-        self.inner.embedding.clone()
+    fn embedding(&self) -> Py<PyList> {
+        Python::with_gil(|py| {
+            let embedding = self.inner.embedding.clone();
+            match embedding {
+                EmbeddingResult::Dense(x) => PyList::new_bound(py, x).into(),
+                EmbeddingResult::Sparse(x) => {
+                    PyList::new_bound(py, x.iter().map(|inner| PyList::new_bound(py, inner))).into()
+                }
+            }
+        })
     }
 
     #[getter(text)]
@@ -33,6 +50,16 @@ impl EmbedData {
     #[getter(metadata)]
     fn metadata(&self) -> Option<HashMap<String, String>> {
         self.inner.metadata.clone()
+    }
+
+    #[setter(text)]
+    fn set_text(&mut self, text: Option<String>) {
+        self.inner.text = text;
+    }
+
+    #[setter(metadata)]
+    fn set_metadata(&mut self, metadata: Option<HashMap<String, String>>) {
+        self.inner.metadata = metadata;
     }
 
     fn __str__(&self) -> String {
@@ -91,7 +118,7 @@ impl From<String> for WhichModel {
 
 #[pyclass]
 pub struct EmbeddingModel {
-    pub inner: Arc<Embeder>,
+    pub inner: Arc<Embedder>,
 }
 
 #[pymethods]
@@ -107,39 +134,39 @@ impl EmbeddingModel {
         match model {
             WhichModel::Bert => {
                 let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
-                let model = Embeder::Bert(Box::new(
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
                     embed_anything::embeddings::local::bert::BertEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .unwrap(),
-                ));
+                )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
             WhichModel::Clip => {
                 let model_id = model_id.unwrap_or("openai/clip-vit-base-patch32");
-                let model = Embeder::Clip(
-                    embed_anything::embeddings::local::clip::ClipEmbeder::new(
+                let model = Embedder::Vision(VisionEmbedder::Clip(
+                    embed_anything::embeddings::local::clip::ClipEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                );
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
             WhichModel::Jina => {
                 let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
-                let model = Embeder::Jina(
-                    embed_anything::embeddings::local::jina::JinaEmbeder::new(
+                let model = Embedder::Text(TextEmbedder::Jina(
+                    embed_anything::embeddings::local::jina::JinaEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                     )
                     .unwrap(),
-                );
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
@@ -158,24 +185,24 @@ impl EmbeddingModel {
         match model {
             WhichModel::OpenAI => {
                 let model_id = model_id.unwrap_or("text-embedding-3-small");
-                let model = Embeder::OpenAI(
-                    embed_anything::embeddings::cloud::openai::OpenAIEmbeder::new(
+                let model = Embedder::Text(TextEmbedder::OpenAI(
+                    embed_anything::embeddings::cloud::openai::OpenAIEmbedder::new(
                         model_id.to_string(),
                         api_key,
                     ),
-                );
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
             WhichModel::Cohere => {
                 let model_id = model_id.unwrap_or("embed-english-v3.0");
-                let model = Embeder::Cohere(
-                    embed_anything::embeddings::cloud::cohere::CohereEmbeder::new(
+                let model = Embedder::Text(TextEmbedder::Cohere(
+                    embed_anything::embeddings::cloud::cohere::CohereEmbedder::new(
                         model_id.to_string(),
                         api_key,
                     ),
-                );
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
@@ -193,7 +220,7 @@ impl EmbeddingModel {
     ) -> PyResult<Self> {
         match model {
             WhichModel::Bert => {
-                let model = Embeder::Bert(Box::new(
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
                     embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
                         ONNXModel::from_str(model_id).unwrap_or_else(|e| {
                             panic!(
@@ -208,7 +235,7 @@ impl EmbeddingModel {
                         revision.map(|s| s.to_string()),
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                ));
+                )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
@@ -313,7 +340,7 @@ pub fn embed_file(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_file(file_name, embedding_model, config, adapter).await
+            embed_anything::embed_file(file_name, &embedding_model, config, adapter).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -345,7 +372,7 @@ pub fn embed_audio_file(
     let audio_decoder = &mut audio_decoder.inner;
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     let data = rt.block_on(async {
-        emb_audio(audio_file, audio_decoder, embedding_model, config)
+        emb_audio(audio_file, audio_decoder, &embedding_model, config)
             .await
             .map_err(|e| PyValueError::new_err(e.to_string()))
             .unwrap()

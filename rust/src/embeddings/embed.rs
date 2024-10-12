@@ -10,17 +10,57 @@ use super::local::text_embedding::ONNXModel;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::future::Future;
+use anyhow::anyhow;
 
-#[derive(Deserialize, Debug, Clone, Default)]
+#[derive(Deserialize, Debug, Clone)]
+pub enum EmbeddingResult {
+    Dense(Vec<f32>),
+    Sparse(Vec<Vec<f32>>),
+}
+
+impl From<Vec<f32>> for EmbeddingResult {
+    fn from(value: Vec<f32>) -> Self {
+        EmbeddingResult::Dense(value)
+    }
+}
+
+impl From<Vec<Vec<f32>>> for EmbeddingResult {
+    fn from(value: Vec<Vec<f32>>) -> Self {
+        EmbeddingResult::Sparse(value)
+    }
+}
+
+impl EmbeddingResult {
+    pub fn to_dense(&self) -> Result<Vec<f32>, anyhow::Error> {
+        match self {
+            EmbeddingResult::Dense(x) => Ok(x.to_vec()),
+            EmbeddingResult::Sparse(_) => Err(anyhow!(
+                "Sparse Embedding are not supported for this operation"
+            )),
+        }
+    }
+
+    pub fn to_sparse(&self) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+        match self {
+            EmbeddingResult::Sparse(x) => Ok(x.to_vec()),
+            EmbeddingResult::Dense(_) => Err(anyhow!(
+                "Dense Embedding are not supported for this operation"
+            )),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct EmbedData {
-    pub embedding: Vec<f32>,
+    pub embedding: EmbeddingResult,
     pub text: Option<String>,
     pub metadata: Option<HashMap<String, String>>,
 }
 
 impl EmbedData {
     pub fn new(
-        embedding: Vec<f32>,
+        embedding: EmbeddingResult,
         text: Option<String>,
         metadata: Option<HashMap<String, String>>,
     ) -> Self {
@@ -58,7 +98,7 @@ impl TextEmbedder {
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             TextEmbedder::OpenAI(embeder) => embeder.embed(text_batch).await,
             TextEmbedder::Cohere(embeder) => embeder.embed(text_batch).await,
@@ -138,33 +178,144 @@ impl TextEmbedder {
 }
 
 
-
-
-
-
-
-
 pub enum VisionEmbedder {
     Clip(ClipEmbedder),
     ColPali(ColPaliEmbedder),
 }
 
+impl From<VisionEmbedder> for Embedder {
+    fn from(value: VisionEmbedder) -> Self {
+        Embedder::Vision(value)
+    }
+}
+
+impl From<Embedder> for VisionEmbedder{
+    fn from(value: Embedder) -> Self {
+        match value {
+            Embedder::Vision(value) => value,
+            _ => panic!("Invalid embedder type"),
+        }
+    }
+}
+
+impl From<Embedder> for TextEmbedder{
+    fn from(value: Embedder) -> Self {
+        match value {
+            Embedder::Text(value) => value,
+            _ => panic!("Invalid embedder type"),
+        }
+    }
+}
+
 impl VisionEmbedder {
-    pub fn from_pretrained_hf ( model: &str, model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
+    pub fn from_pretrained_hf(
+        model: &str,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
         match model {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()))?)),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(ColPaliEmbedder::new(model_id, revision.map(|s| s))?)),
+            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+            )?)),
+            "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(ColPaliEmbedder::new(
+                model_id,
+                revision.map(|s| s),
+            )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
 }
 
+pub enum Embedder {
+    Text(TextEmbedder),
+    Vision(VisionEmbedder),
+}
+
+impl Embedder {
+    pub async fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        match self {
+            Self::Text(embeder) => embeder.embed(text_batch, batch_size).await,
+            Self::Vision(embeder) => embeder.embed(text_batch, batch_size),
+        }
+    }
+
+    pub fn from_pretrained_hf(
+        model: &str,
+        model_id: &str,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
+        match model {
+            "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(model, model_id, revision)?)),
+            "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(model, model_id, revision)?)),
+            "bert" | "Bert" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(model, model_id, revision)?)),
+            "jina" | "Jina" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(model, model_id, revision)?)),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+
+    pub fn from_pretrained_cloud(
+        model: &str,
+        model_id: &str,
+        api_key: Option<String>,
+    ) -> Result<Self, anyhow::Error> {
+        match model {
+            "openai" | "OpenAI" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(model, model_id, api_key)?)),
+            "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(model, model_id, api_key)?)),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+
+    pub fn from_pretrained_onnx(
+        model_architecture: &str,
+        model_name: ONNXModel,
+        revision: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self::Text(TextEmbedder::from_pretrained_ort(model_architecture, model_name, revision)?))
+    }
+}
+
+impl EmbedImage for Embedder {
+    fn embed_image<T: AsRef<std::path::Path>>(
+        &self,
+        image_path: T,
+        metadata: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<EmbedData> {
+        match self {
+            Self::Vision(embeder) => embeder.embed_image(image_path, metadata),
+            _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
+        }
+    }
+
+    fn embed_image_batch<T: AsRef<std::path::Path>>(
+        &self,
+        image_paths: &[T],
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        match self {
+            Self::Vision(embeder) => embeder.embed_image_batch(image_paths),
+            _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
+        }
+    }
+}
+
 pub trait TextEmbed {
-    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
 
 impl TextEmbed for VisionEmbedder {
-    fn embed(&self, text_batch: &[String], batch_size: Option<usize>) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
             _ => Err(anyhow::anyhow!("Model not supported")),
@@ -184,11 +335,7 @@ pub trait EmbedImage {
         image_paths: &[T],
     ) -> anyhow::Result<Vec<EmbedData>>;
 
-    fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
-    where
-        Self: Sized;
 }
-
 
 impl EmbedImage for VisionEmbedder {
     fn embed_image<T: AsRef<std::path::Path>>(
@@ -212,17 +359,5 @@ impl EmbedImage for VisionEmbedder {
         }
     }
 
-    fn from_pretrained(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error>
-    where
-        Self: Sized,
-    {
-        match model_id {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(
-                model_id.to_string(),
-                revision.map(|s| s.to_string()),
-            )?)),
-            
-            _ => Err(anyhow::anyhow!("Model not supported")),
-        }
-    }
+
 }
