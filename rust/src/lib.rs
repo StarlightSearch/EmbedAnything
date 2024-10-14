@@ -325,11 +325,7 @@ where
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
-<<<<<<< HEAD
-    let mut embeder = embedding_model.clone();
-=======
     let embeder = embedding_model.clone();
->>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
 
     let pb = indicatif::ProgressBar::new(file_parser.files.len() as u64);
     pb.set_style(
@@ -350,11 +346,7 @@ where
 
                 if image_buffer.len() == buffer_size {
                     // Ensure embeder is mutable and not wrapped in Arc
-<<<<<<< HEAD
-                    match process_images(&image_buffer, &mut *Arc::get_mut(&mut embeder).unwrap()).await {
-=======
                     match process_images(&image_buffer, embeder.clone()).await {
->>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
                         Ok(embeddings) => {
                             let files = embeddings
                                 .iter()
@@ -382,11 +374,7 @@ where
 
             // Process any remaining images
             if !image_buffer.is_empty() {
-<<<<<<< HEAD
-                match process_images(&image_buffer, &mut *Arc::get_mut(&mut embeder).unwrap()).await {
-=======
                 match process_images(&image_buffer, embeder).await {
->>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -439,11 +427,7 @@ where
 
 async fn process_images<E: EmbedImage>(
     image_buffer: &[String],
-<<<<<<< HEAD
-    embeder: &mut E,
-=======
     embeder: Arc<E>,
->>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
 ) -> Result<Arc<Vec<EmbedData>>> {
     let embeddings = embeder.embed_image_batch(image_buffer)?;
     Ok(Arc::new(embeddings))

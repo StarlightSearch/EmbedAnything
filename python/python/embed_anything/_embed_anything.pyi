@@ -229,22 +229,20 @@ class TextEmbedConfig:
         self,
         chunk_size: int | None = 256,
         batch_size: int | None = 32,
+        buffer_size: int | None = 100,
         splitting_strategy: str | None = "sentence",
         semantic_encoder: EmbeddingModel | None = None,
-        sparse_embeddings: bool | None = False,
     ):
         self.chunk_size = chunk_size
         self.batch_size = batch_size
         self.buffer_size = buffer_size
         self.splitting_strategy = splitting_strategy
         self.semantic_encoder = semantic_encoder
-        self.sparse_embeddings = sparse_embeddings
     chunk_size: int | None
     batch_size: int | None
     buffer_size: int | None
     splitting_strategy: str | None
     semantic_encoder: EmbeddingModel | None
-    sparse_embeddings: bool | None
 class ImageEmbedConfig:
     """
     Represents the configuration for the Image Embedding model.

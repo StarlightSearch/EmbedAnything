@@ -3,11 +3,7 @@
 use std::{collections::HashMap, rc::Rc};
 
 use candle_core::Tensor;
-<<<<<<< HEAD
-use embed::{EmbedData, Embedder, EmbeddingResult, TextEmbedder};
-=======
 use embed::{EmbedData, Embedder, EmbeddingResult};
->>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
 
 use crate::file_processor::audio::audio_processor::Segment;
 
