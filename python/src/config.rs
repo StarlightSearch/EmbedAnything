@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use embed_anything::{embeddings::embed::{Embedder, TextEmbedder}, text_loader::SplittingStrategy};
+use embed_anything::text_loader::SplittingStrategy;
 use pyo3::prelude::*;
 
 use crate::EmbeddingModel;
