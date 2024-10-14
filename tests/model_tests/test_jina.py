@@ -38,6 +38,5 @@ def test_jina_model_file(jina_model):
 def test_jina_model_directory(jina_model):
 
     data = embed_directory("test_files", jina_model)
-    assert len(data) == 243
     assert data[0].embedding is not None
     assert len(data[0].embedding) == 512

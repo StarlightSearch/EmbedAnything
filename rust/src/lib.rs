@@ -5,20 +5,19 @@ pub mod config;
 pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
-pub mod text_loader;
 pub mod models;
+pub mod text_loader;
 
-use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
-    embed::{EmbedData, EmbedImage, Embeder},
+    embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
     embed_audio, get_text_metadata,
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
-use futures::future::join_all;
 use itertools::Itertools;
 use rayon::prelude::*;
 use text_loader::{SplittingStrategy, TextLoader};
@@ -57,7 +56,7 @@ use tokio::sync::mpsc; // Add this at the top of your file
 
 pub async fn embed_query(
     query: Vec<String>,
-    embeder: &Embeder,
+    embeder: &Embedder,
     config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
     let binding = TextEmbedConfig::default();
@@ -66,7 +65,7 @@ pub async fn embed_query(
     let batch_size = config.batch_size;
 
     let encodings = embeder.embed(&query, batch_size).await.unwrap();
-    let embeddings = get_text_metadata(&encodings, &query, &None)?;
+    let embeddings = get_text_metadata(&Rc::new(encodings), &query, &None)?;
 
     Ok(embeddings)
 }
@@ -99,9 +98,9 @@ pub async fn embed_query(
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 
-pub async fn embed_file<F>(
-    file_name: &str,
-    embeder: &Embeder,
+pub async fn embed_file<T: AsRef<std::path::Path>, F>(
+    file_name: T,
+    embeder: &Embedder,
     config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
@@ -117,20 +116,20 @@ where
         .unwrap_or(SplittingStrategy::Sentence);
     let semantic_encoder = config.semantic_encoder.clone();
 
-    if let Embeder::Clip(embeder) = embeder {
-        Ok(Some(vec![emb_image(file_name, embeder).unwrap()]))
-    } else {
-        let embeddings = emb_text(
-            file_name,
-            embeder,
-            Some(chunk_size),
-            batch_size,
-            Some(splitting_strategy),
-            semantic_encoder,
-            adapter,
-        )
-        .await?;
-        Ok(embeddings)
+    match embeder {
+        Embedder::Text(embeder) => {
+            emb_text(
+                file_name,
+                &embeder,
+                Some(chunk_size),
+                batch_size,
+                Some(splitting_strategy),
+                semantic_encoder,
+                adapter,
+            )
+            .await
+        }
+        Embedder::Vision( embeder) => Ok(Some(vec![emb_image(file_name, embeder).unwrap()])),
     }
 }
 
@@ -172,7 +171,7 @@ where
 
 pub async fn embed_webpage<F>(
     url: String,
-    embeder: &Embeder,
+    embeder: &Embedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<F>,
@@ -205,91 +204,63 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
-    embedding_model: &Embeder,
+    embedding_model: &TextEmbedder,
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
     splitting_strategy: Option<SplittingStrategy>,
-    semantic_encoder: Option<Arc<Embeder>>,
+    semantic_encoder: Option<Arc<Embedder>>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
 where
-    F: Fn(Vec<EmbedData>), // Add Send trait bound here
+    F: Fn(Vec<EmbedData>),
 {
-    println!("Embedding text file: {:?}", file.as_ref());
-
-    let text = TextLoader::extract_text(file.as_ref().to_str().unwrap())?;
+    let text = TextLoader::extract_text(&file)?;
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
-    let chunks = textloader.split_into_chunks(
-        &text,
-        splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
-        semantic_encoder,
-    );
+    let chunks = textloader
+        .split_into_chunks(
+            &text,
+            splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
+            semantic_encoder,
+        )
+        .unwrap();
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
-        let futures = chunks.iter().map(|chunks| {
-            let chunks = chunks.clone();
-            let metadata = metadata.clone();
-            async move {
-                let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
-                    .await
-                    .unwrap();
-                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            }
-        });
-        let embeddings = join_all(futures)
-            .await
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
+        let encodings = embedding_model.embed(&chunks, batch_size).await.unwrap();
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &metadata).unwrap();
         adapter(embeddings);
         Ok(None)
     } else {
-        let futures = chunks.iter().map(|chunks| {
-            let chunks = chunks.clone();
-            let metadata = metadata.clone();
-            async move {
-                let encodings = embedding_model
-                    .embed(&chunks[..], batch_size)
-                    .await
-                    .unwrap();
-                get_text_metadata(&encodings, &chunks, &metadata).unwrap()
-            }
-        });
-        let embeddings = join_all(futures)
-            .await
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
+        let encodings = embedding_model.embed(&chunks, batch_size).await.unwrap();
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &metadata).unwrap();
 
         Ok(Some(embeddings))
     }
 }
 
-fn emb_image<T: AsRef<std::path::Path>, U: EmbedImage>(
+fn emb_image<T: AsRef<std::path::Path>>(
     image_path: T,
-    embedding_model: &U,
+    embedding_model: &VisionEmbedder,
 ) -> Result<EmbedData> {
     let mut metadata = HashMap::new();
     metadata.insert(
         "file_name".to_string(),
         fs::canonicalize(&image_path)?.to_str().unwrap().to_string(),
     );
-
     let embedding = embedding_model
         .embed_image(&image_path, Some(metadata))
         .unwrap();
 
-    Ok(embedding)
+    Ok(embedding.clone())
 }
 
 pub async fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
-    embeder: &Embeder,
+    embeder: &Arc<Embedder>,
     text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
@@ -374,6 +345,7 @@ where
                 image_buffer.push(image);
 
                 if image_buffer.len() == buffer_size {
+                    // Ensure embeder is mutable and not wrapped in Arc
                     match process_images(&image_buffer, embeder.clone()).await {
                         Ok(embeddings) => {
                             let files = embeddings
@@ -402,7 +374,7 @@ where
 
             // Process any remaining images
             if !image_buffer.is_empty() {
-                match process_images(&image_buffer, embeder.clone()).await {
+                match process_images(&image_buffer, embeder).await {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -493,7 +465,7 @@ async fn process_images<E: EmbedImage>(
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
 pub async fn embed_directory_stream<F>(
     directory: PathBuf,
-    embeder: &Arc<Embeder>,
+    embeder: &Arc<Embedder>,
     extensions: Option<Vec<String>>,
     config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
@@ -508,7 +480,6 @@ where
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
-
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
     let files = file_parser.files.clone();
@@ -539,7 +510,7 @@ where
                     match process_chunks(
                         &chunk_buffer,
                         &metadata_buffer,
-                        embeder.clone(),
+                        &embeder,
                         batch_size,
                     )
                     .await
@@ -572,8 +543,13 @@ where
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, embeder.clone(), batch_size)
-                    .await
+                match process_chunks(
+                    &chunk_buffer,
+                    &metadata_buffer,
+                    &embeder,
+                    batch_size,
+                )
+                .await
                 {
                     Ok(embeddings) => {
                         let files = embeddings
@@ -601,11 +577,16 @@ where
     let textloader = TextLoader::new(chunk_size);
 
     file_parser.files.iter().for_each(|file| {
-        let text = TextLoader::extract_text(&file.to_string()).unwrap();
+        let text = TextLoader::extract_text(file).unwrap();
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
-            .unwrap();
-
+            .unwrap_or_else(|| vec![text.clone()])
+            .into_iter()
+            .filter(|chunk| !chunk.trim().is_empty())
+            .collect::<Vec<_>>();
+        if chunks.is_empty() {
+            return; // Skip this file if all chunks are empty
+        }
         let metadata = TextLoader::get_metadata(file).unwrap();
         for chunk in chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
@@ -637,10 +618,12 @@ where
 pub async fn process_chunks(
     chunks: &Vec<String>,
     metadata: &Vec<Option<HashMap<String, String>>>,
-    embedding_model: Arc<Embeder>,
+    embedding_model: &Arc<Embedder>,
     batch_size: Option<usize>,
 ) -> Result<Arc<Vec<EmbedData>>> {
-    let encodings = embedding_model.embed(chunks, batch_size).await?;
+    let encodings = embedding_model
+        .embed(chunks, batch_size)
+        .await?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings
@@ -648,7 +631,7 @@ pub async fn process_chunks(
         .zip(chunks)
         .zip(metadata)
         .map(|((encoding, chunk), metadata)| {
-            EmbedData::new(encoding.to_vec(), Some(chunk.clone()), metadata.clone())
+            EmbedData::new(encoding.clone(), Some(chunk.clone()), metadata.clone())
         })
         .collect::<Vec<_>>();
     Ok(Arc::new(embeddings))

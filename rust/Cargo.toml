@@ -70,6 +70,11 @@ futures = "0.3.30"
 
 pdf-extract = {workspace = true}
 cudarc = { version = "0.12.1", features = ["std", "cublas", "cublaslt", "curand", "driver", "nvrtc", "f16", "cuda-version-from-build-system", "dynamic-linking"], default-features=false }
+ort = {workspace = true}
+ndarray = "0.16.1"
+ndarray-linalg = {version = "0.16.0"}
+strum = {workspace = true}
+strum_macros = {workspace = true}
 
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
@@ -87,3 +92,4 @@ mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-
 accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
 cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-core/cuda"]
 cudnn = ["candle-core/cuda", "cudarc/cudnn"]
+load-dynamic = ["ort/load-dynamic"]

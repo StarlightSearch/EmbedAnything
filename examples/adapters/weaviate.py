@@ -42,8 +42,8 @@ class WeaviateAdapter(Adapter):
         self.client.collections.delete(index_name)
 
 
-URL = "https://jp5vpgytqsm6pp4xyavkqg.c0.europe-west3.gcp.weaviate.cloud"
-API_KEY = "FKTRwiaayVV1kdJhWjR7NRk8PrK98XMY3xlU"
+URL = "URL"
+API_KEY = "api_key"
 weaviate_adapter = WeaviateAdapter(API_KEY, URL)
 
 index_name = "Test_index"

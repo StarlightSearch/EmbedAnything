@@ -18,3 +18,5 @@ mkl = ["embed_anything/mkl"]
 accelerate = ["embed_anything/accelerate"]
 cuda = ["embed_anything/cuda"]
 cudnn = ["embed_anything/cudnn"]
+load-dynamic = ["embed_anything/load-dynamic"]
+

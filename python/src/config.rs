@@ -1,4 +1,6 @@
-use embed_anything::text_loader::SplittingStrategy;
+use std::sync::Arc;
+
+use embed_anything::{embeddings::embed::{Embedder, TextEmbedder}, text_loader::SplittingStrategy};
 use pyo3::prelude::*;
 
 use crate::EmbeddingModel;
@@ -28,7 +30,7 @@ impl TextEmbedConfig {
             },
             None => None,
         };
-        let semantic_encoder = semantic_encoder.map(|model| model.inner.clone());
+        let semantic_encoder = semantic_encoder.map(|model| Arc::clone(&model.inner));
         Self {
             inner: embed_anything::config::TextEmbedConfig::new(
                 chunk_size,
