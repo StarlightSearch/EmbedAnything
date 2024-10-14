@@ -5,6 +5,9 @@ import embed_anything
 from embed_anything import EmbedData
 from embed_anything.vectordb import Adapter
 
+
+## Weaviate Adapter
+
 from typing import List
 
 
@@ -43,15 +46,19 @@ class WeaviateAdapter(Adapter):
 
 
 URL = "URL"
-API_KEY = "api_key"
+API_KEY = "API_KEY"
 weaviate_adapter = WeaviateAdapter(API_KEY, URL)
 
+
+# create index
 index_name = "Test_index"
 if index_name in weaviate_adapter.client.collections.list_all():
     weaviate_adapter.delete_index(index_name)
 weaviate_adapter.create_index("Test_index")
 
 
+
+# model id and embed image directory
 model = embed_anything.EmbeddingModel.from_pretrained_hf(
     embed_anything.WhichModel.Clip,
     model_id="openai/clip-vit-base-patch16",
@@ -60,13 +67,13 @@ model = embed_anything.EmbeddingModel.from_pretrained_hf(
 
 
 data= embed_anything.embed_image_directory(
-    "../../test_files/clip", embeder=model, adapter=weaviate_adapter
+    "clip", embeder=model, adapter=weaviate_adapter
 )
-
 
 query_vector = embed_anything.embed_query(["image of a cat"], embeder=model)[
     0
 ].embedding
+
 
 response = weaviate_adapter.collection.query.near_vector(
     near_vector=query_vector,
@@ -74,5 +81,11 @@ response = weaviate_adapter.collection.query.near_vector(
     return_metadata=wvc.query.MetadataQuery(certainty=True),
 )
 
-for i in range(len(response.objects)):
-    print(response.objects[i].properties["text"])
+# for i in range(len(response.objects)):
+#     print(response.objects[i].properties["text"])
+
+
+# import textwrap
+
+# for res in response.objects:
+#     print(textwrap.fill(res.properties["text"], width=120), end="\n\n")
