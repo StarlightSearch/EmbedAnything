@@ -32,6 +32,7 @@ venv/
 pip-log.txt
 pip-delete-this-directory.txt
 pip-selfcheck.json
+test.ipynb
 
 # Unit test / coverage reports
 htmlcov/

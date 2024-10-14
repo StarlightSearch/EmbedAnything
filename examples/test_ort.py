@@ -3,7 +3,10 @@ from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichMode
 from embed_anything.vectordb import Adapter
 import os
 from time import time
+<<<<<<< HEAD
 from fastembed import TextEmbedding
+=======
+>>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
 import numpy as np
 
 
@@ -30,6 +33,7 @@ similarities = np.matmul(embed_vector, embed_vector.T)
 
 print(similarities)
 
+<<<<<<< HEAD
 model = TextEmbedding(model_name = "BAAI/bge-small-en-v1.5",
                       providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 
@@ -41,6 +45,8 @@ similarities = np.matmul(embeddings, embeddings.T)
 
 print(similarities)
 
+=======
+>>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
 
 from embed_anything import EmbeddingModel, WhichModel, embed_query, TextEmbedConfig
 import time
@@ -74,6 +80,7 @@ start = time.time()
 embed_anything()
 
 print(time.time() - start)
+<<<<<<< HEAD
 
 
 # from fastembed import TextEmbedding
@@ -105,3 +112,5 @@ print(time.time() - start)
 # start = time.time()
 # fastembed()
 # print(time.time() - start)
+=======
+>>>>>>> c65096182fc3ba0fd2f86b070944ee50bcce5989
