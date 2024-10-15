@@ -7,7 +7,7 @@ from pathlib import Path
 model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
 
 # Get all PDF files in the directory
-directory = Path("../test_files")
+directory = Path("test_files")
 files = list(directory.glob("*.pdf"))
 
 file_embed_data: list[EmbedData] = []
@@ -19,12 +19,14 @@ for file in files:
         print(f"Error embedding file {file}: {e}")
 
 # Define the query
-query = "What are Selective SSM Models"
+query = "What are Positional Encodings"
 
 # Scoring
 file_embeddings = np.array([e.embedding for e in file_embed_data])
 query_embedding = model.embed_query(query)
 query_embeddings = np.array([e.embedding for e in query_embedding])
+print(file_embeddings.shape)
+print(query_embeddings.shape)
 
 scores = np.einsum("bnd,csd->bcns", query_embeddings, file_embeddings).max(axis=3).sum(axis=2).squeeze()
 
