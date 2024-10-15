@@ -273,10 +273,9 @@ We've received quite a few questions about why we're using Candle, so here's a q
 One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
 
 What’s Next?
-To address this, we’re excited to announce that we’re introducing Candle-ONNX along with our previous framework on hugging-face ,
+To address this, we’re excited to announce that we’re introducing ORT support along with our previous framework on hugging-face ,
 
-➡️ Support for GGUF models </br >
-- Significantly faster performance</br >
+➡️ Significantly faster performance</br >
 - Stay tuned for these exciting updates! 🚀</br >
 
 
