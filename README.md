@@ -71,7 +71,7 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
-- **Cloud Embedding Models:**: Supports OpenAI. Mistral and Cohere Support coming soon.  
+- **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
@@ -81,7 +81,7 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings file by file (Or chunk by chunk in future) and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
 
 [![EmbedAnythingXWeaviate](https://github.com/StarlightSearch/EmbedAnything/blob/main/docs/assets/demo.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -314,7 +314,7 @@ Check out the latest release :  and see how these features can supercharge your 
 
 
 
-# 🚀Coming Soon  <br />
+# 🚀Where are we heading  <br />
 
 
 ## ⚙️ Performance 
