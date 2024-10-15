@@ -213,6 +213,15 @@ class EmbedData:
     text: str
     metadata: dict[str, str]
 
+class ColpaliModel:
+    """
+    Represents the Colpali model.
+    """
+    def __init__(self, model_id: str, revision: str | None = None): ...
+    def from_pretrained(model_id: str, revision: str | None = None) -> ColpaliModel: ...
+    def embed_file(self, file_path: str, batch_size: int) -> list[EmbedData]: ...
+    def embed_query(self, query: str) -> list[EmbedData]: ...
+
 class TextEmbedConfig:
     """
     Represents the configuration for the Text Embedding model.

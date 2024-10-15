@@ -5,16 +5,16 @@ use embed_anything::embeddings::embed::EmbedImage;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let colpali_model = Arc::new(Embedder::from_pretrained_hf(
-        "colpali",
-        "vidore/colpali-v1.2-merged",
-        None,
-    )?);
-    let config = ImageEmbedConfig::new(Some(32));
-    let image_embeddings = embed_file("/home/akshay/EmbedAnything/test_files/clip/cat1.jpg", &colpali_model, None, None::<fn(Vec<EmbedData>)>).await?;
-    let query_embeddings = embed_query(vec!["Hello".to_string()], &colpali_model, None).await?;
 
-    println!("{:?}", image_embeddings);
+    let colpali_model = ColPaliEmbedder::new( "vidore/colpali-v1.2-merged", None)?;
+    let file_path = "/home/akshay/projects/EmbedAnything/test_files/attention.pdf";
+    let batch_size = 1;
+    let embed_data = colpali_model.embed_file(file_path, batch_size)?;
+    println!("{:?}", embed_data);
 
+    let prompt = "What is attention?";
+    let query_embeddings = colpali_model.embed_query(prompt)?;
+    println!("{:?}", query_embeddings);
     Ok(())
+    
 }
