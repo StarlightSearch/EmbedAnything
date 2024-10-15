@@ -98,7 +98,7 @@ Vector Streaming enables you to process and generate embeddings for files and st
 
 We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
 
-## How to add custom model and Chunk Size.
+## How to add custom model and Chunk Size And Semantic Chunking.
 ```python
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, model_id="model link from huggingface"
@@ -118,6 +118,19 @@ data = embed_anything.embed_file("file_address", embeder=model, config=config)
 | Clip | openai/clip-vit-base-patch32 | 
 | Whisper| Most OpenAI Whisper from huggingface supported.
 
+
+### For Semantic Chunking
+
+```python
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+)
+
+# with semantic encoder
+semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
+config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
+
+```
 
 
 
@@ -200,69 +213,6 @@ data = embed_anything.embed_audio_file(
 print(data[0].metadata)
 
 ```
-
-## ➡️ Usage For 0.2
-
-### To use local embedding: we support Bert and Jina
-
-```python
-import embed_anything
-data = embed_anything.embed_file("file_path.pdf", embeder= "Bert")
-embeddings = np.array([data.embedding for data in data])
-```
-
-
-
-## For multimodal embedding: we support CLIP
-### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
-
-```python
-import embed_anything
-data = embed_anything.embed_directory("directory_path", embeder= "Clip")
-embeddings = np.array([data.embedding for data in data])
-
-query = ["photo of a dog"]
-query_embedding = np.array(embed_anything.embed_query(query, embeder= "Clip")[0].embedding)
-similarities = np.dot(embeddings, query_embedding)
-max_index = np.argmax(similarities)
-Image.open(data[max_index].text).show()
-```
-
-## Audio Embedding using Whisper
-### requirements:  Audio .wav files.
-
-
-```python
-import embed_anything
-from embed_anything import JinaConfig, EmbedConfig, AudioDecoderConfig
-import time
-
-start_time = time.time()
-
-# choose any whisper or distilwhisper model from https://huggingface.co/distil-whisper or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
-audio_decoder_config = AudioDecoderConfig(
-    decoder_model_id="openai/whisper-tiny.en",
-    decoder_revision="main",
-    model_type="tiny-en",
-    quantized=False,
-)
-jina_config = JinaConfig(
-    model_id="jinaai/jina-embeddings-v2-small-en", revision="main", chunk_size=100
-)
-
-config = EmbedConfig(jina=jina_config, audio_decoder=audio_decoder_config)
-data = embed_anything.embed_file(
-    "test_files/audio/samples_hp0.wav", embeder="Audio", config=config
-)
-print(data[0].metadata)
-end_time = time.time()
-print("Time taken: ", end_time - start_time)
-
-
-```
-
-
-
 
 
 
