@@ -7,7 +7,7 @@ from pathlib import Path
 model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
 
 # Get all PDF files in the directory
-directory = Path("/home/akshay/projects/EmbedAnything/test_files")
+directory = Path("../test_files")
 files = list(directory.glob("*.pdf"))
 
 file_embed_data: list[EmbedData] = []
@@ -19,7 +19,7 @@ for file in files:
         print(f"Error embedding file {file}: {e}")
 
 # Define the query
-query = "What is the Selective SSM Models"
+query = "What are Selective SSM Models"
 
 # Scoring
 file_embeddings = np.array([e.embedding for e in file_embed_data])
