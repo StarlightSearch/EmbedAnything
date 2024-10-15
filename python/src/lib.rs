@@ -1,4 +1,5 @@
 pub mod config;
+pub mod models;
 use embed_anything::embeddings::embed::{TextEmbedder, VisionEmbedder};
 use embed_anything::embeddings::local::text_embedding::{models_list, ONNXModel};
 use embed_anything::{
@@ -9,6 +10,7 @@ use embed_anything::{
     file_processor::audio::audio_processor,
     text_loader::FileLoadingError,
 };
+use models::colpali::ColpaliModel;
 use pyo3::{
     exceptions::{PyFileNotFoundError, PyValueError},
     prelude::*,
@@ -554,6 +556,7 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
     m.add_function(wrap_pyfunction!(embed_audio_file, m)?)?;
+    m.add_class::<ColpaliModel>()?;
     m.add_class::<EmbeddingModel>()?;
     m.add_class::<AudioDecoderModel>()?;
     m.add_class::<WhichModel>()?;

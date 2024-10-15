@@ -48,6 +48,8 @@ nav:
 - references.md
 - Blog: 
   - blog/index.md
+- Guides:
+  - Guides/colpali.md
 
 
 markdown_extensions:
