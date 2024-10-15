@@ -71,7 +71,7 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
-- **Cloud Embedding Models:**: Supports OpenAI. Mistral and Cohere Support coming soon.  
+- **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
@@ -81,7 +81,7 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings file by file (Or chunk by chunk in future) and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
 
 [![EmbedAnythingXWeaviate](https://github.com/StarlightSearch/EmbedAnything/blob/main/docs/assets/demo.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -98,7 +98,7 @@ Vector Streaming enables you to process and generate embeddings for files and st
 
 We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
 
-## How to add custom model and Chunk Size.
+## How to add custom model and Chunk Size And Semantic Chunking.
 ```python
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, model_id="model link from huggingface"
@@ -118,6 +118,19 @@ data = embed_anything.embed_file("file_address", embeder=model, config=config)
 | Clip | openai/clip-vit-base-patch32 | 
 | Whisper| Most OpenAI Whisper from huggingface supported.
 
+
+### For Semantic Chunking
+
+```python
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+)
+
+# with semantic encoder
+semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
+config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
+
+```
 
 
 
@@ -201,69 +214,6 @@ print(data[0].metadata)
 
 ```
 
-## ➡️ Usage For 0.2
-
-### To use local embedding: we support Bert and Jina
-
-```python
-import embed_anything
-data = embed_anything.embed_file("file_path.pdf", embeder= "Bert")
-embeddings = np.array([data.embedding for data in data])
-```
-
-
-
-## For multimodal embedding: we support CLIP
-### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
-
-```python
-import embed_anything
-data = embed_anything.embed_directory("directory_path", embeder= "Clip")
-embeddings = np.array([data.embedding for data in data])
-
-query = ["photo of a dog"]
-query_embedding = np.array(embed_anything.embed_query(query, embeder= "Clip")[0].embedding)
-similarities = np.dot(embeddings, query_embedding)
-max_index = np.argmax(similarities)
-Image.open(data[max_index].text).show()
-```
-
-## Audio Embedding using Whisper
-### requirements:  Audio .wav files.
-
-
-```python
-import embed_anything
-from embed_anything import JinaConfig, EmbedConfig, AudioDecoderConfig
-import time
-
-start_time = time.time()
-
-# choose any whisper or distilwhisper model from https://huggingface.co/distil-whisper or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
-audio_decoder_config = AudioDecoderConfig(
-    decoder_model_id="openai/whisper-tiny.en",
-    decoder_revision="main",
-    model_type="tiny-en",
-    quantized=False,
-)
-jina_config = JinaConfig(
-    model_id="jinaai/jina-embeddings-v2-small-en", revision="main", chunk_size=100
-)
-
-config = EmbedConfig(jina=jina_config, audio_decoder=audio_decoder_config)
-data = embed_anything.embed_file(
-    "test_files/audio/samples_hp0.wav", embeder="Audio", config=config
-)
-print(data[0].metadata)
-end_time = time.time()
-print("Time taken: ", end_time - start_time)
-
-
-```
-
-
-
-
 
 
 
@@ -314,7 +264,7 @@ Check out the latest release :  and see how these features can supercharge your 
 
 
 
-# 🚀Coming Soon  <br />
+# 🚀Where are we heading  <br />
 
 
 ## ⚙️ Performance 
@@ -323,10 +273,9 @@ We've received quite a few questions about why we're using Candle, so here's a q
 One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
 
 What’s Next?
-To address this, we’re excited to announce that we’re introducing Candle-ONNX along with our previous framework on hugging-face ,
+To address this, we’re excited to announce that we’re introducing ORT support along with our previous framework on hugging-face ,
 
-➡️ Support for GGUF models </br >
-- Significantly faster performance</br >
+➡️ Significantly faster performance</br >
 - Stay tuned for these exciting updates! 🚀</br >
 
 

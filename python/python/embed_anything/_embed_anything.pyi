@@ -3,15 +3,51 @@ from typing import List, Dict
 from abc import ABC, abstractmethod
 
 class Adapter(ABC):
-    def __init__(self, api_key: str): ...
+    def __init__(self, api_key: str): 
+        """
+        Initializes the Adapter object.
+
+        Args:
+            api_key: The API key for accessing the adapter.
+        """
     @abstractmethod
     def create_index(self, dimension: int, metric: str, index_name: str, **kwargs): ...
+    """
+    Creates an index for storing the embeddings.
+
+    Args:
+        dimension: The dimension of the embeddings.
+        metric: The metric for measuring the distance between embeddings.
+        index_name: The name of the index.
+        kwargs: Additional keyword arguments.
+    """
     @abstractmethod
-    def delete_index(self, index_name: str): ...
+    def delete_index(self, index_name: str): 
+        """
+        Deletes an index.
+
+        Args:
+            index_name: The name of the index to delete.
+        """
     @abstractmethod
-    def convert(self, embeddings: List[List[EmbedData]]) -> List[Dict]: ...
+    def convert(self, embeddings: List[List[EmbedData]]) -> List[Dict]: 
+        """
+        Converts the embeddings to a list of dictionaries.
+
+        Args:
+            embeddings: The list of embeddings.
+
+        Returns:
+            A list of dictionaries.
+        """
     @abstractmethod
-    def upsert(self, data: List[Dict]): ...
+    def upsert(self, data: List[Dict]): 
+        """
+        Upserts the data into the index.
+
+        Args:
+            data: The list of data to upsert.
+        """
 
 def embed_query(
     query: list[str], embeder: EmbeddingModel, config: TextEmbedConfig | None = None
@@ -213,6 +249,54 @@ class EmbedData:
     text: str
     metadata: dict[str, str]
 
+class ColpaliModel:
+    """
+    Represents the Colpali model.
+    """
+
+    def __init__(self, model_id: str, revision: str | None = None): 
+        """
+        Initializes the ColpaliModel object.
+
+        Args:
+            model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+        """
+    def from_pretrained(model_id: str, revision: str | None = None) -> ColpaliModel:
+        """
+        Loads a pre-trained Colpali model from the Hugging Face model hub.
+
+        Args:
+            model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+
+        Returns:
+            A ColpaliModel object.
+        """
+
+    def embed_file(self, file_path: str, batch_size: int | None = 1) -> list[EmbedData]:
+        """
+        Embeds the given pdf file and returns a list of EmbedData objects for each page in the file This first convert the pdf file into images and then embed each image.
+
+        Args:
+            file_path: The path to the pdf file to embed.
+            batch_size: The batch size for processing the embeddings. Default is 1.
+
+        Returns:
+            A list of EmbedData objects for each page in the file.
+        """
+
+    def embed_query(self, query: str) -> list[EmbedData]:
+        """
+        Embeds the given query and returns a list of EmbedData objects.
+
+        Args:
+            query: The query to embed.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+
 class TextEmbedConfig:
     """
     Represents the configuration for the Text Embedding model.
@@ -222,7 +306,6 @@ class TextEmbedConfig:
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
         splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence".
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
-        sparse_embeddings: Whether to use sparse embeddings. Default is False.
     """
 
     def __init__(
@@ -241,8 +324,8 @@ class TextEmbedConfig:
     chunk_size: int | None
     batch_size: int | None
     buffer_size: int | None
-    splitting_strategy: str | None
     semantic_encoder: EmbeddingModel | None
+
 class ImageEmbedConfig:
     """
     Represents the configuration for the Image Embedding model.
@@ -344,7 +427,7 @@ class EmbeddingModel:
     scenarios where performance is critical.
     """
     def from_pretrained_onnx(
-            model_architecture: WhichModel, model_id: str, revision: str | None = None
+        model_architecture: WhichModel, model_id: str, revision: str | None = None
     ) -> EmbeddingModel: ...
 
 class AudioDecoderModel:

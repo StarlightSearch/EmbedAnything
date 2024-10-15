@@ -73,6 +73,7 @@ cudarc = { version = "0.12.1", features = ["std", "cublas", "cublaslt", "curand"
 ort = {workspace = true}
 ndarray = "0.16.1"
 ndarray-linalg = {version = "0.16.0"}
+pdf2image = "0.1.2"
 strum = {workspace = true}
 strum_macros = {workspace = true}
 
