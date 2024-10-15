@@ -28,10 +28,10 @@ impl ColpaliModel {
         Ok(Self { model })
     }
 
-    pub fn embed_file(&self, file_path: &str) -> PyResult<Vec<EmbedData>> {
+    pub fn embed_file(&self, file_path: &str, batch_size: usize) -> PyResult<Vec<EmbedData>> {
         let embed_data = self
             .model
-            .embed_file(file_path, 1)
+            .embed_file(file_path, batch_size)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(embed_data
             .into_iter()

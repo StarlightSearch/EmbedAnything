@@ -1,6 +1,41 @@
-from embed_anything import embed_file, ColpaliModel
+from embed_anything import EmbedData, ColpaliModel
 import numpy as np
-model:ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
-embedding = model.embed_file("/home/akshay/projects/EmbedAnything/test_files/attention.pdf")
-embeddings = np.array([e.embedding for e in embedding])
-print(embeddings.shape)
+from tabulate import tabulate
+from pathlib import Path
+
+# Load the model
+model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+
+# Get all PDF files in the directory
+directory = Path("/home/akshay/projects/EmbedAnything/test_files")
+files = list(directory.glob("*.pdf"))
+
+file_embed_data: list[EmbedData] = []
+for file in files:
+    try:
+        embedding: list[EmbedData] = model.embed_file(str(file), batch_size=1)
+        file_embed_data.extend(embedding)
+    except Exception as e:
+        print(f"Error embedding file {file}: {e}")
+
+# Define the query
+query = "What is the Selective SSM Models"
+
+# Scoring
+file_embeddings = np.array([e.embedding for e in file_embed_data])
+query_embedding = model.embed_query(query)
+query_embeddings = np.array([e.embedding for e in query_embedding])
+
+scores = np.einsum("bnd,csd->bcns", query_embeddings, file_embeddings).max(axis=3).sum(axis=2).squeeze()
+
+# Get top pages
+top_pages = np.argsort(scores)[-5:][::-1]
+
+# Extract file names and page numbers
+table = [
+    [file_embed_data[page].metadata["file_path"], file_embed_data[page].metadata["page_number"]]
+    for page in top_pages
+]
+
+# Print the results in a table
+print(tabulate(table, headers=["File Name", "Page Number"], tablefmt="grid"))
