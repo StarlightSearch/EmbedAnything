@@ -823,6 +823,7 @@ dependencies = [
  "ndarray-linalg",
  "ort",
  "pdf-extract",
+ "pdf2image",
  "rand 0.8.5",
  "rayon",
  "regex",
@@ -2657,6 +2658,18 @@ dependencies = [
  "tracing-subscriber",
  "type1-encoding-parser",
  "unicode-normalization",
+]
+
+[[package]]
+name = "pdf2image"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9c2fc99b8e21f00e9ba70f14944ea0f58356b7019e2238c7bdfee8cee4aff54"
+dependencies = [
+ "derive_builder",
+ "image",
+ "rayon",
+ "thiserror",
 ]
 
 [[package]]
