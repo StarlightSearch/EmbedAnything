@@ -636,3 +636,5 @@ pub async fn process_chunks(
         .collect::<Vec<_>>();
     Ok(Arc::new(embeddings))
 }
+
+
