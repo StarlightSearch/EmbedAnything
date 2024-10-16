@@ -10,9 +10,9 @@
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![license]( https://img.shields.io/badge/License-Apache-blue.svg)](https://opensource.org/licenses/Apache2.0)
+[![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
 [![package]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
-[![discord](https://img.shields.io/discord/1213966302046064711?style=flat&logo=discord&link=https%3A%2F%2Fdiscord.gg%2FHGxDZxNt9G)](https://discord.gg/juETVTMdZu)
+[![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
 [![roadmap](https://img.shields.io/badge/Roadmap-1D9BF0?style=flat&logo=twitter&logoColor=white)](https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap)
 
 </div>
@@ -139,7 +139,15 @@ config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "se
 ## 💚 Installation
 
 `
-pip install embed-anything`
+pip install embed-anything
+`<br/>
+
+For GPUs and using special models like ColPali <br/>
+
+`
+pip install embed-anything-gpu
+`
+
 
 
 # Usage
