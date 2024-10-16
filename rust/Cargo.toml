@@ -76,6 +76,7 @@ ndarray-linalg = {version = "0.16.0"}
 pdf2image = "0.1.2"
 strum = {workspace = true}
 strum_macros = {workspace = true}
+base64 = "0.22.1"
 
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }

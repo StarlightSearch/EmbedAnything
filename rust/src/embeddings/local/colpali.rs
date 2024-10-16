@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::RwLock;
 use std::{collections::HashMap, path::Path};
 
@@ -6,11 +5,11 @@ use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::{colpali::Model, paligemma};
-use image::DynamicImage;
+use image::{DynamicImage, ImageFormat};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
-
 use crate::embeddings::embed::{EmbedData, EmbedImage, EmbeddingResult};
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
+use base64::Engine;
 pub struct ColPaliEmbedder {
     pub model: RwLock<Model>,
     pub tokenizer: Tokenizer,
@@ -191,7 +190,6 @@ impl ColPaliEmbedder {
     }
 
     fn get_images_from_pdf<T: AsRef<Path>>(&self, file_path: &T) -> Result<Vec<DynamicImage>, E> {
-        let file_path = PathBuf::from(file_path.as_ref());
         let pdf = PDF::from_file(file_path)?;
         let page_count = pdf.page_count();
         let pages = pdf.render(
@@ -228,11 +226,19 @@ impl ColPaliEmbedder {
 
             // zip the embeddings with the page numbers
             let embed_data_batch = image_embeddings
-                .zip(page_numbers.into_iter())
-                .map(|(embedding, page_number)| {
+                .zip(page_numbers.into_iter()).zip(batch.into_iter())
+                .map(|((embedding, page_number), page_image)| {
                     let mut metadata = HashMap::new();
+
+                    let mut buf = Vec::new();
+                    let mut cursor = std::io::Cursor::new(&mut buf);
+                    page_image.write_to(&mut cursor, ImageFormat::Png).unwrap();
+                    let engine = base64::engine::general_purpose::STANDARD;
+                    let base64_image = engine.encode(&buf);
+
                     metadata.insert("page_number".to_string(), page_number.to_string());
                     metadata.insert("file_path".to_string(), file_path.as_ref().to_str().unwrap_or("").to_string());
+                    metadata.insert("image".to_string(), base64_image);
                     EmbedData::new(
                         embedding,
                         None,

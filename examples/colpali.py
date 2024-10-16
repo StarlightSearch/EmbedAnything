@@ -1,7 +1,11 @@
+import base64
 from embed_anything import EmbedData, ColpaliModel
 import numpy as np
 from tabulate import tabulate
 from pathlib import Path
+from PIL import Image
+import io
+
 
 # Load the model
 model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
@@ -41,3 +45,11 @@ table = [
 
 # Print the results in a table
 print(tabulate(table, headers=["File Name", "Page Number"], tablefmt="grid"))
+
+images = [file_embed_data[page].metadata["image"] for page in top_pages]
+
+# Convert base64 to image
+image = Image.open(io.BytesIO(base64.b64decode(images[0])))
+
+# Display the image
+image.show()
