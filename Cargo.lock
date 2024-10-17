@@ -812,7 +812,6 @@ dependencies = [
  "candle-nn",
  "candle-transformers",
  "chrono",
- "cudarc",
  "futures",
  "hf-hub",
  "image",

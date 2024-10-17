@@ -74,7 +74,7 @@ impl OpenAIEmbedder {
         let encodings = data
             .data
             .iter()
-            .map(|data| EmbeddingResult::Dense(data.embedding.clone()))
+            .map(|data| EmbeddingResult::DenseVector(data.embedding.clone()))
             .collect::<Vec<_>>();
 
         Ok(encodings)

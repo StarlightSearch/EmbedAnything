@@ -6,7 +6,7 @@ use embed_anything::{
     self,
     config::TextEmbedConfig,
     emb_audio,
-    embeddings::embed::{EmbeddingResult, Embedder},
+    embeddings::embed::{Embedder, EmbeddingResult},
     file_processor::audio::audio_processor,
     text_loader::FileLoadingError,
 };
@@ -36,8 +36,8 @@ impl EmbedData {
         Python::with_gil(|py| {
             let embedding = self.inner.embedding.clone();
             match embedding {
-                EmbeddingResult::Dense(x) => PyList::new_bound(py, x).into(),
-                EmbeddingResult::Sparse(x) => {
+                EmbeddingResult::DenseVector(x) => PyList::new_bound(py, x).into(),
+                EmbeddingResult::MultiVector(x) => {
                     PyList::new_bound(py, x.iter().map(|inner| PyList::new_bound(py, inner))).into()
                 }
             }
@@ -84,6 +84,7 @@ pub enum WhichModel {
     OpenAI,
     Cohere,
     Bert,
+    SparseBert,
     Clip,
     Jina,
     Colpali,
@@ -99,6 +100,7 @@ impl From<&str> for WhichModel {
             "openai" | "OpenAI" => WhichModel::OpenAI,
             "cohere" | "Cohere" => WhichModel::Cohere,
             "bert" | "Bert" => WhichModel::Bert,
+            "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
             "colpali" | "Colpali" => WhichModel::Colpali,
@@ -113,6 +115,7 @@ impl From<String> for WhichModel {
             "openai" | "OpenAI" => WhichModel::OpenAI,
             "cohere" | "Cohere" => WhichModel::Cohere,
             "bert" | "Bert" => WhichModel::Bert,
+            "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
             "colpali" | "Colpali" => WhichModel::Colpali,
@@ -150,12 +153,25 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
+            WhichModel::SparseBert => {
+                let model_id = model_id.unwrap_or("prithivida/Splade_PP_en_v1");
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::SparseBertEmbedder::new(
+                        model_id.to_string(),
+                        revision.map(|s| s.to_string()),
+                    )
+                    .unwrap(),
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
             WhichModel::Clip => {
                 let model_id = model_id.unwrap_or("openai/clip-vit-base-patch32");
                 let model = Embedder::Vision(VisionEmbedder::Clip(
                     embed_anything::embeddings::local::clip::ClipEmbedder::new(
                         model_id.to_string(),
-                        revision.map(|s| s.to_string()),
+                        revision,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 ));
@@ -166,11 +182,8 @@ impl EmbeddingModel {
             WhichModel::Jina => {
                 let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
                 let model = Embedder::Text(TextEmbedder::Jina(
-                    embed_anything::embeddings::local::jina::JinaEmbedder::new(
-                        model_id.to_string(),
-                        revision.map(|s| s.to_string()),
-                    )
-                    .unwrap(),
+                    embed_anything::embeddings::local::jina::JinaEmbedder::new(model_id, revision)
+                        .unwrap(),
                 ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
@@ -178,9 +191,9 @@ impl EmbeddingModel {
             }
             WhichModel::Colpali => {
                 let model_id = model_id.unwrap_or("vidore/colpali-v1.2-merged");
-                let model = Embedder::Vision(VisionEmbedder::ColPali(embed_anything::embeddings::local::colpali::ColPaliEmbedder::new(
-                    model_id,
-                        revision.map(|s| s),
+                let model = Embedder::Vision(VisionEmbedder::ColPali(
+                    embed_anything::embeddings::local::colpali::ColPaliEmbedder::new(
+                        model_id, revision,
                     )
                     .unwrap(),
                 ));
@@ -188,7 +201,7 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
-        
+
             _ => panic!("Invalid model"),
         }
     }
@@ -358,7 +371,7 @@ pub fn embed_file(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_file(file_name, &embedding_model, config, adapter).await
+            embed_anything::embed_file(file_name, embedding_model, config, adapter).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -390,7 +403,7 @@ pub fn embed_audio_file(
     let audio_decoder = &mut audio_decoder.inner;
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     let data = rt.block_on(async {
-        emb_audio(audio_file, audio_decoder, &embedding_model, config)
+        emb_audio(audio_file, audio_decoder, embedding_model, config)
             .await
             .map_err(|e| PyValueError::new_err(e.to_string()))
             .unwrap()

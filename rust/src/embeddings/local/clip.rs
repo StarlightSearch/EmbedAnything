@@ -28,14 +28,14 @@ impl Default for ClipEmbedder {
     fn default() -> Self {
         Self::new(
             "openai/clip-vit-base-patch32".to_string(),
-            Some("refs/pr/15".to_string()),
+            Some("refs/pr/15"),
         )
         .unwrap()
     }
 }
 
 impl ClipEmbedder {
-    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+    pub fn new(model_id: String, revision: Option<&str>) -> Result<Self, E> {
         let api = hf_hub::api::sync::Api::new()?;
 
         let api = match revision {
@@ -206,7 +206,7 @@ impl ClipEmbedder {
             encodings.extend(
                 batch_encodings
                     .iter()
-                    .map(|embedding| EmbeddingResult::Dense(embedding.to_vec())),
+                    .map(|embedding| EmbeddingResult::DenseVector(embedding.to_vec())),
             );
         }
 
@@ -250,7 +250,7 @@ impl EmbedImage for ClipEmbedder {
                 );
 
                 EmbedData::new(
-                    EmbeddingResult::Dense(data.to_vec()),
+                    EmbeddingResult::DenseVector(data.to_vec()),
                     Some(path.as_ref().to_str().unwrap().to_string()),
                     Some(metadata),
                 )
@@ -277,7 +277,7 @@ impl EmbedImage for ClipEmbedder {
             .to_vec2::<f32>()
             .unwrap()[0];
         Ok(EmbedData::new(
-            EmbeddingResult::Dense(encoding.to_vec()),
+            EmbeddingResult::DenseVector(encoding.to_vec()),
             None,
             metadata.clone(),
         ))
@@ -335,7 +335,7 @@ mod tests {
     // Tests the embed_image_batch method.
     #[test]
     fn test_embed_image_batch() {
-        let mut clip_embeder = ClipEmbedder::default();
+        let clip_embeder = ClipEmbedder::default();
         let embeddings = clip_embeder
             .embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"])
             .unwrap();

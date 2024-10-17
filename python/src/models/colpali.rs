@@ -11,7 +11,6 @@ pub struct ColpaliModel {
 
 #[pymethods]
 impl ColpaliModel {
-
     #[new]
     #[pyo3(signature = (model_id, revision=None))]
     pub fn new(model_id: &str, revision: Option<&str>) -> PyResult<Self> {
@@ -40,7 +39,10 @@ impl ColpaliModel {
     }
 
     pub fn embed_query(&self, query: &str) -> PyResult<Vec<EmbedData>> {
-        let embed_data = self.model.embed_query(query).map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let embed_data = self
+            .model
+            .embed_query(query)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(embed_data
             .into_iter()
             .map(|data| EmbedData { inner: data })
