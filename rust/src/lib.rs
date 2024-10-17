@@ -120,7 +120,7 @@ where
         Embedder::Text(embeder) => {
             emb_text(
                 file_name,
-                &embeder,
+                embeder,
                 Some(chunk_size),
                 batch_size,
                 Some(splitting_strategy),
@@ -129,7 +129,7 @@ where
             )
             .await
         }
-        Embedder::Vision( embeder) => Ok(Some(vec![emb_image(file_name, embeder).unwrap()])),
+        Embedder::Vision(embeder) => Ok(Some(vec![emb_image(file_name, embeder).unwrap()])),
     }
 }
 
@@ -507,13 +507,8 @@ where
                 metadata_buffer.push(metadata);
 
                 if chunk_buffer.len() == buffer_size {
-                    match process_chunks(
-                        &chunk_buffer,
-                        &metadata_buffer,
-                        &embeder,
-                        batch_size,
-                    )
-                    .await
+                    match process_chunks(&chunk_buffer, &metadata_buffer, &embeder, batch_size)
+                        .await
                     {
                         Ok(embeddings) => {
                             let files = embeddings
@@ -543,14 +538,7 @@ where
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(
-                    &chunk_buffer,
-                    &metadata_buffer,
-                    &embeder,
-                    batch_size,
-                )
-                .await
-                {
+                match process_chunks(&chunk_buffer, &metadata_buffer, &embeder, batch_size).await {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -621,9 +609,7 @@ pub async fn process_chunks(
     embedding_model: &Arc<Embedder>,
     batch_size: Option<usize>,
 ) -> Result<Arc<Vec<EmbedData>>> {
-    let encodings = embedding_model
-        .embed(chunks, batch_size)
-        .await?;
+    let encodings = embedding_model.embed(chunks, batch_size).await?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings
@@ -636,5 +622,3 @@ pub async fn process_chunks(
         .collect::<Vec<_>>();
     Ok(Arc::new(embeddings))
 }
-
-

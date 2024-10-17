@@ -11,7 +11,6 @@ use std::time::Instant;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let model =
-
         Arc::new(Embedder::from_pretrained_onnx("bert", ONNXModel::AllMiniLML6V2, None).unwrap());
     let config = TextEmbedConfig::new(
         Some(1000),
@@ -29,16 +28,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let now = Instant::now();
 
-
     let futures = files
         .par_iter()
-        .map(|file| {
-            embed_file(file, &model, Some(&config), None::<fn(Vec<EmbedData>)>)
-        })
+        .map(|file| embed_file(file, &model, Some(&config), None::<fn(Vec<EmbedData>)>))
         .collect::<Vec<_>>();
 
     let _data = futures.into_iter().next().unwrap().await;
-
 
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
@@ -52,7 +47,6 @@ async fn main() -> Result<(), anyhow::Error> {
         "The dog is sitting in the park",
         "The window is broken",
         "pizza is the best",
-
     ]
     .iter()
     .map(|s| s.to_string())
@@ -71,7 +65,10 @@ async fn main() -> Result<(), anyhow::Error> {
             .map(|x| x.to_dense().unwrap())
             .flatten()
             .collect::<Vec<_>>(),
-        (n_vectors, doc_embeddings[0].embedding.to_dense().unwrap().len()),
+        (
+            n_vectors,
+            doc_embeddings[0].embedding.to_dense().unwrap().len(),
+        ),
         &Device::Cpu,
     )
     .unwrap();
@@ -94,5 +91,4 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     Ok(())
-
 }

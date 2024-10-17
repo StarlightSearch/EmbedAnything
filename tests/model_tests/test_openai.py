@@ -8,7 +8,7 @@ def test_openai_model_file(openai_model, test_pdf_file):
     assert len(data[0].embedding) == 1536
 
 @pytest.mark.parametrize(
-    "config", [TextEmbedConfig(batch_size=32, chunk_size=256)]
+    "config", [TextEmbedConfig(batch_size=512, chunk_size=1000, buffer_size = 512)]
 )
 def test_openai_model_directory(openai_model, config, test_files_directory):
     data = embed_directory(test_files_directory, openai_model, config=config)

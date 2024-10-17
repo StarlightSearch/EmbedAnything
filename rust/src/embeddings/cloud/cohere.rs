@@ -77,7 +77,7 @@ impl CohereEmbedder {
 
         let encodings = encodings
             .iter()
-            .map(|embedding| EmbeddingResult::Dense(embedding.clone()))
+            .map(|embedding| EmbeddingResult::DenseVector(embedding.clone()))
             .collect::<Vec<_>>();
 
         Ok(encodings)

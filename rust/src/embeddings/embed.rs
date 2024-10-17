@@ -2,38 +2,38 @@ use crate::file_processor::audio::audio_processor::Segment;
 
 use super::cloud::cohere::CohereEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
-use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder};
+use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder, SparseBertEmbedder};
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::ColPaliEmbedder;
 use super::local::jina::JinaEmbedder;
 use super::local::text_embedding::ONNXModel;
+use anyhow::anyhow;
 use serde::Deserialize;
 use std::collections::HashMap;
-use anyhow::anyhow;
 
 #[derive(Deserialize, Debug, Clone)]
 pub enum EmbeddingResult {
-    Dense(Vec<f32>),
-    Sparse(Vec<Vec<f32>>),
+    DenseVector(Vec<f32>),
+    MultiVector(Vec<Vec<f32>>),
 }
 
 impl From<Vec<f32>> for EmbeddingResult {
     fn from(value: Vec<f32>) -> Self {
-        EmbeddingResult::Dense(value)
+        EmbeddingResult::DenseVector(value)
     }
 }
 
 impl From<Vec<Vec<f32>>> for EmbeddingResult {
     fn from(value: Vec<Vec<f32>>) -> Self {
-        EmbeddingResult::Sparse(value)
+        EmbeddingResult::MultiVector(value)
     }
 }
 
 impl EmbeddingResult {
     pub fn to_dense(&self) -> Result<Vec<f32>, anyhow::Error> {
         match self {
-            EmbeddingResult::Dense(x) => Ok(x.to_vec()),
-            EmbeddingResult::Sparse(_) => Err(anyhow!(
+            EmbeddingResult::DenseVector(x) => Ok(x.to_vec()),
+            EmbeddingResult::MultiVector(_) => Err(anyhow!(
                 "Sparse Embedding are not supported for this operation"
             )),
         }
@@ -41,8 +41,8 @@ impl EmbeddingResult {
 
     pub fn to_sparse(&self) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
-            EmbeddingResult::Sparse(x) => Ok(x.to_vec()),
-            EmbeddingResult::Dense(_) => Err(anyhow!(
+            EmbeddingResult::MultiVector(x) => Ok(x.to_vec()),
+            EmbeddingResult::DenseVector(_) => Err(anyhow!(
                 "Dense Embedding are not supported for this operation"
             )),
         }
@@ -111,15 +111,15 @@ impl TextEmbedder {
         revision: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "jina" | "Jina" => Ok(Self::Jina(JinaEmbedder::new(
-                model_id.to_string(),
-                revision.map(|s| s.to_string()),
-            )?)),
+            "jina" | "Jina" => Ok(Self::Jina(JinaEmbedder::new(model_id, revision)?)),
 
             "Bert" | "bert" => Ok(Self::Bert(Box::new(BertEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
             )?))),
+            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
+                SparseBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()))?,
+            ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -175,7 +175,6 @@ impl TextEmbedder {
     }
 }
 
-
 pub enum VisionEmbedder {
     Clip(ClipEmbedder),
     ColPali(ColPaliEmbedder),
@@ -187,7 +186,7 @@ impl From<VisionEmbedder> for Embedder {
     }
 }
 
-impl From<Embedder> for VisionEmbedder{
+impl From<Embedder> for VisionEmbedder {
     fn from(value: Embedder) -> Self {
         match value {
             Embedder::Vision(value) => value,
@@ -196,7 +195,7 @@ impl From<Embedder> for VisionEmbedder{
     }
 }
 
-impl From<Embedder> for TextEmbedder{
+impl From<Embedder> for TextEmbedder {
     fn from(value: Embedder) -> Self {
         match value {
             Embedder::Text(value) => value,
@@ -214,12 +213,11 @@ impl VisionEmbedder {
         match model {
             "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(
                 model_id.to_string(),
-                revision.map(|s| s.to_string()),
+                revision,
             )?)),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(ColPaliEmbedder::new(
-                model_id,
-                revision.map(|s| s),
-            )?)),
+            "colpali" | "ColPali" | "COLPALI" => {
+                Ok(Self::ColPali(ColPaliEmbedder::new(model_id, revision)?))
+            }
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -248,10 +246,18 @@ impl Embedder {
         revision: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(model, model_id, revision)?)),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(model, model_id, revision)?)),
-            "bert" | "Bert" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(model, model_id, revision)?)),
-            "jina" | "Jina" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(model, model_id, revision)?)),
+            "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(
+                model, model_id, revision,
+            )?)),
+            "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(
+                VisionEmbedder::from_pretrained_hf(model, model_id, revision)?,
+            )),
+            "bert" | "Bert" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                model, model_id, revision,
+            )?)),
+            "jina" | "Jina" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                model, model_id, revision,
+            )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -262,8 +268,12 @@ impl Embedder {
         api_key: Option<String>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "openai" | "OpenAI" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(model, model_id, api_key)?)),
-            "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(model, model_id, api_key)?)),
+            "openai" | "OpenAI" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
+                model, model_id, api_key,
+            )?)),
+            "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
+                model, model_id, api_key,
+            )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -273,7 +283,11 @@ impl Embedder {
         model_name: ONNXModel,
         revision: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
-        Ok(Self::Text(TextEmbedder::from_pretrained_ort(model_architecture, model_name, revision)?))
+        Ok(Self::Text(TextEmbedder::from_pretrained_ort(
+            model_architecture,
+            model_name,
+            revision,
+        )?))
     }
 }
 
@@ -321,7 +335,6 @@ impl TextEmbed for VisionEmbedder {
     }
 }
 
-
 pub trait EmbedImage {
     fn embed_image<T: AsRef<std::path::Path>>(
         &self,
@@ -332,7 +345,6 @@ pub trait EmbedImage {
         &self,
         image_paths: &[T],
     ) -> anyhow::Result<Vec<EmbedData>>;
-
 }
 
 impl EmbedImage for VisionEmbedder {
@@ -356,6 +368,4 @@ impl EmbedImage for VisionEmbedder {
             Self::ColPali(embeder) => embeder.embed_image_batch(image_paths),
         }
     }
-
-
 }

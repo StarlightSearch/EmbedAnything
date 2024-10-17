@@ -72,8 +72,6 @@ pub enum ONNXModel {
     JINAV2BASEEN,
     /// jinaai/jina-embeddings-v2-large-en
     JINAV2LARGEEN,
-    
-
 }
 
 // impl From<&str> for ONNXModel {
@@ -334,7 +332,6 @@ pub fn get_model_info_by_hf_id(hf_model_id: &str) -> Option<&ModelInfo<ONNXModel
         .values()
         .find(|model| model.hf_model_id == hf_model_id)
 }
-
 
 /// Get a list of all available models.
 ///

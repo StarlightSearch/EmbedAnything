@@ -30,15 +30,19 @@ pub struct JinaEmbedder {
 
 impl Default for JinaEmbedder {
     fn default() -> Self {
-        Self::new("jinaai/jina-embeddings-v2-small-en".to_string(), None).unwrap()
+        Self::new("jinaai/jina-embeddings-v2-small-en", None).unwrap()
     }
 }
 
 impl JinaEmbedder {
-    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+    pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, E> {
         let api = hf_hub::api::sync::Api::new()?;
         let api = match revision {
-            Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
+            Some(rev) => api.repo(Repo::with_revision(
+                model_id.to_string(),
+                hf_hub::RepoType::Model,
+                rev.to_string(),
+            )),
             None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
         };
 
@@ -105,10 +109,9 @@ impl JinaEmbedder {
             let embeddings = normalize_l2(&embeddings).unwrap();
 
             // Avoid using to_vec2() and instead work with the Tensor directly
-            encodings
-                .extend((0..embeddings.dim(0)?).map(|i| {
-                    EmbeddingResult::Dense(embeddings.get(i).unwrap().to_vec1().unwrap())
-                }));
+            encodings.extend((0..embeddings.dim(0)?).map(|i| {
+                EmbeddingResult::DenseVector(embeddings.get(i).unwrap().to_vec1().unwrap())
+            }));
         }
 
         Ok(encodings)
@@ -121,8 +124,7 @@ mod tests {
 
     #[test]
     fn test_embed() {
-        let embeder =
-            JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en".to_string(), None).unwrap();
+        let embeder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None).unwrap();
         let text_batch = vec!["Hello, world!".to_string()];
 
         let encodings = embeder.embed(&text_batch, None).unwrap();

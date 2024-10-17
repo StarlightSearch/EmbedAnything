@@ -10,6 +10,7 @@ use crate::file_processor::audio::audio_processor::Segment;
 pub mod cloud;
 pub mod embed;
 pub mod local;
+pub mod utils;
 
 use rayon::prelude::*;
 pub fn get_text_metadata(

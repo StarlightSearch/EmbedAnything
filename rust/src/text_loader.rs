@@ -5,10 +5,13 @@ use std::{
     sync::Arc,
 };
 
-use crate::{embeddings::embed::Embedder, file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor}};
 use crate::{
     chunkers::statistical::StatisticalChunker,
     embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
+};
+use crate::{
+    embeddings::embed::Embedder,
+    file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor},
 };
 use anyhow::Error;
 use chrono::{DateTime, Local};
@@ -89,8 +92,9 @@ impl TextLoader {
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic => {
-                let embeder =
-                    semantic_encoder.unwrap_or(Arc::new(Embedder::Text(TextEmbedder::Jina(JinaEmbedder::default()))));
+                let embeder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
+                    TextEmbedder::Jina(JinaEmbedder::default()),
+                )));
                 let chunker = StatisticalChunker {
                     encoder: embeder,
                     ..Default::default()
@@ -173,7 +177,7 @@ mod tests {
     #[test]
     fn test_image_embeder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
-        let mut embeder = ClipEmbedder::default();
+        let embeder = ClipEmbedder::default();
         let emb_data = embeder.embed_image(file_path, None).unwrap();
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }

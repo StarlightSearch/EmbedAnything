@@ -471,3 +471,4 @@ class WhichModel(Enum):
     Jina = ("Jina",)
     Clip = ("Clip",)
     Colpali = ("Colpali",)
+    SparseBert = ("SparseBert",)

@@ -148,8 +148,8 @@ impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_cumulative_chunker() {
+    #[tokio::test]
+    async fn test_cumulative_chunker() {
         let text = "
         The Bank of Elarian
 Nestled in the heart of the bustling city of Elarian, the Bank of Elarian stands as a beacon of financial stability and innovative banking. Founded over a century ago, this bank has grown from a modest community institution into one of the city's most trusted financial centers. Known for its majestic architecture, the building's facade is a blend of classical and modern design, featuring high pillars and sleek glass panels that reflect the city's skyline.
@@ -165,6 +165,6 @@ Elarian Freiseur also places a high emphasis on using eco-friendly and sustainab
         ";
 
         let chunker = CumulativeChunker::default();
-        chunker._chunk(text);
+        chunker._chunk(text).await;
     }
 }

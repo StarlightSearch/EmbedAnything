@@ -1,15 +1,15 @@
 use std::sync::RwLock;
 use std::{collections::HashMap, path::Path};
 
+use crate::embeddings::embed::{EmbedData, EmbedImage, EmbeddingResult};
 use anyhow::Error as E;
+use base64::Engine;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::{colpali::Model, paligemma};
 use image::{DynamicImage, ImageFormat};
-use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
-use crate::embeddings::embed::{EmbedData, EmbedImage, EmbeddingResult};
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
-use base64::Engine;
+use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 pub struct ColPaliEmbedder {
     pub model: RwLock<Model>,
     pub tokenizer: Tokenizer,
@@ -56,7 +56,7 @@ impl ColPaliEmbedder {
         };
         let trunc = TruncationParams {
             strategy: tokenizers::TruncationStrategy::LongestFirst,
-            max_length: config.text_config.max_position_embeddings as usize,
+            max_length: config.text_config.max_position_embeddings,
             ..Default::default()
         };
 
@@ -105,14 +105,10 @@ impl ColPaliEmbedder {
         let img = img.to_rgb8();
 
         let img = img.into_raw();
-        let img = Tensor::from_vec(
-            img,
-            (height, width, 3),
-            &self.device,
-        )?
-        .permute((2, 0, 1))?
-        .to_dtype(DType::F32)?
-        .affine(2. / 255., -1.)?;
+        let img = Tensor::from_vec(img, (height, width, 3), &self.device)?
+            .permute((2, 0, 1))?
+            .to_dtype(DType::F32)?
+            .affine(2. / 255., -1.)?;
         Ok(img)
     }
 
@@ -159,7 +155,7 @@ impl ColPaliEmbedder {
                 batch_encodings
                     .to_vec3::<f32>()?
                     .iter()
-                    .map(|x| EmbeddingResult::Sparse(x.to_vec())),
+                    .map(|x| EmbeddingResult::MultiVector(x.to_vec())),
             );
         }
         Ok(encodings)
@@ -222,11 +218,14 @@ impl ColPaliEmbedder {
                 .unwrap()
                 .forward_images(&page_images, &dummy_input)?
                 .to_dtype(DType::F32)?
-                .to_vec3::<f32>()?.into_iter().map(|x| EmbeddingResult::Sparse(x.to_vec()));
+                .to_vec3::<f32>()?
+                .into_iter()
+                .map(|x| EmbeddingResult::MultiVector(x.to_vec()));
 
             // zip the embeddings with the page numbers
             let embed_data_batch = image_embeddings
-                .zip(page_numbers.into_iter()).zip(batch.into_iter())
+                .zip(page_numbers.into_iter())
+                .zip(batch.iter())
                 .map(|((embedding, page_number), page_image)| {
                     let mut metadata = HashMap::new();
 
@@ -237,26 +236,20 @@ impl ColPaliEmbedder {
                     let base64_image = engine.encode(&buf);
 
                     metadata.insert("page_number".to_string(), page_number.to_string());
-                    metadata.insert("file_path".to_string(), file_path.as_ref().to_str().unwrap_or("").to_string());
+                    metadata.insert(
+                        "file_path".to_string(),
+                        file_path.as_ref().to_str().unwrap_or("").to_string(),
+                    );
                     metadata.insert("image".to_string(), base64_image);
-                    EmbedData::new(
-                        embedding,
-                        None,
-                        Some(metadata),
-                    )
+                    EmbedData::new(embedding, None, Some(metadata))
                 });
             embed_data.extend(embed_data_batch);
         }
         Ok(embed_data)
-
     }
 
     pub fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>> {
-        let input_ids = tokenize_batch(
-            &self.tokenizer,
-            vec![query],
-            &self.device,
-        )?;
+        let input_ids = tokenize_batch(&self.tokenizer, vec![query], &self.device)?;
 
         let encoding = self
             .model
@@ -266,7 +259,7 @@ impl ColPaliEmbedder {
             .to_dtype(DType::F32)?
             .to_vec3::<f32>()?
             .into_iter()
-            .map(|x| EmbeddingResult::Sparse(x.to_vec()));
+            .map(|x| EmbeddingResult::MultiVector(x.to_vec()));
 
         Ok(encoding
             .map(|x| EmbedData::new(x.clone(), None, None))
@@ -292,7 +285,7 @@ impl EmbedImage for ColPaliEmbedder {
             .to_dtype(DType::F32)?
             .to_vec3::<f32>()?
             .into_iter()
-            .map(|x| EmbeddingResult::Sparse(x.to_vec()))
+            .map(|x| EmbeddingResult::MultiVector(x.to_vec()))
             .collect::<Vec<_>>();
 
         Ok(EmbedData::new(encoding[0].clone(), None, metadata))
@@ -315,7 +308,7 @@ impl EmbedImage for ColPaliEmbedder {
 
         Ok(encodings
             .into_iter()
-            .map(|x| EmbedData::new(EmbeddingResult::Sparse(x), None, None))
+            .map(|x| EmbedData::new(EmbeddingResult::MultiVector(x), None, None))
             .collect::<Vec<_>>())
     }
 }

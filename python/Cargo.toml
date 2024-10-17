@@ -8,7 +8,7 @@ name = "_embed_anything"
 crate-type = ["cdylib"]
 
 [dependencies]
-embed_anything = {path = "../rust"}
+embed_anything = {path = "../rust", features = ["load-dynamic"]}
 pyo3 = { version = "0.22.3"}
 tokio = { version = "1.39.0", features = ["rt-multi-thread"]}
 
@@ -18,5 +18,4 @@ mkl = ["embed_anything/mkl"]
 accelerate = ["embed_anything/accelerate"]
 cuda = ["embed_anything/cuda"]
 cudnn = ["embed_anything/cudnn"]
-load-dynamic = ["embed_anything/load-dynamic"]
 

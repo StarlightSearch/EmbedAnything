@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet}, rc::Rc};
+use std::{
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 use anyhow::Result;
 use scraper::{Html, Selector};
@@ -95,11 +98,9 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let encodings = embeder
-                .embed(&chunks, batch_size)
-                .await
-                .unwrap();
-            let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
+            let encodings = embeder.embed(&chunks, batch_size).await.unwrap();
+            let embeddings =
+                get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
 
