@@ -38,7 +38,7 @@
 </div>
 
 
-EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.
+EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.We support dense, sparse and late-interaction embeddings.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -117,6 +117,25 @@ data = embed_anything.embed_file("file_address", embeder=model, config=config)
 |      | sentence-transformers/paraphrase-MiniLM-L6-v2 |
 | Clip | openai/clip-vit-base-patch32 | 
 | Whisper| Most OpenAI Whisper from huggingface supported.
+
+
+## Splade Models:
+
+```
+
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
+)
+```
+
+## ColPali Models Only runs with embed-anything-gpu
+
+
+```
+model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+```
+
+
 
 
 ### For Semantic Chunking
