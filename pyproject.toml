@@ -7,15 +7,7 @@ name = "embed_anything"
 requires-python = ">=3.8"
 description = "Embed anything at lightning speed"
 readme = "README.md"
-classifiers = [
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12", 
-    "License :: OSI Approved :: MIT License"
 
-]
 dynamic = ["version"]
 license = {file = "LICENSE"}
 
@@ -28,3 +20,4 @@ module-name = "embed_anything._embed_anything"
 
 [project.urls]
 Homepage = "https://github.com/StarlightSearch/EmbedAnything/tree/main"
+
