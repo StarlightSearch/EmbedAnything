@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Generation and memory-efficient indexing of embeddings with minimalist and lightning fast framework built in rust 🦀</b>
+    <b>Generate and stream embeddings with minimalist and lightning fast framework built in rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
