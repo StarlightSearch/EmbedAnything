@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Generation and Memory-efficient Indexing of embeddings with minimalist and lightning fast framework built in rust 🦀</b>
+    <b>Generation and memory-efficient indexing of embeddings with minimalist and lightning fast framework built in rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -95,9 +95,6 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
 ➡️Decrease the memory usage of EmbedAnything.
 
-## Thank you our Stargazers:
-
-[![Stargazers repo roster for @StarlightSearch/EmbedAnything](https://reporoster.com/stars/StarlightSearch/EmbedAnything)](https://github.com/StarlightSearch/EmbedAnything/stargazers)
 
 # ⭐ Supported Models
 
