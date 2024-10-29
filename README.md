@@ -324,7 +324,6 @@ We currently support a wide range of vector databases for streaming embeddings, 
 - Elastic: thanks to amazing and active Elastic team for the contribution <br/>
 - Weaviate<br/>
 - Pinecone<br/>
-- Qdrant<br/>
 
 But we're not stopping there! We're actively working to expand this list.
 
