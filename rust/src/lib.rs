@@ -226,13 +226,16 @@ where
         .remove_trailing_spaces()
         .remove_empty_lines();
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
-    let chunks = textloader
+    let chunks = match textloader
         .split_into_chunks(
             &text,
             splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
             semantic_encoder,
-        )
-        .unwrap();
+        ) {
+            Some(chunks) => chunks,
+            None => vec![]
+        };
+    
     let metadata = TextLoader::get_metadata(file).ok();
 
     if let Some(adapter) = adapter {
