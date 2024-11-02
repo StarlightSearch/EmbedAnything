@@ -12,13 +12,12 @@ use std::time::Instant;
 async fn main() -> Result<(), anyhow::Error> {
     let model =
         Arc::new(Embedder::from_pretrained_onnx("bert", ONNXModel::AllMiniLML6V2, None).unwrap());
-    let config = TextEmbedConfig::new(
-        Some(1000),
-        Some(256),
-        Some(256),
-        Some(SplittingStrategy::Sentence),
-        Some(model.clone()),
-    );
+    let config = TextEmbedConfig::default()
+        .with_chunk_size(1000)
+        .with_batch_size(256)
+        .with_buffer_size(256)
+        .with_splitting_strategy(SplittingStrategy::Sentence)
+        .with_semantic_encoder(Arc::clone(&model));
 
     // get files in bench
     let files = std::fs::read_dir("bench")

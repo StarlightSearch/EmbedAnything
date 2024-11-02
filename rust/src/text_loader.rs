@@ -111,7 +111,7 @@ impl TextLoader {
         Some(chunks)
     }
 
-    pub fn extract_text<T: AsRef<std::path::Path>>(file: &T) -> Result<String, Error> {
+    pub fn extract_text<T: AsRef<std::path::Path>>(file: &T, use_ocr: bool) -> Result<String, Error> {
         if !file.as_ref().exists() {
             return Err(FileLoadingError::FileNotFound(
                 file.as_ref().to_str().unwrap().to_string(),
@@ -120,7 +120,7 @@ impl TextLoader {
         }
         let file_extension = file.as_ref().extension().unwrap();
         match file_extension.to_str().unwrap() {
-            "pdf" => PdfProcessor::extract_text(file),
+            "pdf" => PdfProcessor::extract_text(file, use_ocr),
             "md" => MarkdownProcessor::extract_text(file),
             "txt" => TxtProcessor::extract_text(file),
             _ => Err(FileLoadingError::UnsupportedFileType(

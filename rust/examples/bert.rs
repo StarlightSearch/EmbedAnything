@@ -11,13 +11,12 @@ async fn main() {
         TextEmbedder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
             .unwrap(),
     ));
-    let config = TextEmbedConfig::new(
-        Some(256),
-        Some(32),
-        Some(32),
-        Some(SplittingStrategy::Semantic),
-        Some(model.clone()),
-    );
+    let config = TextEmbedConfig::default()
+        .with_chunk_size(256)
+        .with_batch_size(32)
+        .with_buffer_size(32)
+        .with_splitting_strategy(SplittingStrategy::Semantic)
+        .with_semantic_encoder(Arc::clone(&model));
 
     let _out = embed_file(
         "test_files/test.pdf",

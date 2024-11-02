@@ -10,7 +10,10 @@ use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let text_embed_config = TextEmbedConfig::new(Some(1000), Some(512), Some(512), None, None);
+    let text_embed_config = TextEmbedConfig::default()
+        .with_chunk_size(1000)
+        .with_batch_size(512)
+        .with_buffer_size(512);
     let cohere_model =
         Embedder::from_pretrained_cloud("cohere", "embed-english-v3.0", None).unwrap();
     let openai_model =

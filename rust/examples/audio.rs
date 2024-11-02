@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use embed_anything::{
-    config, emb_audio, embeddings::embed::Embedder,
+    config::{self, TextEmbedConfig}, emb_audio, embeddings::embed::Embedder,
     file_processor::audio::audio_processor::AudioDecoderModel, text_loader::SplittingStrategy,
 };
 
@@ -24,13 +24,12 @@ async fn main() {
     let semantic_encoder = Arc::new(
         Embedder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
     );
-    let text_embed_config = config::TextEmbedConfig::new(
-        Some(256),
-        Some(32),
-        None,
-        Some(SplittingStrategy::Sentence),
-        Some(semantic_encoder),
-    );
+    let text_embed_config = TextEmbedConfig::default()
+        .with_chunk_size(256)
+        .with_batch_size(32)
+        .with_splitting_strategy(SplittingStrategy::Sentence)
+        .with_semantic_encoder(Arc::clone(&semantic_encoder));
+    
     let embeddings = emb_audio(
         audio_path,
         &mut audio_decoder,
