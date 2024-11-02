@@ -14,9 +14,9 @@ model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
-# # with semantic encoder
-# # semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
-# # config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
+# with semantic encoder
+# semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
+# config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
 
 # without semantic encoder
 config = TextEmbedConfig(chunk_size=256, batch_size=32, buffer_size  = 64,splitting_strategy = "sentence")

@@ -20,6 +20,7 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use itertools::Itertools;
 use rayon::prelude::*;
+use text_cleaner::clean::Clean;
 use text_loader::{SplittingStrategy, TextLoader};
 use tokio::sync::mpsc; // Add this at the top of your file
 
@@ -115,6 +116,7 @@ where
         .splitting_strategy
         .unwrap_or(SplittingStrategy::Sentence);
     let semantic_encoder = config.semantic_encoder.clone();
+    let use_ocr = config.use_ocr.unwrap_or(false);
 
     match embeder {
         Embedder::Text(embeder) => {
@@ -126,6 +128,7 @@ where
                 Some(splitting_strategy),
                 semantic_encoder,
                 adapter,
+                use_ocr,
             )
             .await
         }
@@ -213,11 +216,15 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     splitting_strategy: Option<SplittingStrategy>,
     semantic_encoder: Option<Arc<Embedder>>,
     adapter: Option<F>,
+    use_ocr: bool,
 ) -> Result<Option<Vec<EmbedData>>>
 where
     F: Fn(Vec<EmbedData>),
 {
-    let text = TextLoader::extract_text(&file)?;
+    let text = TextLoader::extract_text(&file, use_ocr)?
+        .remove_leading_spaces()
+        .remove_trailing_spaces()
+        .remove_empty_lines();
     let textloader = TextLoader::new(chunk_size.unwrap_or(256));
     let chunks = textloader
         .split_into_chunks(
@@ -480,6 +487,8 @@ where
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
+    let use_ocr = config.use_ocr.unwrap_or(false);
+
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
     let files = file_parser.files.clone();
@@ -565,7 +574,11 @@ where
     let textloader = TextLoader::new(chunk_size);
 
     file_parser.files.iter().for_each(|file| {
-        let text = TextLoader::extract_text(file).unwrap();
+        let text = TextLoader::extract_text(file, use_ocr)
+            .unwrap()
+            .remove_leading_spaces()
+            .remove_trailing_spaces()
+            .remove_empty_lines();
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
             .unwrap_or_else(|| vec![text.clone()])

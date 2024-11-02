@@ -18,13 +18,13 @@ async fn main() {
             .unwrap(),
     );
 
-    let embed_config = TextEmbedConfig::new(
-        Some(256),
-        Some(32),
-        None,
-        Some(SplittingStrategy::Sentence),
-        None,
-    );
+    let embed_config = TextEmbedConfig::default()
+        .with_chunk_size(256)
+        .with_batch_size(32)
+        .with_buffer_size(100)
+        .with_splitting_strategy(SplittingStrategy::Sentence)
+        .with_semantic_encoder(Arc::clone(&embeder));
+
     let embed_data = embed_webpage(
         url,
         &embeder,
