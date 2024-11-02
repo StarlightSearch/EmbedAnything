@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Generate and stream your embeddings with minimalist and lightning fast framework built in rust 🦀</b>
+    <b>Generate and stream embeddings with minimalist and lightning fast framework built in rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -38,7 +38,7 @@
 </div>
 
 
-EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.
+EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.We support dense, sparse and late-interaction embeddings.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -71,12 +71,13 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
+- **ColPali** : Support for ColPali in GPU version
+- **Splade** : Support for sparse embeddings for hybrid
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
-- **Scalable:** Store embeddings in a vector database for easy retrieval and scalability. 
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
 
 ## 💡What is Vector Streaming
@@ -93,6 +94,7 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Running language models or embedding models locally and efficiently <br />
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
 ➡️Decrease the memory usage of EmbedAnything.
+
 
 # ⭐ Supported Models
 
@@ -117,6 +119,25 @@ data = embed_anything.embed_file("file_address", embeder=model, config=config)
 |      | sentence-transformers/paraphrase-MiniLM-L6-v2 |
 | Clip | openai/clip-vit-base-patch32 | 
 | Whisper| Most OpenAI Whisper from huggingface supported.
+
+
+## Splade Models:
+
+```
+
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
+)
+```
+
+## ColPali Models Only runs with embed-anything-gpu
+
+
+```
+model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+```
+
+
 
 
 ### For Semantic Chunking
@@ -303,7 +324,6 @@ We currently support a wide range of vector databases for streaming embeddings, 
 - Elastic: thanks to amazing and active Elastic team for the contribution <br/>
 - Weaviate<br/>
 - Pinecone<br/>
-- Qdrant<br/>
 
 But we're not stopping there! We're actively working to expand this list.
 
