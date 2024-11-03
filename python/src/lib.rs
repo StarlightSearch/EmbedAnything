@@ -191,12 +191,12 @@ impl EmbeddingModel {
             }
             WhichModel::Colpali => {
                 let model_id = model_id.unwrap_or("vidore/colpali-v1.2-merged");
-                let model = Embedder::Vision(VisionEmbedder::ColPali(
+                let model = Embedder::Vision(VisionEmbedder::ColPali(Box::new(
                     embed_anything::embeddings::local::colpali::ColPaliEmbedder::new(
                         model_id, revision,
                     )
                     .unwrap(),
-                ));
+                )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
