@@ -4,12 +4,13 @@ use super::cloud::cohere::CohereEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
 use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder, SparseBertEmbedder};
 use super::local::clip::ClipEmbedder;
-use super::local::colpali::ColPaliEmbedder;
+use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::JinaEmbedder;
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Deserialize, Debug, Clone)]
 pub enum EmbeddingResult {
@@ -177,7 +178,7 @@ impl TextEmbedder {
 
 pub enum VisionEmbedder {
     Clip(ClipEmbedder),
-    ColPali(ColPaliEmbedder),
+    ColPali(Box<dyn ColPaliEmbed + Send + Sync>),
 }
 
 impl From<VisionEmbedder> for Embedder {
@@ -215,9 +216,9 @@ impl VisionEmbedder {
                 model_id.to_string(),
                 revision,
             )?)),
-            "colpali" | "ColPali" | "COLPALI" => {
-                Ok(Self::ColPali(ColPaliEmbedder::new(model_id, revision)?))
-            }
+            "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
+                model_id, revision,
+            )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -355,7 +356,9 @@ impl EmbedImage for VisionEmbedder {
     ) -> anyhow::Result<EmbedData> {
         match self {
             Self::Clip(embeder) => embeder.embed_image(image_path, metadata),
-            Self::ColPali(embeder) => embeder.embed_image(image_path, metadata),
+            Self::ColPali(embeder) => {
+                embeder.embed_image(PathBuf::from(image_path.as_ref()), metadata)
+            }
         }
     }
 
@@ -365,7 +368,12 @@ impl EmbedImage for VisionEmbedder {
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
             Self::Clip(embeder) => embeder.embed_image_batch(image_paths),
-            Self::ColPali(embeder) => embeder.embed_image_batch(image_paths),
+            Self::ColPali(embeder) => embeder.embed_image_batch(
+                &image_paths
+                    .iter()
+                    .map(|p| PathBuf::from(p.as_ref()))
+                    .collect::<Vec<_>>(),
+            ),
         }
     }
 }

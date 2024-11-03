@@ -1,15 +1,44 @@
+use std::path::PathBuf;
 use std::sync::RwLock;
 use std::{collections::HashMap, path::Path};
 
-use crate::embeddings::embed::{EmbedData, EmbedImage, EmbeddingResult};
+use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 use anyhow::Error as E;
 use base64::Engine;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::{colpali::Model, paligemma};
 use image::{DynamicImage, ImageFormat};
+
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
+
+pub trait ColPaliEmbed {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
+
+    fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>>;
+    fn embed_file(
+        &self,
+        file_path: PathBuf,
+        batch_size: usize,
+    ) -> anyhow::Result<Vec<EmbedData>>;
+    fn embed_image(
+        &self,
+        image_path: PathBuf,
+        metadata: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<EmbedData>;
+
+    fn embed_image_batch(
+        &self,
+        image_paths: &[PathBuf],
+    ) -> anyhow::Result<Vec<EmbedData>>;
+}
+
+
 pub struct ColPaliEmbedder {
     pub model: RwLock<Model>,
     pub tokenizer: Tokenizer,
@@ -78,7 +107,7 @@ impl ColPaliEmbedder {
         let model = Model::new(&config, vb)?;
         let dummy_prompt: &str = "Describe the image";
 
-        let dummy_input = tokenize_batch(&tokenizer, vec![dummy_prompt], &device)?;
+        let dummy_input: Tensor = tokenize_batch(&tokenizer, vec![dummy_prompt], &device)?;
         Ok(Self {
             model: RwLock::new(model),
             tokenizer,
@@ -89,47 +118,37 @@ impl ColPaliEmbedder {
         })
     }
 
-    pub fn load_image<T: AsRef<std::path::Path>>(
+    
+    fn images_to_tensor(
         &self,
-        path: T,
-        image_size: usize,
-    ) -> anyhow::Result<Tensor> {
-        let img = image::ImageReader::open(path)?.decode()?;
-        let (height, width) = (image_size, image_size);
-        let img = img.resize_to_fill(
-            width as u32,
-            height as u32,
-            image::imageops::FilterType::Triangle,
-        );
-
-        let img = img.to_rgb8();
-
-        let img = img.into_raw();
-        let img = Tensor::from_vec(img, (height, width, 3), &self.device)?
-            .permute((2, 0, 1))?
-            .to_dtype(DType::F32)?
-            .affine(2. / 255., -1.)?;
-        Ok(img)
-    }
-
-    fn load_images<T: AsRef<std::path::Path>>(
-        &self,
-        paths: &[T],
+        pages: &[DynamicImage],
         image_size: usize,
     ) -> anyhow::Result<Tensor> {
         let mut images = vec![];
-
-        for path in paths {
-            let tensor = self.load_image(path, image_size)?;
-            images.push(tensor);
+        for page in pages.iter() {
+            let img = page.resize_to_fill(
+                image_size as u32,
+                image_size as u32,
+                image::imageops::FilterType::Triangle,
+            );
+            let img = img.to_rgb8();
+            let img = img.into_raw();
+            let img = Tensor::from_vec(img, (image_size, image_size, 3), &self.device)?
+                .permute((2, 0, 1))?
+                .to_dtype(self.dtype)?
+                .affine(2. / 255., -1.)?;
+            images.push(img);
         }
-
         let images = Tensor::stack(&images, 0)?;
-
         Ok(images)
     }
 
-    pub fn embed(
+   
+}
+
+impl ColPaliEmbed for ColPaliEmbedder {
+
+    fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
@@ -161,46 +180,80 @@ impl ColPaliEmbedder {
         Ok(encodings)
     }
 
-    fn images_to_tensor(
-        &self,
-        pages: &[DynamicImage],
-        image_size: usize,
-    ) -> anyhow::Result<Tensor> {
-        let mut images = vec![];
-        for page in pages.iter() {
-            let img = page.resize_to_fill(
-                image_size as u32,
-                image_size as u32,
-                image::imageops::FilterType::Triangle,
-            );
-            let img = img.to_rgb8();
-            let img = img.into_raw();
-            let img = Tensor::from_vec(img, (image_size, image_size, 3), &self.device)?
-                .permute((2, 0, 1))?
-                .to_dtype(self.dtype)?
-                .affine(2. / 255., -1.)?;
-            images.push(img);
-        }
-        let images = Tensor::stack(&images, 0)?;
-        Ok(images)
+    fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>> {
+        let input_ids = tokenize_batch(&self.tokenizer, vec![query], &self.device)?;
+
+        let encoding = self
+            .model
+            .write()
+            .unwrap()
+            .forward_text(&input_ids)?
+            .to_dtype(DType::F32)?
+            .to_vec3::<f32>()?
+            .into_iter()
+            .map(|x| EmbeddingResult::MultiVector(x.to_vec()));
+
+        Ok(encoding
+            .map(|x| EmbedData::new(x.clone(), None, None))
+            .collect::<Vec<_>>())
     }
 
-    fn get_images_from_pdf<T: AsRef<Path>>(&self, file_path: &T) -> Result<Vec<DynamicImage>, E> {
-        let pdf = PDF::from_file(file_path)?;
-        let page_count = pdf.page_count();
-        let pages = pdf.render(
-            Pages::Range(1..=page_count),
-            RenderOptionsBuilder::default().build()?,
-        )?;
-        Ok(pages)
-    }
-    pub fn embed_file<T: AsRef<Path>>(
+    fn embed_image(
         &self,
-        file_path: T,
+        image_path: PathBuf,
+        metadata: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<EmbedData> {
+        let pixel_values = load_image(
+            image_path,
+            self.config.vision_config.image_size,
+            &self.device,
+        )?
+        .unsqueeze(0)?
+        .to_dtype(self.dtype)?;
+        let encoding = self
+            .model
+            .write()
+            .unwrap()
+            .forward_images(&pixel_values, &self.dummy_input)?
+            .to_dtype(DType::F32)?
+            .to_vec3::<f32>()?
+            .into_iter()
+            .map(|x| EmbeddingResult::MultiVector(x.to_vec()))
+            .collect::<Vec<_>>();
+
+        Ok(EmbedData::new(encoding[0].clone(), None, metadata))
+    }
+
+    fn embed_image_batch(
+        &self,
+        image_paths: &[PathBuf],
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        let pixel_values = load_images(
+            image_paths,
+            self.config.vision_config.image_size,
+            &self.device,
+        )?
+        .to_dtype(self.dtype)?;
+        let encodings = self
+            .model
+            .write()
+            .unwrap()
+            .forward_images(&pixel_values, &self.dummy_input)?
+            .to_dtype(DType::F32)?
+            .to_vec3::<f32>()?;
+
+        Ok(encodings
+            .into_iter()
+            .map(|x| EmbedData::new(EmbeddingResult::MultiVector(x), None, None))
+            .collect::<Vec<_>>())
+    }
+    fn embed_file(
+        &self,
+        file_path: PathBuf,   
         batch_size: usize,
     ) -> anyhow::Result<Vec<EmbedData>> {
         let dtype = self.dtype;
-        let pages = self.get_images_from_pdf(&file_path)?;
+        let pages = get_images_from_pdf(&file_path)?;
         let mut embed_data = Vec::new();
         for (index, batch) in pages.chunks(batch_size).enumerate() {
             let start_page = index * batch_size + 1;
@@ -238,7 +291,7 @@ impl ColPaliEmbedder {
                     metadata.insert("page_number".to_string(), page_number.to_string());
                     metadata.insert(
                         "file_path".to_string(),
-                        file_path.as_ref().to_str().unwrap_or("").to_string(),
+                        file_path.to_str().unwrap_or("").to_string(),
                     );
                     metadata.insert("image".to_string(), base64_image);
                     EmbedData::new(embedding, None, Some(metadata))
@@ -248,70 +301,8 @@ impl ColPaliEmbedder {
         Ok(embed_data)
     }
 
-    pub fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>> {
-        let input_ids = tokenize_batch(&self.tokenizer, vec![query], &self.device)?;
-
-        let encoding = self
-            .model
-            .write()
-            .unwrap()
-            .forward_text(&input_ids)?
-            .to_dtype(DType::F32)?
-            .to_vec3::<f32>()?
-            .into_iter()
-            .map(|x| EmbeddingResult::MultiVector(x.to_vec()));
-
-        Ok(encoding
-            .map(|x| EmbedData::new(x.clone(), None, None))
-            .collect::<Vec<_>>())
-    }
 }
 
-impl EmbedImage for ColPaliEmbedder {
-    fn embed_image<T: AsRef<std::path::Path>>(
-        &self,
-        image_path: T,
-        metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData> {
-        let pixel_values = self
-            .load_image(image_path, self.config.vision_config.image_size)?
-            .unsqueeze(0)?
-            .to_dtype(self.dtype)?;
-        let encoding = self
-            .model
-            .write()
-            .unwrap()
-            .forward_images(&pixel_values, &self.dummy_input)?
-            .to_dtype(DType::F32)?
-            .to_vec3::<f32>()?
-            .into_iter()
-            .map(|x| EmbeddingResult::MultiVector(x.to_vec()))
-            .collect::<Vec<_>>();
-
-        Ok(EmbedData::new(encoding[0].clone(), None, metadata))
-    }
-
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
-        &self,
-        image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>> {
-        let pixel_values = self
-            .load_images(image_paths, self.config.vision_config.image_size)?
-            .to_dtype(self.dtype)?;
-        let encodings = self
-            .model
-            .write()
-            .unwrap()
-            .forward_images(&pixel_values, &self.dummy_input)?
-            .to_dtype(DType::F32)?
-            .to_vec3::<f32>()?;
-
-        Ok(encodings
-            .into_iter()
-            .map(|x| EmbedData::new(EmbeddingResult::MultiVector(x), None, None))
-            .collect::<Vec<_>>())
-    }
-}
 
 fn tokenize_batch(
     tokenizer: &Tokenizer,
@@ -355,3 +346,54 @@ pub fn hub_load_safetensors(
         .collect::<Result<Vec<_>, _>>()?;
     Ok(safetensors_files)
 }
+
+pub fn load_image<T: AsRef<std::path::Path>>(
+    path: T,
+    image_size: usize,
+    device: &Device,
+) -> anyhow::Result<Tensor> {
+    let img = image::ImageReader::open(path)?.decode()?;
+    let (height, width) = (image_size, image_size);
+    let img = img.resize_to_fill(
+        width as u32,
+        height as u32,
+        image::imageops::FilterType::Triangle,
+    );
+
+    let img = img.to_rgb8();
+
+    let img = img.into_raw();
+    let img = Tensor::from_vec(img, (height, width, 3), device)?
+        .permute((2, 0, 1))?
+        .to_dtype(DType::F32)?
+        .affine(2. / 255., -1.)?;
+    Ok(img)
+}
+
+fn load_images<T: AsRef<std::path::Path>>(
+    paths: &[T],
+    image_size: usize,
+    device: &Device,
+) -> anyhow::Result<Tensor> {
+    let mut images = vec![];
+
+    for path in paths {
+        let tensor = load_image(path, image_size, device)?;
+        images.push(tensor);
+    }
+
+    let images = Tensor::stack(&images, 0)?;
+
+    Ok(images)
+}
+
+fn get_images_from_pdf<T: AsRef<Path>>(file_path: &T) -> Result<Vec<DynamicImage>, E> {
+    let pdf = PDF::from_file(file_path)?;
+    let page_count = pdf.page_count();
+    let pages = pdf.render(
+        Pages::Range(1..=page_count),
+        RenderOptionsBuilder::default().build()?,
+    )?;
+    Ok(pages)
+}
+
