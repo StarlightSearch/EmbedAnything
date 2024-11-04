@@ -1,7 +1,9 @@
-use embed_anything::embeddings::local::{colpali::{ColPaliEmbed, ColPaliEmbedder}, colpali_ort::OrtColPaliEmbedder};
+use embed_anything::embeddings::local::{
+    colpali::{ColPaliEmbed, ColPaliEmbedder},
+    colpali_ort::OrtColPaliEmbedder,
+};
 
 fn main() -> Result<(), anyhow::Error> {
-    
     // use onnx model
     // let colpali_model = OrtColPaliEmbedder::new("akshayballal/colpali-v1.2-merged-onnx", None, 128)?;
 
