@@ -345,8 +345,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_statistical_chunker() {
-        let text = TextLoader::extract_text(&PathBuf::from("../test_files/attention.pdf"), false)
-        .unwrap();
+        let text =
+            TextLoader::extract_text(&PathBuf::from("../test_files/attention.pdf"), false).unwrap();
         let chunker = StatisticalChunker {
             verbose: true,
             ..Default::default()

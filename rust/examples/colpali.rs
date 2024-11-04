@@ -1,6 +1,10 @@
-use embed_anything::embeddings::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
+use embed_anything::embeddings::local::{colpali::{ColPaliEmbed, ColPaliEmbedder}, colpali_ort::OrtColPaliEmbedder};
 
 fn main() -> Result<(), anyhow::Error> {
+    
+    // use onnx model
+    // let colpali_model = OrtColPaliEmbedder::new("akshayballal/colpali-v1.2-merged-onnx", None, 128)?;
+
     let colpali_model = ColPaliEmbedder::new("vidore/colpali-v1.2-merged", None)?;
     let file_path = "test_files/attention.pdf";
     let batch_size = 1;

@@ -29,8 +29,8 @@ rayon = "1.8.1"
 image = "0.25.1"
 
 # Natural Language Processing
-tokenizers = {version="0.19.1", features=["http"]}
-text-splitter = {version="0.14.1", features=["tokenizers"]}
+tokenizers = {version="0.20.2", features=["http"]}
+text-splitter = {version="0.18.1", features=["tokenizers"]}
 
 tracing = "0.1.37"
 
@@ -87,6 +87,7 @@ half = "2.4.1"
 
 [dev-dependencies]
 tempdir = "0.3.7"
+lazy_static = "1.4.0"
 
 [features]
 default = []

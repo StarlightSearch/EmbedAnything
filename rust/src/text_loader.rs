@@ -70,9 +70,14 @@ pub struct TextLoader {
 impl TextLoader {
     pub fn new(chunk_size: usize) -> Self {
         Self {
-            splitter: TextSplitter::new(ChunkConfig::new(chunk_size)
-                .with_overlap(chunk_size / 3).unwrap()
-                .with_sizer(Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap())),
+            splitter: TextSplitter::new(
+                ChunkConfig::new(chunk_size)
+                    .with_overlap(chunk_size / 3)
+                    .unwrap()
+                    .with_sizer(
+                        Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
+                    ),
+            ),
             // splitter: TextSplitter::new(ChunkConfig::new(chunk_size)),
         }
     }
@@ -112,7 +117,10 @@ impl TextLoader {
         Some(chunks)
     }
 
-    pub fn extract_text<T: AsRef<std::path::Path>>(file: &T, use_ocr: bool) -> Result<String, Error> {
+    pub fn extract_text<T: AsRef<std::path::Path>>(
+        file: &T,
+        use_ocr: bool,
+    ) -> Result<String, Error> {
         if !file.as_ref().exists() {
             return Err(FileLoadingError::FileNotFound(
                 file.as_ref().to_str().unwrap().to_string(),

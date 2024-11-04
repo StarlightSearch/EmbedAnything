@@ -40,7 +40,7 @@ impl EmbeddingResult {
         }
     }
 
-    pub fn to_sparse(&self) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub fn to_multi_vector(&self) -> Result<Vec<Vec<f32>>, anyhow::Error> {
         match self {
             EmbeddingResult::MultiVector(x) => Ok(x.to_vec()),
             EmbeddingResult::DenseVector(_) => Err(anyhow!(

@@ -21,23 +21,15 @@ pub trait ColPaliEmbed {
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 
     fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>>;
-    fn embed_file(
-        &self,
-        file_path: PathBuf,
-        batch_size: usize,
-    ) -> anyhow::Result<Vec<EmbedData>>;
+    fn embed_file(&self, file_path: PathBuf, batch_size: usize) -> anyhow::Result<Vec<EmbedData>>;
     fn embed_image(
         &self,
         image_path: PathBuf,
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData>;
 
-    fn embed_image_batch(
-        &self,
-        image_paths: &[PathBuf],
-    ) -> anyhow::Result<Vec<EmbedData>>;
+    fn embed_image_batch(&self, image_paths: &[PathBuf]) -> anyhow::Result<Vec<EmbedData>>;
 }
-
 
 pub struct ColPaliEmbedder {
     pub model: RwLock<Model>,
@@ -118,7 +110,6 @@ impl ColPaliEmbedder {
         })
     }
 
-    
     fn images_to_tensor(
         &self,
         pages: &[DynamicImage],
@@ -142,12 +133,9 @@ impl ColPaliEmbedder {
         let images = Tensor::stack(&images, 0)?;
         Ok(images)
     }
-
-   
 }
 
 impl ColPaliEmbed for ColPaliEmbedder {
-
     fn embed(
         &self,
         text_batch: &[String],
@@ -224,10 +212,7 @@ impl ColPaliEmbed for ColPaliEmbedder {
         Ok(EmbedData::new(encoding[0].clone(), None, metadata))
     }
 
-    fn embed_image_batch(
-        &self,
-        image_paths: &[PathBuf],
-    ) -> anyhow::Result<Vec<EmbedData>> {
+    fn embed_image_batch(&self, image_paths: &[PathBuf]) -> anyhow::Result<Vec<EmbedData>> {
         let pixel_values = load_images(
             image_paths,
             self.config.vision_config.image_size,
@@ -247,11 +232,7 @@ impl ColPaliEmbed for ColPaliEmbedder {
             .map(|x| EmbedData::new(EmbeddingResult::MultiVector(x), None, None))
             .collect::<Vec<_>>())
     }
-    fn embed_file(
-        &self,
-        file_path: PathBuf,   
-        batch_size: usize,
-    ) -> anyhow::Result<Vec<EmbedData>> {
+    fn embed_file(&self, file_path: PathBuf, batch_size: usize) -> anyhow::Result<Vec<EmbedData>> {
         let dtype = self.dtype;
         let pages = get_images_from_pdf(&file_path)?;
         let mut embed_data = Vec::new();
@@ -300,9 +281,7 @@ impl ColPaliEmbed for ColPaliEmbedder {
         }
         Ok(embed_data)
     }
-
 }
-
 
 fn tokenize_batch(
     tokenizer: &Tokenizer,
@@ -387,7 +366,7 @@ fn load_images<T: AsRef<std::path::Path>>(
     Ok(images)
 }
 
-fn get_images_from_pdf<T: AsRef<Path>>(file_path: &T) -> Result<Vec<DynamicImage>, E> {
+pub fn get_images_from_pdf<T: AsRef<Path>>(file_path: &T) -> Result<Vec<DynamicImage>, E> {
     let pdf = PDF::from_file(file_path)?;
     let page_count = pdf.page_count();
     let pages = pdf.render(
@@ -396,4 +375,3 @@ fn get_images_from_pdf<T: AsRef<Path>>(file_path: &T) -> Result<Vec<DynamicImage
     )?;
     Ok(pages)
 }
-
