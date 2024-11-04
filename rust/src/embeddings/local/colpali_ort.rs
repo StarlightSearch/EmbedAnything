@@ -529,7 +529,9 @@ mod tests {
     #[tokio::test]
     async fn test_colpali_embed_file() -> anyhow::Result<()> {
         let model = MODEL.lock().unwrap();
-        let embeddings = model.embed_file(PathBuf::from("../test_files/attention.pdf"), 1).unwrap();
+        let embeddings = model
+            .embed_file(PathBuf::from("../test_files/attention.pdf"), 1)
+            .unwrap();
         assert_eq!(embeddings.len(), 15, "There should be 15 embeddings");
         Ok(())
     }
