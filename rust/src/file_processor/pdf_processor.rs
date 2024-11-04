@@ -17,7 +17,10 @@ impl PdfProcessor {
     ///
     /// Returns a `Result` containing the extracted text as a `String` if successful,
     /// or an `Error` if an error occurred during the extraction process.
-    pub fn extract_text<T: AsRef<std::path::Path>>(file_path: T, use_ocr: bool) -> Result<String, Error> {
+    pub fn extract_text<T: AsRef<std::path::Path>>(
+        file_path: T,
+        use_ocr: bool,
+    ) -> Result<String, Error> {
         if use_ocr {
             extract_text_with_ocr(&file_path)
         } else {

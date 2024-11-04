@@ -39,20 +39,19 @@ impl TextEmbedConfig {
             .with_batch_size(batch_size.unwrap_or(32))
             .with_buffer_size(buffer_size.unwrap_or(100))
             .with_ocr(use_ocr.unwrap_or(false));
-        
-            match splitting_strategy {
-                Some(SplittingStrategy::Semantic) => {
-                    if semantic_encoder.is_none() {
-                        panic!("Semantic encoder is required when using Semantic splitting strategy");
-                    }
-                    config
-                        .with_semantic_encoder(semantic_encoder.unwrap())
-                        .with_splitting_strategy(SplittingStrategy::Semantic)
-                }
-                Some(strategy) => config.with_splitting_strategy(strategy),
-                None => config,
-            }
 
+        match splitting_strategy {
+            Some(SplittingStrategy::Semantic) => {
+                if semantic_encoder.is_none() {
+                    panic!("Semantic encoder is required when using Semantic splitting strategy");
+                }
+                config
+                    .with_semantic_encoder(semantic_encoder.unwrap())
+                    .with_splitting_strategy(SplittingStrategy::Semantic)
+            }
+            Some(strategy) => config.with_splitting_strategy(strategy),
+            None => config,
+        }
     }
 
     pub fn with_chunk_size(mut self, size: usize) -> Self {

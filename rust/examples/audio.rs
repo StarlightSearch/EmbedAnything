@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
 use embed_anything::{
-    config::{self, TextEmbedConfig}, emb_audio, embeddings::embed::Embedder,
-    file_processor::audio::audio_processor::AudioDecoderModel, text_loader::SplittingStrategy,
+    config::{self, TextEmbedConfig},
+    emb_audio,
+    embeddings::embed::Embedder,
+    file_processor::audio::audio_processor::AudioDecoderModel,
+    text_loader::SplittingStrategy,
 };
 
 #[tokio::main]
@@ -29,7 +32,7 @@ async fn main() {
         .with_batch_size(32)
         .with_splitting_strategy(SplittingStrategy::Sentence)
         .with_semantic_encoder(Arc::clone(&semantic_encoder));
-    
+
     let embeddings = emb_audio(
         audio_path,
         &mut audio_decoder,
