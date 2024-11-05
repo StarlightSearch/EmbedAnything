@@ -3,7 +3,8 @@
 use std::{collections::HashMap, rc::Rc};
 
 use candle_core::Tensor;
-use embed::{EmbedData, Embedder, EmbeddingResult};
+use embed::{EmbedData, Embedder, EmbeddingResult, NumericalType};
+use serde::Deserialize;
 
 use crate::file_processor::audio::audio_processor::Segment;
 
@@ -13,11 +14,11 @@ pub mod local;
 pub mod utils;
 
 use rayon::prelude::*;
-pub fn get_text_metadata(
-    encodings: &Rc<Vec<EmbeddingResult>>,
+pub fn get_text_metadata<F: NumericalType>(
+    encodings: &Rc<Vec<EmbeddingResult<F>>>,
     text_batch: &Vec<String>,
     metadata: &Option<HashMap<String, String>>,
-) -> anyhow::Result<Vec<EmbedData>> {
+) -> anyhow::Result<Vec<EmbedData<F>>> {
     let final_embeddings = encodings
         .par_iter()
         .zip(text_batch)
@@ -26,11 +27,11 @@ pub fn get_text_metadata(
     Ok(final_embeddings)
 }
 
-pub fn get_audio_metadata<T: AsRef<std::path::Path>>(
-    encodings: Vec<EmbeddingResult>,
+pub fn get_audio_metadata<F: NumericalType, T: AsRef<std::path::Path>>(
+    encodings: Vec<EmbeddingResult<F>>,
     segments: Vec<Segment>,
     audio_file: T,
-) -> Result<Vec<EmbedData>, anyhow::Error> {
+) -> Result<Vec<EmbedData<F>>, anyhow::Error> {
     let final_embeddings = encodings
         .iter()
         .enumerate()
@@ -63,12 +64,15 @@ pub fn text_batch_from_audio(segments: &[Segment]) -> Vec<String> {
         .collect()
 }
 
-pub async fn embed_audio<T: AsRef<std::path::Path>>(
-    embeder: &Embedder,
+pub async fn embed_audio<
+    F: NumericalType + for<'de> Deserialize<'de>,
+    T: AsRef<std::path::Path>,
+>(
+    embeder: &Embedder<F>,
     segments: Vec<Segment>,
     audio_file: T,
     batch_size: Option<usize>,
-) -> Result<Vec<EmbedData>, anyhow::Error> {
+) -> Result<Vec<EmbedData<F>>, anyhow::Error> {
     let text_batch = text_batch_from_audio(&segments);
     let encodings = embeder.embed(&text_batch, batch_size).await?;
     get_audio_metadata(encodings, segments, audio_file)

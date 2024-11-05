@@ -22,7 +22,7 @@ async fn main() {
         "test_files/test.pdf",
         &model,
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None::<fn(Vec<EmbedData<f32>>)>,
     )
     .await
     .unwrap()
@@ -36,7 +36,7 @@ async fn main() {
         None,
         // Some(vec!["txt".to_string()]),
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None::<fn(Vec<EmbedData<f32>>)>,
     )
     .await
     .unwrap()

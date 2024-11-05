@@ -18,13 +18,13 @@ async fn main() -> Result<()> {
         Embedder::from_pretrained_cloud("cohere", "embed-english-v3.0", None).unwrap();
     let openai_model =
         Embedder::from_pretrained_cloud("openai", "text-embedding-3-small", None).unwrap();
-    let openai_model: Arc<Embedder> = Arc::new(openai_model);
+    let openai_model: Arc<Embedder<f32>> = Arc::new(openai_model);
     let _openai_embeddings = embed_directory_stream(
         PathBuf::from("test_files"),
         &openai_model,
         Some(vec!["pdf".to_string()]),
         Some(&text_embed_config),
-        None::<fn(Vec<EmbedData>)>,
+        None::<fn(Vec<EmbedData<f32>>)>,
     )
     .await?
     .unwrap();
@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
         "test_files/attention.pdf",
         &openai_model,
         Some(&text_embed_config),
-        None::<fn(Vec<EmbedData>)>,
+        None::<fn(Vec<EmbedData<f32>>)>,
     )
     .await?
     .unwrap();
@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
         "test_files/attention.pdf",
         &cohere_model,
         Some(&text_embed_config),
-        None::<fn(Vec<EmbedData>)>,
+        None::<fn(Vec<EmbedData<f32>>)>,
     )
     .await?
     .unwrap();

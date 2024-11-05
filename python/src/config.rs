@@ -8,7 +8,7 @@ use crate::EmbeddingModel;
 #[pyclass]
 #[derive(Default)]
 pub struct TextEmbedConfig {
-    pub inner: embed_anything::config::TextEmbedConfig,
+    pub inner: embed_anything::config::TextEmbedConfig<f32>,
 }
 
 #[pymethods]

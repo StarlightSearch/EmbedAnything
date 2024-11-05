@@ -5,12 +5,13 @@ use std::{
 
 use anyhow::Result;
 use scraper::{Html, Selector};
+use serde::Deserialize;
 use serde_json::json;
 use url::Url;
 
 use crate::{
     embeddings::{
-        embed::{EmbedData, Embedder},
+        embed::{EmbedData, Embedder, NumericalType},
         get_text_metadata,
     },
     text_loader::{SplittingStrategy, TextLoader},
@@ -27,12 +28,12 @@ pub struct WebPage {
 }
 
 impl WebPage {
-    pub async fn embed_webpage(
+    pub async fn embed_webpage<F: NumericalType + for<'de> Deserialize<'de>>(
         &self,
-        embeder: &Embedder,
+        embeder: &Embedder<F>,
         chunk_size: usize,
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbedData>> {
+    ) -> Result<Vec<EmbedData<F>>> {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
@@ -59,20 +60,21 @@ impl WebPage {
         Ok(embed_data)
     }
 
-    pub async fn embed_tag(
+    pub async fn embed_tag<F: NumericalType + for<'de> Deserialize<'de>>(
         &self,
         tag: &str,
         tag_content: &[String],
-        embeder: &Embedder,
+        embeder: &Embedder<F>,
         chunk_size: usize,
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbedData>> {
+    ) -> Result<Vec<EmbedData<F>>> {
         let mut embed_data = Vec::new();
 
         for content in tag_content {
             let textloader = TextLoader::new(chunk_size);
             let chunks =
-                match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
+                match textloader.split_into_chunks::<F>(content, SplittingStrategy::Sentence, None)
+                {
                     Some(chunks) => chunks,
                     None => continue,
                 };

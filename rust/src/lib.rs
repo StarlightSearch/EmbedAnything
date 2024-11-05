@@ -13,13 +13,14 @@ use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
-    embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
+    embed::{EmbedData, EmbedImage, Embedder, NumericalType, TextEmbedder, VisionEmbedder},
     embed_audio, get_text_metadata,
 };
 use file_loader::FileParser;
 use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use itertools::Itertools;
 use rayon::prelude::*;
+use serde::Deserialize;
 use text_cleaner::clean::Clean;
 use text_loader::{SplittingStrategy, TextLoader};
 use tokio::sync::mpsc; // Add this at the top of your file
@@ -55,11 +56,11 @@ use tokio::sync::mpsc; // Add this at the top of your file
 /// ```
 /// This will output the embeddings of the queries using the OpenAI embedding model.
 
-pub async fn embed_query(
+pub async fn embed_query<F: NumericalType + for<'de> Deserialize<'de>>(
     query: Vec<String>,
-    embeder: &Embedder,
-    config: Option<&TextEmbedConfig>,
-) -> Result<Vec<EmbedData>> {
+    embeder: &Embedder<F>,
+    config: Option<&TextEmbedConfig<F>>,
+) -> Result<Vec<EmbedData<F>>> {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let _chunk_size = config.chunk_size.unwrap_or(256);
@@ -99,14 +100,18 @@ pub async fn embed_query(
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 
-pub async fn embed_file<T: AsRef<std::path::Path>, F>(
+pub async fn embed_file<
+    T: AsRef<std::path::Path>,
+    F: NumericalType + for<'de> Deserialize<'de>,
+    E,
+>(
     file_name: T,
-    embeder: &Embedder,
-    config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
+    embeder: &Embedder<F>,
+    config: Option<&TextEmbedConfig<F>>,
+    adapter: Option<E>,
+) -> Result<Option<Vec<EmbedData<F>>>>
 where
-    F: Fn(Vec<EmbedData>), // Add Send trait bound here
+    E: Fn(Vec<EmbedData<F>>), // Add Send trait bound here
 {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
@@ -172,15 +177,15 @@ where
 /// };
 /// ```
 
-pub async fn embed_webpage<F>(
+pub async fn embed_webpage<F: NumericalType + for<'de> Deserialize<'de>, E>(
     url: String,
-    embeder: &Embedder,
-    config: Option<&TextEmbedConfig>,
+    embeder: &Embedder<F>,
+    config: Option<&TextEmbedConfig<F>>,
     // Callback function
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
+    adapter: Option<E>,
+) -> Result<Option<Vec<EmbedData<F>>>>
 where
-    F: Fn(Vec<EmbedData>),
+    E: Fn(Vec<EmbedData<F>>),
 {
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
@@ -208,18 +213,18 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn emb_text<T: AsRef<std::path::Path>, F>(
+async fn emb_text<T: AsRef<std::path::Path>, F: NumericalType + for<'de> Deserialize<'de>, E>(
     file: T,
-    embedding_model: &TextEmbedder,
+    embedding_model: &TextEmbedder<F>,
     chunk_size: Option<usize>,
     batch_size: Option<usize>,
     splitting_strategy: Option<SplittingStrategy>,
-    semantic_encoder: Option<Arc<Embedder>>,
-    adapter: Option<F>,
+    semantic_encoder: Option<Arc<Embedder<F>>>,
+    adapter: Option<E>,
     use_ocr: bool,
-) -> Result<Option<Vec<EmbedData>>>
+) -> Result<Option<Vec<EmbedData<F>>>>
 where
-    F: Fn(Vec<EmbedData>),
+    E: Fn(Vec<EmbedData<F>>),
 {
     let text = TextLoader::extract_text(&file, use_ocr)?
         .remove_leading_spaces()
@@ -250,10 +255,10 @@ where
     }
 }
 
-fn emb_image<T: AsRef<std::path::Path>>(
+fn emb_image<T: AsRef<std::path::Path>, F: NumericalType + for<'de> Deserialize<'de>>(
     image_path: T,
-    embedding_model: &VisionEmbedder,
-) -> Result<EmbedData> {
+    embedding_model: &VisionEmbedder<F>,
+) -> Result<EmbedData<F>> {
     let mut metadata = HashMap::new();
     metadata.insert(
         "file_name".to_string(),
@@ -266,12 +271,12 @@ fn emb_image<T: AsRef<std::path::Path>>(
     Ok(embedding.clone())
 }
 
-pub async fn emb_audio<T: AsRef<std::path::Path>>(
+pub async fn emb_audio<T: AsRef<std::path::Path>, E: NumericalType + for<'de> Deserialize<'de>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
-    embeder: &Arc<Embedder>,
-    text_embed_config: Option<&TextEmbedConfig>,
-) -> Result<Option<Vec<EmbedData>>> {
+    embeder: &Arc<Embedder<E>>,
+    text_embed_config: Option<&TextEmbedConfig<E>>,
+) -> Result<Option<Vec<EmbedData<E>>>> {
     let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
     let embeddings = embed_audio(
         embeder,
@@ -314,14 +319,18 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
 ///
-pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static, F>(
+pub async fn embed_image_directory<
+    E: EmbedImage<F, PathBuf> + Send + Sync + 'static,
+    F: NumericalType + for<'de> Deserialize<'de>,
+    G,
+>(
     directory: PathBuf,
-    embedding_model: &Arc<T>,
+    embedding_model: &Arc<E>,
     config: Option<&ImageEmbedConfig>,
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
+    adapter: Option<G>,
+) -> Result<Option<Vec<EmbedData<F>>>>
 where
-    F: Fn(Vec<EmbedData>),
+    G: Fn(Vec<EmbedData<F>>),
 {
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
@@ -408,7 +417,7 @@ where
     });
 
     file_parser.files.par_iter().for_each(|image| {
-        if let Err(e) = tx.send(image.clone()) {
+        if let Err(e) = tx.send(PathBuf::from(image)) {
             eprintln!("Error sending image: {:?}", e);
         }
     });
@@ -434,10 +443,14 @@ where
     }
 }
 
-async fn process_images<E: EmbedImage>(
-    image_buffer: &[String],
+async fn process_images<
+    E: EmbedImage<F, T>,
+    F: NumericalType + for<'de> Deserialize<'de>,
+    T: AsRef<std::path::Path>,
+>(
+    image_buffer: &[T],
     embeder: Arc<E>,
-) -> Result<Arc<Vec<EmbedData>>> {
+) -> Result<Arc<Vec<EmbedData<F>>>> {
     let embeddings = embeder.embed_image_batch(image_buffer)?;
     Ok(Arc::new(embeddings))
 }
@@ -472,15 +485,15 @@ async fn process_images<E: EmbedImage>(
 /// let embeddings = embed_directory_stream(directory, &embeder, extensions, config, None).await.unwrap();
 /// ```
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
-pub async fn embed_directory_stream<F>(
+pub async fn embed_directory_stream<F: NumericalType + for<'de> Deserialize<'de>, E>(
     directory: PathBuf,
-    embeder: &Arc<Embedder>,
+    embeder: &Arc<Embedder<F>>,
     extensions: Option<Vec<String>>,
-    config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
+    config: Option<&TextEmbedConfig<F>>,
+    adapter: Option<E>,
+) -> Result<Option<Vec<EmbedData<F>>>>
 where
-    F: Fn(Vec<EmbedData>),
+    E: Fn(Vec<EmbedData<F>>),
 {
     println!("Embedding directory: {:?}", directory);
 
@@ -582,7 +595,7 @@ where
             .remove_trailing_spaces()
             .remove_empty_lines();
         let chunks = textloader
-            .split_into_chunks(&text, SplittingStrategy::Sentence, None)
+            .split_into_chunks::<F>(&text, SplittingStrategy::Sentence, None)
             .unwrap_or_else(|| vec![text.clone()])
             .into_iter()
             .filter(|chunk| !chunk.trim().is_empty())
@@ -618,12 +631,12 @@ where
     }
 }
 
-pub async fn process_chunks(
+pub async fn process_chunks<F: NumericalType + for<'de> Deserialize<'de>>(
     chunks: &Vec<String>,
     metadata: &Vec<Option<HashMap<String, String>>>,
-    embedding_model: &Arc<Embedder>,
+    embedding_model: &Arc<Embedder<F>>,
     batch_size: Option<usize>,
-) -> Result<Arc<Vec<EmbedData>>> {
+) -> Result<Arc<Vec<EmbedData<F>>>> {
     let encodings = embedding_model.embed(chunks, batch_size).await?;
 
     // zip encodings with chunks and metadata

@@ -29,7 +29,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let futures = files
         .par_iter()
-        .map(|file| embed_file(file, &model, Some(&config), None::<fn(Vec<EmbedData>)>))
+        .map(|file| embed_file(file, &model, Some(&config), None::<fn(Vec<EmbedData<f32>>)>))
         .collect::<Vec<_>>();
 
     let _data = futures.into_iter().next().unwrap().await;

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use embed_anything::{
     config::{self, TextEmbedConfig},
     emb_audio,
-    embeddings::embed::Embedder,
+    embeddings::embed::{EmbedData, Embedder},
     file_processor::audio::audio_processor::AudioDecoderModel,
     text_loader::SplittingStrategy,
 };
@@ -20,12 +20,13 @@ async fn main() {
     .unwrap();
 
     let bert_model = Arc::new(
-        Embedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+        Embedder::<f32>::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
             .unwrap(),
     );
 
     let semantic_encoder = Arc::new(
-        Embedder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
+        Embedder::<f32>::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
+            .unwrap(),
     );
     let text_embed_config = TextEmbedConfig::default()
         .with_chunk_size(256)
@@ -33,7 +34,7 @@ async fn main() {
         .with_splitting_strategy(SplittingStrategy::Sentence)
         .with_semantic_encoder(Arc::clone(&semantic_encoder));
 
-    let embeddings = emb_audio(
+    let embeddings: Vec<EmbedData<f32>> = emb_audio(
         audio_path,
         &mut audio_decoder,
         &bert_model,

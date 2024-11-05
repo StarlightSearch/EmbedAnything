@@ -2,6 +2,8 @@ use candle_core::Tensor;
 use ndarray::prelude::*;
 use ndarray::{Array2, Array3};
 
+use crate::embeddings::embed::NumericalType;
+
 #[derive(Debug, Clone, Default)]
 pub enum Pooling {
     #[default]
@@ -10,12 +12,12 @@ pub enum Pooling {
 }
 
 #[derive(Debug, Clone)]
-pub enum PooledOutput {
+pub enum PooledOutput<F: NumericalType> {
     Tensor(Tensor),
-    Array(Array2<f32>),
+    Array(Array2<F>),
 }
 
-impl PooledOutput {
+impl<F: NumericalType> PooledOutput<F> {
     pub fn to_tensor(self) -> Result<Tensor, anyhow::Error> {
         Ok(match self {
             PooledOutput::Tensor(tensor) => tensor,
@@ -23,7 +25,7 @@ impl PooledOutput {
         })
     }
 
-    pub fn to_array(self) -> Result<Array2<f32>, anyhow::Error> {
+    pub fn to_array(self) -> Result<Array2<F>, anyhow::Error> {
         Ok(match self {
             PooledOutput::Tensor(_) => panic!("Not implemented"),
             PooledOutput::Array(array) => array,
@@ -31,20 +33,23 @@ impl PooledOutput {
     }
 }
 
-pub enum ModelOutput {
+pub enum ModelOutput<F: NumericalType> {
     Tensor(Tensor),
-    Array(Array3<f32>),
+    Array(Array3<F>),
 }
 
 impl Pooling {
-    pub fn pool(&self, output: &ModelOutput) -> Result<PooledOutput, anyhow::Error> {
+    pub fn pool<F: NumericalType>(
+        &self,
+        output: &ModelOutput<F>,
+    ) -> Result<PooledOutput<F>, anyhow::Error> {
         match self {
             Pooling::Cls => Self::cls(output),
             Pooling::Mean => Self::mean(output),
         }
     }
 
-    fn cls(output: &ModelOutput) -> Result<PooledOutput, anyhow::Error> {
+    fn cls<F: NumericalType>(output: &ModelOutput<F>) -> Result<PooledOutput<F>, anyhow::Error> {
         match output {
             ModelOutput::Tensor(tensor) => tensor
                 .get_on_dim(1, 0)
@@ -56,13 +61,14 @@ impl Pooling {
         }
     }
 
-    fn mean(output: &ModelOutput) -> Result<PooledOutput, anyhow::Error> {
+    fn mean<F: NumericalType>(output: &ModelOutput<F>) -> Result<PooledOutput<F>, anyhow::Error> {
         match output {
             ModelOutput::Tensor(tensor) => tensor
                 .mean(1)
                 .map(PooledOutput::Tensor)
                 .map_err(|_| anyhow::anyhow!("Mean of empty tensor")),
             ModelOutput::Array(array) => array
+                .mapv(|x| x.into())
                 .mean_axis(Axis(1))
                 .map(PooledOutput::Array)
                 .ok_or_else(|| anyhow::anyhow!("Mean of empty array")),

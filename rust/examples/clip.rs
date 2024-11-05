@@ -10,12 +10,12 @@ async fn main() {
     let now = Instant::now();
 
     let model = Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch32", None).unwrap();
-    let model: Arc<Embedder> = Arc::new(model);
+    let model: Arc<Embedder<f32>> = Arc::new(model);
     let out = embed_image_directory(
         PathBuf::from("test_files"),
         &model,
         None,
-        None::<fn(Vec<EmbedData>)>,
+        None::<fn(Vec<EmbedData<f32>>)>,
     )
     .await
     .unwrap()

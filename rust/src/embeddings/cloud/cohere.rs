@@ -2,13 +2,13 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embeddings::embed::EmbeddingResult;
+use crate::embeddings::embed::{EmbeddingResult, NumericalType};
 
 /// Represents the response from the Cohere embedding API.
 #[derive(Deserialize, Debug, Default)]
-pub struct CohereEmbedResponse {
+pub struct CohereEmbedResponse<F: NumericalType> {
     /// A vector of embeddings, where each embedding is a vector of 32-bit floating point numbers.
-    pub embeddings: Vec<Vec<f32>>,
+    pub embeddings: Vec<Vec<F>>,
 }
 
 /// Represents a CohereEmbeder struct that contains the URL and API key for making requests to the Cohere API.
@@ -54,10 +54,13 @@ impl CohereEmbedder {
         }
     }
 
-    pub async fn embed(
+    pub async fn embed<F>(
         &self,
         text_batch: &[String],
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error>
+    where
+        F: NumericalType + for<'de> Deserialize<'de>,
+    {
         let response = self
             .client
             .post(&self.url)
@@ -72,7 +75,7 @@ impl CohereEmbedder {
             .send()
             .await?;
 
-        let data = response.json::<CohereEmbedResponse>().await?;
+        let data = response.json::<CohereEmbedResponse<F>>().await?;
         let encodings = data.embeddings;
 
         let encodings = encodings
@@ -96,7 +99,7 @@ mod tests {
             "The quick brown fox jumps over the lazy dog".to_string(),
         ];
 
-        let embeddings = cohere.embed(&text_batch).await.unwrap();
+        let embeddings = cohere.embed::<f32>(&text_batch).await.unwrap();
         assert_eq!(embeddings.len(), 2);
     }
 }
