@@ -42,7 +42,7 @@ fn get_images_from_pdf<T: AsRef<std::path::Path>>(
 }
 
 fn extract_text_from_image(image: &DynamicImage, args: &Args) -> Result<String, Error> {
-    let image = Image::from_dynamic_image(&image).unwrap();
+    let image = Image::from_dynamic_image(image).unwrap();
     let text = rusty_tesseract::image_to_string(&image, args).unwrap();
     Ok(text)
 }

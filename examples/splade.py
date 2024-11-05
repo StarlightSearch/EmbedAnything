@@ -12,14 +12,14 @@ model = EmbeddingModel.from_pretrained_hf(
 )
 
 sentences = [
-        "The cat sits outside",
-        "A man is playing guitar",
-        "I love pasta",
-        "The new movie is awesome",
-        "The cat plays in the garden",
-        "A woman watches TV",
-        "The new movie is so great",
-        "Do you like pizza?",
+    "The cat sits outside",
+    "A man is playing guitar",
+    "I love pasta",
+    "The new movie is awesome",
+    "The cat plays in the garden",
+    "A woman watches TV",
+    "The new movie is so great",
+    "Do you like pizza?",
 ]
 
 embedddings = embed_query(sentences, embeder=model)
@@ -42,8 +42,3 @@ top_5_similarities = heapq.nlargest(5, similarity_scores, key=lambda x: x[0])
 # Print the top 5 similarities with sentences
 for score, i, j in top_5_similarities:
     print(f"Score: {score:.2} | {sentences[i]} | {sentences[j]}")
-
-
-
-
-

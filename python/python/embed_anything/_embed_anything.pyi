@@ -3,13 +3,14 @@ from typing import List, Dict
 from abc import ABC, abstractmethod
 
 class Adapter(ABC):
-    def __init__(self, api_key: str): 
+    def __init__(self, api_key: str):
         """
         Initializes the Adapter object.
 
         Args:
             api_key: The API key for accessing the adapter.
         """
+
     @abstractmethod
     def create_index(self, dimension: int, metric: str, index_name: str, **kwargs): ...
     """
@@ -22,15 +23,16 @@ class Adapter(ABC):
         kwargs: Additional keyword arguments.
     """
     @abstractmethod
-    def delete_index(self, index_name: str): 
+    def delete_index(self, index_name: str):
         """
         Deletes an index.
 
         Args:
             index_name: The name of the index to delete.
         """
+
     @abstractmethod
-    def convert(self, embeddings: List[List[EmbedData]]) -> List[Dict]: 
+    def convert(self, embeddings: List[List[EmbedData]]) -> List[Dict]:
         """
         Converts the embeddings to a list of dictionaries.
 
@@ -40,8 +42,9 @@ class Adapter(ABC):
         Returns:
             A list of dictionaries.
         """
+
     @abstractmethod
-    def upsert(self, data: List[Dict]): 
+    def upsert(self, data: List[Dict]):
         """
         Upserts the data into the index.
 
@@ -254,7 +257,7 @@ class ColpaliModel:
     Represents the Colpali model.
     """
 
-    def __init__(self, model_id: str, revision: str | None = None): 
+    def __init__(self, model_id: str, revision: str | None = None):
         """
         Initializes the ColpaliModel object.
 
@@ -262,7 +265,22 @@ class ColpaliModel:
             model_id: The ID of the model from Hugging Face.
             revision: The revision of the model.
         """
+
     def from_pretrained(model_id: str, revision: str | None = None) -> ColpaliModel:
+        """
+        Loads a pre-trained Colpali model from the Hugging Face model hub.
+
+        Args:
+            model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+
+        Returns:
+            A ColpaliModel object.
+        """
+
+    def from_pretrained_onnx(
+        model_id: str, revision: str | None = None
+    ) -> ColpaliModel:
         """
         Loads a pre-trained Colpali model from the Hugging Face model hub.
 
@@ -329,6 +347,7 @@ class TextEmbedConfig:
     buffer_size: int | None
     semantic_encoder: EmbeddingModel | None
     use_ocr: bool | None
+
 class ImageEmbedConfig:
     """
     Represents the configuration for the Image Embedding model.

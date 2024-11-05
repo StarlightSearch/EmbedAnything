@@ -26,4 +26,3 @@ class Adapter(ABC):
     def upsert(self, data: List[Dict]):
         data = self.convert(data)
         pass
-
