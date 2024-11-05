@@ -35,7 +35,7 @@ class WeaviateAdapter(Adapter):
         return data
 
     def upsert(self, data_):
-        data_=self.convert(data_)
+        data_ = self.convert(data_)
         self.client.collections.get(self.index_name).data.insert_many(data_)
 
     def delete_index(self, index_name: str):
@@ -59,7 +59,7 @@ model = embed_anything.EmbeddingModel.from_pretrained_hf(
 )
 
 
-data= embed_anything.embed_image_directory(
+data = embed_anything.embed_image_directory(
     "../../test_files/clip", embeder=model, adapter=weaviate_adapter
 )
 

@@ -1,18 +1,21 @@
-import base64
 from embed_anything import EmbedData, ColpaliModel
 import numpy as np
 from tabulate import tabulate
 from pathlib import Path
-from PIL import Image
-import io
 
 
 # Load the model
-model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+# model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+
+# Load ONNX Model
+model: ColpaliModel = ColpaliModel.from_pretrained_onnx(
+    "akshayballal/colpali-v1.2-merged-onnx", None
+)
 
 # Get all PDF files in the directory
 directory = Path("test_files")
 files = list(directory.glob("*.pdf"))
+# files = [Path("test_files/attention.pdf")]
 
 file_embed_data: list[EmbedData] = []
 for file in files:
@@ -32,14 +35,22 @@ query_embeddings = np.array([e.embedding for e in query_embedding])
 print(file_embeddings.shape)
 print(query_embeddings.shape)
 
-scores = np.einsum("bnd,csd->bcns", query_embeddings, file_embeddings).max(axis=3).sum(axis=2).squeeze()
+scores = (
+    np.einsum("bnd,csd->bcns", query_embeddings, file_embeddings)
+    .max(axis=3)
+    .sum(axis=2)
+    .squeeze()
+)
 
 # Get top pages
 top_pages = np.argsort(scores)[-5:][::-1]
 
 # Extract file names and page numbers
 table = [
-    [file_embed_data[page].metadata["file_path"], file_embed_data[page].metadata["page_number"]]
+    [
+        file_embed_data[page].metadata["file_path"],
+        file_embed_data[page].metadata["page_number"],
+    ]
     for page in top_pages
 ]
 
@@ -47,9 +58,3 @@ table = [
 print(tabulate(table, headers=["File Name", "Page Number"], tablefmt="grid"))
 
 images = [file_embed_data[page].metadata["image"] for page in top_pages]
-
-# Convert base64 to image
-image = Image.open(io.BytesIO(base64.b64decode(images[0])))
-
-# Display the image
-image.show()

@@ -97,9 +97,10 @@ impl ColPaliEmbedder {
         let vb = unsafe { VarBuilder::from_mmaped_safetensors(&weights_filename, dtype, &device)? };
 
         let model = Model::new(&config, vb)?;
-        let dummy_prompt: &str = "Describe the image";
+        let dummy_prompt: &str = "Describe the image.";
 
         let dummy_input: Tensor = tokenize_batch(&tokenizer, vec![dummy_prompt], &device)?;
+
         Ok(Self {
             model: RwLock::new(model),
             tokenizer,

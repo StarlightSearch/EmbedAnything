@@ -2,7 +2,6 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::Error as E;
 use base64::Engine;
-use candle_core::Device;
 use candle_transformers::models::paligemma;
 use half::f16;
 use image::{DynamicImage, ImageFormat};
@@ -24,7 +23,7 @@ pub struct OrtColPaliEmbedder {
 }
 
 impl OrtColPaliEmbedder {
-    pub fn new(model_id: &str, revision: Option<&str>, max_length: usize) -> Result<Self, E> {
+    pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, E> {
         let api = hf_hub::api::sync::Api::new()?;
         let repo: hf_hub::api::sync::ApiRepo = match revision {
             Some(rev) => api.repo(hf_hub::Repo::with_revision(
@@ -58,7 +57,7 @@ impl OrtColPaliEmbedder {
         };
         let trunc = TruncationParams {
             strategy: tokenizers::TruncationStrategy::LongestFirst,
-            max_length,
+            max_length: config.text_config.max_position_embeddings,
             ..Default::default()
         };
 
@@ -84,9 +83,7 @@ impl OrtColPaliEmbedder {
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
 
-        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
-        let dummy_prompt: &str = "Describe the image.";
-
+        let dummy_prompt: &str = "Describe the image.\n";
         let dummy_input = tokenize(&tokenizer, dummy_prompt.to_string())?;
 
         Ok(Self {
@@ -157,6 +154,39 @@ fn get_attention_mask(tokenizer: &Tokenizer, text_batch: &[String]) -> Result<Ar
     .unwrap())
 }
 
+impl OrtColPaliEmbedder {
+    fn run_model(
+        &self,
+        token_ids: Array2<i64>,
+        attention_mask: Array2<i64>,
+        pixel_values: Array4<f32>,
+    ) -> Result<Vec<EmbeddingResult>, E> {
+        let outputs = self
+            .model
+            .run(ort::inputs![token_ids, pixel_values, attention_mask].unwrap())
+            .unwrap();
+
+        let embeddings: Array3<f16> = outputs["last_hidden_state"]
+            .try_extract_tensor::<f16>()?
+            .to_owned()
+            .into_dimensionality::<ndarray::Ix3>()?;
+
+        let e = embeddings
+            .outer_iter()
+            .map(|row| {
+                EmbeddingResult::MultiVector(
+                    row.outer_iter()
+                        .map(|x| x.to_vec())
+                        .map(|y| y.into_iter().map(|z| z.to_f32()).collect::<Vec<f32>>())
+                        .collect(),
+                )
+            })
+            .collect();
+
+        Ok(e)
+    }
+}
+
 impl ColPaliEmbed for OrtColPaliEmbedder {
     fn embed(
         &self,
@@ -164,9 +194,9 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
-        let encodings: Vec<Vec<Vec<f32>>> = text_batch
+        let encodings = text_batch
             .par_chunks(batch_size)
-            .flat_map(|mini_text_batch| -> Result<Vec<Vec<Vec<f32>>>, E> {
+            .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
                 let token_ids: Array2<i64> = tokenize_batch(&self.tokenizer, mini_text_batch)?;
                 let attention_mask: Array2<i64> =
                     get_attention_mask(&self.tokenizer, mini_text_batch)?;
@@ -176,58 +206,23 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
                     self.image_size,
                     self.image_size,
                 ));
-                let outputs = self
-                    .model
-                    .run(ort::inputs![token_ids, pixel_values, attention_mask].unwrap())
-                    .unwrap();
-
-                let embeddings: Array3<f16> = outputs["last_hidden_state"]
-                    .try_extract_tensor::<f16>()?
-                    .to_owned()
-                    .into_dimensionality::<ndarray::Ix3>()?;
-
-                let e = embeddings
-                    .outer_iter()
-                    .map(|row| row.outer_iter().map(|x| x.to_vec()).collect::<Vec<_>>())
-                    .map(|x| {
-                        x.iter()
-                            .map(|y| y.iter().map(|z| z.to_f32()).collect::<Vec<f32>>())
-                            .collect::<Vec<Vec<f32>>>()
-                    })
-                    .collect::<Vec<Vec<Vec<f32>>>>();
+                let e = self.run_model(token_ids, attention_mask, pixel_values)?;
                 Ok(e)
             })
             .flatten()
             .collect::<Vec<_>>();
 
-        Ok(encodings
-            .iter()
-            .map(|x| EmbeddingResult::MultiVector(x.to_vec()))
-            .collect())
+        Ok(encodings)
     }
 
     fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>> {
-        let token_ids = tokenize_batch(&self.tokenizer, &vec![query.to_string()])?;
-        let attention_mask = get_attention_mask(&self.tokenizer, &vec![query.to_string()])?;
-        let pixel_values: Array4<f32> = Array4::zeros((1, 3, 448, 448));
-        let outputs = self
-            .model
-            .run(ort::inputs![token_ids, pixel_values, attention_mask].unwrap())
-            .unwrap();
-        let embeddings: Array3<f16> = outputs["last_hidden_state"]
-            .try_extract_tensor::<f16>()?
-            .to_owned()
-            .into_dimensionality::<ndarray::Ix3>()?;
-
-        let e = embeddings
-            .outer_iter()
-            .map(|row| row.outer_iter().map(|x| x.to_vec()).collect::<Vec<_>>())
-            .map(|x| {
-                x.iter()
-                    .map(|y| y.iter().map(|z| z.to_f32()).collect::<Vec<f32>>())
-                    .collect::<Vec<Vec<f32>>>()
-            })
-            .map(|x| EmbeddingResult::MultiVector(x))
+        let token_ids = tokenize_batch(&self.tokenizer, &[query.to_string()])?;
+        let attention_mask = get_attention_mask(&self.tokenizer, &[query.to_string()])?;
+        let pixel_values: Array4<f32> =
+            Array4::zeros((1, self.num_channels, self.image_size, self.image_size));
+        let e = self
+            .run_model(token_ids, attention_mask, pixel_values)?
+            .into_iter()
             .map(|x| EmbedData::new(x, None, None))
             .collect::<Vec<_>>();
         Ok(e)
@@ -240,7 +235,7 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
             let start_page = index * batch_size + 1;
             let end_page = start_page + batch.len();
             let page_numbers = (start_page..=end_page).collect::<Vec<_>>();
-            let page_images = pages_to_array(&batch, self.num_channels, self.image_size)?;
+            let page_images = pages_to_array(batch, self.num_channels, self.image_size)?;
 
             let mut dummy_input_batches = vec![];
             for _ in 0..page_images.shape()[0] {
@@ -261,28 +256,10 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
             let attention_mask =
                 Array2::<i64>::ones((page_images.shape()[0], 1024 + self.dummy_input.shape()[1]));
 
-            let outputs = self
-                .model
-                .run(ort::inputs![input_ids, page_images, attention_mask].unwrap())
-                .unwrap();
-
-            let image_embeddings: Array3<f16> = outputs["last_hidden_state"]
-                .try_extract_tensor::<f16>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix3>()?;
-
-            let image_embeddings = image_embeddings
-                .outer_iter()
-                .map(|row| row.outer_iter().map(|x| x.to_vec()).collect::<Vec<_>>())
-                .map(|x| {
-                    EmbeddingResult::MultiVector(
-                        x.iter()
-                            .map(|y| y.iter().map(|z| z.to_f32()).collect::<Vec<f32>>())
-                            .collect::<Vec<Vec<f32>>>(),
-                    )
-                });
+            let image_embeddings = self.run_model(input_ids, attention_mask, page_images)?;
             // zip the embeddings with the page numbers
             let embed_data_batch = image_embeddings
+                .into_iter()
                 .zip(page_numbers.into_iter())
                 .zip(batch.iter())
                 .map(|((embedding, page_number), page_image)| {
@@ -320,30 +297,16 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
         let image_input_ids = Array2::<i64>::from_elem((1, 1024), 257152);
         let input_ids = ndarray::concatenate![Axis(1), image_input_ids, self.dummy_input.clone()];
 
-        let outputs = self
-            .model
-            .run(ort::inputs![input_ids, image_array, attention_mask].unwrap())
-            .unwrap();
-        let embeddings: Array3<f16> = outputs["last_hidden_state"]
-            .try_extract_tensor::<f16>()?
-            .to_owned()
-            .into_dimensionality::<ndarray::Ix3>()?;
-        let e = embeddings
-            .outer_iter()
-            .map(|row| row.outer_iter().map(|x| x.to_vec()).collect::<Vec<_>>())
-            .map(|x| {
-                x.iter()
-                    .map(|y| y.iter().map(|z| z.to_f32()).collect::<Vec<f32>>())
-                    .collect::<Vec<Vec<f32>>>()
-            })
-            .map(|x| EmbeddingResult::MultiVector(x))
+        let e = self
+            .run_model(input_ids, attention_mask, image_array)?
+            .into_iter()
             .map(|x| EmbedData::new(x, None, metadata.clone()))
             .collect::<Vec<_>>();
         Ok(e[0].clone())
     }
 
     fn embed_image_batch(&self, image_paths: &[PathBuf]) -> anyhow::Result<Vec<EmbedData>> {
-        let image_array = load_images_as_array(&image_paths, self.num_channels, self.image_size)?;
+        let image_array = load_images_as_array(image_paths, self.num_channels, self.image_size)?;
 
         let attention_mask =
             Array2::<i64>::ones((image_array.shape()[0], 1024 + self.dummy_input.shape()[1]));
@@ -351,7 +314,7 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
         // to the dummy input prefix the token id 257152.
         let image_input_ids = Array2::<i64>::from_elem((image_array.shape()[0], 1024), 257152);
         let mut dummy_input_batches = vec![];
-        for i in 0..image_array.shape()[0] {
+        for _ in 0..image_array.shape()[0] {
             dummy_input_batches.push(self.dummy_input.clone());
         }
         let dummy_input_batches = Array2::<i64>::from_shape_vec(
@@ -363,23 +326,9 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
         )?;
         let input_ids = ndarray::concatenate![Axis(1), image_input_ids, dummy_input_batches];
 
-        let outputs = self
-            .model
-            .run(ort::inputs![input_ids, image_array, attention_mask].unwrap())
-            .unwrap();
-        let embeddings: Array3<f16> = outputs["last_hidden_state"]
-            .try_extract_tensor::<f16>()?
-            .to_owned()
-            .into_dimensionality::<ndarray::Ix3>()?;
-        let e = embeddings
-            .outer_iter()
-            .map(|row| row.outer_iter().map(|x| x.to_vec()).collect::<Vec<_>>())
-            .map(|x| {
-                x.iter()
-                    .map(|y| y.iter().map(|z| z.to_f32()).collect::<Vec<f32>>())
-                    .collect::<Vec<Vec<f32>>>()
-            })
-            .map(|x| EmbeddingResult::MultiVector(x))
+        let e = self
+            .run_model(input_ids, attention_mask, image_array)?
+            .into_iter()
             .enumerate()
             .map(|(i, x)| {
                 let mut metadata: HashMap<String, String> = HashMap::new();
@@ -408,6 +357,9 @@ fn pages_to_array(
         );
         let img = img.to_rgb8();
         let img = img.into_raw();
+        let img = Array4::from_shape_vec((1, image_size, image_size, 3), img)?
+            .permuted_axes((0, 3, 1, 2));
+
         let img = img
             .into_iter()
             .map(|x| x as f32 / 255.)
@@ -473,7 +425,7 @@ mod tests {
 
     lazy_static! {
         static ref MODEL: Mutex<OrtColPaliEmbedder> = Mutex::new(
-            OrtColPaliEmbedder::new("akshayballal/colpali-v1.2-merged-onnx", None, 128).unwrap()
+            OrtColPaliEmbedder::new("akshayballal/colpali-v1.2-merged-onnx", None).unwrap()
         );
     }
 

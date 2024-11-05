@@ -77,6 +77,7 @@ def audio_decoder() -> AudioDecoderModel:
     )
     return model
 
+
 @pytest.fixture
 def openai_model() -> EmbeddingModel:
     model = EmbeddingModel.from_pretrained_cloud(

@@ -21,12 +21,14 @@ config = TextEmbedConfig(
 start = time()
 
 data: list[EmbedData] = embed_anything.embed_file(
-    "/home/akshay/projects/starlaw/src-server/test_files/court.pdf", embeder=model, config=config
+    "/home/akshay/projects/starlaw/src-server/test_files/court.pdf",
+    embeder=model,
+    config=config,
 )
 end = time()
 
 for d in data:
     print(d.text)
-    print("---"*20)
+    print("---" * 20)
 
 print(f"Time taken: {end - start} seconds")
