@@ -7,7 +7,10 @@ use std::{
 
 use crate::{
     chunkers::statistical::StatisticalChunker,
-    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
+    embeddings::{
+        embed::{NumericalType, TextEmbedder},
+        local::jina::JinaEmbedder,
+    },
 };
 use crate::{
     embeddings::embed::Embedder,
@@ -15,6 +18,7 @@ use crate::{
 };
 use anyhow::Error;
 use chrono::{DateTime, Local};
+use serde::Deserialize;
 use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
@@ -81,11 +85,11 @@ impl TextLoader {
             // splitter: TextSplitter::new(ChunkConfig::new(chunk_size)),
         }
     }
-    pub fn split_into_chunks(
+    pub fn split_into_chunks<F: NumericalType + for<'de> Deserialize<'de>>(
         &self,
         text: &str,
         splitting_strategy: SplittingStrategy,
-        semantic_encoder: Option<Arc<Embedder>>,
+        semantic_encoder: Option<Arc<Embedder<F>>>,
     ) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
@@ -101,7 +105,7 @@ impl TextLoader {
                 let embeder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
                     TextEmbedder::Jina(JinaEmbedder::default()),
                 )));
-                let chunker = StatisticalChunker {
+                let chunker = StatisticalChunker::<F> {
                     encoder: embeder,
                     ..Default::default()
                 };
@@ -169,7 +173,10 @@ impl TextLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embeddings::{embed::EmbedImage, local::clip::ClipEmbedder};
+    use crate::embeddings::{
+        embed::{EmbedData, EmbedImage},
+        local::clip::ClipEmbedder,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -187,7 +194,7 @@ mod tests {
     fn test_image_embeder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
         let embeder = ClipEmbedder::default();
-        let emb_data = embeder.embed_image(file_path, None).unwrap();
+        let emb_data: EmbedData<f32> = embeder.embed_image(file_path, None).unwrap();
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }
 }

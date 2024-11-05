@@ -1,18 +1,23 @@
 use std::sync::Arc;
 
-use crate::{embeddings::embed::Embedder, text_loader::SplittingStrategy};
+use serde::Deserialize;
+
+use crate::{
+    embeddings::embed::{Embedder, NumericalType},
+    text_loader::SplittingStrategy,
+};
 
 #[derive(Clone)]
-pub struct TextEmbedConfig {
+pub struct TextEmbedConfig<F: NumericalType> {
     pub chunk_size: Option<usize>,
     pub batch_size: Option<usize>,
     pub buffer_size: Option<usize>, // Required for adapter. Default is 100.
     pub splitting_strategy: Option<SplittingStrategy>,
-    pub semantic_encoder: Option<Arc<Embedder>>,
+    pub semantic_encoder: Option<Arc<Embedder<F>>>,
     pub use_ocr: Option<bool>,
 }
 
-impl Default for TextEmbedConfig {
+impl<F: NumericalType> Default for TextEmbedConfig<F> {
     fn default() -> Self {
         Self {
             chunk_size: Some(256),
@@ -25,13 +30,13 @@ impl Default for TextEmbedConfig {
     }
 }
 
-impl TextEmbedConfig {
+impl<F: NumericalType> TextEmbedConfig<F> {
     pub fn new(
         chunk_size: Option<usize>,
         batch_size: Option<usize>,
         buffer_size: Option<usize>,
         splitting_strategy: Option<SplittingStrategy>,
-        semantic_encoder: Option<Arc<Embedder>>,
+        semantic_encoder: Option<Arc<Embedder<F>>>,
         use_ocr: Option<bool>,
     ) -> Self {
         let config = Self::default()
@@ -74,7 +79,7 @@ impl TextEmbedConfig {
         self
     }
 
-    pub fn with_semantic_encoder(mut self, encoder: Arc<Embedder>) -> Self {
+    pub fn with_semantic_encoder(mut self, encoder: Arc<Embedder<F>>) -> Self {
         self.semantic_encoder = Some(encoder);
         self
     }

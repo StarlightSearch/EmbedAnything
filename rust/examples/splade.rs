@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let model = Arc::new(Embedder::Text(
+    let model: Arc<Embedder<f32>> = Arc::new(Embedder::Text(
         TextEmbedder::from_pretrained_hf("sparse-bert", "prithivida/Splade_PP_en_v1", None)
             .unwrap(),
     ));

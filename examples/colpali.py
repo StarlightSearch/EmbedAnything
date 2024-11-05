@@ -8,7 +8,10 @@ import io
 
 
 # Load the model
-model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+# model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+
+# Load Onnx model
+model: ColpaliModel = ColpaliModel.from_pretrained_onnx("akshayballal/colpali-v1.2-merged-onnx", None)
 
 # Get all PDF files in the directory
 directory = Path("test_files")

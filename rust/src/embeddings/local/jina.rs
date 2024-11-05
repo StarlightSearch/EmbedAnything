@@ -4,6 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use crate::embeddings::embed::NumericalType;
 use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
 use crate::models::jina_bert::{BertModel, Config};
 use anyhow::Error as E;
@@ -91,12 +92,12 @@ impl JinaEmbedder {
         Ok(Tensor::stack(&token_ids, 0)?)
     }
 
-    pub fn embed(
+    pub fn embed<F: NumericalType>(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
-        let mut encodings: Vec<EmbeddingResult> = Vec::new();
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
+        let mut encodings: Vec<EmbeddingResult<F>> = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
             let token_ids = self
@@ -110,7 +111,7 @@ impl JinaEmbedder {
 
             // Avoid using to_vec2() and instead work with the Tensor directly
             encodings.extend((0..embeddings.dim(0)?).map(|i| {
-                EmbeddingResult::DenseVector(embeddings.get(i).unwrap().to_vec1().unwrap())
+                EmbeddingResult::DenseVector(embeddings.get(i).unwrap().to_vec1::<F>().unwrap())
             }));
         }
 
@@ -127,7 +128,7 @@ mod tests {
         let embeder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None).unwrap();
         let text_batch = vec!["Hello, world!".to_string()];
 
-        let encodings = embeder.embed(&text_batch, None).unwrap();
+        let encodings = embeder.embed::<f32>(&text_batch, None).unwrap();
         println!("{:?}", encodings);
     }
 }

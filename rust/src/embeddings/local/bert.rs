@@ -4,7 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use crate::embeddings::embed::EmbeddingResult;
+use crate::embeddings::embed::{EmbeddingResult, NumericalType};
 use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
 use crate::embeddings::normalize_l2;
 use crate::embeddings::utils::{get_attention_mask, tokenize_batch};
@@ -22,12 +22,12 @@ use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 use super::pooling::{ModelOutput, Pooling};
 use super::text_embedding::ONNXModel;
 
-pub trait BertEmbed {
+pub trait BertEmbed<F: NumericalType> {
     fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error>;
 }
 #[derive(Debug, Deserialize)]
 pub struct TokenizerConfig {
@@ -147,24 +147,24 @@ impl OrtBertEmbedder {
     }
 }
 
-impl BertEmbed for OrtBertEmbedder {
+impl<F: NumericalType> BertEmbed<F> for OrtBertEmbedder {
     fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, E> {
+    ) -> Result<Vec<EmbeddingResult<F>>, E> {
         let batch_size = batch_size.unwrap_or(32);
         let encodings = text_batch
             .par_chunks(batch_size)
-            .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
+            .flat_map(|mini_text_batch| -> Result<Vec<Vec<F>>, E> {
                 let token_ids: Array2<i64> = self.tokenize_batch(mini_text_batch)?;
                 let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
                 let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
                 let outputs =
                     self.model
                         .run(ort::inputs![token_ids, token_type_ids, attention_mask]?)?;
-                let embeddings: Array3<f32> = outputs["last_hidden_state"]
-                    .try_extract_tensor::<f32>()?
+                let embeddings: Array3<F> = outputs["last_hidden_state"]
+                    .try_extract_tensor::<F>()?
                     .to_owned()
                     .into_dimensionality::<ndarray::Ix3>()?;
                 let (_, _, _) = embeddings.dim();
@@ -172,7 +172,7 @@ impl BertEmbed for OrtBertEmbedder {
                     .pooling
                     .pool(&ModelOutput::Array(embeddings))?
                     .to_array()?;
-                let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
+                let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(F::sqrt);
                 let embeddings = &embeddings / &norms.insert_axis(Axis(1));
 
                 Ok(embeddings.outer_iter().map(|row| row.to_vec()).collect())
@@ -275,14 +275,14 @@ impl BertEmbedder {
     }
 }
 
-impl BertEmbed for BertEmbedder {
+impl<F: NumericalType> BertEmbed<F> for BertEmbedder {
     fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
-        let mut encodings: Vec<EmbeddingResult> = Vec::new();
+        let mut encodings: Vec<EmbeddingResult<F>> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
             let token_ids =
@@ -294,11 +294,11 @@ impl BertEmbed for BertEmbedder {
                 .unwrap();
             let pooled_output = self
                 .pooling
-                .pool(&ModelOutput::Tensor(embeddings.clone()))?
+                .pool(&ModelOutput::<F>::Tensor(embeddings.clone()))?
                 .to_tensor()?;
 
             let embeddings = normalize_l2(&pooled_output).unwrap();
-            let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
+            let batch_encodings = embeddings.to_vec2::<F>().unwrap();
 
             encodings.extend(
                 batch_encodings
@@ -385,14 +385,14 @@ impl SparseBertEmbedder {
     }
 }
 
-impl BertEmbed for SparseBertEmbedder {
+impl<F: NumericalType> BertEmbed<F> for SparseBertEmbedder {
     fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
-        let mut encodings: Vec<EmbeddingResult> = Vec::new();
+        let mut encodings: Vec<EmbeddingResult<F>> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
             let token_ids = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device).unwrap();
@@ -418,7 +418,7 @@ impl BertEmbed for SparseBertEmbedder {
 
             encodings.extend(
                 batch_encodings
-                    .to_vec2::<f32>()?
+                    .to_vec2::<F>()?
                     .into_iter()
                     .map(|x| EmbeddingResult::DenseVector(x.to_vec())),
             );

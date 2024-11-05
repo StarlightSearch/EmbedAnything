@@ -82,7 +82,9 @@ intel-mkl-src = { version = "0.8.1", optional = true }
 accelerate-src = { version = "0.3.2", optional = true }
 indicatif = "0.17.8"
 statistical = "1.0.0"
-half = "2.4.1"
+half = {version = "2.4.1", features = ["serde"]}
+num-traits = "0.2.15"
+bytes = "1.5.0"
 
 
 [dev-dependencies]

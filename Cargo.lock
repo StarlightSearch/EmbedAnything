@@ -808,6 +808,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "byteorder",
+ "bytes",
  "candle-core",
  "candle-nn",
  "candle-transformers",
@@ -824,6 +825,7 @@ dependencies = [
  "markdown_to_text",
  "ndarray 0.16.1",
  "ndarray-linalg",
+ "num-traits",
  "ort",
  "pdf-extract",
  "pdf2image",
@@ -854,6 +856,7 @@ name = "embed_anything_python"
 version = "0.4.10"
 dependencies = [
  "embed_anything",
+ "half",
  "pyo3",
  "tokio",
 ]
@@ -1439,6 +1442,7 @@ dependencies = [
  "num-traits",
  "rand 0.8.5",
  "rand_distr",
+ "serde",
 ]
 
 [[package]]

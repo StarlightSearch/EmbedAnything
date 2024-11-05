@@ -8,30 +8,67 @@ use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::JinaEmbedder;
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
+use candle_core::WithDType;
+use half::f16;
+use num_traits::cast::FromPrimitive;
+use num_traits::Float;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-#[derive(Deserialize, Debug, Clone)]
-pub enum EmbeddingResult {
-    DenseVector(Vec<f32>),
-    MultiVector(Vec<Vec<f32>>),
+pub trait NumericalType:
+    std::fmt::Debug
+    + Clone
+    + WithDType
+    + ort::PrimitiveTensorElementType
+    + FromPrimitive
+    + Float
+    + Send
+    + Sync
+{
+    fn from_f32(value: f32) -> Self;
+    fn from_f16(value: f16) -> Self;
 }
 
-impl From<Vec<f32>> for EmbeddingResult {
-    fn from(value: Vec<f32>) -> Self {
+impl NumericalType for f32 {
+    fn from_f32(value: f32) -> Self {
+        value
+    }
+
+    fn from_f16(value: f16) -> Self {
+        value.to_f32()
+    }
+}
+impl NumericalType for f16 {
+    fn from_f32(value: f32) -> Self {
+        f16::from_f32(value)
+    }
+
+    fn from_f16(value: f16) -> Self {
+        value
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum EmbeddingResult<T: NumericalType> {
+    DenseVector(Vec<T>),
+    MultiVector(Vec<Vec<T>>),
+}
+
+impl<T: NumericalType> From<Vec<T>> for EmbeddingResult<T> {
+    fn from(value: Vec<T>) -> Self {
         EmbeddingResult::DenseVector(value)
     }
 }
 
-impl From<Vec<Vec<f32>>> for EmbeddingResult {
-    fn from(value: Vec<Vec<f32>>) -> Self {
+impl<T: NumericalType> From<Vec<Vec<T>>> for EmbeddingResult<T> {
+    fn from(value: Vec<Vec<T>>) -> Self {
         EmbeddingResult::MultiVector(value)
     }
 }
 
-impl EmbeddingResult {
-    pub fn to_dense(&self) -> Result<Vec<f32>, anyhow::Error> {
+impl<T: NumericalType> EmbeddingResult<T> {
+    pub fn to_dense(&self) -> Result<Vec<T>, anyhow::Error> {
         match self {
             EmbeddingResult::DenseVector(x) => Ok(x.to_vec()),
             EmbeddingResult::MultiVector(_) => Err(anyhow!(
@@ -40,7 +77,7 @@ impl EmbeddingResult {
         }
     }
 
-    pub fn to_multi_vector(&self) -> Result<Vec<Vec<f32>>, anyhow::Error> {
+    pub fn to_multi_vector(&self) -> Result<Vec<Vec<T>>, anyhow::Error> {
         match self {
             EmbeddingResult::MultiVector(x) => Ok(x.to_vec()),
             EmbeddingResult::DenseVector(_) => Err(anyhow!(
@@ -50,16 +87,16 @@ impl EmbeddingResult {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct EmbedData {
-    pub embedding: EmbeddingResult,
+#[derive(Debug, Clone)]
+pub struct EmbedData<T: NumericalType> {
+    pub embedding: EmbeddingResult<T>,
     pub text: Option<String>,
     pub metadata: Option<HashMap<String, String>>,
 }
 
-impl EmbedData {
+impl<T: NumericalType> EmbedData<T> {
     pub fn new(
-        embedding: EmbeddingResult,
+        embedding: EmbeddingResult<T>,
         text: Option<String>,
         metadata: Option<HashMap<String, String>>,
     ) -> Self {
@@ -85,19 +122,19 @@ pub trait AudioDecoder {
         -> Result<Vec<Segment>, anyhow::Error>;
 }
 
-pub enum TextEmbedder {
+pub enum TextEmbedder<F: NumericalType> {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
     Jina(JinaEmbedder),
-    Bert(Box<dyn BertEmbed + Send + Sync>),
+    Bert(Box<dyn BertEmbed<F> + Send + Sync>),
 }
 
-impl TextEmbedder {
+impl<F: NumericalType + for<'de> Deserialize<'de>> TextEmbedder<F> {
     pub async fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
         match self {
             TextEmbedder::OpenAI(embeder) => embeder.embed(text_batch).await,
             TextEmbedder::Cohere(embeder) => embeder.embed(text_batch).await,
@@ -176,19 +213,19 @@ impl TextEmbedder {
     }
 }
 
-pub enum VisionEmbedder {
+pub enum VisionEmbedder<F: NumericalType> {
     Clip(ClipEmbedder),
-    ColPali(Box<dyn ColPaliEmbed + Send + Sync>),
+    ColPali(Box<dyn ColPaliEmbed<F> + Send + Sync>),
 }
 
-impl From<VisionEmbedder> for Embedder {
-    fn from(value: VisionEmbedder) -> Self {
+impl<F: NumericalType> From<VisionEmbedder<F>> for Embedder<F> {
+    fn from(value: VisionEmbedder<F>) -> Self {
         Embedder::Vision(value)
     }
 }
 
-impl From<Embedder> for VisionEmbedder {
-    fn from(value: Embedder) -> Self {
+impl<F: NumericalType> From<Embedder<F>> for VisionEmbedder<F> {
+    fn from(value: Embedder<F>) -> Self {
         match value {
             Embedder::Vision(value) => value,
             _ => panic!("Invalid embedder type"),
@@ -196,8 +233,8 @@ impl From<Embedder> for VisionEmbedder {
     }
 }
 
-impl From<Embedder> for TextEmbedder {
-    fn from(value: Embedder) -> Self {
+impl<F: NumericalType> From<Embedder<F>> for TextEmbedder<F> {
+    fn from(value: Embedder<F>) -> Self {
         match value {
             Embedder::Text(value) => value,
             _ => panic!("Invalid embedder type"),
@@ -205,7 +242,7 @@ impl From<Embedder> for TextEmbedder {
     }
 }
 
-impl VisionEmbedder {
+impl<F: NumericalType> VisionEmbedder<F> {
     pub fn from_pretrained_hf(
         model: &str,
         model_id: &str,
@@ -224,17 +261,17 @@ impl VisionEmbedder {
     }
 }
 
-pub enum Embedder {
-    Text(TextEmbedder),
-    Vision(VisionEmbedder),
+pub enum Embedder<F: NumericalType> {
+    Text(TextEmbedder<F>),
+    Vision(VisionEmbedder<F>),
 }
 
-impl Embedder {
+impl<F: NumericalType + for<'de> Deserialize<'de>> Embedder<F> {
     pub async fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
         match self {
             Self::Text(embeder) => embeder.embed(text_batch, batch_size).await,
             Self::Vision(embeder) => embeder.embed(text_batch, batch_size),
@@ -292,22 +329,19 @@ impl Embedder {
     }
 }
 
-impl EmbedImage for Embedder {
-    fn embed_image<T: AsRef<std::path::Path>>(
+impl<F: NumericalType, T: AsRef<std::path::Path>> EmbedImage<F, T> for Embedder<F> {
+    fn embed_image(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData> {
+    ) -> anyhow::Result<EmbedData<F>> {
         match self {
             Self::Vision(embeder) => embeder.embed_image(image_path, metadata),
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
         }
     }
 
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
-        &self,
-        image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>> {
+    fn embed_image_batch(&self, image_paths: &[T]) -> anyhow::Result<Vec<EmbedData<F>>> {
         match self {
             Self::Vision(embeder) => embeder.embed_image_batch(image_paths),
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
@@ -315,20 +349,20 @@ impl EmbedImage for Embedder {
     }
 }
 
-pub trait TextEmbed {
+pub trait TextEmbed<F: NumericalType> {
     fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error>;
 }
 
-impl TextEmbed for VisionEmbedder {
+impl<F: NumericalType> TextEmbed<F> for VisionEmbedder<F> {
     fn embed(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
         match self {
             Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
             Self::ColPali(embeder) => embeder.embed(text_batch, batch_size),
@@ -336,24 +370,21 @@ impl TextEmbed for VisionEmbedder {
     }
 }
 
-pub trait EmbedImage {
-    fn embed_image<T: AsRef<std::path::Path>>(
+pub trait EmbedImage<F: NumericalType, T: AsRef<std::path::Path>> {
+    fn embed_image(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData>;
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
-        &self,
-        image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>>;
+    ) -> anyhow::Result<EmbedData<F>>;
+    fn embed_image_batch(&self, image_paths: &[T]) -> anyhow::Result<Vec<EmbedData<F>>>;
 }
 
-impl EmbedImage for VisionEmbedder {
-    fn embed_image<T: AsRef<std::path::Path>>(
+impl<F: NumericalType, T: AsRef<std::path::Path>> EmbedImage<F, T> for VisionEmbedder<F> {
+    fn embed_image(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData> {
+    ) -> anyhow::Result<EmbedData<F>> {
         match self {
             Self::Clip(embeder) => embeder.embed_image(image_path, metadata),
             Self::ColPali(embeder) => {
@@ -362,10 +393,7 @@ impl EmbedImage for VisionEmbedder {
         }
     }
 
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
-        &self,
-        image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>> {
+    fn embed_image_batch(&self, image_paths: &[T]) -> anyhow::Result<Vec<EmbedData<F>>> {
         match self {
             Self::Clip(embeder) => embeder.embed_image_batch(image_paths),
             Self::ColPali(embeder) => embeder.embed_image_batch(

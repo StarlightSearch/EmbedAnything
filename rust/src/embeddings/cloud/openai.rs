@@ -2,18 +2,18 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embeddings::embed::EmbeddingResult;
+use crate::embeddings::embed::{EmbeddingResult, NumericalType};
 
 #[derive(Deserialize, Debug, Default)]
-pub struct OpenAIEmbedResponse {
-    pub data: Vec<EmbeddingData>,
+pub struct OpenAIEmbedResponse<F: NumericalType> {
+    pub data: Vec<EmbeddingData<F>>,
     pub model: String,
     pub usage: Usage,
 }
 
 #[derive(Deserialize, Debug, Default)]
-pub struct EmbeddingData {
-    pub embedding: Vec<f32>,
+pub struct EmbeddingData<F: NumericalType> {
+    pub embedding: Vec<F>,
     pub index: usize,
 }
 
@@ -51,10 +51,10 @@ impl OpenAIEmbedder {
         }
     }
 
-    pub async fn embed(
+    pub async fn embed<F: NumericalType + for<'de> Deserialize<'de>>(
         &self,
         text_batch: &[String],
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
         let response = self
             .client
             .post(&self.url)
@@ -67,7 +67,7 @@ impl OpenAIEmbedder {
             }))
             .send()
             .await?;
-        let data = response.json::<OpenAIEmbedResponse>().await?;
+        let data = response.json::<OpenAIEmbedResponse<F>>().await?;
 
         println!("{:?}", data.usage);
 
@@ -102,7 +102,7 @@ mod tests {
             .await
             .unwrap();
         // println!("{}", response.text().await.unwrap());
-        let data = response.json::<OpenAIEmbedResponse>().await.unwrap();
+        let data = response.json::<OpenAIEmbedResponse<f32>>().await.unwrap();
         println!("{:?}", data);
     }
 }

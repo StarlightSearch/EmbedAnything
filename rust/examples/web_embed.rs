@@ -29,7 +29,7 @@ async fn main() {
         url,
         &embeder,
         Some(&embed_config),
-        None::<fn(Vec<EmbedData>)>,
+        None::<fn(Vec<EmbedData<f32>>)>,
     )
     .await
     .unwrap()

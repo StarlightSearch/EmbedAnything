@@ -26,7 +26,7 @@ use tokio::runtime::Builder;
 
 #[pyclass]
 pub struct EmbedData {
-    pub inner: embed_anything::embeddings::embed::EmbedData,
+    pub inner: embed_anything::embeddings::embed::EmbedData<f32>,
 }
 
 #[pymethods]
@@ -126,7 +126,7 @@ impl From<String> for WhichModel {
 
 #[pyclass]
 pub struct EmbeddingModel {
-    pub inner: Arc<Embedder>,
+    pub inner: Arc<Embedder<f32>>,
 }
 
 #[pymethods]
@@ -351,7 +351,7 @@ pub fn embed_file(
     };
     let adapter = match adapter {
         Some(adapter) => {
-            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData<f32>>| {
                 Python::with_gil(|py| {
                     let upsert_fn = adapter.getattr(py, "upsert").unwrap();
                     let converted_data = data
@@ -432,7 +432,7 @@ pub fn embed_directory(
     println!("Runtime created");
     let adapter = match adapter {
         Some(adapter) => {
-            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData<f32>>| {
                 Python::with_gil(|py| {
                     let upsert_fn = adapter.getattr(py, "upsert").unwrap();
                     let converted_data = data
@@ -485,7 +485,7 @@ pub fn embed_image_directory(
 
     let adapter = match adapter {
         Some(adapter) => {
-            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData<f32>>| {
                 Python::with_gil(|py| {
                     let upsert_fn = adapter.getattr(py, "upsert").unwrap();
                     let converted_data = data
@@ -529,7 +529,7 @@ pub fn embed_webpage(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     let adapter = match adapter {
         Some(adapter) => {
-            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData<f32>>| {
                 Python::with_gil(|py| {
                     let upsert_fn = adapter.getattr(py, "upsert").unwrap();
                     let converted_data = data

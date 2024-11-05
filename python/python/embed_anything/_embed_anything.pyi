@@ -274,6 +274,18 @@ class ColpaliModel:
             A ColpaliModel object.
         """
 
+    def from_pretrained_onnx(model_id: str, revision: str | None = None) -> ColpaliModel:
+        """
+        Loads a pre-trained Colpali model from the Hugging Face model hub.
+
+        Args:
+            model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+
+        Returns:
+            A ColpaliModel object.
+        """
+
     def embed_file(self, file_path: str, batch_size: int | None = 1) -> list[EmbedData]:
         """
         Embeds the given pdf file and returns a list of EmbedData objects for each page in the file This first convert the pdf file into images and then embed each image.

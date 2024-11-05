@@ -1,16 +1,20 @@
-use crate::embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder};
+use crate::embeddings::{
+    embed::{NumericalType, TextEmbedder},
+    local::jina::JinaEmbedder,
+};
 use candle_core::Tensor;
+use serde::Deserialize;
 use text_splitter::{ChunkConfig, ChunkSizer, TextSplitter};
 use tokenizers::Tokenizer;
 
-pub struct CumulativeChunker<Sizer: ChunkSizer> {
-    pub encoder: TextEmbedder,
-    pub splitter: TextSplitter<Sizer>,
+pub struct CumulativeChunker<F: NumericalType> {
+    pub encoder: TextEmbedder<F>,
+    pub splitter: TextSplitter<Tokenizer>,
     pub score_threshold: f32,
     pub device: candle_core::Device,
 }
 
-impl Default for CumulativeChunker<Tokenizer> {
+impl<F: NumericalType> Default for CumulativeChunker<F> {
     fn default() -> Self {
         let splitter = TextSplitter::new(ChunkConfig::new(200).with_sizer(
             Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
@@ -27,8 +31,12 @@ impl Default for CumulativeChunker<Tokenizer> {
     }
 }
 
-impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
-    pub fn new(encoder: TextEmbedder, splitter: TextSplitter<Sizer>, score_threshold: f32) -> Self {
+impl<F: NumericalType + for<'de> Deserialize<'de>> CumulativeChunker<F> {
+    pub fn new(
+        encoder: TextEmbedder<F>,
+        splitter: TextSplitter<Tokenizer>,
+        score_threshold: f32,
+    ) -> Self {
         Self {
             encoder,
             splitter,
@@ -92,7 +100,8 @@ impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
                     .to_dense()
                     .unwrap();
 
-                let curr_sim_score = self._cosine_similarity(curr_chunk_docs_embed, next_doc_embed);
+                let curr_sim_score = self
+                    ._cosine_similarity(curr_chunk_docs_embed.to_vec(), next_doc_embed.to_vec());
                 //decision to chunk based on similarity score.
                 if curr_sim_score < self.score_threshold {
                     chunks.push(splits[curr_chunk_idx..idx + 1].join("\n"));
@@ -111,7 +120,7 @@ impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
         }
     }
 
-    fn _cosine_similarity(&self, a: Vec<f32>, b: Vec<f32>) -> f32 {
+    fn _cosine_similarity(&self, a: Vec<F>, b: Vec<F>) -> f32 {
         let embed_dim = a.len();
 
         // convert a and b to tensors
@@ -164,7 +173,7 @@ Elarian Freiseur also places a high emphasis on using eco-friendly and sustainab
         
         ";
 
-        let chunker = CumulativeChunker::default();
+        let chunker = CumulativeChunker::<f32>::default();
         chunker._chunk(text).await;
     }
 }

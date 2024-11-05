@@ -9,7 +9,7 @@ use std::{collections::HashMap, fs};
 use anyhow::Error as E;
 
 use crate::{
-    embeddings::embed::EmbeddingResult,
+    embeddings::embed::{EmbeddingResult, NumericalType},
     models::clip::{self, ClipConfig},
 };
 use candle_core::{DType, Device, Tensor};
@@ -179,11 +179,11 @@ impl ClipEmbedder {
         Ok(images)
     }
 
-    pub fn embed(
+    pub fn embed<F: NumericalType>(
         &self,
         text_batch: &[String],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    ) -> Result<Vec<EmbeddingResult<F>>, anyhow::Error> {
         let mut encodings = Vec::new();
 
         let batch_size = batch_size.unwrap_or(32);
@@ -200,7 +200,7 @@ impl ClipEmbedder {
                 .model
                 .get_text_features(&input_ids)
                 .unwrap()
-                .to_vec2::<f32>()
+                .to_vec2::<F>()
                 .unwrap();
 
             encodings.extend(
@@ -214,11 +214,8 @@ impl ClipEmbedder {
     }
 }
 
-impl EmbedImage for ClipEmbedder {
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
-        &self,
-        image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>> {
+impl<F: NumericalType, T: AsRef<std::path::Path>> EmbedImage<F, T> for ClipEmbedder {
+    fn embed_image_batch(&self, image_paths: &[T]) -> anyhow::Result<Vec<EmbedData<F>>> {
         let config = clip::ClipConfig::vit_base_patch32();
 
         let mut encodings = Vec::new();
@@ -230,7 +227,7 @@ impl EmbedImage for ClipEmbedder {
                 .model
                 .get_image_features(&images)
                 .unwrap()
-                .to_vec2::<f32>()
+                .to_vec2::<F>()
                 .unwrap();
             encodings.extend(batch_encodings);
         }
@@ -259,11 +256,11 @@ impl EmbedImage for ClipEmbedder {
         Ok(embeddings)
     }
 
-    fn embed_image<T: AsRef<std::path::Path>>(
+    fn embed_image(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData> {
+    ) -> anyhow::Result<EmbedData<F>> {
         let config = clip::ClipConfig::vit_base_patch32();
         let image = self
             .load_image(&image_path, config.vision_config.image_size)
@@ -274,7 +271,7 @@ impl EmbedImage for ClipEmbedder {
             .model
             .get_image_features(&image)
             .unwrap()
-            .to_vec2::<f32>()
+            .to_vec2::<F>()
             .unwrap()[0];
         Ok(EmbedData::new(
             EmbeddingResult::DenseVector(encoding.to_vec()),
@@ -336,7 +333,7 @@ mod tests {
     #[test]
     fn test_embed_image_batch() {
         let clip_embeder = ClipEmbedder::default();
-        let embeddings = clip_embeder
+        let embeddings: Vec<EmbedData<f32>> = clip_embeder
             .embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"])
             .unwrap();
         assert_eq!(embeddings.len(), 2);

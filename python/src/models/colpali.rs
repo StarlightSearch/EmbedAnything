@@ -1,5 +1,6 @@
 use embed_anything::embeddings::local::colpali::ColPaliEmbed;
 use embed_anything::embeddings::local::colpali::ColPaliEmbedder;
+use embed_anything::embeddings::local::colpali_ort::OrtColPaliEmbedder;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::PyResult;
@@ -7,7 +8,7 @@ use pyo3::PyResult;
 use crate::EmbedData;
 #[pyclass]
 pub struct ColpaliModel {
-    pub model: Box<dyn ColPaliEmbed + Send + Sync>,
+    pub model: Box<dyn ColPaliEmbed<f32> + Send + Sync>,
 }
 
 #[pymethods]
@@ -26,6 +27,16 @@ impl ColpaliModel {
     #[pyo3(signature = (model_id, revision=None))]
     pub fn from_pretrained(model_id: &str, revision: Option<&str>) -> PyResult<Self> {
         let model = ColPaliEmbedder::new(model_id, revision)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        Ok(Self {
+            model: Box::new(model),
+        })
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (model_id, revision=None))]
+    pub fn from_pretrained_onnx(model_id: &str, revision: Option<&str>) -> PyResult<Self> {
+        let model = OrtColPaliEmbedder::new(model_id, revision)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self {
             model: Box::new(model),
