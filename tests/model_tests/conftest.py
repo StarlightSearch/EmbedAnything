@@ -6,6 +6,7 @@ from embed_anything import (
     EmbedData,
     EmbeddingModel,
     WhichModel,
+    ColpaliModel
 )
 
 
@@ -88,6 +89,16 @@ def openai_model() -> EmbeddingModel:
 @pytest.fixture
 def onnx_model() -> EmbeddingModel: 
     model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, "BGESmallENV15Q")
+    return model
+
+@pytest.fixture
+def colpali_onnx_model() -> ColpaliModel:
+    model = ColpaliModel.from_pretrained_onnx(model_id="akshayballal/colpali-v1.2-merged-onnx")
+    return model
+
+@pytest.fixture
+def colpali_model() -> ColpaliModel:
+    model = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged")
     return model
 
 class DummyAdapter(Adapter):
