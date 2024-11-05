@@ -85,6 +85,10 @@ def openai_model() -> EmbeddingModel:
     )
     return model
 
+@pytest.fixture
+def onnx_model() -> EmbeddingModel: 
+    model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, "BGESmallENV15Q")
+    return model
 
 class DummyAdapter(Adapter):
 
