@@ -1,10 +1,10 @@
 import heapq
-from embed_anything import EmbeddingModel, TextEmbedConfig, WhichModel, embed_query
+from embed_anything import EmbeddingModel, TextEmbedConfig, WhichModel, embed_query, ONNXModel
 import os
 from time import time
 import numpy as np
 
-model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, "BGESmallENV15Q")
+model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, ONNXModel.BGESmallENV15Q)
 
 # model = EmbeddingModel.from_pretrained_hf(
 #     WhichModel.Bert, "BAAI/bge-small-en-v1.5"
@@ -48,7 +48,7 @@ import pymupdf
 from semantic_text_splitter import TextSplitter
 import os
 
-model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, "BGESmallENV15Q")
+model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, ONNXModel.BGESmallENV15Q)
 splitter = TextSplitter(1000)
 config = TextEmbedConfig(batch_size=128)
 
