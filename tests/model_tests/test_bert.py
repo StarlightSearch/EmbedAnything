@@ -5,6 +5,7 @@ from embed_anything import (
     embed_query,
     embed_file,
     embed_directory,
+    ONNXModel
 )
 
 import os
@@ -45,7 +46,7 @@ def test_bert_model_creation():
     assert model is not None
 
 def test_onnx_model_creation():
-    model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, "BGESmallENV15Q")
+    model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, ONNXModel.AllMiniLML6V2Q)
     assert model is not None
 
 @model_fixture_parametrize
