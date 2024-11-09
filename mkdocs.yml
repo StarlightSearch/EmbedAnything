@@ -53,6 +53,7 @@ nav:
   - Guides/images.md
   - Guides/semantic.md
   - Guides/adapters.md
+  - Guides/onnx_models.md
 - Contribution:
   - RoadMap/roadmap.md
   - RoadMap/contribution.md

@@ -1,7 +1,6 @@
 pub mod config;
 pub mod models;
 use embed_anything::embeddings::embed::{TextEmbedder, VisionEmbedder};
-use embed_anything::embeddings::local::text_embedding::{models_list, ONNXModel};
 use embed_anything::{
     self,
     config::TextEmbedConfig,
@@ -16,12 +15,14 @@ use pyo3::{
     prelude::*,
     types::PyList,
 };
+use std::fmt;
 use std::str::FromStr;
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
     sync::Arc,
 };
+use strum::EnumString;
 use tokio::runtime::Builder;
 
 #[pyclass]
@@ -90,9 +91,44 @@ pub enum WhichModel {
     Colpali,
 }
 
-#[pyclass]
-#[derive(Clone)]
-pub struct ONNXModelWrapper(pub ONNXModel);
+#[pyclass(eq, eq_int)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumString)]
+pub enum ONNXModel {
+    AllMiniLML6V2,
+    AllMiniLML6V2Q,
+    AllMiniLML12V2,
+    AllMiniLML12V2Q,
+    BGEBaseENV15,
+    BGEBaseENV15Q,
+    BGELargeENV15,
+    BGELargeENV15Q,
+    BGESmallENV15,
+    BGESmallENV15Q,
+    NomicEmbedTextV1,
+    NomicEmbedTextV15,
+    NomicEmbedTextV15Q,
+    ParaphraseMLMiniLML12V2,
+    ParaphraseMLMiniLML12V2Q,
+    ParaphraseMLMpnetBaseV2,
+    BGESmallZHV15,
+    MultilingualE5Small,
+    MultilingualE5Base,
+    MultilingualE5Large,
+    MxbaiEmbedLargeV1,
+    MxbaiEmbedLargeV1Q,
+    GTEBaseENV15,
+    GTEBaseENV15Q,
+    GTELargeENV15,
+    GTELargeENV15Q,
+    JINAV2SMALLEN,
+    JINAV2BASEEN,
+    JINAV2LARGEEN,
+}
+impl fmt::Display for ONNXModel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
 impl From<&str> for WhichModel {
     fn from(s: &str) -> Self {
@@ -246,23 +282,16 @@ impl EmbeddingModel {
     #[pyo3(signature = (model, model_id, revision=None))]
     fn from_pretrained_onnx(
         model: &WhichModel,
-        model_id: &str,
+        model_id: &ONNXModel,
         revision: Option<&str>,
     ) -> PyResult<Self> {
         match model {
             WhichModel::Bert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
                     embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
-                        ONNXModel::from_str(model_id).unwrap_or_else(|e| {
-                            panic!(
-                                "Invalid model: {:?}. Choose from {:?}",
-                                e,
-                                models_list()
-                                    .iter()
-                                    .map(|m| m.model.clone())
-                                    .collect::<Vec<_>>()
-                            )
-                        }),
+                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+                            &model_id.to_string(),
+                        ).unwrap(),
                         revision.map(|s| s.to_string()),
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
@@ -575,5 +604,6 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<WhichModel>()?;
     m.add_class::<EmbedData>()?;
     m.add_class::<config::TextEmbedConfig>()?;
+    m.add_class::<ONNXModel>()?;
     Ok(())
 }

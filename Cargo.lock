@@ -951,6 +951,8 @@ version = "0.4.12"
 dependencies = [
  "embed_anything",
  "pyo3",
+ "strum",
+ "strum_macros",
  "tokio",
 ]
 

@@ -200,3 +200,12 @@ print("Time taken: ", end_time - start_time)
 
 
 ```
+
+### Using ONNX Models
+
+```python
+
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Bert, model_id="onnx_model_link"
+)
+```

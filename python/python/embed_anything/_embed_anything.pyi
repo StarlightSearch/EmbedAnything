@@ -494,3 +494,102 @@ class WhichModel(Enum):
     Clip = ("Clip",)
     Colpali = ("Colpali",)
     SparseBert = ("SparseBert",)
+
+class ONNXModel(Enum):
+
+    """
+    Enum representing various ONNX models.
+    
+    ```markdown
+    | Enum Variant                     | Description                                      |
+    |----------------------------------|--------------------------------------------------|
+    | `AllMiniLML6V2`                  | sentence-transformers/all-MiniLM-L6-v2           |
+    | `AllMiniLML6V2Q`                 | Quantized sentence-transformers/all-MiniLM-L6-v2 |
+    | `AllMiniLML12V2`                 | sentence-transformers/all-MiniLM-L12-v2          |
+    | `AllMiniLML12V2Q`                | Quantized sentence-transformers/all-MiniLM-L12-v2|
+    | `BGEBaseENV15`                   | BAAI/bge-base-en-v1.5                            |
+    | `BGEBaseENV15Q`                  | Quantized BAAI/bge-base-en-v1.5                  |
+    | `BGELargeENV15`                  | BAAI/bge-large-en-v1.5                           |
+    | `BGELargeENV15Q`                 | Quantized BAAI/bge-large-en-v1.5                 |
+    | `BGESmallENV15`                  | BAAI/bge-small-en-v1.5 - Default                 |
+    | `BGESmallENV15Q`                 | Quantized BAAI/bge-small-en-v1.5                 |
+    | `NomicEmbedTextV1`               | nomic-ai/nomic-embed-text-v1                     |
+    | `NomicEmbedTextV15`              | nomic-ai/nomic-embed-text-v1.5                   |
+    | `NomicEmbedTextV15Q`             | Quantized nomic-ai/nomic-embed-text-v1.5         |
+    | `ParaphraseMLMiniLML12V2`        | sentence-transformers/paraphrase-MiniLM-L6-v2    |
+    | `ParaphraseMLMiniLML12V2Q`       | Quantized sentence-transformers/paraphrase-MiniLM-L6-v2 |
+    | `ParaphraseMLMpnetBaseV2`        | sentence-transformers/paraphrase-mpnet-base-v2   |
+    | `BGESmallZHV15`                  | BAAI/bge-small-zh-v1.5                           |
+    | `MultilingualE5Small`            | intfloat/multilingual-e5-small                   |
+    | `MultilingualE5Base`             | intfloat/multilingual-e5-base                    |
+    | `MultilingualE5Large`            | intfloat/multilingual-e5-large                   |
+    | `MxbaiEmbedLargeV1`              | mixedbread-ai/mxbai-embed-large-v1               |
+    | `MxbaiEmbedLargeV1Q`             | Quantized mixedbread-ai/mxbai-embed-large-v1     |
+    | `GTEBaseENV15`                   | Alibaba-NLP/gte-base-en-v1.5                     |
+    | `GTEBaseENV15Q`                  | Quantized Alibaba-NLP/gte-base-en-v1.5           |
+    | `GTELargeENV15`                  | Alibaba-NLP/gte-large-en-v1.5                    |
+    | `GTELargeENV15Q`                 | Quantized Alibaba-NLP/gte-large-en-v1.5          |
+    | `JINAV2SMALLEN`                  | jinaai/jina-embeddings-v2-small-en               |
+    | `JINAV2BASEEN`                   | jinaai/jina-embeddings-v2-base-en                |
+    | `JINAV2LARGEEN`                  | jinaai/jina-embeddings-v2-large-en               |
+    ```
+    """
+
+    AllMiniLML6V2 = "AllMiniLML6V2"
+
+    AllMiniLML6V2Q = "AllMiniLML6V2Q"
+
+    AllMiniLML12V2 = "AllMiniLML12V2"
+
+    AllMiniLML12V2Q = "AllMiniLML12V2Q"
+
+    BGEBaseENV15 = "BGEBaseENV15"
+
+    BGEBaseENV15Q = "BGEBaseENV15Q"
+
+    BGELargeENV15 = "BGELargeENV15"
+
+    BGELargeENV15Q = "BGELargeENV15Q"
+
+    BGESmallENV15 = "BGESmallENV15"
+
+    BGESmallENV15Q = "BGESmallENV15Q"
+
+    NomicEmbedTextV1 = "NomicEmbedTextV1"
+
+    NomicEmbedTextV15 = "NomicEmbedTextV15"
+
+    NomicEmbedTextV15Q = "NomicEmbedTextV15Q"
+
+    ParaphraseMLMiniLML12V2 = "ParaphraseMLMiniLML12V2"
+
+    ParaphraseMLMiniLML12V2Q = "ParaphraseMLMiniLML12V2Q"
+
+    ParaphraseMLMpnetBaseV2 = "ParaphraseMLMpnetBaseV2"
+
+    BGESmallZHV15 = "BGESmallZHV15"
+
+    MultilingualE5Small = "MultilingualE5Small"
+
+    MultilingualE5Base = "MultilingualE5Base"
+
+    MultilingualE5Large = "MultilingualE5Large"
+
+    MxbaiEmbedLargeV1 = "MxbaiEmbedLargeV1"
+
+    MxbaiEmbedLargeV1Q = "MxbaiEmbedLargeV1Q"
+
+    GTEBaseENV15 = "GTEBaseENV15"
+
+    GTEBaseENV15Q = "GTEBaseENV15Q"
+
+    GTELargeENV15 = "GTELargeENV15"
+
+    GTELargeENV15Q = "GTELargeENV15Q"
+
+    JINAV2SMALLEN = "JINAV2SMALLEN"
+
+    JINAV2BASEEN = "JINAV2BASEEN"
+
+    JINAV2LARGEEN = "JINAV2LARGEEN"
+    

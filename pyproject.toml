@@ -26,5 +26,8 @@ python-source = "python/python"
 manifest-path = "python/Cargo.toml"
 module-name = "embed_anything._embed_anything"
 
+[dependencies]
+onnxruntime = "1.19.2"
+
 [project.urls]
 Homepage = "https://github.com/StarlightSearch/EmbedAnything/tree/main"

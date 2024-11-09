@@ -24,6 +24,7 @@ use text_cleaner::clean::Clean;
 use text_loader::{SplittingStrategy, TextLoader};
 use tokio::sync::mpsc; // Add this at the top of your file
 
+
 /// Embeds a list of queries using the specified embedding model.
 ///
 /// # Arguments

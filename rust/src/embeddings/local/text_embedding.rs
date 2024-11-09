@@ -11,7 +11,7 @@ use std::{collections::HashMap, fmt::Display, sync::OnceLock};
 /// Lazy static list of all available models.
 static MODEL_MAP: OnceLock<HashMap<ONNXModel, ModelInfo<ONNXModel>>> = OnceLock::new();
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumString)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumString, Copy)]
 pub enum ONNXModel {
     /// sentence-transformers/all-MiniLM-L6-v2
     AllMiniLML6V2,
@@ -74,11 +74,6 @@ pub enum ONNXModel {
     JINAV2LARGEEN,
 }
 
-// impl From<&str> for ONNXModel {
-//     fn from(s: &str) -> Self {
-//         ONNXModel::from(s)
-//     }
-// }
 
 /// Centralized function to initialize the models map.
 fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
