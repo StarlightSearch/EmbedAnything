@@ -68,7 +68,9 @@ elasticsearch_adapter = ElasticsearchAdapter(
 
 # Prase PDF and insert documents into Elasticsearch.
 bert_config = BertConfig(
-    model_id="sentence-transformers/all-MiniLM-L6-v2", chunk_size=100
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    chunk_size=100,
+    buffer_size=200,
 )
 
 embed_config = EmbedConfig(bert=bert_config)

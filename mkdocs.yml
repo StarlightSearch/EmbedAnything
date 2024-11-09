@@ -50,7 +50,12 @@ nav:
   - blog/index.md
 - Guides:
   - Guides/colpali.md
-
+  - Guides/images.md
+  - Guides/semantic.md
+  - Guides/adapters.md
+- Contribution:
+  - RoadMap/roadmap.md
+  - RoadMap/contribution.md
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -60,6 +65,9 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
 
 extra:
   analytics: 

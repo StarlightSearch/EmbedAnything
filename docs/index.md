@@ -1,4 +1,4 @@
-# Home
+# 🏠 Home
 
 
 <p align ="center">
@@ -28,7 +28,7 @@
 </div>
 
 
-EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and storing them in a vector database.
+EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.We support dense, sparse and late-interaction embeddings.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -56,18 +56,23 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 </details>
 
 
+## 💡What is Vector Streaming
 
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
+
+[![EmbedAnythingXWeaviate](https://github.com/StarlightSearch/EmbedAnything/blob/main/docs/assets/demo.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
-- **Cloud Embedding Models:**: Supports OpenAI. Mistral and Cohere Support coming soon.  
+- **ColPali** : Support for ColPali in GPU version
+- **Splade** : Support for sparse embeddings for hybrid
+- **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
 - **Candle** : We have taken care of hardware acceleration as well, with Candle.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
-- **Scalable:** Store embeddings in a vector database for easy retrieval and scalability. 
-
+- **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
 
 
 
@@ -85,44 +90,83 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
 We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
 
 
-
 ## 🧑‍🚀 Getting Started
 
-### 💚 Installation
+### 📩 Installation
 
-`
-pip install embed-anything`
+```bash
+pip install embed-anything
+```
+
+For GPUs and using special models like ColPali <br/>
+
+```bash
+pip install embed-anything-gpu
+```
 
 
 ### 📝 Usage
 
-To use local embedding: we support Bert and Jina
 
 ```python
-import embed_anything
-data = embed_anything.embed_file("file_path.pdf", embeder= "Bert")
-embeddings = np.array([data.embedding for data in data])
+model = EmbeddingModel.from_pretrained_local(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L6-v2"
+)
+data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
 ```
 
 
+## Supported Models
 
-#### 📷 Image Embeddings
+| Model  | HF link |
+| ------------- | ------------- | 
+| Jina  | [Jina Models](https://huggingface.co/collections/jinaai/jina-embeddings-v2-65708e3ec4993b8fb968e744) | 
+| Bert | All Bert based models |
+| CLIP | openai/clip-* | 
+| Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
+| ColPali | vidore/colpali-v1.2-merged |
+| Splade | [Splade Models] (https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade based models |
+
+  
+
+### ♠️ Splade Models
+
+```python
+
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.SparseBert, "naver/splade-v3")
+```
+
+### 👁️ ColPali Models 
+
+```python
+model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+```
+
+### 📷 Image Embeddings
 
 *Requirements*: Directory with pictures you want to search for example we have `test_files` with images of cat, dogs etc
 
 ```python
 import embed_anything
-data = embed_anything.embed_directory("directory_path", embeder= "Clip")
+from embed_anything import EmbedData
+model = embed_anything.EmbeddingModel.from_pretrained_local(
+    embed_anything.WhichModel.Clip,
+    model_id="openai/clip-vit-base-patch16",
+    # revision="refs/pr/15",
+)
+data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
 embeddings = np.array([data.embedding for data in data])
-
-query = ["photo of a dog"]
-query_embedding = np.array(embed_anything.embed_query(query, embeder= "Clip")[0].embedding)
+query = ["Photo of a monkey?"]
+query_embedding = np.array(
+    embed_anything.embed_query(query, embeder=model)[0].embedding
+)
 similarities = np.dot(embeddings, query_embedding)
 max_index = np.argmax(similarities)
 Image.open(data[max_index].text).show()
 ```
 
-#### 🔊 Audio Embedding using Whisper
+### 🔊 Audio Embedding using Whisper
 *requirements*:  Audio .wav files.
 
 
@@ -156,85 +200,3 @@ print("Time taken: ", end_time - start_time)
 
 
 ```
-
-#### 🤗 Using embedding models from Hugging Face
-```python
-jina_config = JinaConfig(
-    model_id="Custom link given below", revision="main", chunk_size=100
-)
-embed_config = EmbedConfig(jina=jina_config)
-```
-
-
-| Model  | Custom link |
-| ------------- | ------------- |
-| Jina  | jinaai/jina-embeddings-v2-base-en  |
-|   | jinaai/jina-embeddings-v2-small-en  |
-| Bert | sentence-transformers/all-MiniLM-L6-v2 |
-|      | sentence-transformers/all-MiniLM-L12-v2 |
-|      | sentence-transformers/paraphrase-MiniLM-L6-v2 |
-| Clip | openai/clip-vit-base-patch32 | 
-| Whisper| Most OpenAI Whisper from huggingface supported.
-
-
-
-
-
-## 🚧 Contributing to EmbedAnything
-
-
-
-First of all, thank you for taking the time to contribute to this project. We truly appreciate your contributions, whether it's bug reports, feature suggestions, or pull requests. Your time and effort are highly valued in this project. 🚀
-
-This document provides guidelines and best practices to help you to contribute effectively. These are meant to serve as guidelines, not strict rules. We encourage you to use your best judgment and feel comfortable proposing changes to this document through a pull request.
-
-
-
-<li><a href="##-RoadMap">Roadmap</a></li>
-<li><a href="##-Quick-Start">Quick Start</a></li>
-<li><a href="##-Contributing-Guidelines">Guidelines</a></li>
-
-
-## RoadMap 
-One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
-✅ Markdown, PDFs, and Website <br />
-✅ WAV File <br />
-✅ JPG, PNG, webp <br />
-✅Add whisper for audio embeddings <br />
-✅Custom model upload, anything that is available in candle <br />
-✅Custom chunk size <br />
-✅Pinecone Adapter, to directly save it on it. <br />
-✅Zero-shot application <br />
-
-Yet to do be done <br />
-☑️Vector Database: Add functionalities to integrate with any Vector Database <br />
-☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-☑️Asynchronous chunks training
-
-
-## ✔️ Code of Conduct:
-
-Please read our [Code of Conduct] to understand the expectations we have for all contributors participating in this project. By participating, you agree to abide by our Code of Conduct.
-
-## Quick Start
-
-You can quickly get started with contributing by searching for issues with the labels **"Good First Issue"** or **"Help Needed"** in the [Issues Section]. If you think you can contribute, comment on the issue and we will assign it to you.  
-
-To set up your development environment, please follow the steps mentioned below : 
-
-1. Fork the repository from dev, We don't allow direct contribution to main
-
-
-## Contributing Guidelines 
- 
-### 🔍 Reporting Bugs
-
-
-1. Title describing the issue clearly and concisely with relevant labels
-2. Provide a detailed description of the problem and the necessary steps to reproduce the issue.
-3. Include any relevant logs, screenshots, or other helpful information supporting the issue.
-
-
-
-
-

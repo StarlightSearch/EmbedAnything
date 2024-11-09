@@ -4,7 +4,7 @@ from tqdm.auto import tqdm
 import embed_anything
 from embed_anything import EmbedData
 from embed_anything.vectordb import Adapter
-
+import textwrap
 
 ## Weaviate Adapter
 
@@ -59,17 +59,16 @@ weaviate_adapter.create_index("Test_index")
 
 # model id and embed image directory
 model = embed_anything.EmbeddingModel.from_pretrained_hf(
-    embed_anything.WhichModel.Clip,
-    model_id="openai/clip-vit-base-patch16",
-    # revision="refs/pr/15",
+    embed_anything.WhichModel.Bert,
+    model_id="sentence-transformers/all-MiniLM-L12-v2",
 )
 
 
-data = embed_anything.embed_image_directory(
-    "clip", embeder=model, adapter=weaviate_adapter
+data = embed_anything.embed_directory(
+    "test_files", embeder=model, adapter=weaviate_adapter
 )
 
-query_vector = embed_anything.embed_query(["image of a cat"], embeder=model)[
+query_vector = embed_anything.embed_query(["What is attention"], embeder=model)[
     0
 ].embedding
 
@@ -80,11 +79,10 @@ response = weaviate_adapter.collection.query.near_vector(
     return_metadata=wvc.query.MetadataQuery(certainty=True),
 )
 
-# for i in range(len(response.objects)):
-#     print(response.objects[i].properties["text"])
+for i in range(len(response.objects)):
+    print(response.objects[i].properties["text"])
 
 
-# import textwrap
 
-# for res in response.objects:
-#     print(textwrap.fill(res.properties["text"], width=120), end="\n\n")
+for res in response.objects:
+    print(textwrap.fill(res.properties["text"], width=120), end="\n\n")

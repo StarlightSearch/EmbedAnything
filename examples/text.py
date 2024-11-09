@@ -1,57 +1,71 @@
 import time
+import numpy as np
 import embed_anything
 from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
-from embed_anything.vectordb import Adapter
-import os
-from time import time
 
-
-# model = EmbeddingModel.from_pretrained_hf(
-#     WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
-# )
-
+# Initialize the model once
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
-# with semantic encoder
-# semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
-# config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
-
-# without semantic encoder
-config = TextEmbedConfig(
-    chunk_size=256, batch_size=32, buffer_size=64, splitting_strategy="sentence"
-)
-
-# data = embed_anything.embed_file("test_files/bank.txt", embeder=model, config=config)
-
-# for d in data:
-#     print(d.text)
-#     print("---"*20)
-start = time()
-
-data: list[EmbedData] = embed_anything.embed_directory(
-    "bench", embeder=model, config=config
-)
-
-config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy="sentence")
-model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="prithivida/Splade_PP_en_v1"
-)
-
-embeddings: EmbedData = embed_anything.embed_query(
-    ["Hello world my"], embeder=model, config=config
-)[0]
-
-import numpy as np
-
-print(np.array(embeddings.embedding).shape)
-
-end = time()
-
-print(
-    embed_anything.embed_query(
-        ["What is the capital of India?"], embeder=model, config=config
+# Example 1: Embedding a Directory
+def embed_directory_example():
+    # Configure the embedding process
+    config = TextEmbedConfig(
+        chunk_size=256, batch_size=32, buffer_size=64, splitting_strategy="sentence"
     )
-)
-print(f"Time taken: {end - start} seconds")
+
+    # Start timing
+    start = time.time()
+
+    # Embed all files in a directory
+    data: list[EmbedData] = embed_anything.embed_directory(
+        "bench", embeder=model, config=config
+    )
+
+    # End timing
+    end = time.time()
+
+    print(f"Time taken to embed directory: {end - start} seconds")
+
+# Example 2: Embedding a Query
+def embed_query_example():
+    # Configure the embedding process
+    config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy="sentence")
+
+    # Embed a query
+    embeddings: EmbedData = embed_anything.embed_query(
+        ["Hello world my"], embeder=model, config=config
+    )[0]
+
+    # Print the shape of the embedding
+    print(np.array(embeddings.embedding).shape)
+
+    # Embed another query and print the result
+    print(
+        embed_anything.embed_query(
+            ["What is the capital of India?"], embeder=model, config=config
+        )
+    )
+
+# Example 3: Embedding a File
+def embed_file_example():
+    # Configure the embedding process
+    config = TextEmbedConfig(
+        chunk_size=256, batch_size=32, buffer_size=64, splitting_strategy="sentence"
+    )
+
+    # Embed a single file
+    data: list[EmbedData] = embed_anything.embed_file(
+        "test_files/bank.txt", embeder=model, config=config
+    )
+
+    # Print the embedded data
+    for d in data:
+        print(d.text)
+        print("---" * 20)
+
+# Call the examples
+embed_directory_example()
+embed_query_example()
+embed_file_example()
