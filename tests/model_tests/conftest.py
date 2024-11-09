@@ -9,6 +9,8 @@ from embed_anything import (
     ColpaliModel
 )
 
+from embed_anything import ONNXModel
+
 
 @pytest.fixture
 def clip_model() -> EmbeddingModel:
@@ -88,7 +90,7 @@ def openai_model() -> EmbeddingModel:
 
 @pytest.fixture
 def onnx_model() -> EmbeddingModel: 
-    model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, "BGESmallENV15Q")
+    model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, ONNXModel.AllMiniLML6V2Q)
     return model
 
 @pytest.fixture
