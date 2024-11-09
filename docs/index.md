@@ -212,4 +212,4 @@ model = EmbeddingModel.from_pretrained_onnx(
 )
 ```
 
-See other supported ONNX Models [here](../Guides/onnx_models/)
+See other supported ONNX Models [here](../guides/onnx_models/)
