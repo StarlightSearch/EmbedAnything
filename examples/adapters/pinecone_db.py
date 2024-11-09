@@ -113,21 +113,18 @@ except:
 
 pinecone_adapter.create_index(dimension=512, metric="cosine")
 
-# bert_model = EmbeddingModel.from_pretrained_hf(
-#     WhichModel.Bert, "sentence-transformers/all-MiniLM-L12-v2", revision="main"
-# )
 
 clip_model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Clip, "openai/clip-vit-base-patch16", revision="main"
 )
 
-embed_config = TextEmbedConfig(chunk_size=512, batch_size=32)
+embed_config = TextEmbedConfig(chunk_size=512, batch_size=32, buffer_size=200)
 
 
 data = embed_anything.embed_image_directory(
     "test_files",
     embeder=clip_model,
     adapter=pinecone_adapter,
-    # config=embed_config,
+    config=embed_config,
 )
 print(data)
