@@ -85,6 +85,8 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
 ➡️Decrease the memory usage of EmbedAnything.
 
+![image](https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png)
+
 ## ⭐ Supported Models
 
 We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
@@ -125,7 +127,7 @@ data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
 | CLIP | openai/clip-* | 
 | Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
 | ColPali | vidore/colpali-v1.2-merged |
-| Splade | [Splade Models] (https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade based models |
+| Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade based models |
 
   
 
@@ -206,6 +208,8 @@ print("Time taken: ", end_time - start_time)
 ```python
 
 model = EmbeddingModel.from_pretrained_onnx(
-  WhichModel.Bert, model_id="onnx_model_link"
+  WhichModel.Bert, ONNXModel.AllMiniLML6V2Q
 )
 ```
+
+See other supported ONNX Models [here](../Guides/onnx_models/)
