@@ -212,3 +212,4 @@ model = EmbeddingModel.from_pretrained_onnx(
   WhichModel.Bert, model_id="onnx_model_link"
 )
 ```
+To see all the ONNX models supported, see [here](../guides/onnx_models)
