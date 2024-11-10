@@ -50,14 +50,14 @@ nav:
 - Blog: 
   - blog/index.md
 - Guides:
-  - Guides/colpali.md
-  - Guides/images.md
-  - Guides/semantic.md
-  - Guides/adapters.md
-  - Guides/onnx_models.md
+  - guides/colpali.md
+  - guides/images.md
+  - guides/semantic.md
+  - guides/adapters.md
+  - guides/onnx_models.md
 - Contribution:
-  - RoadMap/roadmap.md
-  - RoadMap/contribution.md
+  - roadmap/roadmap.md
+  - roadmap/contribution.md
 
 markdown_extensions:
   - pymdownx.highlight:
