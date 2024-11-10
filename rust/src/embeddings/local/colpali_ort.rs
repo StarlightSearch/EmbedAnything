@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::Error as E;
 use base64::Engine;
-use candle_transformers::models::paligemma;
+use crate::models::paligemma;
 use half::f16;
 use image::{DynamicImage, ImageFormat};
 use ndarray::prelude::*;
