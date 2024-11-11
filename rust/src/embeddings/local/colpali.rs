@@ -7,7 +7,7 @@ use anyhow::Error as E;
 use base64::Engine;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
-use candle_transformers::models::{colpali::Model, paligemma};
+use crate::models::{colpali::Model, paligemma};
 use image::{DynamicImage, ImageFormat};
 
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};

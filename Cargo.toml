@@ -20,6 +20,8 @@ pdf-extract = "0.7.7"
 candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.7.2" }
 candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.7.2" }
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.7.2" }
+candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.7.2" }
+
 ort = {version = "=2.0.0-rc.8", features = ["cuda"]}
 strum = "0.26.1"
 strum_macros = "0.26"

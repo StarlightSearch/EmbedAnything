@@ -6,6 +6,7 @@ repo_name: StarlightSearch/EmbedAnything
 theme:
   name: "material"
   logo: "assets/128x128.png"
+  favicon: "assets/icon.ico"
   icon:
     repo: fontawesome/brands/github
 
