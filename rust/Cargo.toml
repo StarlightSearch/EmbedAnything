@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.4.12"
+version = "0.4.13"
 edition.workspace = true
 license.workspace = true
 description.workspace = true
@@ -83,6 +83,8 @@ accelerate-src = { version = "0.3.2", optional = true }
 indicatif = "0.17.8"
 statistical = "1.0.0"
 half = "2.4.1"
+candle-flash-attn = { workspace = true, optional = true }
+
 
 [dev-dependencies]
 tempdir = "0.3.7"
@@ -97,3 +99,4 @@ accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/acceler
 cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-core/cuda"]
 cudnn = ["candle-core/cudnn"]
 load-dynamic = ["ort/load-dynamic"]
+flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]

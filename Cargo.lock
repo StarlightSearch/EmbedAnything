@@ -146,6 +146,9 @@ name = "anyhow"
 version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86fdf8605db99b54d3cd748a44c6d04df638eb5dafb219b135d0149bd0db01f6"
+dependencies = [
+ "backtrace",
+]
 
 [[package]]
 name = "approx"
@@ -383,7 +386,7 @@ checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
 [[package]]
 name = "candle-core"
 version = "0.7.2"
-source = "git+https://github.com/huggingface/candle.git#3d1dc06cdb44e2e012559aadd8da7342da9c2ed5"
+source = "git+https://github.com/huggingface/candle.git#e2b6b367fa852ed30ac532f8d77cd8479c7ed092"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -401,14 +404,27 @@ dependencies = [
  "rayon",
  "safetensors",
  "thiserror",
+ "ug",
+ "ug-cuda",
  "yoke",
  "zip",
 ]
 
 [[package]]
+name = "candle-flash-attn"
+version = "0.7.2"
+source = "git+https://github.com/huggingface/candle.git#e2b6b367fa852ed30ac532f8d77cd8479c7ed092"
+dependencies = [
+ "anyhow",
+ "bindgen_cuda",
+ "candle-core",
+ "half",
+]
+
+[[package]]
 name = "candle-kernels"
 version = "0.7.2"
-source = "git+https://github.com/huggingface/candle.git#3d1dc06cdb44e2e012559aadd8da7342da9c2ed5"
+source = "git+https://github.com/huggingface/candle.git#e2b6b367fa852ed30ac532f8d77cd8479c7ed092"
 dependencies = [
  "bindgen_cuda",
 ]
@@ -416,7 +432,7 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.7.2"
-source = "git+https://github.com/huggingface/candle.git#3d1dc06cdb44e2e012559aadd8da7342da9c2ed5"
+source = "git+https://github.com/huggingface/candle.git#e2b6b367fa852ed30ac532f8d77cd8479c7ed092"
 dependencies = [
  "accelerate-src",
  "candle-core",
@@ -432,11 +448,12 @@ dependencies = [
 [[package]]
 name = "candle-transformers"
 version = "0.7.2"
-source = "git+https://github.com/huggingface/candle.git#3d1dc06cdb44e2e012559aadd8da7342da9c2ed5"
+source = "git+https://github.com/huggingface/candle.git#e2b6b367fa852ed30ac532f8d77cd8479c7ed092"
 dependencies = [
  "accelerate-src",
  "byteorder",
  "candle-core",
+ "candle-flash-attn",
  "candle-nn",
  "fancy-regex",
  "intel-mkl-src",
@@ -897,13 +914,14 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "embed_anything"
-version = "0.4.12"
+version = "0.4.13"
 dependencies = [
  "accelerate-src",
  "anyhow",
  "base64 0.22.1",
  "byteorder",
  "candle-core",
+ "candle-flash-attn",
  "candle-nn",
  "candle-transformers",
  "chrono",
@@ -947,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything_python"
-version = "0.4.12"
+version = "0.4.13"
 dependencies = [
  "embed_anything",
  "pyo3",
@@ -2405,6 +2423,20 @@ dependencies = [
  "num-integer",
  "num-iter",
  "num-rational 0.2.4",
+ "num-traits",
+]
+
+[[package]]
+name = "num"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
+dependencies = [
+ "num-bigint 0.4.6",
+ "num-complex 0.4.6",
+ "num-integer",
+ "num-iter",
+ "num-rational 0.4.2",
  "num-traits",
 ]
 
@@ -3918,7 +3950,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49d57902bb128e5e38b5218d3681215ae3e322d99f65d5420e9849730d2ea372"
 dependencies = [
- "num",
+ "num 0.2.1",
  "rand 0.6.5",
 ]
 
@@ -4687,6 +4719,33 @@ name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
+
+[[package]]
+name = "ug"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4eef2ebfc18c67a6dbcacd9d8a4d85e0568cc58c82515552382312c2730ea13"
+dependencies = [
+ "half",
+ "num 0.4.3",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "ug-cuda"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c4dcab280ad0ef3957e153a82dcad608c954d02cf253b695322f502d1f8902e"
+dependencies = [
+ "cudarc",
+ "half",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "ug",
+]
 
 [[package]]
 name = "unicase"
