@@ -129,8 +129,6 @@ path = os.path.dirname(onnxruntime.__file__) + "/capi/"
 dylib_path = glob.glob(os.path.join(path, "libonnxruntime.so*"))
 os.environ["ORT_DYLIB_PATH"] = dylib_path[0]
 
-print(dylib_path)
-
 __doc__ = _embed_anything.__doc__
 if hasattr(_embed_anything, "__all__"):
     __all__ = _embed_anything.__all__
