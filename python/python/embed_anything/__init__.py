@@ -118,7 +118,6 @@ Supported Embedding Models:
 - Audio Embedding Models:
     - "Whisper"
 """
-
 from ._embed_anything import *
 from .vectordb import *
 import os
@@ -126,8 +125,13 @@ import onnxruntime
 import glob
 
 path = os.path.dirname(onnxruntime.__file__) + "/capi/"
-dylib_path = glob.glob(os.path.join(path, "libonnxruntime.so*"))
-os.environ["ORT_DYLIB_PATH"] = dylib_path[0]
+
+if path is None:
+    print("onnxruntime is not installed. Install it using `pip install onnxruntime-gpu`")
+
+else:
+    dylib_path = glob.glob(os.path.join(path, "libonnxruntime.so*"))
+    os.environ["ORT_DYLIB_PATH"] = dylib_path[0]
 
 __doc__ = _embed_anything.__doc__
 if hasattr(_embed_anything, "__all__"):
