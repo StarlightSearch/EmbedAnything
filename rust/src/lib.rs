@@ -55,7 +55,6 @@ use tokio::sync::mpsc; // Add this at the top of your file
 /// println!("{:?}", embeddings);
 /// ```
 /// This will output the embeddings of the queries using the OpenAI embedding model.
-
 pub async fn embed_query(
     query: Vec<String>,
     embeder: &Embedder,
@@ -71,6 +70,7 @@ pub async fn embed_query(
 
     Ok(embeddings)
 }
+
 /// Embeds the text from a file using the specified embedding model.
 ///
 /// # Arguments
@@ -99,7 +99,6 @@ pub async fn embed_query(
 /// let embeddings = embed_file(file_name, embeder, config).unwrap();
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
-
 pub async fn embed_file<T: AsRef<std::path::Path>, F>(
     file_name: T,
     embeder: &Embedder,
@@ -172,7 +171,6 @@ where
 ///     }
 /// };
 /// ```
-
 pub async fn embed_webpage<F>(
     url: String,
     embeder: &Embedder,
@@ -197,6 +195,63 @@ where
 
     let embeddings = webpage
         .embed_webpage(embeder, chunk_size, batch_size)
+        .await?;
+
+    // Send embeddings to vector database
+    if let Some(adapter) = adapter {
+        adapter(embeddings);
+        Ok(None)
+    } else {
+        Ok(Some(embeddings))
+    }
+}
+
+/// Embeds an HTML document using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `file_name` - The path of the HTML document to embed.
+/// * `origin` - The original URL of the document. If specified, links can be resolved and metadata
+/// points to the site.
+/// * `embedder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
+///
+/// # Returns
+///
+/// The embeddings of the HTML document.
+///
+/// # Errors
+///
+/// Returns an error if the specified embedding model is invalid.
+///
+/// # Example
+///
+/// ```
+/// embed_html(
+///     "test_files/test.html",
+///     "https://example.com/",
+///     &Embedder::Text(TextEmbedder::Jina(JinaEmbedder::default())),
+///     Some(&config),
+///     None,
+/// )
+/// ```
+pub async fn embed_html(
+    file_name: impl AsRef<std::path::Path>,
+    origin: Option<impl From<String>>,
+    embedder: &Embedder,
+    config: Option<&TextEmbedConfig>,
+    // Callback function
+    adapter: Option<impl FnOnce(Vec<EmbedData>)>,
+) -> Result<Option<Vec<EmbedData>>> {
+    let html_processor = file_processor::html_processor::HtmlProcessor::new();
+    let html = html_processor.process_html_file(file_name.as_ref(), origin)?;
+
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
+    let chunk_size = config.chunk_size.unwrap_or(256);
+    let batch_size = config.batch_size;
+
+    let embeddings = html
+        .embed_webpage(embedder, chunk_size, batch_size)
         .await?;
 
     // Send embeddings to vector database
