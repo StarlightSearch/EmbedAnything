@@ -4,15 +4,14 @@ use std::{
 };
 
 use anyhow::Result;
-use scraper::{Html, Selector};
 use serde_json::json;
-use url::Url;
 
 use crate::{
     embeddings::{
         embed::{EmbedData, Embedder},
         get_text_metadata,
     },
+    file_processor::html_processor::HtmlProcessor,
     text_loader::{SplittingStrategy, TextLoader},
 };
 
@@ -98,7 +97,7 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let encodings = embeder.embed(&chunks, batch_size).await.unwrap();
+            let encodings = embeder.embed(&chunks, batch_size).await?;
             let embeddings =
                 get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
@@ -127,11 +126,13 @@ impl Default for WebsiteProcessor {
     }
 }
 
-pub struct WebsiteProcessor;
+pub struct WebsiteProcessor {
+    html_processor: HtmlProcessor
+}
 
 impl WebsiteProcessor {
     pub fn new() -> Self {
-        Self {}
+        Self { html_processor: HtmlProcessor::new() }
     }
 
     pub fn process_website(&self, website: &str) -> Result<WebPage> {
@@ -143,54 +144,18 @@ impl WebsiteProcessor {
         };
 
         let response = reqwest::blocking::get(website)?.text()?;
-        let document = Html::parse_document(&response);
-        let headers = self.get_text_from_tag("h1,h2,h3", &document)?;
-        let paragraphs = self.get_text_from_tag("p", &document)?;
-        let codes = self.get_text_from_tag("code", &document)?;
-        let links = self.extract_links(website, &document)?;
-        let title = self.get_title(&document)?;
+        let html_document = self.html_processor.process_html(response, Some(website))?;
+
         let web_page = WebPage {
             url: website.to_string(),
-            title,
-            headers: Some(headers),
-            paragraphs: Some(paragraphs),
-            codes: Some(codes),
-            links: Some(links),
+            title: html_document.title,
+            headers: html_document.headers,
+            paragraphs: html_document.paragraphs,
+            codes: html_document.codes,
+            links: html_document.links,
         };
 
         Ok(web_page)
-    }
-
-    fn get_text_from_tag(&self, tag: &str, document: &Html) -> Result<Vec<String>, anyhow::Error> {
-        let selector = Selector::parse(tag).unwrap();
-        Ok(document
-            .select(&selector)
-            .map(|element| element.text().collect::<String>().trim().to_string())
-            .collect())
-    }
-
-    fn extract_links(&self, website: &str, document: &Html) -> Result<HashSet<String>> {
-        let mut links = HashSet::new();
-        let base_url = Url::parse(website)?;
-
-        for element in document.select(&Selector::parse("a").unwrap()) {
-            if let Some(href) = element.value().attr("href") {
-                let mut link_url = base_url.join(href)?;
-                // Normalize URLs, remove fragments and ensure they are absolute.
-                link_url.set_fragment(None);
-                links.insert(link_url.to_string());
-            }
-        }
-
-        Ok(links)
-    }
-
-    fn get_title(&self, document: &Html) -> Result<Option<String>> {
-        if let Some(title_element) = document.select(&Selector::parse("title").unwrap()).next() {
-            Ok(Some(title_element.text().collect::<String>()))
-        } else {
-            Ok(None)
-        }
     }
 }
 
