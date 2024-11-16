@@ -236,7 +236,7 @@ where
 /// ```
 pub async fn embed_html(
     file_name: impl AsRef<std::path::Path>,
-    origin: Option<impl From<String>>,
+    origin: Option<impl Into<String>>,
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
     // Callback function

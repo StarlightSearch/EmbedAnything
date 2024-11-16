@@ -143,8 +143,9 @@ impl HtmlProcessor {
         let headers = self.get_text_from_tag("h1,h2,h3", &document)?;
         let paragraphs = self.get_text_from_tag("p", &document)?;
         let codes = self.get_text_from_tag("code", &document)?;
+        let origin = origin.map(Into::into);
         let links = match &origin {
-            Some(origin) => Some(self.extract_links(origin, &document)?),
+            Some(origin) => Some(self.extract_links(&origin.clone(), &document)?),
             None => None
         };
         let title = self.get_title(&document)?;
@@ -168,9 +169,9 @@ impl HtmlProcessor {
             .collect())
     }
 
-    fn extract_links(&self, website: impl Into<String>, document: &Html) -> Result<HashSet<String>> {
+    fn extract_links(&self, website: &str, document: &Html) -> Result<HashSet<String>> {
         let mut links = HashSet::new();
-        let base_url = Url::parse(&website.into())?;
+        let base_url = Url::parse(&website)?;
 
         for element in document.select(&Selector::parse("a").expect("invalid selector for link")) {
             if let Some(href) = element.value().attr("href") {
