@@ -1,15 +1,103 @@
 use anyhow::Result;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 use scraper::{Html, Selector};
+use serde_json::json;
 use url::Url;
+use crate::embeddings::embed::{EmbedData, Embedder};
+use crate::embeddings::get_text_metadata;
+use crate::text_loader::{SplittingStrategy, TextLoader};
 
 #[derive(Debug)]
 pub struct HtmlDocument {
+    pub origin: Option<String>,
     pub title: Option<String>,
     pub headers: Option<Vec<String>>,
     pub paragraphs: Option<Vec<String>>,
     pub codes: Option<Vec<String>>,
     pub links: Option<HashSet<String>>,
+}
+
+impl HtmlDocument {
+    pub async fn embed_webpage(
+        &self,
+        embeder: &Embedder,
+        chunk_size: usize,
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbedData>> {
+        let mut embed_data = Vec::new();
+
+        if let Some(paragraphs) = &self.paragraphs {
+            embed_data.extend(
+                self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size)
+                    .await?,
+            );
+        }
+
+        if let Some(headers) = &self.headers {
+            embed_data.extend(
+                self.embed_tag("h1", headers, embeder, chunk_size, batch_size)
+                    .await?,
+            );
+        }
+
+        if let Some(codes) = &self.codes {
+            embed_data.extend(
+                self.embed_tag("code", codes, embeder, chunk_size, batch_size)
+                    .await?,
+            );
+        }
+
+        Ok(embed_data)
+    }
+
+    pub async fn embed_tag(
+        &self,
+        tag: &str,
+        tag_content: &[String],
+        embeder: &Embedder,
+        chunk_size: usize,
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbedData>> {
+        let mut embed_data = Vec::new();
+
+        for content in tag_content {
+            let textloader = TextLoader::new(chunk_size);
+            let chunks =
+                match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
+                    Some(chunks) => chunks,
+                    None => continue,
+                };
+
+            if chunks.is_empty() {
+                continue;
+            }
+
+            let tag_type = match tag {
+                "h1" => "header",
+                "h2" => "subheader",
+                "h3" => "subsubheader",
+                "p" => "paragraph",
+                "code" => "code",
+                _ => "paragraph",
+            };
+
+            let metadata = json!({
+                "url": self.origin,
+                "type": tag_type,
+                "full_text": content,
+            });
+
+            let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
+
+            let encodings = embeder.embed(&chunks, batch_size).await?;
+            let embeddings =
+                get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
+            embed_data.extend(embeddings);
+        }
+
+        Ok(embed_data)
+    }
 }
 
 /// A Struct for processing HTML files.
@@ -55,12 +143,13 @@ impl HtmlProcessor {
         let headers = self.get_text_from_tag("h1,h2,h3", &document)?;
         let paragraphs = self.get_text_from_tag("p", &document)?;
         let codes = self.get_text_from_tag("code", &document)?;
-        let links = match origin {
+        let links = match &origin {
             Some(origin) => Some(self.extract_links(origin, &document)?),
             None => None
         };
         let title = self.get_title(&document)?;
         let web_page = HtmlDocument {
+            origin,
             title,
             headers: Some(headers),
             paragraphs: Some(paragraphs),
