@@ -125,26 +125,28 @@ data = embed_anything.embed_file("file_address", embeder=model, config=config)
 ## Splade Models:
 
 ```
-
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
 )
 ```
 
-# ONNX-Runtime: from_pretrained_onnx
+## ONNX-Runtime: from_pretrained_onnx
 
-## BERT
+### BERT
 
-```model = EmbeddingModel.from_pretrained_onnx(
+```
+model = EmbeddingModel.from_pretrained_onnx(
   WhichModel.Bert, model_id="onnx_model_link"
 )
 ```
-## ColPali
 
-```model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
+### ColPali
+
+```
+model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
 ```
 
-### For Semantic Chunking
+## For Semantic Chunking
 
 ```python
 model = EmbeddingModel.from_pretrained_hf(
