@@ -38,7 +38,7 @@
 </div>
 
 
-EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, and late-interaction embeddings, offering flexibility for a wide range of use cases.
+EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -71,6 +71,7 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 ## 🚀 Key Features
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
+- **ONNX Models**: Works with ONNX models for BERT and ColPali
 - **ColPali** : Support for ColPali in GPU version
 - **Splade** : Support for sparse embeddings for hybrid
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
@@ -98,9 +99,9 @@ Vector Streaming enables you to process and generate embeddings for files and st
 
 # ⭐ Supported Models
 
-We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
+We support any hugging-face models on Candle. And We also support ONNX runtime for BERT and ColPali.
 
-## How to add custom model and Chunk Size And Semantic Chunking.
+## How to add custom model on candle: from_pretrained_hf
 ```python
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, model_id="model link from huggingface"
@@ -130,15 +131,18 @@ model = EmbeddingModel.from_pretrained_hf(
 )
 ```
 
-## ColPali Models Only runs with embed-anything-gpu
+# ONNX-Runtime: from_pretrained_onnx
 
+## BERT
 
+```model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Bert, model_id="onnx_model_link"
+)
 ```
-model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+## ColPali
+
+```model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
 ```
-
-
-
 
 ### For Semantic Chunking
 
