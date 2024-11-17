@@ -240,7 +240,7 @@ pub async fn embed_html(
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
-    adapter: Option<impl FnOnce(Vec<EmbedData>)>,
+    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>)>>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let html_processor = file_processor::html_processor::HtmlProcessor::new();
     let html = html_processor.process_html_file(file_name.as_ref(), origin)?;
