@@ -3,6 +3,7 @@ use std::sync::RwLock;
 use std::{collections::HashMap, path::Path};
 
 use crate::embeddings::embed::{EmbedData, EmbeddingResult};
+use crate::embeddings::select_device;
 use anyhow::Error as E;
 use base64::Engine;
 use candle_core::{DType, Device, Tensor};
@@ -86,7 +87,7 @@ impl ColPaliEmbedder {
             .with_truncation(Some(trunc))
             .unwrap();
 
-        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
+        let device = select_device();
 
         let dtype = if device.is_cuda() {
             DType::BF16
