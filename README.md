@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b>Generate and stream embeddings with minimalist and lightning fast framework built in rust 🦀</b>
+    <b>🦀 Rust-powered Framework for Lightning-Fast End-to-End Embedding: From Source to VectorDB</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
@@ -38,7 +38,7 @@
 </div>
 
 
-EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.We support dense, sparse and late-interaction embeddings.
+EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <!-- TABLE OF CONTENTS -->
 <details>
