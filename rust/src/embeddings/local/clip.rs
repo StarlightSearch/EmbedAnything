@@ -9,7 +9,7 @@ use std::{collections::HashMap, fs};
 use anyhow::Error as E;
 
 use crate::{
-    embeddings::embed::EmbeddingResult,
+    embeddings::{embed::EmbeddingResult, select_device},
     models::clip::{self, ClipConfig},
 };
 use candle_core::{DType, Device, Tensor};
@@ -22,8 +22,8 @@ use crate::embeddings::embed::{EmbedData, EmbedImage};
 pub struct ClipEmbedder {
     pub model: clip::ClipModel,
     pub tokenizer: Tokenizer,
+    pub device: Device,
 }
-
 impl Default for ClipEmbedder {
     fn default() -> Self {
         Self::new(
@@ -50,7 +50,7 @@ impl ClipEmbedder {
             )),
         };
 
-        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
+        let device = select_device();
 
         let vb = match api.get("model.safetensors") {
             Ok(safetensors) => unsafe {
@@ -73,7 +73,11 @@ impl ClipEmbedder {
         let model = clip::ClipModel::new(vb, &config)?;
 
         let tokenizer = Self::get_tokenizer(None)?;
-        Ok(ClipEmbedder { model, tokenizer })
+        Ok(ClipEmbedder {
+            model,
+            tokenizer,
+            device,
+        })
     }
 
     pub fn get_tokenizer(tokenizer: Option<String>) -> anyhow::Result<Tokenizer> {
@@ -94,9 +98,9 @@ impl ClipEmbedder {
     }
 
     pub fn tokenize_sequences(
+        &self,
         sequences: Option<Vec<String>>,
         tokenizer: &Tokenizer,
-        device: &Device,
     ) -> anyhow::Result<(Tensor, Vec<String>)> {
         let pad_id = *tokenizer
             .get_vocab(true)
@@ -129,7 +133,7 @@ impl ClipEmbedder {
             }
         }
 
-        let input_ids = Tensor::new(tokens, device)?;
+        let input_ids = Tensor::new(tokens, &self.device)?;
 
         Ok((input_ids, vec_seq))
     }
@@ -153,7 +157,7 @@ impl ClipEmbedder {
         let img = Tensor::from_vec(
             img,
             (height, width, 3),
-            &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
+            &self.device,
         )?
         .permute((2, 0, 1))?
         .to_dtype(DType::F32)?
@@ -189,10 +193,9 @@ impl ClipEmbedder {
         let batch_size = batch_size.unwrap_or(32);
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let (input_ids, _vec_seq) = ClipEmbedder::tokenize_sequences(
+            let (input_ids, _vec_seq) = self.tokenize_sequences(
                 Some(mini_text_batch.to_vec()),
                 &self.tokenizer,
-                &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
             )
             .unwrap();
 
@@ -297,8 +300,7 @@ mod tests {
             "EmbedAnything is the best!".to_string(),
         ]);
         let (input_ids, vec_seq) =
-            ClipEmbedder::tokenize_sequences(sequences, &clip_embeder.tokenizer, &Device::Cpu)
-                .unwrap();
+            clip_embeder.tokenize_sequences(sequences, &clip_embeder.tokenizer).unwrap();
         assert_eq!(
             vec_seq,
             vec![

@@ -15,7 +15,7 @@ async fn main() {
         .with_chunk_size(256)
         .with_batch_size(32)
         .with_buffer_size(32)
-        .with_splitting_strategy(SplittingStrategy::Semantic)
+        .with_splitting_strategy(SplittingStrategy::Sentence)
         .with_semantic_encoder(Arc::clone(&model));
 
     let _out = embed_file(

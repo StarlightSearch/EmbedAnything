@@ -4,6 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use crate::embeddings::select_device;
 use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
 use crate::models::jina_bert::{BertModel, Config};
 use anyhow::Error as E;
@@ -51,7 +52,7 @@ impl JinaEmbedder {
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
         let config = std::fs::read_to_string(config_filename)?;
         let config: Config = serde_json::from_str(&config)?;
-        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
+        let device = select_device();
         let vb = match api.get("model.safetensors") {
             Ok(safetensors) => unsafe {
                 VarBuilder::from_mmaped_safetensors(&[safetensors], DType::F32, &device)?

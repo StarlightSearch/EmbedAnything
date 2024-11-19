@@ -6,7 +6,7 @@ extern crate accelerate_src;
 
 use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
-use crate::embeddings::normalize_l2;
+use crate::embeddings::{normalize_l2, select_device};
 use crate::embeddings::utils::{get_attention_mask, tokenize_batch};
 use crate::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
 use anyhow::Error as E;
@@ -255,8 +255,8 @@ impl BertEmbedder {
             .unwrap();
 
         println!("Loading weights from {:?}", weights_filename);
+        let device = select_device();
 
-        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
         let vb = if weights_filename.ends_with("model.safetensors") {
             unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)? }
         } else {
@@ -366,7 +366,7 @@ impl SparseBertEmbedder {
 
         println!("Loading weights from {:?}", weights_filename);
 
-        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
+        let device = select_device();
         let vb = if weights_filename.ends_with("model.safetensors") {
             unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)? }
         } else {
