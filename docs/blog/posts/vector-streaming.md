@@ -5,6 +5,7 @@ authors:
  - akshay
  - sonam
 slug: vector-streaming
+title: Vector Streaming
 ---
 Introducing vector streaming in EmbedAnything, a feature designed to optimize large-scale document embedding. By enabling asynchronous chunking and embedding using Rust’s concurrency, it reduces memory usage and speeds up the process. We also show how to integrate it with the Weaviate Vector Database for seamless image embedding and search.
 

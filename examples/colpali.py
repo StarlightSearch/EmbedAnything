@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Load ONNX Model
 model: ColpaliModel = ColpaliModel.from_pretrained_onnx(
-    "akshayballal/colpali-v1.2-merged-onnx", None
+    "starlight-ai/colpali-v1.2-merged-onnx", None
 )
 
 # Get all PDF files in the directory

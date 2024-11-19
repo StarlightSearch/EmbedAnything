@@ -134,6 +134,8 @@ else:
     if platform.system() == "Windows":
         # For Windows, look for DLL files
         dylib_path = glob.glob(os.path.join(path, "onnxruntime.dll"))
+    elif platform.system() == "Darwin":
+        dylib_path = glob.glob(os.path.join(path, "onnxruntime*"))
     else:
         # For Linux, look for shared object files
         dylib_path = glob.glob(os.path.join(path, "libonnxruntime.so*"))
