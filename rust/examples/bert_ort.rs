@@ -13,7 +13,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let model =
         Arc::new(Embedder::from_pretrained_onnx("bert", ONNXModel::AllMiniLML6V2, None).unwrap());
     let config = TextEmbedConfig::default()
-        .with_chunk_size(1000)
+        .with_chunk_size(1000, Some(0.3))
         .with_batch_size(256)
         .with_buffer_size(256)
         .with_splitting_strategy(SplittingStrategy::Sentence)

@@ -30,27 +30,28 @@ impl WebPage {
         &self,
         embeder: &Embedder,
         chunk_size: usize,
+        overlap_ratio: f32,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
             embed_data.extend(
-                self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size)
+                self.embed_tag("p", paragraphs, embeder, chunk_size, overlap_ratio, batch_size)
                     .await?,
             );
         }
 
         if let Some(headers) = &self.headers {
             embed_data.extend(
-                self.embed_tag("h1", headers, embeder, chunk_size, batch_size)
+                self.embed_tag("h1", headers, embeder, chunk_size, overlap_ratio, batch_size)
                     .await?,
             );
         }
 
         if let Some(codes) = &self.codes {
             embed_data.extend(
-                self.embed_tag("code", codes, embeder, chunk_size, batch_size)
+                self.embed_tag("code", codes, embeder, chunk_size, overlap_ratio, batch_size)
                     .await?,
             );
         }
@@ -64,12 +65,13 @@ impl WebPage {
         tag_content: &[String],
         embeder: &Embedder,
         chunk_size: usize,
+        overlap_ratio: f32,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         for content in tag_content {
-            let textloader = TextLoader::new(chunk_size);
+            let textloader = TextLoader::new(chunk_size, overlap_ratio);
             let chunks =
                 match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
                     Some(chunks) => chunks,

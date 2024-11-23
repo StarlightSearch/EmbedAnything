@@ -29,7 +29,7 @@ pub enum SplittingStrategy {
 
 impl Default for TextLoader {
     fn default() -> Self {
-        Self::new(256)
+        Self::new(256, 0.0)
     }
 }
 
@@ -68,11 +68,11 @@ pub struct TextLoader {
     pub splitter: TextSplitter<Tokenizer>,
 }
 impl TextLoader {
-    pub fn new(chunk_size: usize) -> Self {
+    pub fn new(chunk_size: usize, overlap_ratio: f32) -> Self {
         Self {
             splitter: TextSplitter::new(
                 ChunkConfig::new(chunk_size)
-                    .with_overlap(chunk_size / 3)
+                    .with_overlap(chunk_size * overlap_ratio as usize)
                     .unwrap()
                     .with_sizer(
                         Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
@@ -90,10 +90,16 @@ impl TextLoader {
         if text.is_empty() {
             return None;
         }
+
+        // Remove single newlines but keep double newlines
+        let cleaned_text = text
+            .replace("\n\n", "{{DOUBLE_NEWLINE}}")
+            .replace("\n", " ")
+            .replace("{{DOUBLE_NEWLINE}}", "\n\n");
         let chunks: Vec<String> = match splitting_strategy {
             SplittingStrategy::Sentence => self
                 .splitter
-                .chunks(text)
+                .chunks(&cleaned_text)
                 .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
@@ -109,7 +115,7 @@ impl TextLoader {
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Runtime::new()
                         .unwrap()
-                        .block_on(async { chunker.chunk(text, 64).await })
+                        .block_on(async { chunker.chunk(&cleaned_text, 64).await })
                 })
             }
         };
@@ -173,6 +179,28 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    fn test_text_loader() {
+        let file_path = PathBuf::from("../test_files/test.pdf");
+        let text = TextLoader::extract_text(&file_path, false)
+        .unwrap()
+        .replace("\n\n", "{{DOUBLE_NEWLINE}}")
+        .replace("\n", " ")
+        .replace("{{DOUBLE_NEWLINE}}", "\n\n")
+        .replace("  ", " ");
+    
+        let text_loader = TextLoader::new(256, 0.0);
+        let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence, None);
+
+        for chunk in chunks.unwrap() {
+            println!("-----------------------------------");
+            println!("{}", chunk);
+        }
+
+
+        assert!(!text.is_empty());
+    }
+
+    #[test]
     fn test_metadata() {
         let file_path = PathBuf::from("test_files/test.pdf");
         let metadata = TextLoader::get_metadata(file_path.to_str().unwrap()).unwrap();
@@ -191,3 +219,4 @@ mod tests {
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }
 }
+      

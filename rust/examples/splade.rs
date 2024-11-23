@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
     ));
 
     let config = TextEmbedConfig::default()
-        .with_chunk_size(256)
+        .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(100)
         .with_splitting_strategy(SplittingStrategy::Sentence)
