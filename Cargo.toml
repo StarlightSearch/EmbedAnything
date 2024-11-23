@@ -22,7 +22,7 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", versi
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.7.2" }
 candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.7.2" }
 
-ort = {version = "=2.0.0-rc.8", features = ["cuda"]}
+ort = {version = "=2.0.0-rc.9", features = ["cuda", "load-dynamic"]}
 strum = "0.26.1"
 strum_macros = "0.26"
 

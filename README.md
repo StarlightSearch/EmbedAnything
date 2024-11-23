@@ -9,8 +9,8 @@
 <div align="center">
 
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
 [![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
 [![package]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
 [![roadmap](https://img.shields.io/badge/Roadmap-1D9BF0?style=flat&logo=twitter&logoColor=white)](https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap)
@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b>🦀 Rust-powered Framework for Lightning-Fast End-to-End Embedding: From Source to VectorDB</b>
+    <b>🦀 Rust-powered Framework for Lightning-Fast Ingestion, Inference, and Indexing</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />

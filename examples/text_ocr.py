@@ -15,7 +15,7 @@ config = TextEmbedConfig(
     batch_size=32,
     buffer_size=64,
     splitting_strategy="sentence",
-    # use_ocr=True,
+    use_ocr=True,
 )
 
 start = time()

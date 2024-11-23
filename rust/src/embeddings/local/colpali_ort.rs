@@ -6,7 +6,9 @@ use crate::models::paligemma;
 use half::f16;
 use image::{DynamicImage, ImageFormat};
 use ndarray::prelude::*;
-use ort::{CUDAExecutionProvider, ExecutionProvider, GraphOptimizationLevel, Session};
+use ort::execution_providers::{CUDAExecutionProvider, ExecutionProvider};
+use ort::session::builder::GraphOptimizationLevel;
+use ort::session::Session;
 use rayon::prelude::*;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
