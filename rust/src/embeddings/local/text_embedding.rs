@@ -307,7 +307,7 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
         .into_iter()
         .fold(HashMap::new(), |mut map, model| {
             // Insert the model into the map
-            map.insert(model.model.clone(), model);
+            map.insert(model.model, model);
             map
         })
 }
