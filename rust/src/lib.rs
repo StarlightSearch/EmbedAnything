@@ -24,7 +24,6 @@ use text_cleaner::clean::Clean;
 use text_loader::{SplittingStrategy, TextLoader};
 use tokio::sync::mpsc; // Add this at the top of your file
 
-
 /// Embeds a list of queries using the specified embedding model.
 ///
 /// # Arguments
@@ -111,6 +110,7 @@ where
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
+    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
     let splitting_strategy = config
         .splitting_strategy
@@ -124,6 +124,7 @@ where
                 file_name,
                 embeder,
                 Some(chunk_size),
+                Some(overlap_ratio),
                 batch_size,
                 Some(splitting_strategy),
                 semantic_encoder,
@@ -191,10 +192,11 @@ where
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
+    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
 
     let embeddings = webpage
-        .embed_webpage(embeder, chunk_size, batch_size)
+        .embed_webpage(embeder, chunk_size, overlap_ratio, batch_size)
         .await?;
 
     // Send embeddings to vector database
@@ -211,8 +213,7 @@ where
 /// # Arguments
 ///
 /// * `file_name` - The path of the HTML document to embed.
-/// * `origin` - The original URL of the document. If specified, links can be resolved and metadata
-/// points to the site.
+/// * `origin` - The original URL of the document. If specified, links can be resolved and metadata points to the site.
 /// * `embedder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
 ///
 /// # Returns
@@ -248,10 +249,11 @@ pub async fn embed_html(
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
+    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
 
     let embeddings = html
-        .embed_webpage(embedder, chunk_size, batch_size)
+        .embed_webpage(embedder, chunk_size, overlap_ratio, batch_size)
         .await?;
 
     // Send embeddings to vector database
@@ -268,6 +270,7 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
     embedding_model: &TextEmbedder,
     chunk_size: Option<usize>,
+    overlap_ratio: Option<f32>,
     batch_size: Option<usize>,
     splitting_strategy: Option<SplittingStrategy>,
     semantic_encoder: Option<Arc<Embedder>>,
@@ -281,7 +284,7 @@ where
         .remove_leading_spaces()
         .remove_trailing_spaces()
         .remove_empty_lines();
-    let textloader = TextLoader::new(chunk_size.unwrap_or(256));
+    let textloader = TextLoader::new(chunk_size.unwrap_or(256), overlap_ratio.unwrap_or(0.0));
     let chunks = textloader
         .split_into_chunks(
             &text,
@@ -545,7 +548,7 @@ where
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
     let use_ocr = config.use_ocr.unwrap_or(false);
-
+    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
     let files = file_parser.files.clone();
@@ -628,7 +631,7 @@ where
         }
     });
 
-    let textloader = TextLoader::new(chunk_size);
+    let textloader = TextLoader::new(chunk_size, overlap_ratio);
 
     file_parser.files.iter().for_each(|file| {
         let text = TextLoader::extract_text(file, use_ocr)
