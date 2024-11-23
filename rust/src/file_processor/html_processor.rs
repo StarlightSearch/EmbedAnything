@@ -23,27 +23,28 @@ impl HtmlDocument {
         &self,
         embeder: &Embedder,
         chunk_size: usize,
+        overlap_ratio: f32,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         if let Some(paragraphs) = &self.paragraphs {
             embed_data.extend(
-                self.embed_tag("p", paragraphs, embeder, chunk_size, batch_size)
+                self.embed_tag("p", paragraphs, embeder, chunk_size, overlap_ratio, batch_size)
                     .await?,
             );
         }
 
         if let Some(headers) = &self.headers {
             embed_data.extend(
-                self.embed_tag("h1", headers, embeder, chunk_size, batch_size)
+                self.embed_tag("h1", headers, embeder, chunk_size, overlap_ratio, batch_size)
                     .await?,
             );
         }
 
         if let Some(codes) = &self.codes {
             embed_data.extend(
-                self.embed_tag("code", codes, embeder, chunk_size, batch_size)
+                self.embed_tag("code", codes, embeder, chunk_size, overlap_ratio, batch_size)
                     .await?,
             );
         }
@@ -57,12 +58,13 @@ impl HtmlDocument {
         tag_content: &[String],
         embeder: &Embedder,
         chunk_size: usize,
+        overlap_ratio: f32,
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbedData>> {
         let mut embed_data = Vec::new();
 
         for content in tag_content {
-            let textloader = TextLoader::new(chunk_size);
+            let textloader = TextLoader::new(chunk_size, overlap_ratio);
             let chunks =
                 match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
                     Some(chunks) => chunks,
@@ -102,6 +104,12 @@ impl HtmlDocument {
 
 /// A Struct for processing HTML files.
 pub struct HtmlProcessor;
+
+impl Default for HtmlProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl HtmlProcessor {
     pub fn new() -> Self {
@@ -171,7 +179,7 @@ impl HtmlProcessor {
 
     fn extract_links(&self, website: &str, document: &Html) -> Result<HashSet<String>> {
         let mut links = HashSet::new();
-        let base_url = Url::parse(&website)?;
+        let base_url = Url::parse(website)?;
 
         for element in document.select(&Selector::parse("a").expect("invalid selector for link")) {
             if let Some(href) = element.value().attr("href") {
