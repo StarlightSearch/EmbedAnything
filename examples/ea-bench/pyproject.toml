@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "ea-bench"
+version = "0.1.0"
+description = ""
+authors = ["Akash Joshi <git@thewriting.dev>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+embed-anything = "^0.4.15"
+numpy = "^2.1.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
