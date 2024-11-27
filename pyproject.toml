@@ -31,7 +31,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 license = {file = "LICENSE"}
-dependencies = ["onnxruntime-gpu==1.20.0"]
+dependencies = ["onnxruntime==1.20.0"]
 
 [tool.maturin]
 features = ["extension-module"]

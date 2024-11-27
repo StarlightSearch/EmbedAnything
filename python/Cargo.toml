@@ -20,4 +20,5 @@ mkl = ["embed_anything/mkl"]
 accelerate = ["embed_anything/accelerate"]
 cuda = ["embed_anything/cuda"]
 cudnn = ["embed_anything/cudnn"]
+metal = ["embed_anything/metal"]
 
