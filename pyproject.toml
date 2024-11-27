@@ -2,8 +2,21 @@
 requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
+[tool.poetry]
+name = "embed_anything"
+version = "0.1.0"
+description = "Embed anything at lightning speed"
+authors = ["Akash Joshi <git@thewriting.dev>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">3.7"
+maturin = "^1.7.4"
+
 [project]
 name = "embed_anything_gpu"
+version = "0.1.0"
 requires-python = ">=3.8"
 description = "Embed anything at lightning speed"
 readme = "README.md"
