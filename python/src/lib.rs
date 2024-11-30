@@ -37,9 +37,11 @@ impl EmbedData {
         Python::with_gil(|py| {
             let embedding = self.inner.embedding.clone();
             match embedding {
-                EmbeddingResult::DenseVector(x) => PyList::new_bound(py, x).into(),
+                EmbeddingResult::DenseVector(x) => PyList::new(py, x).unwrap().into(),
                 EmbeddingResult::MultiVector(x) => {
-                    PyList::new_bound(py, x.iter().map(|inner| PyList::new_bound(py, inner))).into()
+                    PyList::new(py, x.iter().map(|inner| PyList::new(py, inner).unwrap()))
+                        .unwrap()
+                        .into()
                 }
             }
         })
@@ -291,7 +293,8 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
                         embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
                             &model_id.to_string(),
-                        ).unwrap(),
+                        )
+                        .unwrap(),
                         revision.map(|s| s.to_string()),
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
