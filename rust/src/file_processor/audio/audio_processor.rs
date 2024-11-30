@@ -16,6 +16,7 @@ use tokenizers::Tokenizer;
 use candle_transformers::models::whisper::{self as m, audio, Config};
 
 use crate::{embeddings::embed::AudioDecoder, file_processor::audio::pcm_decode};
+use crate::embeddings::select_device;
 
 pub enum WhichAudioDecoderModel {
     Normal(m::model::Whisper),
@@ -499,7 +500,7 @@ impl AudioDecoderModel {
         model_type: &str,
         quantized: bool,
     ) -> Result<Self> {
-        let device = Device::cuda_if_available(0).unwrap_or(Device::Cpu);
+        let device = select_device();
 
         match quantized {
             false => {
@@ -593,7 +594,7 @@ impl AudioDecoderModel {
         let mut dc = Decoder::new(
             self,
             299792458,
-            &Device::cuda_if_available(0).unwrap_or(Device::Cpu),
+            &self.device.clone(),
             language_token,
             Some(Task::Transcribe),
             false,

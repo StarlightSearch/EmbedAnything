@@ -78,7 +78,7 @@ pub fn normalize_l2(v: &Tensor) -> candle_core::Result<Tensor> {
     v.broadcast_div(&v.sqr()?.sum_keepdim(1)?.sqrt()?)
 }
 
-fn select_device() -> Device {
+pub fn select_device() -> Device {
     #[cfg(feature = "metal")]
     {
         Device::new_metal(0).unwrap_or(Device::Cpu)
