@@ -80,14 +80,10 @@ impl OrtColPaliEmbedder {
 
         let threads = std::thread::available_parallelism().unwrap().get();
         let model = Session::builder()?
-<<<<<<< HEAD
-            .with_execution_providers([CUDAExecutionProvider::default().build().error_on_failure()])?
-=======
             .with_execution_providers([
                 CUDAExecutionProvider::default().build(),
                 CoreMLExecutionProvider::default().build(),
             ])?
->>>>>>> main
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
