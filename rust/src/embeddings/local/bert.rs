@@ -6,15 +6,15 @@ extern crate accelerate_src;
 
 use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
-use crate::embeddings::{normalize_l2, select_device};
 use crate::embeddings::utils::{get_attention_mask, tokenize_batch};
+use crate::embeddings::{normalize_l2, select_device};
 use crate::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use hf_hub::{api::sync::Api, Repo};
 use ndarray::prelude::*;
-use ort::execution_providers::{CUDAExecutionProvider, ExecutionProvider};
+use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider};
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 use rayon::prelude::*;
@@ -113,7 +113,10 @@ impl OrtBertEmbedder {
 
         let threads = std::thread::available_parallelism().unwrap().get();
         let model = Session::builder()?
-            .with_execution_providers([CUDAExecutionProvider::default().build()])?
+            .with_execution_providers([
+                CUDAExecutionProvider::default().build(),
+                CoreMLExecutionProvider::default().build(),
+            ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
