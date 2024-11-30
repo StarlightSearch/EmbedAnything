@@ -1,12 +1,12 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use crate::models::paligemma;
 use anyhow::Error as E;
 use base64::Engine;
-use crate::models::paligemma;
 use half::f16;
 use image::{DynamicImage, ImageFormat};
 use ndarray::prelude::*;
-use ort::execution_providers::{CUDAExecutionProvider, ExecutionProvider};
+use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider};
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 use rayon::prelude::*;
@@ -80,7 +80,10 @@ impl OrtColPaliEmbedder {
 
         let threads = std::thread::available_parallelism().unwrap().get();
         let model = Session::builder()?
-            .with_execution_providers([CUDAExecutionProvider::default().build()])?
+            .with_execution_providers([
+                CUDAExecutionProvider::default().build(),
+                CoreMLExecutionProvider::default().build(),
+            ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
