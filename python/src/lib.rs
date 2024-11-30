@@ -37,9 +37,11 @@ impl EmbedData {
         Python::with_gil(|py| {
             let embedding = self.inner.embedding.clone();
             match embedding {
-                EmbeddingResult::DenseVector(x) => PyList::new_bound(py, x).into(),
+                EmbeddingResult::DenseVector(x) => PyList::new(py, x).unwrap().into(),
                 EmbeddingResult::MultiVector(x) => {
-                    PyList::new_bound(py, x.iter().map(|inner| PyList::new_bound(py, inner))).into()
+                    PyList::new(py, x.iter().map(|inner| PyList::new(py, inner).unwrap()))
+                        .unwrap()
+                        .into()
                 }
             }
         })
