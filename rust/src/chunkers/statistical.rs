@@ -3,9 +3,11 @@ use std::{cmp::max, sync::Arc};
 use crate::embeddings::{
     embed::{Embedder, TextEmbedder},
     local::jina::JinaEmbedder,
+    select_device,
 };
 use candle_core::Tensor;
 use itertools::{enumerate, Itertools};
+use text_splitter::{ChunkConfig, TextSplitter};
 // use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
@@ -24,8 +26,10 @@ pub struct StatisticalChunker {
 impl Default for StatisticalChunker {
     fn default() -> Self {
         let tokenizer = Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap();
-        let encoder = Arc::new(Embedder::Text(TextEmbedder::Jina(JinaEmbedder::default())));
-        let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
+        let encoder = Arc::new(Embedder::Text(TextEmbedder::Jina(Box::new(
+            JinaEmbedder::default(),
+        ))));
+        let device = select_device();
         Self {
             encoder,
             device,
@@ -56,7 +60,7 @@ impl StatisticalChunker {
     ) -> Self {
         Self {
             encoder,
-            device: candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu),
+            device: select_device(),
             threshold_adjustment,
             dynamic_threshold,
             window_size,
@@ -105,10 +109,12 @@ impl StatisticalChunker {
     }
 
     pub async fn chunk(&self, text: &str, batch_size: usize) -> Vec<String> {
-        // let splitter = TextSplitter::new(ChunkConfig::new(256)
-        // .with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()));
-        // let splits = splitter.chunks(text).collect::<Vec<_>>();
-        let splits = self.split_into_sentences(text, 50).unwrap();
+        let splitter = TextSplitter::new(
+            ChunkConfig::new(50)
+                .with_sizer(Tokenizer::from_pretrained("bert-base-cased", None).unwrap()),
+        );
+        let splits = splitter.chunks(text).collect::<Vec<_>>();
+        // let splits = self.split_into_sentences(text, 50).unwrap();
         if self.verbose {
             for split in splits.iter() {
                 println!("-----Split---\n{}", split);

@@ -118,6 +118,7 @@ Supported Embedding Models:
 - Audio Embedding Models:
     - "Whisper"
 """
+
 from ._embed_anything import *
 from .vectordb import *
 import platform

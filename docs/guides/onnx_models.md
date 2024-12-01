@@ -32,7 +32,7 @@
 | `GTELargeENV15Q`                 | Quantized Alibaba-NLP/gte-large-en-v1.5          |
 | `JINAV2SMALLEN`                  | jinaai/jina-embeddings-v2-small-en               |
 | `JINAV2BASEEN`                   | jinaai/jina-embeddings-v2-base-en                |
-| `JINAV2LARGEEN`                  | jinaai/jina-embeddings-v2-large-en               |
+| `JINAV3`                         | jinaai/jina-embeddings-v3                         |
 
 ## Example Usage
 

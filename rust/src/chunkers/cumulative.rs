@@ -15,7 +15,7 @@ impl Default for CumulativeChunker<Tokenizer> {
         let splitter = TextSplitter::new(ChunkConfig::new(200).with_sizer(
             Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
         ));
-        let encoder = TextEmbedder::Jina(JinaEmbedder::default());
+        let encoder = TextEmbedder::Jina(Box::new(JinaEmbedder::default()));
         let score_threshold = 0.9;
         let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
         Self {

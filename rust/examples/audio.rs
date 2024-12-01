@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
 use embed_anything::{
-    config::TextEmbedConfig,
-    emb_audio,
-    embeddings::embed::Embedder,
-    file_processor::audio::audio_processor::AudioDecoderModel,
-    text_loader::SplittingStrategy,
+    config::TextEmbedConfig, emb_audio, embeddings::embed::Embedder,
+    file_processor::audio::audio_processor::AudioDecoderModel, text_loader::SplittingStrategy,
 };
 
 #[tokio::main]

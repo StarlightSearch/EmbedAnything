@@ -500,10 +500,9 @@ class WhichModel(Enum):
     SparseBert = ("SparseBert",)
 
 class ONNXModel(Enum):
-
     """
     Enum representing various ONNX models.
-    
+
     ```markdown
     | Enum Variant                     | Description                                      |
     |----------------------------------|--------------------------------------------------|
@@ -596,4 +595,3 @@ class ONNXModel(Enum):
     JINAV2BASEEN = "JINAV2BASEEN"
 
     JINAV2LARGEEN = "JINAV2LARGEEN"
-    

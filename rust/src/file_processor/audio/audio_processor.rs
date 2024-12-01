@@ -15,8 +15,8 @@ use tokenizers::Tokenizer;
 
 use candle_transformers::models::whisper::{self as m, audio, Config};
 
-use crate::{embeddings::embed::AudioDecoder, file_processor::audio::pcm_decode};
 use crate::embeddings::select_device;
+use crate::{embeddings::embed::AudioDecoder, file_processor::audio::pcm_decode};
 
 pub enum WhichAudioDecoderModel {
     Normal(m::model::Whisper),

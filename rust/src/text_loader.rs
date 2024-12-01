@@ -105,7 +105,7 @@ impl TextLoader {
                 .collect(),
             SplittingStrategy::Semantic => {
                 let embeder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
-                    TextEmbedder::Jina(JinaEmbedder::default()),
+                    TextEmbedder::Jina(Box::new(JinaEmbedder::default())),
                 )));
                 let chunker = StatisticalChunker {
                     encoder: embeder,
@@ -182,12 +182,12 @@ mod tests {
     fn test_text_loader() {
         let file_path = PathBuf::from("../test_files/test.pdf");
         let text = TextLoader::extract_text(&file_path, false)
-        .unwrap()
-        .replace("\n\n", "{{DOUBLE_NEWLINE}}")
-        .replace("\n", " ")
-        .replace("{{DOUBLE_NEWLINE}}", "\n\n")
-        .replace("  ", " ");
-    
+            .unwrap()
+            .replace("\n\n", "{{DOUBLE_NEWLINE}}")
+            .replace("\n", " ")
+            .replace("{{DOUBLE_NEWLINE}}", "\n\n")
+            .replace("  ", " ");
+
         let text_loader = TextLoader::new(256, 0.0);
         let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence, None);
 
@@ -195,7 +195,6 @@ mod tests {
             println!("-----------------------------------");
             println!("{}", chunk);
         }
-
 
         assert!(!text.is_empty());
     }
@@ -219,4 +218,3 @@ mod tests {
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }
 }
-      

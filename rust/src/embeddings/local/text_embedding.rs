@@ -65,15 +65,13 @@ pub enum ONNXModel {
     GTELargeENV15,
     /// Quantized Alibaba-NLP/gte-large-en-v1.5
     GTELargeENV15Q,
-
     /// jinaai/jina-embeddings-v2-small-en
     JINAV2SMALLEN,
     /// jinaai/jina-embeddings-v2-base-en
     JINAV2BASEEN,
-    /// jinaai/jina-embeddings-v2-large-en
-    JINAV2LARGEEN,
+    /// jinaai/jina-embeddings-v3
+    JINAV3,
 }
-
 
 /// Centralized function to initialize the models map.
 fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
@@ -294,6 +292,30 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             model_code: String::from("Alibaba-NLP/gte-large-en-v1.5"),
             model_file: String::from("onnx/model_quantized.onnx"),
         },
+        ModelInfo {
+            model: ONNXModel::JINAV2SMALLEN,
+            dim: 512,
+            description: String::from("Small model of multilingual jina embeddings"),
+            hf_model_id: String::from("jinaai/jina-embeddings-v2-small-en"),
+            model_code: String::from("jinaai/jina-embeddings-v2-small-en"),
+            model_file: String::from("model.onnx"),
+        },
+        ModelInfo {
+            model: ONNXModel::JINAV2BASEEN,
+            dim: 768,
+            description: String::from("Base model of multilingual jina embeddings"),
+            hf_model_id: String::from("jinaai/jina-embeddings-v2-base-en"),
+            model_code: String::from("jinaai/jina-embeddings-v2-base-en"),
+            model_file: String::from("model.onnx"),
+        },
+        ModelInfo {
+            model: ONNXModel::JINAV3,
+            dim: 768,
+            description: String::from("Base model of multilingual jina embeddings"),
+            hf_model_id: String::from("jinaai/jina-embeddings-v3"),
+            model_code: String::from("jinaai/jina-embeddings-v3"),
+            model_file: String::from("onnx/model.onnx"),
+        },
     ];
 
     // TODO: Use when out in stable
@@ -374,7 +396,7 @@ impl ONNXModel {
 
             ONNXModel::JINAV2SMALLEN => Some(Pooling::Mean),
             ONNXModel::JINAV2BASEEN => Some(Pooling::Mean),
-            ONNXModel::JINAV2LARGEEN => Some(Pooling::Mean),
+            ONNXModel::JINAV3 => Some(Pooling::Mean),
         }
     }
 

@@ -1,12 +1,12 @@
-use anyhow::Result;
-use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
-use scraper::{Html, Selector};
-use serde_json::json;
-use url::Url;
 use crate::embeddings::embed::{EmbedData, Embedder};
 use crate::embeddings::get_text_metadata;
 use crate::text_loader::{SplittingStrategy, TextLoader};
+use anyhow::Result;
+use scraper::{Html, Selector};
+use serde_json::json;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
+use url::Url;
 
 #[derive(Debug)]
 pub struct HtmlDocument {
@@ -30,22 +30,43 @@ impl HtmlDocument {
 
         if let Some(paragraphs) = &self.paragraphs {
             embed_data.extend(
-                self.embed_tag("p", paragraphs, embeder, chunk_size, overlap_ratio, batch_size)
-                    .await?,
+                self.embed_tag(
+                    "p",
+                    paragraphs,
+                    embeder,
+                    chunk_size,
+                    overlap_ratio,
+                    batch_size,
+                )
+                .await?,
             );
         }
 
         if let Some(headers) = &self.headers {
             embed_data.extend(
-                self.embed_tag("h1", headers, embeder, chunk_size, overlap_ratio, batch_size)
-                    .await?,
+                self.embed_tag(
+                    "h1",
+                    headers,
+                    embeder,
+                    chunk_size,
+                    overlap_ratio,
+                    batch_size,
+                )
+                .await?,
             );
         }
 
         if let Some(codes) = &self.codes {
             embed_data.extend(
-                self.embed_tag("code", codes, embeder, chunk_size, overlap_ratio, batch_size)
-                    .await?,
+                self.embed_tag(
+                    "code",
+                    codes,
+                    embeder,
+                    chunk_size,
+                    overlap_ratio,
+                    batch_size,
+                )
+                .await?,
             );
         }
 
@@ -117,17 +138,21 @@ impl HtmlProcessor {
     }
 
     /// Extracts the contents of an HTML file.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `file_path` - The path to the HTML file.
     /// * `origin` - The original URL of the HTML page, if any. This is required for extracting links.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// Returns a `Result` containing the extracted content as an `HtmlDocument` if successful,
     /// or an `Error` if an error occurred during any part of the process.
-    pub fn process_html_file(&self, file_path: impl AsRef<std::path::Path>, origin: Option<impl Into<String>>) -> Result<HtmlDocument> {
+    pub fn process_html_file(
+        &self,
+        file_path: impl AsRef<std::path::Path>,
+        origin: Option<impl Into<String>>,
+    ) -> Result<HtmlDocument> {
         // check if https is in the website. If not, add it.
         let bytes = std::fs::read(file_path)?;
         let out = String::from_utf8_lossy(&bytes);
@@ -145,7 +170,11 @@ impl HtmlProcessor {
     ///
     /// Returns a `Result` containing the extracted content as an `HtmlDocument` if successful,
     /// or an `Error` if an error occurred during any part of the process.
-    pub fn process_html(&self, html: impl Into<String>, origin: Option<impl Into<String>>) -> Result<HtmlDocument> {
+    pub fn process_html(
+        &self,
+        html: impl Into<String>,
+        origin: Option<impl Into<String>>,
+    ) -> Result<HtmlDocument> {
         // check if https is in the website. If not, add it.
         let document = Html::parse_document(&html.into());
         let headers = self.get_text_from_tag("h1,h2,h3", &document)?;
@@ -154,7 +183,7 @@ impl HtmlProcessor {
         let origin = origin.map(Into::into);
         let links = match &origin {
             Some(origin) => Some(self.extract_links(&origin.clone(), &document)?),
-            None => None
+            None => None,
         };
         let title = self.get_title(&document)?;
         let web_page = HtmlDocument {
@@ -194,7 +223,10 @@ impl HtmlProcessor {
     }
 
     fn get_title(&self, document: &Html) -> Result<Option<String>> {
-        if let Some(title_element) = document.select(&Selector::parse("title").expect("invalid selector for title")).next() {
+        if let Some(title_element) = document
+            .select(&Selector::parse("title").expect("invalid selector for title"))
+            .next()
+        {
             Ok(Some(title_element.text().collect::<String>()))
         } else {
             Ok(None)

@@ -154,14 +154,10 @@ impl ClipEmbedder {
         let img = img.to_rgb8();
 
         let img = img.into_raw();
-        let img = Tensor::from_vec(
-            img,
-            (height, width, 3),
-            &self.device,
-        )?
-        .permute((2, 0, 1))?
-        .to_dtype(DType::F32)?
-        .affine(2. / 255., -1.)?;
+        let img = Tensor::from_vec(img, (height, width, 3), &self.device)?
+            .permute((2, 0, 1))?
+            .to_dtype(DType::F32)?
+            .affine(2. / 255., -1.)?;
         // .unsqueeze(0)?;
         Ok(img)
     }
@@ -193,11 +189,9 @@ impl ClipEmbedder {
         let batch_size = batch_size.unwrap_or(32);
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let (input_ids, _vec_seq) = self.tokenize_sequences(
-                Some(mini_text_batch.to_vec()),
-                &self.tokenizer,
-            )
-            .unwrap();
+            let (input_ids, _vec_seq) = self
+                .tokenize_sequences(Some(mini_text_batch.to_vec()), &self.tokenizer)
+                .unwrap();
 
             let batch_encodings = self
                 .model
@@ -299,8 +293,9 @@ mod tests {
             "Hey there how are you?".to_string(),
             "EmbedAnything is the best!".to_string(),
         ]);
-        let (input_ids, vec_seq) =
-            clip_embeder.tokenize_sequences(sequences, &clip_embeder.tokenizer).unwrap();
+        let (input_ids, vec_seq) = clip_embeder
+            .tokenize_sequences(sequences, &clip_embeder.tokenizer)
+            .unwrap();
         assert_eq!(
             vec_seq,
             vec![
