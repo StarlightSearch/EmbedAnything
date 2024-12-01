@@ -83,6 +83,5 @@ for i in range(len(response.objects)):
     print(response.objects[i].properties["text"])
 
 
-
 for res in response.objects:
     print(textwrap.fill(res.properties["text"], width=120), end="\n\n")

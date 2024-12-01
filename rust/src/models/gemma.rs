@@ -31,7 +31,9 @@ impl Config {
     fn hidden_act(&self) -> Result<Activation> {
         match (self.hidden_act, self.hidden_activation) {
             (None, Some(act)) | (Some(act), None) => Ok(act),
-            (Some(_), Some(_)) => candle_core::bail!("both hidden_act and hidden_activation are set"),
+            (Some(_), Some(_)) => {
+                candle_core::bail!("both hidden_act and hidden_activation are set")
+            }
             (None, None) => candle_core::bail!("none of hidden_act and hidden_activation are set"),
         }
     }
@@ -224,9 +226,10 @@ impl Attention {
         };
         self.kv_cache = Some((key_states.clone(), value_states.clone()));
 
-        let key_states = candle_transformers::utils::repeat_kv(key_states, self.num_kv_groups)?.contiguous()?;
-        let value_states =
-            candle_transformers::utils::repeat_kv(value_states, self.num_kv_groups)?.contiguous()?;
+        let key_states =
+            candle_transformers::utils::repeat_kv(key_states, self.num_kv_groups)?.contiguous()?;
+        let value_states = candle_transformers::utils::repeat_kv(value_states, self.num_kv_groups)?
+            .contiguous()?;
 
         let attn_output = if self.use_flash_attn {
             // flash-attn expects (b_sz, seq_len, nheads, head_dim)

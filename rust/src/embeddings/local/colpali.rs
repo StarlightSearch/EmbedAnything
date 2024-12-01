@@ -4,11 +4,11 @@ use std::{collections::HashMap, path::Path};
 
 use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 use crate::embeddings::select_device;
+use crate::models::{colpali::Model, paligemma};
 use anyhow::Error as E;
 use base64::Engine;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
-use crate::models::{colpali::Model, paligemma};
 use image::{DynamicImage, ImageFormat};
 
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};

@@ -114,7 +114,7 @@ impl OrtBertEmbedder {
         let threads = std::thread::available_parallelism().unwrap().get();
         let model = Session::builder()?
             .with_execution_providers([
-                CUDAExecutionProvider::default().build(),
+                CUDAExecutionProvider::default().build().error_on_failure(),
                 CoreMLExecutionProvider::default().build(),
             ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?

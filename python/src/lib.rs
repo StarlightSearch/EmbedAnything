@@ -124,7 +124,7 @@ pub enum ONNXModel {
     GTELargeENV15Q,
     JINAV2SMALLEN,
     JINAV2BASEEN,
-    JINAV2LARGEEN,
+    JINAV3,
 }
 impl fmt::Display for ONNXModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -219,10 +219,10 @@ impl EmbeddingModel {
             }
             WhichModel::Jina => {
                 let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
-                let model = Embedder::Text(TextEmbedder::Jina(
+                let model = Embedder::Text(TextEmbedder::Jina(Box::new(
                     embed_anything::embeddings::local::jina::JinaEmbedder::new(model_id, revision)
                         .unwrap(),
-                ));
+                )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
