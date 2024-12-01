@@ -1,7 +1,6 @@
-
+use crate::models::clip::div_l2_norm;
 use candle_core::{IndexOp, Module, Result, Tensor, D};
 use candle_nn::{layer_norm, linear, LayerNorm, Linear, VarBuilder};
-use crate::models::clip::div_l2_norm;
 
 // https://github.com/huggingface/transformers/blob/2e24ee4dfa39cc0bc264b89edbccc373c8337086/src/transformers/models/siglip/configuration_siglip.py#L27
 #[derive(serde::Deserialize, Clone, Debug)]

@@ -1,6 +1,6 @@
+use crate::models::{gemma, siglip};
 use candle_core::{Module, Result, Tensor};
 use candle_nn::{linear, Linear, VarBuilder};
-use crate::models::{siglip, gemma};
 #[derive(serde::Deserialize, Clone, Debug)]
 pub struct Config {
     pub vision_config: siglip::VisionConfig,

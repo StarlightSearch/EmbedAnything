@@ -8,6 +8,7 @@ model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
+
 # Example 1: Embedding a Directory
 def embed_directory_example():
     # Configure the embedding process
@@ -28,10 +29,13 @@ def embed_directory_example():
 
     print(f"Time taken to embed directory: {end - start} seconds")
 
+
 # Example 2: Embedding a Query
 def embed_query_example():
     # Configure the embedding process
-    config = TextEmbedConfig(chunk_size=256, batch_size=32, splitting_strategy="sentence")
+    config = TextEmbedConfig(
+        chunk_size=256, batch_size=32, splitting_strategy="sentence"
+    )
 
     # Embed a query
     embeddings: EmbedData = embed_anything.embed_query(
@@ -47,6 +51,7 @@ def embed_query_example():
             ["What is the capital of India?"], embeder=model, config=config
         )
     )
+
 
 # Example 3: Embedding a File
 def embed_file_example():
@@ -64,6 +69,7 @@ def embed_file_example():
     for d in data:
         print(d.text)
         print("---" * 20)
+
 
 # Call the examples
 embed_directory_example()
