@@ -37,22 +37,43 @@ impl WebPage {
 
         if let Some(paragraphs) = &self.paragraphs {
             embed_data.extend(
-                self.embed_tag("p", paragraphs, embeder, chunk_size, overlap_ratio, batch_size)
-                    .await?,
+                self.embed_tag(
+                    "p",
+                    paragraphs,
+                    embeder,
+                    chunk_size,
+                    overlap_ratio,
+                    batch_size,
+                )
+                .await?,
             );
         }
 
         if let Some(headers) = &self.headers {
             embed_data.extend(
-                self.embed_tag("h1", headers, embeder, chunk_size, overlap_ratio, batch_size)
-                    .await?,
+                self.embed_tag(
+                    "h1",
+                    headers,
+                    embeder,
+                    chunk_size,
+                    overlap_ratio,
+                    batch_size,
+                )
+                .await?,
             );
         }
 
         if let Some(codes) = &self.codes {
             embed_data.extend(
-                self.embed_tag("code", codes, embeder, chunk_size, overlap_ratio, batch_size)
-                    .await?,
+                self.embed_tag(
+                    "code",
+                    codes,
+                    embeder,
+                    chunk_size,
+                    overlap_ratio,
+                    batch_size,
+                )
+                .await?,
             );
         }
 
@@ -129,12 +150,14 @@ impl Default for WebsiteProcessor {
 }
 
 pub struct WebsiteProcessor {
-    html_processor: HtmlProcessor
+    html_processor: HtmlProcessor,
 }
 
 impl WebsiteProcessor {
     pub fn new() -> Self {
-        Self { html_processor: HtmlProcessor::new() }
+        Self {
+            html_processor: HtmlProcessor::new(),
+        }
     }
 
     pub fn process_website(&self, website: &str) -> Result<WebPage> {

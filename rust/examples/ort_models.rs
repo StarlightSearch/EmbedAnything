@@ -10,14 +10,15 @@ use std::time::Instant;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let model =
-        Arc::new(Embedder::from_pretrained_onnx("bert", ONNXModel::AllMiniLML6V2, None).unwrap());
+    let model = Arc::new(Embedder::from_pretrained_onnx("jina", ONNXModel::JINAV3, None).unwrap());
+    let semantic_encoder =
+        Arc::new(Embedder::from_pretrained_onnx("jina", ONNXModel::JINAV2SMALLEN, None).unwrap());
     let config = TextEmbedConfig::default()
-        .with_chunk_size(1000, Some(0.3))
-        .with_batch_size(256)
+        .with_chunk_size(256, Some(0.3))
+        .with_batch_size(32)
         .with_buffer_size(256)
-        .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Arc::clone(&model));
+        .with_splitting_strategy(SplittingStrategy::Semantic)
+        .with_semantic_encoder(Arc::clone(&semantic_encoder));
 
     // get files in bench
     let files = std::fs::read_dir("bench")
@@ -32,7 +33,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .map(|file| embed_file(file, &model, Some(&config), None::<fn(Vec<EmbedData>)>))
         .collect::<Vec<_>>();
 
-    let _data = futures.into_iter().next().unwrap().await;
+    let _data = futures.into_iter().next().unwrap().await?.unwrap();
+
+    for chunk in _data {
+        println!("--------------------------------");
+
+        println!("{:?}", chunk.text.unwrap());
+        println!("\n");
+    }
 
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
@@ -42,10 +50,10 @@ async fn main() -> Result<(), anyhow::Error> {
         "The cat is sleeping on the mat",
         "The dog is barking at the moon",
         "I love pizza",
-        "I like to have pasta",
         "The dog is sitting in the park",
-        "The window is broken",
+        "Der Hund sitzt im Park", // German for "The dog is sitting in the park"
         "pizza is the best",
+        "मैं पिज्जा पसंद करता हूं", // Hindi for "I like pizza"
     ]
     .iter()
     .map(|s| s.to_string())

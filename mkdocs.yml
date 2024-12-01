@@ -55,6 +55,7 @@ nav:
   - guides/semantic.md
   - guides/adapters.md
   - guides/onnx_models.md
+  - guides/ocr.md
 - Contribution:
   - roadmap/roadmap.md
   - roadmap/contribution.md

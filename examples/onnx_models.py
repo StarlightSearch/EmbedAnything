@@ -1,5 +1,11 @@
 import heapq
-from embed_anything import EmbeddingModel, TextEmbedConfig, WhichModel, embed_query, ONNXModel
+from embed_anything import (
+    EmbeddingModel,
+    TextEmbedConfig,
+    WhichModel,
+    embed_query,
+    ONNXModel,
+)
 import os
 from time import time
 import numpy as np

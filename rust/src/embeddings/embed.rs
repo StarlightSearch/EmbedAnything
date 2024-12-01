@@ -5,7 +5,7 @@ use super::cloud::openai::OpenAIEmbedder;
 use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder, SparseBertEmbedder};
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
-use super::local::jina::JinaEmbedder;
+use super::local::jina::{JinaEmbed, JinaEmbedder, OrtJinaEmbedder};
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
 use serde::Deserialize;
@@ -88,7 +88,7 @@ pub trait AudioDecoder {
 pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
-    Jina(JinaEmbedder),
+    Jina(Box<dyn JinaEmbed + Send + Sync>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
 }
 
@@ -112,7 +112,7 @@ impl TextEmbedder {
         revision: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "jina" | "Jina" => Ok(Self::Jina(JinaEmbedder::new(model_id, revision)?)),
+            "jina" | "Jina" => Ok(Self::Jina(Box::new(JinaEmbedder::new(model_id, revision)?))),
 
             "Bert" | "bert" => Ok(Self::Bert(Box::new(BertEmbedder::new(
                 model_id.to_string(),
@@ -134,6 +134,9 @@ impl TextEmbedder {
             "Bert" | "bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
                 model_name,
                 revision.map(|s| s.to_string()),
+            )?))),
+            "jina" | "Jina" => Ok(Self::Jina(Box::new(OrtJinaEmbedder::new(
+                model_name, revision,
             )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
