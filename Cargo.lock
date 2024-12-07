@@ -992,7 +992,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything_python"
-version = "0.4.16"
+version = "0.4.17"
 dependencies = [
  "embed_anything",
  "pyo3",
