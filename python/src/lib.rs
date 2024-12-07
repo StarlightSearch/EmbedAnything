@@ -303,7 +303,21 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
-
+            WhichModel::Jina => {
+                let model = Embedder::Text(TextEmbedder::Jina(Box::new(
+                    embed_anything::embeddings::local::jina::OrtJinaEmbedder::new(
+                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+                            &model_id.to_string(),
+                        )
+                        .unwrap(),
+                        revision,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
             _ => panic!("Invalid model"),
         }
     }
