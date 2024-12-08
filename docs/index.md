@@ -55,6 +55,10 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
   </ol>
 </details>
 
+To sign up for future updates, sign up to our newsletter:
+
+<script async data-uid="c65e5ea14d" src="https://starlight-3.kit.com/c65e5ea14d/index.js"></script>
+
 
 ## 💡What is Vector Streaming
 
@@ -213,3 +217,4 @@ model = EmbeddingModel.from_pretrained_onnx(
 )
 ```
 To see all the ONNX models supported, see [here](../guides/onnx_models)
+
