@@ -21,14 +21,14 @@
 <div align="center">
 
   <p align="center">
-    <b>🦀 Rust-powered Framework for Lightning-Fast Ingestion, Inference, and Indexing</b>
+    <b> Inference, ingestion, and indexing – supercharged by Rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples">Examples</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing">Benches</a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
     .
