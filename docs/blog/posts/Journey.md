@@ -7,7 +7,6 @@ authors:
 slug: embed-anything
 title: The path ahead of EmbedAnything
 ---
-
 In March, we set out to build a local file search app. We aimed to create a tool that would make file searching faster, more innovative, and more efficient. However, we quickly hit a roadblock: no high-performance backend fit our needs.
 
 ![image.png](https://royal-hygienic-522.notion.site/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2Ff1bf59bf-2c3f-4b4d-a5f9-109d041ef45a%2Faa8abe48-4210-494c-af98-458b6694b09a%2Fimage.png?table=block&id=15d81b6a-6bbe-80cc-883e-fcafd65e619d&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=1420&userId=&cache=v2)
@@ -30,8 +29,7 @@ On **April 2nd**, we unveiled our demo online, carefully choosing the date to av
 
 The demo received an overwhelming response. What began as a simple showcase of our prototype transformed into a pivotal moment for our project. In the next 30 days, we released it as an open-source project, seeing the demand and people’s interest.
 
-https://www.youtube.com/watch?v=HLXIuznnXcI
-
+[Demo](https://www.youtube.com/watch?v=HLXIuznnXcI)
 ### 0.2 released
 
 Since then, we have never looked back. We kept embedding anything better and better. In the next three months, we released a more stable version, 0.2, with all the Python versions. It was running amazingly on AWS and could support multimodality.
@@ -54,11 +52,14 @@ We only supported dense, so we expanded the types of embedding we could support.
 
 ## What We Got Right
 
-We actively listened to our community and prioritized their needs in the library's development. When users requested support for sparse matrices in hybrid models, we delivered. When they wanted advanced indexing, we made it happen. During the critical three-month period between versions 0.2 and 0.4, our efforts were laser-focused on enhancing the product to meet and exceed expectations.
+We actively listened to our community and prioritized their needs in the library's development. When users requested support for sparse matrices in hybrid models, we delivered. When they wanted advanced indexing, we made it happen. During the critical three-month period between versions 0.2 and 0.4, our efforts were laser-focused on enhancing the product to meet and exceed expectations. 
+
+We also released benches comparing it with other inference and to our suprise it's faster than libraries like sentence transformer and fastembed. Check out [Benches](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing).
+
 
 We presented Embedanything at many conferences, like Pydata Global, Elastic, voxel 51 meetups, AI builders, etc. Additionally, we forged collaborations with major brands like Weaviate and Elastic, a strategy we’re excited to continue expanding in 2025.
 
-https://www.youtube.com/watch?v=OJRWPLQ44Dw
+[Weaviate Collab](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
 
 ## What We Initially Got Wrong
