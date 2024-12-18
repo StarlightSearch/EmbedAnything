@@ -29,7 +29,7 @@ use tokio::sync::mpsc; // Add this at the top of your file
 /// # Arguments
 ///
 /// * `query` - A vector of strings representing the queries to embed.
-/// * `embeder` - A string specifying the embedding model to use. Valid options are "OpenAI", "Jina", "Clip", and "Bert".
+/// * `embedder` - A string specifying the embedding model to use. Valid options are "OpenAI", "Jina", "Clip", and "Bert".
 /// * `config` - An optional `EmbedConfig` object specifying the configuration for the embedding model.
 /// * 'adapter' - An optional `Adapter` object to send the embeddings to a vector database.
 ///
@@ -47,16 +47,16 @@ use tokio::sync::mpsc; // Add this at the top of your file
 /// use embed_anything::embed_query;
 ///
 /// let query = vec!["Hello".to_string(), "World".to_string()];
-/// let embeder = "OpenAI";
+/// let embedder = "OpenAI";
 /// let openai_config = OpenAIConfig{ model: Some("text-embedding-3-small".to_string()), api_key: None, chunk_size: Some(256) };
 /// let config = EmbedConfig{ openai: Some(openai_config), ..Default::default() };
-/// let embeddings = embed_query(query, embeder).unwrap();
+/// let embeddings = embed_query(query, embedder).unwrap();
 /// println!("{:?}", embeddings);
 /// ```
 /// This will output the embeddings of the queries using the OpenAI embedding model.
 pub async fn embed_query(
     query: Vec<String>,
-    embeder: &Embedder,
+    embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
     let binding = TextEmbedConfig::default();
@@ -64,7 +64,7 @@ pub async fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embeder.embed(&query, batch_size).await.unwrap();
+    let encodings = embedder.embed(&query, batch_size).await.unwrap();
     let embeddings = get_text_metadata(&Rc::new(encodings), &query, &None)?;
 
     Ok(embeddings)
@@ -75,7 +75,7 @@ pub async fn embed_query(
 /// # Arguments
 ///
 /// * `file_name` - A string specifying the name of the file to embed.
-/// * `embeder` - A string specifying the embedding model to use. Valid options are "OpenAI", "Jina", "Clip", and "Bert".
+/// * `embedder` - A string specifying the embedding model to use. Valid options are "OpenAI", "Jina", "Clip", and "Bert".
 /// * `config` - An optional `EmbedConfig` object specifying the configuration for the embedding model.
 /// * 'adapter' - An optional `Adapter` object to send the embeddings to a vector database.
 ///
@@ -93,14 +93,14 @@ pub async fn embed_query(
 /// use embed_anything::embed_file;
 ///
 /// let file_name = "test_files/test.pdf";
-/// let embeder = "Bert";
+/// let embedder = "Bert";
 /// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(256) };
-/// let embeddings = embed_file(file_name, embeder, config).unwrap();
+/// let embeddings = embed_file(file_name, embedder, config).unwrap();
 /// ```
 /// This will output the embeddings of the file using the OpenAI embedding model.
 pub async fn embed_file<T: AsRef<std::path::Path>, F>(
     file_name: T,
-    embeder: &Embedder,
+    embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
 ) -> Result<Option<Vec<EmbedData>>>
@@ -118,11 +118,11 @@ where
     let semantic_encoder = config.semantic_encoder.clone();
     let use_ocr = config.use_ocr.unwrap_or(false);
 
-    match embeder {
-        Embedder::Text(embeder) => {
+    match embedder {
+        Embedder::Text(embedder) => {
             emb_text(
                 file_name,
-                embeder,
+                embedder,
                 Some(chunk_size),
                 Some(overlap_ratio),
                 batch_size,
@@ -133,7 +133,7 @@ where
             )
             .await
         }
-        Embedder::Vision(embeder) => Ok(Some(vec![emb_image(file_name, embeder).unwrap()])),
+        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
     }
 }
 
@@ -141,7 +141,7 @@ where
 ///
 /// # Arguments
 ///
-/// * `embeder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
+/// * `embedder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
 /// * `webpage` - The webpage to embed.
 ///
 /// # Returns
@@ -155,15 +155,15 @@ where
 /// # Example
 ///
 /// ```
-/// let embeddings = match embeder {
+/// let embeddings = match embedder {
 ///     "OpenAI" => webpage
-///         .embed_webpage(&embedding_model::openai::OpenAIEmbeder::default())
+///         .embed_webpage(&embedding_model::openai::OpenAIEmbedder::default())
 ///         .unwrap(),
 ///     "Jina" => webpage
-///         .embed_webpage(&embedding_model::jina::JinaEmbeder::default())
+///         .embed_webpage(&embedding_model::jina::JinaEmbedder::default())
 ///         .unwrap(),
 ///     "Bert" => webpage
-///         .embed_webpage(&embedding_model::bert::BertEmbeder::default())
+///         .embed_webpage(&embedding_model::bert::BertEmbedder::default())
 ///         .unwrap(),
 ///     _ => {
 ///         return Err(PyValueError::new_err(
@@ -174,7 +174,7 @@ where
 /// ```
 pub async fn embed_webpage<F>(
     url: String,
-    embeder: &Embedder,
+    embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<F>,
@@ -185,7 +185,7 @@ where
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
 
-    // if let Embeder::Clip(_) = embeder {
+    // if let Embedder::Clip(_) = embedder {
     //     return Err(anyhow!("Clip model does not support webpage embedding"));
     // }
 
@@ -196,7 +196,7 @@ where
     let batch_size = config.batch_size;
 
     let embeddings = webpage
-        .embed_webpage(embeder, chunk_size, overlap_ratio, batch_size)
+        .embed_webpage(embedder, chunk_size, overlap_ratio, batch_size)
         .await?;
 
     // Send embeddings to vector database
@@ -327,12 +327,12 @@ fn emb_image<T: AsRef<std::path::Path>>(
 pub async fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
-    embeder: &Arc<Embedder>,
+    embedder: &Arc<Embedder>,
     text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
     let embeddings = embed_audio(
-        embeder,
+        embedder,
         segments,
         audio_file,
         text_embed_config
@@ -349,7 +349,7 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// # Arguments
 ///
 /// * `directory` - A `PathBuf` representing the directory containing the images to embed.
-/// * `embeder` - A reference to the embedding model to use.
+/// * `embedder` - A reference to the embedding model to use.
 /// * `config` - An optional `ImageEmbedConfig` object specifying the configuration for the embedding model. Default buffer size is 100.
 /// * `adapter` - An optional callback function to handle the embeddings.
 ///
@@ -367,8 +367,8 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// use std::sync::Arc;
 ///
 /// let directory = PathBuf::from("/path/to/directory");
-/// let embeder = Arc::new(Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
-/// let embeddings = embed_image_directory(directory, &embeder, None).await.unwrap();
+/// let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+/// let embeddings = embed_image_directory(directory, &embedder, None).await.unwrap();
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
 ///
@@ -392,7 +392,7 @@ where
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
-    let embeder = embedding_model.clone();
+    let embedder = embedding_model.clone();
 
     let pb = indicatif::ProgressBar::new(file_parser.files.len() as u64);
     pb.set_style(
@@ -412,8 +412,8 @@ where
                 image_buffer.push(image);
 
                 if image_buffer.len() == buffer_size {
-                    // Ensure embeder is mutable and not wrapped in Arc
-                    match process_images(&image_buffer, embeder.clone()).await {
+                    // Ensure embedder is mutable and not wrapped in Arc
+                    match process_images(&image_buffer, embedder.clone()).await {
                         Ok(embeddings) => {
                             let files = embeddings
                                 .iter()
@@ -441,7 +441,7 @@ where
 
             // Process any remaining images
             if !image_buffer.is_empty() {
-                match process_images(&image_buffer, embeder).await {
+                match process_images(&image_buffer, embedder).await {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -494,9 +494,9 @@ where
 
 async fn process_images<E: EmbedImage>(
     image_buffer: &[String],
-    embeder: Arc<E>,
+    embedder: Arc<E>,
 ) -> Result<Arc<Vec<EmbedData>>> {
-    let embeddings = embeder.embed_image_batch(image_buffer)?;
+    let embeddings = embedder.embed_image_batch(image_buffer)?;
     Ok(Arc::new(embeddings))
 }
 
@@ -505,7 +505,7 @@ async fn process_images<E: EmbedImage>(
 /// # Arguments
 ///
 /// * `directory` - A `PathBuf` representing the directory containing the files to embed.
-/// * `embeder` - A reference to the embedding model to use.
+/// * `embedder` - A reference to the embedding model to use.
 /// * `extensions` - An optional vector of strings representing the file extensions to consider for embedding. If `None`, all files in the directory will be considered.
 /// * `config` - An optional `TextEmbedConfig` object specifying the configuration for the embedding model.
 /// * `adapter` - An optional callback function to handle the embeddings.
@@ -524,15 +524,15 @@ async fn process_images<E: EmbedImage>(
 /// use std::sync::Arc;
 ///
 /// let directory = PathBuf::from("/path/to/directory");
-/// let embeder = Arc::new(Embeder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+/// let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
 /// let config = Some(TextEmbedConfig::default());
 /// let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
-/// let embeddings = embed_directory_stream(directory, &embeder, extensions, config, None).await.unwrap();
+/// let embeddings = embed_directory_stream(directory, &embedder, extensions, config, None).await.unwrap();
 /// ```
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
 pub async fn embed_directory_stream<F>(
     directory: PathBuf,
-    embeder: &Arc<Embedder>,
+    embedder: &Arc<Embedder>,
     extensions: Option<Vec<String>>,
     config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
@@ -555,7 +555,7 @@ where
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
-    let embeder = embeder.clone();
+    let embedder = embedder.clone();
     let pb = indicatif::ProgressBar::new(files.len() as u64);
     pb.set_style(
         indicatif::ProgressStyle::with_template(
@@ -576,7 +576,7 @@ where
                 metadata_buffer.push(metadata);
 
                 if chunk_buffer.len() == buffer_size {
-                    match process_chunks(&chunk_buffer, &metadata_buffer, &embeder, batch_size)
+                    match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size)
                         .await
                     {
                         Ok(embeddings) => {
@@ -607,7 +607,7 @@ where
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, &embeder, batch_size).await {
+                match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size).await {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()

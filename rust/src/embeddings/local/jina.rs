@@ -332,10 +332,10 @@ mod tests {
 
     #[test]
     fn test_embed() {
-        let embeder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None).unwrap();
+        let embedder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None).unwrap();
         let text_batch = vec!["Hello, world!".to_string()];
 
-        let encodings = embeder.embed(&text_batch, None).unwrap();
+        let encodings = embedder.embed(&text_batch, None).unwrap();
         println!("{:?}", encodings);
     }
 }

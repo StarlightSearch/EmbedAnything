@@ -123,7 +123,7 @@ embed_config = TextEmbedConfig(chunk_size=512, batch_size=32, buffer_size=200)
 
 data = embed_anything.embed_image_directory(
     "test_files",
-    embeder=clip_model,
+    embedder=clip_model,
     adapter=pinecone_adapter,
     config=embed_config,
 )

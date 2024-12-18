@@ -21,7 +21,7 @@ def embed_directory_example():
 
     # Embed all files in a directory
     data: list[EmbedData] = embed_anything.embed_directory(
-        "bench", embeder=model, config=config
+        "bench", embedder=model, config=config
     )
 
     # End timing
@@ -39,7 +39,7 @@ def embed_query_example():
 
     # Embed a query
     embeddings: EmbedData = embed_anything.embed_query(
-        ["Hello world my"], embeder=model, config=config
+        ["Hello world my"], embedder=model, config=config
     )[0]
 
     # Print the shape of the embedding
@@ -48,7 +48,7 @@ def embed_query_example():
     # Embed another query and print the result
     print(
         embed_anything.embed_query(
-            ["What is the capital of India?"], embeder=model, config=config
+            ["What is the capital of India?"], embedder=model, config=config
         )
     )
 
@@ -62,7 +62,7 @@ def embed_file_example():
 
     # Embed a single file
     data: list[EmbedData] = embed_anything.embed_file(
-        "test_files/bank.txt", embeder=model, config=config
+        "test_files/bank.txt", embedder=model, config=config
     )
 
     # Print the embedded data
