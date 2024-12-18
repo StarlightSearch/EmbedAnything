@@ -65,10 +65,10 @@ model = embed_anything.EmbeddingModel.from_pretrained_hf(
 
 
 data = embed_anything.embed_directory(
-    "test_files", embeder=model, adapter=weaviate_adapter
+    "test_files", embedder=model, adapter=weaviate_adapter
 )
 
-query_vector = embed_anything.embed_query(["What is attention"], embeder=model)[
+query_vector = embed_anything.embed_query(["What is attention"], embedder=model)[
     0
 ].embedding
 

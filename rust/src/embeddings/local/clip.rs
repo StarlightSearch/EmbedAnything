@@ -288,13 +288,13 @@ mod tests {
     // Tests the tokenize_sequences method.
     #[test]
     fn test_tokenize_sequences() {
-        let clip_embeder = ClipEmbedder::default();
+        let clip_embedder = ClipEmbedder::default();
         let sequences = Some(vec![
             "Hey there how are you?".to_string(),
             "EmbedAnything is the best!".to_string(),
         ]);
-        let (input_ids, vec_seq) = clip_embeder
-            .tokenize_sequences(sequences, &clip_embeder.tokenizer)
+        let (input_ids, vec_seq) = clip_embedder
+            .tokenize_sequences(sequences, &clip_embedder.tokenizer)
             .unwrap();
         assert_eq!(
             vec_seq,
@@ -309,8 +309,8 @@ mod tests {
     // Tests the load_image method.
     #[test]
     fn test_load_image() {
-        let clip_embeder = ClipEmbedder::default();
-        let image = clip_embeder
+        let clip_embedder = ClipEmbedder::default();
+        let image = clip_embedder
             .load_image("test_files/clip/cat1.jpg", 224)
             .unwrap();
         assert_eq!(image.shape().clone().into_dims(), &[3, 224, 224]);
@@ -319,8 +319,8 @@ mod tests {
     // Tests the load_images method.
     #[test]
     fn test_load_images() {
-        let clip_embeder = ClipEmbedder::default();
-        let images = clip_embeder
+        let clip_embedder = ClipEmbedder::default();
+        let images = clip_embedder
             .load_images(
                 &["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"],
                 224,
@@ -332,8 +332,8 @@ mod tests {
     // Tests the embed_image_batch method.
     #[test]
     fn test_embed_image_batch() {
-        let clip_embeder = ClipEmbedder::default();
-        let embeddings = clip_embeder
+        let clip_embedder = ClipEmbedder::default();
+        let embeddings = clip_embedder
             .embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"])
             .unwrap();
         assert_eq!(embeddings.len(), 2);
