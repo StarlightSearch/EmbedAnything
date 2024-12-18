@@ -50,16 +50,16 @@ jina_model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
-jina_embedddings = embed_anything.embed_query(sentences, embeder=jina_model)
-jina_query = embed_anything.embed_query(query_text, embeder=jina_model)[0]
+jina_embedddings = embed_anything.embed_query(sentences, embedder=jina_model)
+jina_query = embed_anything.embed_query(query_text, embedder=jina_model)[0]
 
 
 splade_model = EmbeddingModel.from_pretrained_hf(
     WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
 )
-jina_embedddings = embed_anything.embed_query(sentences, embeder=jina_model)
+jina_embedddings = embed_anything.embed_query(sentences, embedder=jina_model)
 
-splade_query = embed_anything.embed_query(query_text, embeder=splade_model)
+splade_query = embed_anything.embed_query(query_text, embedder=splade_model)
 
 client.query_points(
     collection_name="my-hybrid-collection",
