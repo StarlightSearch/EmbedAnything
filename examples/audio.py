@@ -14,7 +14,7 @@ audio_decoder = AudioDecoderModel.from_pretrained_hf(
     "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
 )
 
-embeder = EmbeddingModel.from_pretrained_hf(
+embedder = EmbeddingModel.from_pretrained_hf(
     embed_anything.WhichModel.Bert,
     model_id="sentence-transformers/all-MiniLM-L6-v2",
     revision="main",
@@ -24,7 +24,7 @@ config = TextEmbedConfig(chunk_size=200, batch_size=32)
 data = embed_anything.embed_audio_file(
     "test_files/audio/samples_hp0.wav",
     audio_decoder=audio_decoder,
-    embeder=embeder,
+    embedder=embedder,
     text_embed_config=config,
 )
 print(data[0].metadata)
