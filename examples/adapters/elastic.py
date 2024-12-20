@@ -77,7 +77,7 @@ embed_config = EmbedConfig(bert=bert_config)
 
 data = embed_anything.embed_file(
     "/path/to/my-file.pdf",
-    embeder="Bert",
+    embedder="Bert",
     adapter=elasticsearch_adapter,
     config=embed_config,
 )

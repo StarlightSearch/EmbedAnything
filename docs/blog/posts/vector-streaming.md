@@ -114,7 +114,7 @@ model = embed_anything.EmbeddingModel.from_pretrained_cloud(
 
 data = embed_anything.embed_image_directory(
     "\image_directory",
-    embeder=model,
+    embedder=model,
     adapter=weaviate_adapter,
     config=embed_anything.ImageEmbedConfig(buffer_size=100),
 )
@@ -124,7 +124,7 @@ data = embed_anything.embed_image_directory(
 #### Step 4: Query the Vector Database
 
 ```python
-query_vector = embed_anything.embed_query(["image of a cat"], embeder=model)[0].embedding
+query_vector = embed_anything.embed_query(["image of a cat"], embedder=model)[0].embedding
 ```
 
 #### Step 5: Query the Vector Database

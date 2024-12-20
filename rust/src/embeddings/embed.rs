@@ -99,10 +99,10 @@ impl TextEmbedder {
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
-            TextEmbedder::OpenAI(embeder) => embeder.embed(text_batch).await,
-            TextEmbedder::Cohere(embeder) => embeder.embed(text_batch).await,
-            TextEmbedder::Jina(embeder) => embeder.embed(text_batch, batch_size),
-            TextEmbedder::Bert(embeder) => embeder.embed(text_batch, batch_size),
+            TextEmbedder::OpenAI(embedder) => embedder.embed(text_batch).await,
+            TextEmbedder::Cohere(embedder) => embedder.embed(text_batch).await,
+            TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size),
+            TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size),
         }
     }
 
@@ -142,7 +142,7 @@ impl TextEmbedder {
         }
     }
 
-    /// Creates a new instance of a cloud api based `Embeder` with the specified model and API key.
+    /// Creates a new instance of a cloud api based `Embedder` with the specified model and API key.
     ///
     /// # Arguments
     ///
@@ -159,7 +159,7 @@ impl TextEmbedder {
     ///
     /// # Returns
     ///
-    /// A new instance of `Embeder`.
+    /// A new instance of `Embedder`.
     pub fn from_pretrained_cloud(
         model: &str,
         model_id: &str,
@@ -239,8 +239,8 @@ impl Embedder {
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
-            Self::Text(embeder) => embeder.embed(text_batch, batch_size).await,
-            Self::Vision(embeder) => embeder.embed(text_batch, batch_size),
+            Self::Text(embedder) => embedder.embed(text_batch, batch_size).await,
+            Self::Vision(embedder) => embedder.embed(text_batch, batch_size),
         }
     }
 
@@ -302,7 +302,7 @@ impl EmbedImage for Embedder {
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
         match self {
-            Self::Vision(embeder) => embeder.embed_image(image_path, metadata),
+            Self::Vision(embedder) => embedder.embed_image(image_path, metadata),
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
         }
     }
@@ -312,7 +312,7 @@ impl EmbedImage for Embedder {
         image_paths: &[T],
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
-            Self::Vision(embeder) => embeder.embed_image_batch(image_paths),
+            Self::Vision(embedder) => embedder.embed_image_batch(image_paths),
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
         }
     }
@@ -333,8 +333,8 @@ impl TextEmbed for VisionEmbedder {
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
-            Self::Clip(embeder) => embeder.embed(text_batch, batch_size),
-            Self::ColPali(embeder) => embeder.embed(text_batch, batch_size),
+            Self::Clip(embedder) => embedder.embed(text_batch, batch_size),
+            Self::ColPali(embedder) => embedder.embed(text_batch, batch_size),
         }
     }
 }
@@ -358,9 +358,9 @@ impl EmbedImage for VisionEmbedder {
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
         match self {
-            Self::Clip(embeder) => embeder.embed_image(image_path, metadata),
-            Self::ColPali(embeder) => {
-                embeder.embed_image(PathBuf::from(image_path.as_ref()), metadata)
+            Self::Clip(embedder) => embedder.embed_image(image_path, metadata),
+            Self::ColPali(embedder) => {
+                embedder.embed_image(PathBuf::from(image_path.as_ref()), metadata)
             }
         }
     }
@@ -370,8 +370,8 @@ impl EmbedImage for VisionEmbedder {
         image_paths: &[T],
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
-            Self::Clip(embeder) => embeder.embed_image_batch(image_paths),
-            Self::ColPali(embeder) => embeder.embed_image_batch(
+            Self::Clip(embedder) => embedder.embed_image_batch(image_paths),
+            Self::ColPali(embedder) => embedder.embed_image_batch(
                 &image_paths
                     .iter()
                     .map(|p| PathBuf::from(p.as_ref()))
