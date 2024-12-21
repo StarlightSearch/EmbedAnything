@@ -65,7 +65,27 @@ def embed_file_example():
 
     print(f"Time taken to embed file: {end - start} seconds")
 
+def embed_md_example():
+    # Configure the embedding process
+    config = TextEmbedConfig(
+        chunk_size=256, batch_size=32, buffer_size=64, splitting_strategy="sentence"
+    )
+
+    start = time.time()
+
+    # Embed a single file
+    data: list[EmbedData] = embed_anything.embed_file(
+        "../../test_files/test.md", embeder=model, config=config
+    )
+
+    print(data[0].text)
+
+    end = time.time()
+
+    print(f"Time taken to embed MD file: {end - start} seconds")
+
 # Call the examples
 embed_directory_example()
 embed_query_example()
 embed_file_example()
+embed_md_example()
