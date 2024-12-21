@@ -13,7 +13,7 @@ async fn main() {
     let start_time = std::time::Instant::now();
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
 
-    let embeder = Arc::new(
+    let embedder = Arc::new(
         Embedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
             .unwrap(),
     );
@@ -23,11 +23,11 @@ async fn main() {
         .with_batch_size(32)
         .with_buffer_size(100)
         .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Arc::clone(&embeder));
+        .with_semantic_encoder(Arc::clone(&embedder));
 
     let embed_data = embed_webpage(
         url,
-        &embeder,
+        &embedder,
         Some(&embed_config),
         None::<fn(Vec<EmbedData>)>,
     )
@@ -48,7 +48,7 @@ async fn main() {
     .unwrap();
 
     let query = vec!["Rust for web scraping".to_string()];
-    let query_embedding: Vec<f32> = embed_query(query, &embeder, Some(&embed_config))
+    let query_embedding: Vec<f32> = embed_query(query, &embedder, Some(&embed_config))
         .await
         .unwrap()
         .iter()

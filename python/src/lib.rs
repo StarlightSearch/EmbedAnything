@@ -353,14 +353,14 @@ impl AudioDecoderModel {
 }
 
 #[pyfunction]
-#[pyo3(signature = (query, embeder, config=None))]
+#[pyo3(signature = (query, embedder, config=None))]
 pub fn embed_query(
     query: Vec<String>,
-    embeder: &EmbeddingModel,
+    embedder: &EmbeddingModel,
     config: Option<&config::TextEmbedConfig>,
 ) -> PyResult<Vec<EmbedData>> {
     let config = config.map(|c| &c.inner);
-    let embedding_model = &embeder.inner;
+    let embedding_model = &embedder.inner;
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     Ok(rt.block_on(async {
         embed_anything::embed_query(
@@ -378,15 +378,15 @@ pub fn embed_query(
 }
 
 #[pyfunction]
-#[pyo3(signature = (file_name, embeder, config=None, adapter=None))]
+#[pyo3(signature = (file_name, embedder, config=None, adapter=None))]
 pub fn embed_file(
     file_name: &str,
-    embeder: &EmbeddingModel,
+    embedder: &EmbeddingModel,
     config: Option<&config::TextEmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
-    let embedding_model = &embeder.inner;
+    let embedding_model = &embedder.inner;
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     if !Path::new(file_name).exists() {
         // check if the file exists other wise return a "File not found" error with PyValueError
@@ -437,15 +437,15 @@ pub fn embed_file(
 }
 
 #[pyfunction]
-#[pyo3(signature = (audio_file, audio_decoder, embeder, text_embed_config=None))]
+#[pyo3(signature = (audio_file, audio_decoder, embedder, text_embed_config=None))]
 pub fn embed_audio_file(
     audio_file: String,
     audio_decoder: &mut AudioDecoderModel,
-    embeder: &EmbeddingModel,
+    embedder: &EmbeddingModel,
     text_embed_config: Option<&config::TextEmbedConfig>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = text_embed_config.map(|c| &c.inner);
-    let embedding_model = &embeder.inner;
+    let embedding_model = &embedder.inner;
     let audio_decoder = &mut audio_decoder.inner;
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     let data = rt.block_on(async {
@@ -463,16 +463,16 @@ pub fn embed_audio_file(
 }
 
 #[pyfunction]
-#[pyo3(signature = (directory, embeder, extensions=None, config=None, adapter = None))]
+#[pyo3(signature = (directory, embedder, extensions=None, config=None, adapter = None))]
 pub fn embed_directory(
     directory: PathBuf,
-    embeder: &EmbeddingModel,
+    embedder: &EmbeddingModel,
     extensions: Option<Vec<String>>,
     config: Option<&config::TextEmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
     let config = config.map(|c| &c.inner);
-    let embedding_model = &embeder.inner;
+    let embedding_model = &embedder.inner;
 
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     println!("Runtime created");
@@ -517,14 +517,14 @@ pub fn embed_directory(
 }
 
 #[pyfunction]
-#[pyo3(signature = (directory, embeder, config=None, adapter = None))]
+#[pyo3(signature = (directory, embedder, config=None, adapter = None))]
 pub fn embed_image_directory(
     directory: PathBuf,
-    embeder: &EmbeddingModel,
+    embedder: &EmbeddingModel,
     config: Option<&config::ImageEmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
-    let embedding_model = &embeder.inner;
+    let embedding_model = &embedder.inner;
     let config = config.map(|c| &c.inner);
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     println!("Runtime created");
@@ -563,14 +563,14 @@ pub fn embed_image_directory(
     Ok(data)
 }
 #[pyfunction]
-#[pyo3(signature = (url, embeder, config=None, adapter = None))]
+#[pyo3(signature = (url, embedder, config=None, adapter = None))]
 pub fn embed_webpage(
     url: String,
-    embeder: &EmbeddingModel,
+    embedder: &EmbeddingModel,
     config: Option<&config::TextEmbedConfig>,
     adapter: Option<PyObject>,
 ) -> PyResult<Option<Vec<EmbedData>>> {
-    let embedding_model = &embeder.inner;
+    let embedding_model = &embedder.inner;
     let config = config.map(|c| &c.inner);
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     let adapter = match adapter {
