@@ -69,6 +69,7 @@ byteorder = "1.5.0"
 futures = "0.3.30"
 
 pdf-extract = {workspace = true}
+docx-parser = {workspace = true}
 ort = {workspace = true}
 ndarray = "0.16.1"
 ndarray-linalg = {version = "0.16.0"}

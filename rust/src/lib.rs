@@ -634,6 +634,7 @@ where
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
 
     file_parser.files.iter().for_each(|file| {
+        println!("Embedding file: {:?}", file);
         let text = TextLoader::extract_text(file, use_ocr)
             .unwrap()
             .remove_leading_spaces()
