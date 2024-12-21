@@ -22,7 +22,7 @@ sentences = [
     "Do you like pizza?",
 ]
 
-embedddings = embed_query(sentences, embeder=model)
+embedddings = embed_query(sentences, embedder=model)
 
 embed_vector = np.array([e.embedding for e in embedddings])
 

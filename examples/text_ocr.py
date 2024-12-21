@@ -22,7 +22,7 @@ start = time()
 
 data: list[EmbedData] = embed_anything.embed_file(
     "/home/akshay/projects/starlaw/src-server/test_files/court.pdf",  # Replace with your file path
-    embeder=model,
+    embedder=model,
     config=config,
 )
 end = time()

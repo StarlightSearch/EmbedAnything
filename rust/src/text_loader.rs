@@ -104,11 +104,11 @@ impl TextLoader {
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic => {
-                let embeder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
+                let embedder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
                     TextEmbedder::Jina(Box::new(JinaEmbedder::default())),
                 )));
                 let chunker = StatisticalChunker {
-                    encoder: embeder,
+                    encoder: embedder,
                     ..Default::default()
                 };
 
@@ -212,10 +212,10 @@ mod tests {
     }
 
     #[test]
-    fn test_image_embeder() {
+    fn test_image_embedder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
-        let embeder = ClipEmbedder::default();
-        let emb_data = embeder.embed_image(file_path, None).unwrap();
+        let embedder = ClipEmbedder::default();
+        let emb_data = embedder.embed_image(file_path, None).unwrap();
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }
 }
