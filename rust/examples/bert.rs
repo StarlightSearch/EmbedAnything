@@ -1,7 +1,9 @@
 use embed_anything::config::TextEmbedConfig;
 use embed_anything::embeddings::embed::{EmbedData, Embedder, TextEmbedder};
+use embed_anything::file_processor::docx_processor::DocxProcessor;
 use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::{embed_directory_stream, embed_file};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
 
@@ -18,6 +20,8 @@ async fn main() {
         .with_splitting_strategy(SplittingStrategy::Sentence)
         .with_semantic_encoder(Arc::clone(&model));
 
+    DocxProcessor::extract_text(&PathBuf::from("test_files/test.docx")).unwrap();
+
     let _out = embed_file(
         "test_files/test.pdf",
         &model,
@@ -31,7 +35,7 @@ async fn main() {
     let now = Instant::now();
 
     let _out = embed_directory_stream(
-        PathBuf::from("bench"),
+        PathBuf::from("test_files"),
         &model,
         None,
         // Some(vec!["txt".to_string()]),
@@ -41,6 +45,11 @@ async fn main() {
     .await
     .unwrap()
     .unwrap();
+
+    let embedded_files = _out.iter().map(|e| e.metadata.as_ref().unwrap().get("file_name").unwrap().clone()).collect::<Vec<_>>();
+    let mut embedded_files_set = HashSet::new();
+    embedded_files_set.extend(embedded_files);
+    println!("Embedded files: {:?}", embedded_files_set);
 
     println!("Number of chunks: {:?}", _out.len());
     let elapsed_time = now.elapsed();

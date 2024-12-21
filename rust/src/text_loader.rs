@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     chunkers::statistical::StatisticalChunker,
-    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
+    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder}, file_processor::docx_processor::DocxProcessor,
 };
 use crate::{
     embeddings::embed::Embedder,
@@ -138,6 +138,7 @@ impl TextLoader {
             "pdf" => PdfProcessor::extract_text(file, use_ocr),
             "md" => MarkdownProcessor::extract_text(file),
             "txt" => TxtProcessor::extract_text(file),
+            "docx" => DocxProcessor::extract_text(file),
             _ => Err(FileLoadingError::UnsupportedFileType(
                 file.as_ref()
                     .extension()

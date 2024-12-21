@@ -13,4 +13,7 @@ pub mod website_processor;
 /// This module contains the file processor for HTML files.
 pub mod html_processor;
 
+/// This module contains the file processor for DOCX files.
+pub mod docx_processor;
+
 pub mod audio;
