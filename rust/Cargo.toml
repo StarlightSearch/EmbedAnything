@@ -85,6 +85,7 @@ indicatif = "0.17.8"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
+ollama-rs = { version = "0.2.2", features = ["stream"] }
 
 
 [dev-dependencies]
