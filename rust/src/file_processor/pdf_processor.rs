@@ -29,7 +29,7 @@ impl PdfProcessor {
     }
 }
 
-fn get_images_from_pdf<T: AsRef<std::path::Path>>(
+pub fn get_images_from_pdf<T: AsRef<std::path::Path>>(
     file_path: &T,
 ) -> Result<Vec<DynamicImage>, Error> {
     let pdf = PDF::from_file(file_path)?;
