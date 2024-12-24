@@ -18,10 +18,10 @@ exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/
 [workspace.dependencies]
 pdf-extract = "0.7.7"
 docx-parser = "0.1.1"
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.8.0" }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.8.0" }
-candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.0" }
-candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.8.0" }
+candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
+candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
+candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
 
 ort = {version = "=2.0.0-rc.9", features = ["cuda", "load-dynamic"]}
 strum = "0.26.1"
