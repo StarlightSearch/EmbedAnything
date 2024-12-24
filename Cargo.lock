@@ -385,8 +385,8 @@ checksum = "325918d6fe32f23b19878fe4b34794ae41fc19ddbe53b10571a4874d44ffd39b"
 
 [[package]]
 name = "candle-core"
-version = "0.8.0"
-source = "git+https://github.com/huggingface/candle.git#b52c2c60508325431df5e05eca9801060fdbcc1c"
+version = "0.8.1"
+source = "git+https://github.com/huggingface/candle.git#62ced44ea94da7062430ed6c21ff17b36f41737d"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -415,8 +415,8 @@ dependencies = [
 
 [[package]]
 name = "candle-flash-attn"
-version = "0.8.0"
-source = "git+https://github.com/huggingface/candle.git#b52c2c60508325431df5e05eca9801060fdbcc1c"
+version = "0.8.1"
+source = "git+https://github.com/huggingface/candle.git#62ced44ea94da7062430ed6c21ff17b36f41737d"
 dependencies = [
  "anyhow",
  "bindgen_cuda",
@@ -426,16 +426,16 @@ dependencies = [
 
 [[package]]
 name = "candle-kernels"
-version = "0.8.0"
-source = "git+https://github.com/huggingface/candle.git#b52c2c60508325431df5e05eca9801060fdbcc1c"
+version = "0.8.1"
+source = "git+https://github.com/huggingface/candle.git#62ced44ea94da7062430ed6c21ff17b36f41737d"
 dependencies = [
  "bindgen_cuda",
 ]
 
 [[package]]
 name = "candle-metal-kernels"
-version = "0.8.0"
-source = "git+https://github.com/huggingface/candle.git#b52c2c60508325431df5e05eca9801060fdbcc1c"
+version = "0.8.1"
+source = "git+https://github.com/huggingface/candle.git#62ced44ea94da7062430ed6c21ff17b36f41737d"
 dependencies = [
  "metal 0.27.0",
  "once_cell",
@@ -445,8 +445,8 @@ dependencies = [
 
 [[package]]
 name = "candle-nn"
-version = "0.8.0"
-source = "git+https://github.com/huggingface/candle.git#b52c2c60508325431df5e05eca9801060fdbcc1c"
+version = "0.8.1"
+source = "git+https://github.com/huggingface/candle.git#62ced44ea94da7062430ed6c21ff17b36f41737d"
 dependencies = [
  "accelerate-src",
  "candle-core",
@@ -463,8 +463,8 @@ dependencies = [
 
 [[package]]
 name = "candle-transformers"
-version = "0.8.0"
-source = "git+https://github.com/huggingface/candle.git#b52c2c60508325431df5e05eca9801060fdbcc1c"
+version = "0.8.1"
+source = "git+https://github.com/huggingface/candle.git#62ced44ea94da7062430ed6c21ff17b36f41737d"
 dependencies = [
  "accelerate-src",
  "byteorder",
