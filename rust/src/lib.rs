@@ -8,6 +8,37 @@
 //! It supports dense, sparse, [ONNX](https://github.com/onnx/onnx) and late-interaction embeddings,
 //! offering flexibility for a wide range of use cases.
 //!
+//! # Usage
+//!
+//! ## Creating an [Embedder]
+//! 
+//! To get started, you'll need to create an [Embedder] for the type of content you want to embed.
+//! We offer some utility functions to streamline creating embedders from various sources, such as
+//! [Embedder::from_pretrained_hf], [Embedder::from_pretrained_onnx], and
+//! [Embedder::from_pretrained_cloud]. You can use any of these to quickly create an Embedder like so:
+//! 
+//! ```rust
+//! use embed_anything::embeddings::embed::Embedder;
+//! 
+//! // Create a local CLIP embedder from a Hugging Face model
+//! let clip_embedder = Embedder::from_pretrained_hf("CLIP", "jina-clip-v2", None);
+//! 
+//! // Create a cloud OpenAI embedder
+//! let openai_embedder = Embedder::from_pretrained_cloud("OpenAI", "gpt-3.5-turbo", Some("my-api-key".to_string()));
+//! ```
+//! 
+//! If needed, you can also create an instance of [Embedder] manually, allowing you to create your
+//! own embedder! Here's an example of manually creating embedders:
+//! 
+//! ```rust
+//! use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+//! use embed_anything::embeddings::local::jina::JinaEmbedder;
+//! 
+//! let jina_embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
+//! ```
+//! 
+//! ## Generate embeddings
+//! 
 //! # Example: Embed a text file
 //!
 //! Let's see how embed_anything can help us generate embeddings from a plain text file:
