@@ -2,7 +2,7 @@ use crate::file_processor::audio::audio_processor::Segment;
 
 use super::cloud::cohere::CohereEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
-use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder, SparseBertEmbedder};
+use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder, OrtSparseBertEmbedder, SparseBertEmbedder};
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::{JinaEmbed, JinaEmbedder, OrtJinaEmbedder};
@@ -135,6 +135,9 @@ impl TextEmbedder {
                 model_name,
                 revision.map(|s| s.to_string()),
             )?))),
+            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
+                OrtSparseBertEmbedder::new(model_name, revision.map(|s| s.to_string()))?,
+            ))),
             "jina" | "Jina" => Ok(Self::Jina(Box::new(OrtJinaEmbedder::new(
                 model_name, revision,
             )?))),
