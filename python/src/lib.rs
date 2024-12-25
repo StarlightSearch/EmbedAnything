@@ -10,6 +10,7 @@ use embed_anything::{
     text_loader::FileLoadingError,
 };
 use models::colpali::ColpaliModel;
+use models::reranker::{DocumentRank, Dtype, JinaReranker, RerankerResult};
 use pyo3::{
     exceptions::{PyFileNotFoundError, PyValueError},
     prelude::*,
@@ -125,6 +126,8 @@ pub enum ONNXModel {
     JINAV2SMALLEN,
     JINAV2BASEEN,
     JINAV3,
+    SPLADEPPENV1,
+    SPLADEPPENV2,
 }
 impl fmt::Display for ONNXModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -298,6 +301,21 @@ impl EmbeddingModel {
                         revision.map(|s| s.to_string()),
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::SparseBert => {
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::OrtSparseBertEmbedder::new(
+                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+                            &model_id.to_string(),
+                        )
+                        .unwrap(),
+                        revision.map(|s| s.to_string()),
+                    )
+                    .unwrap(),
                 )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
@@ -622,5 +640,9 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EmbedData>()?;
     m.add_class::<config::TextEmbedConfig>()?;
     m.add_class::<ONNXModel>()?;
+    m.add_class::<JinaReranker>()?;
+    m.add_class::<Dtype>()?;
+    m.add_class::<RerankerResult>()?;
+    m.add_class::<DocumentRank>()?;
     Ok(())
 }

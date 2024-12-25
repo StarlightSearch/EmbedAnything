@@ -6,6 +6,7 @@ pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
 pub mod models;
+pub mod reranker;
 pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};

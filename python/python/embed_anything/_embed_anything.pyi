@@ -315,6 +315,48 @@ class ColpaliModel:
             A list of EmbedData objects.
         """
 
+class JinaReranker:
+    """
+    Represents the Jina Reranker model.
+    """
+
+    def __init__(self, model_id: str, revision: str | None = None, dtype: Dtype | None = None):
+        """
+        Initializes the JinaReranker object.
+        """
+
+    def from_pretrained(model_id: str, revision: str | None = None, dtype: Dtype | None = None) -> JinaReranker:
+        """
+        Loads a pre-trained Jina Reranker model from the Hugging Face model hub.
+        """
+
+    def rerank(self, query: list[str], documents: list[str], top_k: int) -> RerankerResult:
+        """
+        Reranks the given documents for the query and returns a list of RerankerResult objects.
+        """
+
+class Dtype(Enum):
+    FP16 = "FP16"
+    INT8 = "INT8"
+    Q4 = "Q4"
+    UINT8 = "UINT8"
+    BNB4 = "BNB4"
+
+class RerankerResult:
+    """
+    Represents the result of the reranking process.
+    """
+    query: str
+    documents: list[DocumentRank]
+
+class DocumentRank:
+    """
+    Represents the rank of a document.
+    """
+    document: str
+    relevance_score: float
+    rank: int
+
 class TextEmbedConfig:
     """
     Represents the configuration for the Text Embedding model.
@@ -535,6 +577,8 @@ class ONNXModel(Enum):
     | `JINAV2SMALLEN`                  | jinaai/jina-embeddings-v2-small-en               |
     | `JINAV2BASEEN`                   | jinaai/jina-embeddings-v2-base-en                |
     | `JINAV3`                         | jinaai/jina-embeddings-v3                        |
+    | `SPLADEPPENV1`                   | prithivida/Splade_PP_en_v1                      |
+    | `SPLADEPPENV2`                   | prithivida/Splade_PP_en_v2                      |
     ```
     """
 
@@ -595,3 +639,7 @@ class ONNXModel(Enum):
     JINAV2BASEEN = "JINAV2BASEEN"
 
     JINAV3 = "JINAV3"
+
+    SPLADEPPENV1 = "SPLADEPPENV1"
+
+    SPLADEPPENV2 = "SPLADEPPENV2"
