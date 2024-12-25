@@ -71,6 +71,10 @@ pub enum ONNXModel {
     JINAV2BASEEN,
     /// jinaai/jina-embeddings-v3
     JINAV3,
+    /// prithivida/Splade_PP_en_v1
+    SPLADEPPENV1,
+    /// prithivida/Splade_PP_en_v2
+    SPLADEPPENV2,
 }
 
 /// Centralized function to initialize the models map.
@@ -316,6 +320,22 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             model_code: String::from("jinaai/jina-embeddings-v3"),
             model_file: String::from("onnx/model.onnx"),
         },
+        ModelInfo {
+            model: ONNXModel::SPLADEPPENV1,
+            dim: 768,
+            description: String::from("Sparse BERT model"),
+            hf_model_id: String::from("prithivida/Splade_PP_en_v1"),
+            model_code: String::from("prithivida/Splade_PP_en_v1"),
+            model_file: String::from("onnx/model.onnx"),
+        },
+        ModelInfo {
+            model: ONNXModel::SPLADEPPENV2,
+            dim: 768,
+            description: String::from("Sparse BERT model"),
+            hf_model_id: String::from("prithivida/Splade_PP_en_v2"),
+            model_code: String::from("prithivida/Splade_PP_en_v2"),
+            model_file: String::from("onnx/model.onnx"),
+        },
     ];
 
     // TODO: Use when out in stable
@@ -397,6 +417,8 @@ impl ONNXModel {
             ONNXModel::JINAV2SMALLEN => Some(Pooling::Mean),
             ONNXModel::JINAV2BASEEN => Some(Pooling::Mean),
             ONNXModel::JINAV3 => Some(Pooling::Mean),
+            ONNXModel::SPLADEPPENV1 => Some(Pooling::Mean),
+            ONNXModel::SPLADEPPENV2 => Some(Pooling::Mean),
         }
     }
 
