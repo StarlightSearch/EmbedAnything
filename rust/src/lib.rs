@@ -635,12 +635,15 @@ where
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
 
     file_parser.files.iter().for_each(|file| {
-        println!("Embedding file: {:?}", file);
-        let text = TextLoader::extract_text(file, use_ocr)
-            .unwrap()
-            .remove_leading_spaces()
-            .remove_trailing_spaces()
-            .remove_empty_lines();
+        let text = match TextLoader::extract_text(file, use_ocr) {
+            Ok(text) => text
+                .remove_leading_spaces()
+                .remove_trailing_spaces()
+                .remove_empty_lines(),
+            Err(_) => {
+                return;
+            }
+        };
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
             .unwrap_or_else(|| vec![text.clone()])
@@ -648,7 +651,7 @@ where
             .filter(|chunk| !chunk.trim().is_empty())
             .collect::<Vec<_>>();
         if chunks.is_empty() {
-            return; // Skip this file if all chunks are empty
+            return; 
         }
         let metadata = TextLoader::get_metadata(file).unwrap();
         for chunk in chunks {
