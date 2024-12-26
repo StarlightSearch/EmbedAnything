@@ -1,7 +1,7 @@
 use embed_anything::reranker::jina::Dtype;
 fn main() {
     let reranker = embed_anything::reranker::jina::JinaReranker::new(
-        "Xenova/bge-reranker-base",
+        "jinaai/jina-reranker-v2-base-multilingual",
         None,
         Dtype::FP16,
     )
