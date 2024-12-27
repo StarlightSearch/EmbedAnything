@@ -21,14 +21,14 @@
 <div align="center">
 
   <p align="center">
-    <b>🦀 Rust-powered Framework for Lightning-Fast Ingestion, Inference, and Indexing</b>
+    <b> Inference, ingestion, and indexing – supercharged by Rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples">Examples</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing">Benches</a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
     .
@@ -83,7 +83,7 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC.
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -107,7 +107,7 @@ model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, model_id="model link from huggingface"
 )
 config = TextEmbedConfig(chunk_size=200, batch_size=32)
-data = embed_anything.embed_file("file_address", embeder=model, config=config)
+data = embed_anything.embed_file("file_address", embedder=model, config=config)
 ```
 
 
@@ -190,7 +190,7 @@ pip install embed-anything-gpu
 model = EmbeddingModel.from_pretrained_local(
     WhichModel.Bert, model_id="Hugging_face_link"
 )
-data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
+data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 ```
 
 
@@ -206,11 +206,11 @@ model = embed_anything.EmbeddingModel.from_pretrained_local(
     model_id="openai/clip-vit-base-patch16",
     # revision="refs/pr/15",
 )
-data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
+data: list[EmbedData] = embed_anything.embed_directory("test_files", embedder=model)
 embeddings = np.array([data.embedding for data in data])
 query = ["Photo of a monkey?"]
 query_embedding = np.array(
-    embed_anything.embed_query(query, embeder=model)[0].embedding
+    embed_anything.embed_query(query, embedder=model)[0].embedding
 )
 similarities = np.dot(embeddings, query_embedding)
 max_index = np.argmax(similarities)
@@ -233,7 +233,7 @@ from embed_anything import (
 audio_decoder = AudioDecoderModel.from_pretrained_hf(
     "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
 )
-embeder = EmbeddingModel.from_pretrained_hf(
+embedder = EmbeddingModel.from_pretrained_hf(
     embed_anything.WhichModel.Bert,
     model_id="sentence-transformers/all-MiniLM-L6-v2",
     revision="main",
@@ -242,7 +242,7 @@ config = TextEmbedConfig(chunk_size=200, batch_size=32)
 data = embed_anything.embed_audio_file(
     "test_files/audio/samples_hp0.wav",
     audio_decoder=audio_decoder,
-    embeder=embeder,
+    embedder=embedder,
     text_embed_config=config,
 )
 print(data[0].metadata)

@@ -90,3 +90,14 @@ extra:
           note: >- 
             Thanks for your feedback! Help us improve this page by
             using our <a href="..." target="_blank" rel="noopener">feedback form</a>.
+  social:
+    - icon: fontawesome/brands/twitter
+      link: https://x.com/SearchStarlight
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/mystarlight/
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/5wX6c4R7zp
+    - icon: fontawesome/solid/envelope
+      link: https://starlight-3.kit.com/f15e780cc7
+
+copyright: Copyright &copy; 2024 Starlight Search

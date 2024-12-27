@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     chunkers::statistical::StatisticalChunker,
-    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
+    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder}, file_processor::docx_processor::DocxProcessor,
 };
 use crate::{
     embeddings::embed::Embedder,
@@ -104,11 +104,11 @@ impl TextLoader {
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic => {
-                let embeder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
+                let embedder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
                     TextEmbedder::Jina(Box::new(JinaEmbedder::default())),
                 )));
                 let chunker = StatisticalChunker {
-                    encoder: embeder,
+                    encoder: embedder,
                     ..Default::default()
                 };
 
@@ -138,6 +138,7 @@ impl TextLoader {
             "pdf" => PdfProcessor::extract_text(file, use_ocr),
             "md" => MarkdownProcessor::extract_text(file),
             "txt" => TxtProcessor::extract_text(file),
+            "docx" => DocxProcessor::extract_text(file),
             _ => Err(FileLoadingError::UnsupportedFileType(
                 file.as_ref()
                     .extension()
@@ -211,10 +212,10 @@ mod tests {
     }
 
     #[test]
-    fn test_image_embeder() {
+    fn test_image_embedder() {
         let file_path = PathBuf::from("test_files/clip/cat1.jpg");
-        let embeder = ClipEmbedder::default();
-        let emb_data = embeder.embed_image(file_path, None).unwrap();
+        let embedder = ClipEmbedder::default();
+        let emb_data = embedder.embed_image(file_path, None).unwrap();
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }
 }
