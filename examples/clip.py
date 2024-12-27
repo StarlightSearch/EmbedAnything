@@ -11,7 +11,7 @@ model = embed_anything.EmbeddingModel.from_pretrained_hf(
     model_id="openai/clip-vit-base-patch16",
 )
 data: list[EmbedData] = embed_anything.embed_image_directory(
-    "test_files", embeder=model
+    "test_files", embedder=model
 )
 
 # Convert the embeddings to a numpy array
@@ -22,7 +22,7 @@ print(data[0])
 # Embed a query
 query = ["Photo of a monkey?"]
 query_embedding = np.array(
-    embed_anything.embed_query(query, embeder=model)[0].embedding
+    embed_anything.embed_query(query, embedder=model)[0].embedding
 )
 
 # Calculate the similarities between the query embedding and all the embeddings

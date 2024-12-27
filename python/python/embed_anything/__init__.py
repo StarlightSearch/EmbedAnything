@@ -21,7 +21,7 @@ from embed_anything import EmbedData
 model = EmbeddingModel.from_pretrained_local(
     WhichModel.Bert, model_id="Hugging_face_link"
 )
-data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
+data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 
 
 #For images
@@ -30,11 +30,11 @@ model = embed_anything.EmbeddingModel.from_pretrained_local(
     model_id="openai/clip-vit-base-patch16",
     # revision="refs/pr/15",
 )
-data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
+data: list[EmbedData] = embed_anything.embed_directory("test_files", embedder=model)
 embeddings = np.array([data.embedding for data in data])
 query = ["Photo of a monkey?"]
 query_embedding = np.array(
-    embed_anything.embed_query(query, embeder=model)[0].embedding
+    embed_anything.embed_query(query, embedder=model)[0].embedding
 )
 # For audio files
 from embed_anything import (
@@ -47,7 +47,7 @@ from embed_anything import (
 audio_decoder = AudioDecoderModel.from_pretrained_hf(
     "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
 )
-embeder = EmbeddingModel.from_pretrained_hf(
+embedder = EmbeddingModel.from_pretrained_hf(
     embed_anything.WhichModel.Bert,
     model_id="sentence-transformers/all-MiniLM-L6-v2",
     revision="main",
@@ -56,7 +56,7 @@ config = TextEmbedConfig(chunk_size=200, batch_size=32)
 data = embed_anything.embed_audio_file(
     "test_files/audio/samples_hp0.wav",
     audio_decoder=audio_decoder,
-    embeder=embeder,
+    embedder=embedder,
     text_embed_config=config,
 )
 
@@ -98,7 +98,7 @@ embed_config = TextEmbedConfig(chunk_size=512, batch_size=32)
 
 data = embed_anything.embed_image_directory(
     "test_files",
-    embeder=clip_model,
+    embedder=clip_model,
     adapter=pinecone_adapter,
     # config=embed_config,
 ```

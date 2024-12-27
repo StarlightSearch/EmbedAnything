@@ -1,6 +1,6 @@
 ---
 draft: false 
-date: 2024-01-31 
+date: 2024-03-31 
 authors: 
  - akshay
  - sonam
@@ -115,7 +115,7 @@ model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, model_id="model link from huggingface"
 )
 config = TextEmbedConfig(chunk_size=200, batch_size=32)
-data = embed_anything.embed_file("file_address", embeder=model, config=config)
+data = embed_anything.embed_file("file_address", embedder=model, config=config)
 ```
 You can check out the documentation at  https://starlight-search.com/references/ 
 

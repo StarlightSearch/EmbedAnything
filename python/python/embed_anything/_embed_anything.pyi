@@ -53,14 +53,14 @@ class Adapter(ABC):
         """
 
 def embed_query(
-    query: list[str], embeder: EmbeddingModel, config: TextEmbedConfig | None = None
+    query: list[str], embedder: EmbeddingModel, config: TextEmbedConfig | None = None
 ) -> list[EmbedData]:
     """
     Embeds the given query and returns a list of EmbedData objects.
 
     Args:
         query: The query to embed.
-        embeder: The embedding model to use.
+        embedder: The embedding model to use.
         config: The configuration for the embedding model.
 
     Returns:
@@ -80,7 +80,7 @@ def embed_query(
 
 def embed_file(
     file_path: str,
-    embeder: EmbeddingModel,
+    embedder: EmbeddingModel,
     config: TextEmbedConfig | None = None,
     adapter: Adapter | None = None,
 ) -> list[EmbedData]:
@@ -89,7 +89,7 @@ def embed_file(
 
     Args:
         file_path: The path to the file to embed.
-        embeder: The embedding model to use.
+        embedder: The embedding model to use.
         config: The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings in a vector database.
 
@@ -104,13 +104,13 @@ def embed_file(
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         revision="main",
     )
-    data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
+    data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
     ```
     """
 
 def embed_directory(
     file_path: str,
-    embeder: EmbeddingModel,
+    embedder: EmbeddingModel,
     extensions: list[str],
     config: TextEmbedConfig | None = None,
     adapter: Adapter | None = None,
@@ -120,7 +120,7 @@ def embed_directory(
 
     Args:
         file_path: The path to the directory containing the files to embed.
-        embeder: The embedding model to use.
+        embedder: The embedding model to use.
         extensions: The list of file extensions to consider for embedding.
         config: The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings in a vector database.
@@ -136,13 +136,13 @@ def embed_directory(
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         revision="main",
     )
-    data = embed_anything.embed_directory("test_files", embeder=model, extensions=[".pdf"])
+    data = embed_anything.embed_directory("test_files", embedder=model, extensions=[".pdf"])
     ```
     """
 
 def embed_image_directory(
     file_path: str,
-    embeder: EmbeddingModel,
+    embedder: EmbeddingModel,
     config: ImageEmbedConfig | None = None,
     adapter: Adapter | None = None,
 ) -> list[EmbedData]:
@@ -151,7 +151,7 @@ def embed_image_directory(
 
     Args:
         file_path: The path to the directory containing the images to embed.
-        embeder: The embedding model to use.
+        embedder: The embedding model to use.
         config: The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings in a vector database.
 
@@ -161,7 +161,7 @@ def embed_image_directory(
 
 def embed_webpage(
     url: str,
-    embeder: EmbeddingModel,
+    embedder: EmbeddingModel,
     config: TextEmbedConfig | None,
     adapter: Adapter | None,
 ) -> list[EmbedData] | None:
@@ -170,7 +170,7 @@ def embed_webpage(
 
     Args:
         url: The URL of the webpage to embed.
-        embeder: The name of the embedding model to use. Choose between "OpenAI", "Jina", "Bert"
+        embedder: The name of the embedding model to use. Choose between "OpenAI", "Jina", "Bert"
         config: The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings.
 
@@ -185,7 +185,7 @@ def embed_webpage(
         openai_config=embed_anything.OpenAIConfig(model="text-embedding-3-small")
     )
     data = embed_anything.embed_webpage(
-        "https://www.akshaymakes.com/", embeder="OpenAI", config=config
+        "https://www.akshaymakes.com/", embedder="OpenAI", config=config
     )
     ```
     """
@@ -193,7 +193,7 @@ def embed_webpage(
 def embed_audio_file(
     file_path: str,
     audio_decoder: AudioDecoderModel,
-    embeder: EmbeddingModel,
+    embedder: EmbeddingModel,
     text_embed_config: TextEmbedConfig | None = TextEmbedConfig(
         chunk_size=200, batch_size=32
     ),
@@ -204,7 +204,7 @@ def embed_audio_file(
     Args:
         file_path: The path to the audio file to embed.
         audio_decoder: The audio decoder model to use.
-        embeder: The embedding model to use.
+        embedder: The embedding model to use.
         text_embed_config: The configuration for the embedding model.
 
     Returns:
@@ -218,7 +218,7 @@ def embed_audio_file(
         "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
     )
 
-    embeder = embed_anything.EmbeddingModel.from_pretrained_hf(
+    embedder = embed_anything.EmbeddingModel.from_pretrained_hf(
         embed_anything.WhichModel.Bert,
         model_id="sentence-transformers/all-MiniLM-L6-v2",
         revision="main",
@@ -228,7 +228,7 @@ def embed_audio_file(
     data = embed_anything.embed_audio_file(
         "test_files/audio/samples_hp0.wav",
         audio_decoder=audio_decoder,
-        embeder=embeder,
+        embedder=embedder,
         text_embed_config=config,
     )
     ```
@@ -314,6 +314,48 @@ class ColpaliModel:
         Returns:
             A list of EmbedData objects.
         """
+
+class JinaReranker:
+    """
+    Represents the Jina Reranker model.
+    """
+
+    def __init__(self, model_id: str, revision: str | None = None, dtype: Dtype | None = None):
+        """
+        Initializes the JinaReranker object.
+        """
+
+    def from_pretrained(model_id: str, revision: str | None = None, dtype: Dtype | None = None) -> JinaReranker:
+        """
+        Loads a pre-trained Jina Reranker model from the Hugging Face model hub.
+        """
+
+    def rerank(self, query: list[str], documents: list[str], top_k: int) -> RerankerResult:
+        """
+        Reranks the given documents for the query and returns a list of RerankerResult objects.
+        """
+
+class Dtype(Enum):
+    FP16 = "FP16"
+    INT8 = "INT8"
+    Q4 = "Q4"
+    UINT8 = "UINT8"
+    BNB4 = "BNB4"
+
+class RerankerResult:
+    """
+    Represents the result of the reranking process.
+    """
+    query: str
+    documents: list[DocumentRank]
+
+class DocumentRank:
+    """
+    Represents the rank of a document.
+    """
+    document: str
+    relevance_score: float
+    rank: int
 
 class TextEmbedConfig:
     """
@@ -535,6 +577,8 @@ class ONNXModel(Enum):
     | `JINAV2SMALLEN`                  | jinaai/jina-embeddings-v2-small-en               |
     | `JINAV2BASEEN`                   | jinaai/jina-embeddings-v2-base-en                |
     | `JINAV3`                         | jinaai/jina-embeddings-v3                        |
+    | `SPLADEPPENV1`                   | prithivida/Splade_PP_en_v1                      |
+    | `SPLADEPPENV2`                   | prithivida/Splade_PP_en_v2                      |
     ```
     """
 
@@ -595,3 +639,7 @@ class ONNXModel(Enum):
     JINAV2BASEEN = "JINAV2BASEEN"
 
     JINAV3 = "JINAV3"
+
+    SPLADEPPENV1 = "SPLADEPPENV1"
+
+    SPLADEPPENV2 = "SPLADEPPENV2"

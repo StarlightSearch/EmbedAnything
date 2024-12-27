@@ -26,7 +26,7 @@ impl FileParser {
     ) -> Result<Vec<String>, Error> {
         let extension_regex = match extensions {
             Some(exts) => Regex::new(&format!(r"\.({})$", exts.join("|"))).unwrap(),
-            None => Regex::new(r"\.(pdf|md|txt)$").unwrap(),
+            None => Regex::new(r"\.(pdf|md|txt|docx)$").unwrap(),
         };
 
         let entries = std::fs::read_dir(directory_path)?;

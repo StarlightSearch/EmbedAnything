@@ -16,7 +16,7 @@ config = TextEmbedConfig(
     semantic_encoder=semantic_encoder,
 )
 
-data = embed_anything.embed_file("test_files/bank.txt", embeder=model, config=config)
+data = embed_anything.embed_file("test_files/bank.txt", embedder=model, config=config)
 
 for d in data:
     print(d.text)

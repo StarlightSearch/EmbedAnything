@@ -55,6 +55,10 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightening fas
   </ol>
 </details>
 
+To sign up for future updates, sign up to our newsletter:
+
+<script async data-uid="c65e5ea14d" src="https://starlight-3.kit.com/c65e5ea14d/index.js"></script>
+
 
 ## 💡What is Vector Streaming
 
@@ -115,7 +119,7 @@ pip install embed-anything-gpu
 model = EmbeddingModel.from_pretrained_local(
     WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L6-v2"
 )
-data = embed_anything.embed_file("test_files/test.pdf", embeder=model)
+data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 ```
 
 
@@ -158,11 +162,11 @@ model = embed_anything.EmbeddingModel.from_pretrained_local(
     model_id="openai/clip-vit-base-patch16",
     # revision="refs/pr/15",
 )
-data: list[EmbedData] = embed_anything.embed_directory("test_files", embeder=model)
+data: list[EmbedData] = embed_anything.embed_directory("test_files", embedder=model)
 embeddings = np.array([data.embedding for data in data])
 query = ["Photo of a monkey?"]
 query_embedding = np.array(
-    embed_anything.embed_query(query, embeder=model)[0].embedding
+    embed_anything.embed_query(query, embedder=model)[0].embedding
 )
 similarities = np.dot(embeddings, query_embedding)
 max_index = np.argmax(similarities)
@@ -195,7 +199,7 @@ jina_config = JinaConfig(
 
 config = EmbedConfig(jina=jina_config, audio_decoder=audio_decoder_config)
 data = embed_anything.embed_file(
-    "test_files/audio/samples_hp0.wav", embeder="Audio", config=config
+    "test_files/audio/samples_hp0.wav", embedder="Audio", config=config
 )
 print(data[0].metadata)
 end_time = time.time()
@@ -214,4 +218,3 @@ model = EmbeddingModel.from_pretrained_onnx(
 ```
 To see all the ONNX models supported, see [here](../guides/onnx_models)
 
-See other supported ONNX Models [here](../guides/onnx_models/)

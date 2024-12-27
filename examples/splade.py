@@ -1,5 +1,5 @@
 import embed_anything
-from embed_anything import EmbedData, EmbeddingModel, WhichModel, embed_query
+from embed_anything import EmbedData, EmbeddingModel, ONNXModel, WhichModel, embed_query
 from embed_anything.vectordb import Adapter
 import os
 from time import time
@@ -11,6 +11,11 @@ model = EmbeddingModel.from_pretrained_hf(
     WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
 )
 
+## ONNX model
+# model = EmbeddingModel.from_pretrained_onnx(
+#     WhichModel.SparseBert,
+#     ONNXModel.SPLADEPPENV2,
+# )
 sentences = [
     "The cat sits outside",
     "A man is playing guitar",
@@ -22,7 +27,7 @@ sentences = [
     "Do you like pizza?",
 ]
 
-embedddings = embed_query(sentences, embeder=model)
+embedddings = embed_query(sentences, embedder=model)
 
 embed_vector = np.array([e.embedding for e in embedddings])
 

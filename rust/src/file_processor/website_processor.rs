@@ -28,7 +28,7 @@ pub struct WebPage {
 impl WebPage {
     pub async fn embed_webpage(
         &self,
-        embeder: &Embedder,
+        embedder: &Embedder,
         chunk_size: usize,
         overlap_ratio: f32,
         batch_size: Option<usize>,
@@ -40,7 +40,7 @@ impl WebPage {
                 self.embed_tag(
                     "p",
                     paragraphs,
-                    embeder,
+                    embedder,
                     chunk_size,
                     overlap_ratio,
                     batch_size,
@@ -54,7 +54,7 @@ impl WebPage {
                 self.embed_tag(
                     "h1",
                     headers,
-                    embeder,
+                    embedder,
                     chunk_size,
                     overlap_ratio,
                     batch_size,
@@ -68,7 +68,7 @@ impl WebPage {
                 self.embed_tag(
                     "code",
                     codes,
-                    embeder,
+                    embedder,
                     chunk_size,
                     overlap_ratio,
                     batch_size,
@@ -84,7 +84,7 @@ impl WebPage {
         &self,
         tag: &str,
         tag_content: &[String],
-        embeder: &Embedder,
+        embedder: &Embedder,
         chunk_size: usize,
         overlap_ratio: f32,
         batch_size: Option<usize>,
@@ -120,7 +120,7 @@ impl WebPage {
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
 
-            let encodings = embeder.embed(&chunks, batch_size).await?;
+            let encodings = embedder.embed(&chunks, batch_size).await?;
             let embeddings =
                 get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
