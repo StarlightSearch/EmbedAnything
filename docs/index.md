@@ -92,10 +92,6 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ![image](https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png)
 
 
-## ⭐ Supported Models
-
-We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
-
 
 ## 🧑‍🚀 Getting Started
 
@@ -205,15 +201,35 @@ print(data[0].metadata)
 end_time = time.time()
 print("Time taken: ", end_time - start_time)
 
-
 ```
+
+### ⬆️Reranker Model
+
+We support reranker models that are available as ONNX models. Even though the name of the class is `JinaReranker`, other models can still be used. Currently the models that are tested are:
+1. `jinaai/jina-reranker-v2-base-multilingual`
+2. `jinaai/jina-reranker-v1-tiny-en`
+3. `jinaai/jina-reranker-v1-turbo-en`
+4. `Xenova/bge-reranker-base`
+5. `Xenova/bge-reranker-large`
+
+```python
+from embed_anything import JinaReranker, Dtype, RerankerResult, DocumentRank
+
+reranker = JinaReranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.FP16)
+
+results: RerankerResult = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
+
+documents: list[DocumentRank] = results[0].documents
+```
+
+The output is a list of documents with their relevance scores and rank for each input query.
 
 ### Using ONNX Models
 
 ```python
 
 model = EmbeddingModel.from_pretrained_onnx(
-  WhichModel.Bert, model_id="onnx_model_link"
+  WhichModel.Bert, model_id="onnx_model_id"
 )
 ```
 To see all the ONNX models supported, see [here](../guides/onnx_models)
