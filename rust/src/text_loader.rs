@@ -56,7 +56,7 @@ impl From<FileLoadingError> for Error {
                 Error::msg(format!("File not found: {:?}", file))
             }
             FileLoadingError::UnsupportedFileType(file) => Error::msg(format!(
-                "Unsupported file type: {:?}. Currently supported file types are: pdf, md, txt",
+                "Unsupported file type: {:?}. Currently supported file types are: pdf, md, txt, docx",
                 file
             )),
         }
