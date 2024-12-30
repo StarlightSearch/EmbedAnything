@@ -1,14 +1,14 @@
 use anyhow::Error;
 use docx_parser::MarkdownDocument;
-/// A struct for processing Docx files.
+/// A struct for processing PDF files.
 pub struct DocxProcessor;
 
 impl DocxProcessor {
-    /// Extracts text from a Docx file.
+    /// Extracts text from a PDF file.
     ///
     /// # Arguments
     ///
-    /// * `file_path` - The path to the Docx file.
+    /// * `file_path` - The path to the PDF file.
     ///
     /// # Returns
     ///
@@ -19,7 +19,7 @@ impl DocxProcessor {
         let markdown = docs.to_markdown(false);
         let content = markdown_to_text::convert(&markdown);
 
-        Ok(content)
+        Ok(markdown)
     }
 }
 
