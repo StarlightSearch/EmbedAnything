@@ -231,3 +231,7 @@ In summary, positional encoding is vital for allowing transformer models to gras
 ```
 
 This response used a total of 2500 tokens which translates to $0.006. If we would have sent the entire `pdf` of 15 pages, without retrieval to the model, it would have cost about 12,500 tokens which is five times higher than this system. And this is assuming we know which `pdf` to send. Also the response may not be accurate because the model has too much unnecessary information to filter out.
+
+Check out the demo notebook at 
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1JoqVs3athdd9FZOrrHb9WagxIK45CZUX?usp=sharing)
