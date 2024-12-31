@@ -9,6 +9,8 @@ title: The path ahead of EmbedAnything
 ---
 In March, we set out to build a local file search app. We aimed to create a tool that would make file searching faster, more innovative, and more efficient. However, we quickly hit a roadblock: no high-performance backend fit our needs.
 
+<!-- more -->
+
 ![image.png](https://royal-hygienic-522.notion.site/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2Ff1bf59bf-2c3f-4b4d-a5f9-109d041ef45a%2Faa8abe48-4210-494c-af98-458b6694b09a%2Fimage.png?table=block&id=15d81b6a-6bbe-80cc-883e-fcafd65e619d&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=1420&userId=&cache=v2)
 
 ### Short of backend
