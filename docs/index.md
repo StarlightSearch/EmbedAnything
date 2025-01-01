@@ -205,7 +205,7 @@ print("Time taken: ", end_time - start_time)
 
 ### ⬆️Reranker Model
 
-We support reranker models that are available as ONNX models. Even though the name of the class is `JinaReranker`, other models can still be used. Currently the models that are tested are:
+We support reranker models that are available as ONNX models. Even though the name of the class is `Reranker`, other models can still be used. Currently the models that are tested are:
 1. `jinaai/jina-reranker-v2-base-multilingual`
 2. `jinaai/jina-reranker-v1-tiny-en`
 3. `jinaai/jina-reranker-v1-turbo-en`
@@ -213,9 +213,9 @@ We support reranker models that are available as ONNX models. Even though the na
 5. `Xenova/bge-reranker-large`
 
 ```python
-from embed_anything import JinaReranker, Dtype, RerankerResult, DocumentRank
+from embed_anything import Reranker, Dtype, RerankerResult, DocumentRank
 
-reranker = JinaReranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.FP16)
+reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.FP16)
 
 results: RerankerResult = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
 

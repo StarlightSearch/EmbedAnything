@@ -315,17 +315,17 @@ class ColpaliModel:
             A list of EmbedData objects.
         """
 
-class JinaReranker:
+class Reranker:
     """
     Represents the Jina Reranker model.
     """
 
     def __init__(self, model_id: str, revision: str | None = None, dtype: Dtype | None = None):
         """
-        Initializes the JinaReranker object.
+        Initializes the Reranker object.
         """
 
-    def from_pretrained(model_id: str, revision: str | None = None, dtype: Dtype | None = None) -> JinaReranker:
+    def from_pretrained(model_id: str, revision: str | None = None, dtype: Dtype | None = None) -> Reranker:
         """
         Loads a pre-trained Jina Reranker model from the Hugging Face model hub.
         """
@@ -336,12 +336,12 @@ class JinaReranker:
         """
 
 class Dtype(Enum):
-    FP16 = "FP16"
+    F16 = "F16"
     INT8 = "INT8"
     Q4 = "Q4"
     UINT8 = "UINT8"
     BNB4 = "BNB4"
-
+    Q4F16 = "Q4F16"
 class RerankerResult:
     """
     Represents the result of the reranking process.
