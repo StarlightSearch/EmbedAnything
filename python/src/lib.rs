@@ -294,13 +294,13 @@ impl EmbeddingModel {
         dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
         let dtype = match dtype.unwrap_or(&Dtype::F32) {
-            Dtype::Q4F16 => embed_anything::reranker::jina::Dtype::Q4F16,
-            Dtype::F16 => embed_anything::reranker::jina::Dtype::F16,
-            Dtype::INT8 => embed_anything::reranker::jina::Dtype::INT8,
-            Dtype::Q4 => embed_anything::reranker::jina::Dtype::Q4,
-            Dtype::UINT8 => embed_anything::reranker::jina::Dtype::UINT8,
-            Dtype::BNB4 => embed_anything::reranker::jina::Dtype::BNB4,
-            Dtype::F32 => embed_anything::reranker::jina::Dtype::F32,
+            Dtype::Q4F16 => embed_anything::Dtype::Q4F16,
+            Dtype::F16 => embed_anything::Dtype::F16,
+            Dtype::INT8 => embed_anything::Dtype::INT8,
+            Dtype::Q4 => embed_anything::Dtype::Q4,
+            Dtype::UINT8 => embed_anything::Dtype::UINT8,
+            Dtype::BNB4 => embed_anything::Dtype::BNB4,
+            Dtype::F32 => embed_anything::Dtype::F32,
         };
         match model {
             WhichModel::Bert => {

@@ -10,16 +10,7 @@ use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::embeddings::local::bert::TokenizerConfig;
 use serde::Serialize;
-pub enum Dtype {
-    F16,
-    INT8,
-    Q4,
-    UINT8,
-    BNB4,
-    F32,
-    Q4F16,
-    QUANTIZED,
-}
+use crate::Dtype;
 
 #[derive(Debug, Serialize)]
 pub struct RerankerResult {

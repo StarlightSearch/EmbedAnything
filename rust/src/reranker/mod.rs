@@ -1,1 +1,1 @@
-pub mod jina;
+pub mod model;
