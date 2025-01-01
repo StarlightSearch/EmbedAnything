@@ -4,7 +4,7 @@ use pyo3::PyResult;
 
 #[pyclass]
 pub struct Reranker {
-    pub model: embed_anything::reranker::jina::Reranker,
+    pub model: embed_anything::reranker::model::Reranker,
 }
 
 #[pyclass(eq, eq_int)]
@@ -22,7 +22,7 @@ pub enum Dtype {
 
 #[pyclass]
 pub struct RerankerResult {
-    pub inner: embed_anything::reranker::jina::RerankerResult,
+    pub inner: embed_anything::reranker::model::RerankerResult,
 }
 
 #[pyclass]
@@ -111,15 +111,15 @@ impl Reranker {
         dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
         let dtype = match dtype {
-            Some(Dtype::F16) => embed_anything::reranker::jina::Dtype::F16,
-            Some(Dtype::INT8) => embed_anything::reranker::jina::Dtype::INT8,
-            Some(Dtype::Q4) => embed_anything::reranker::jina::Dtype::Q4,
-            Some(Dtype::UINT8) => embed_anything::reranker::jina::Dtype::UINT8,
-            Some(Dtype::BNB4) => embed_anything::reranker::jina::Dtype::BNB4,
-            Some(Dtype::F32) => embed_anything::reranker::jina::Dtype::F32,
-            _ => embed_anything::reranker::jina::Dtype::F32,
+            Some(Dtype::F16) => embed_anything::Dtype::F16,
+            Some(Dtype::INT8) => embed_anything::Dtype::INT8,
+            Some(Dtype::Q4) => embed_anything::Dtype::Q4,
+            Some(Dtype::UINT8) => embed_anything::Dtype::UINT8,
+            Some(Dtype::BNB4) => embed_anything::Dtype::BNB4,
+            Some(Dtype::F32) => embed_anything::Dtype::F32,
+            _ => embed_anything::Dtype::F32,
         };
-        let model = embed_anything::reranker::jina::Reranker::new(model_id, revision, dtype)
+        let model = embed_anything::reranker::model::Reranker::new(model_id, revision, dtype)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self { model })
     }

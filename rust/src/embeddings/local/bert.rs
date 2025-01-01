@@ -12,7 +12,7 @@ use crate::embeddings::utils::{
 };
 use crate::embeddings::{normalize_l2, select_device};
 use crate::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
-use crate::reranker::jina::Dtype;
+use crate::Dtype;
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
@@ -53,7 +53,7 @@ impl OrtBertEmbedder {
     pub fn new(
         model: ONNXModel,
         revision: Option<String>,
-        dtype: Option<crate::reranker::jina::Dtype>,
+        dtype: Option<Dtype>,
     ) -> Result<Self, E> {
         let model_info = models_map()
             .get(&model)

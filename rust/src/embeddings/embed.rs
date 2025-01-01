@@ -1,5 +1,5 @@
 use crate::file_processor::audio::audio_processor::Segment;
-use crate::reranker::jina::Dtype;
+use crate::Dtype;
 
 use super::cloud::cohere::CohereEmbedder;
 use super::cloud::openai::OpenAIEmbedder;

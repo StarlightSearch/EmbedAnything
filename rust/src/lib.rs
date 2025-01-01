@@ -25,6 +25,19 @@ use text_cleaner::clean::Clean;
 use text_loader::{SplittingStrategy, TextLoader};
 use tokio::sync::mpsc; // Add this at the top of your file
 
+
+pub enum Dtype {
+    F16,
+    INT8,
+    Q4,
+    UINT8,
+    BNB4,
+    F32,
+    Q4F16,
+    QUANTIZED,
+}
+
+
 /// Embeds a list of queries using the specified embedding model.
 ///
 /// # Arguments
