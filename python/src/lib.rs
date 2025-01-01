@@ -10,7 +10,7 @@ use embed_anything::{
     text_loader::FileLoadingError,
 };
 use models::colpali::ColpaliModel;
-use models::reranker::{DocumentRank, Dtype, JinaReranker, RerankerResult};
+use models::reranker::{DocumentRank, Dtype, Reranker, RerankerResult};
 use pyo3::{
     exceptions::{PyFileNotFoundError, PyValueError},
     prelude::*,
@@ -653,7 +653,7 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EmbedData>()?;
     m.add_class::<config::TextEmbedConfig>()?;
     m.add_class::<ONNXModel>()?;
-    m.add_class::<JinaReranker>()?;
+    m.add_class::<Reranker>()?;
     m.add_class::<Dtype>()?;
     m.add_class::<RerankerResult>()?;
     m.add_class::<DocumentRank>()?;

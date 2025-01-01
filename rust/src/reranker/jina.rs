@@ -34,12 +34,12 @@ pub struct DocumentRank {
     pub rank: usize,
 }
 
-pub struct JinaReranker {
+pub struct Reranker {
     model: Session,
     tokenizer: Tokenizer,
 }
 
-impl JinaReranker {
+impl Reranker {
     pub fn new(model_id: &str, revision: Option<&str>, dtype: Dtype) -> Result<Self, E> {
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
             let api = Api::new().unwrap();
@@ -116,7 +116,7 @@ impl JinaReranker {
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
 
-        Ok(JinaReranker { model, tokenizer })
+        Ok(Reranker { model, tokenizer })
     }
 
     pub fn compute_scores(

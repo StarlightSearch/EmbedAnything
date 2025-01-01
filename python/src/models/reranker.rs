@@ -3,8 +3,8 @@ use pyo3::prelude::*;
 use pyo3::PyResult;
 
 #[pyclass]
-pub struct JinaReranker {
-    pub model: embed_anything::reranker::jina::JinaReranker,
+pub struct Reranker {
+    pub model: embed_anything::reranker::jina::Reranker,
 }
 
 #[pyclass(eq, eq_int)]
@@ -48,6 +48,20 @@ impl DocumentRank {
     fn rank(&self) -> usize {
         self.rank
     }
+
+    fn __str__(&self) -> String {
+        format!(
+            "{{\"document\": \"{}\", \"relevance_score\": {}, \"rank\": {}}}",
+            self.document, self.relevance_score, self.rank
+        )
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "DocumentRank(document={}, relevance_score={}, rank={})",
+            self.document, self.relevance_score, self.rank
+        )
+    }
 }
 
 #[pymethods]
@@ -88,7 +102,7 @@ impl RerankerResult {
 }
 
 #[pymethods]
-impl JinaReranker {
+impl Reranker {
     #[staticmethod]
     #[pyo3(signature = (model_id, revision=None, dtype=None))]
     pub fn from_pretrained(
@@ -105,7 +119,7 @@ impl JinaReranker {
             Some(Dtype::F32) => embed_anything::reranker::jina::Dtype::F32,
             _ => embed_anything::reranker::jina::Dtype::F32,
         };
-        let model = embed_anything::reranker::jina::JinaReranker::new(model_id, revision, dtype)
+        let model = embed_anything::reranker::jina::Reranker::new(model_id, revision, dtype)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self { model })
     }

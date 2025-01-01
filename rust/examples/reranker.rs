@@ -1,6 +1,6 @@
 use embed_anything::reranker::jina::Dtype;
 fn main() {
-    let reranker = embed_anything::reranker::jina::JinaReranker::new(
+    let reranker = embed_anything::reranker::jina::Reranker::new(
         "jinaai/jina-reranker-v2-base-multilingual",
         None,
         Dtype::F16,
