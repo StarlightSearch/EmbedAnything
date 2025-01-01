@@ -11,11 +11,13 @@ pub struct JinaReranker {
 #[derive(PartialEq)]
 
 pub enum Dtype {
-    FP16,
+    F16,
     INT8,
     Q4,
     UINT8,
     BNB4,
+    Q4F16,
+    F32,
 }
 
 #[pyclass]
@@ -94,12 +96,14 @@ impl JinaReranker {
         revision: Option<&str>,
         dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
-        let dtype = match dtype.unwrap_or(&Dtype::FP16) {
-            Dtype::FP16 => embed_anything::reranker::jina::Dtype::FP16,
-            Dtype::INT8 => embed_anything::reranker::jina::Dtype::INT8,
-            Dtype::Q4 => embed_anything::reranker::jina::Dtype::Q4,
-            Dtype::UINT8 => embed_anything::reranker::jina::Dtype::UINT8,
-            Dtype::BNB4 => embed_anything::reranker::jina::Dtype::BNB4,
+        let dtype = match dtype {
+            Some(Dtype::F16) => embed_anything::reranker::jina::Dtype::F16,
+            Some(Dtype::INT8) => embed_anything::reranker::jina::Dtype::INT8,
+            Some(Dtype::Q4) => embed_anything::reranker::jina::Dtype::Q4,
+            Some(Dtype::UINT8) => embed_anything::reranker::jina::Dtype::UINT8,
+            Some(Dtype::BNB4) => embed_anything::reranker::jina::Dtype::BNB4,
+            Some(Dtype::F32) => embed_anything::reranker::jina::Dtype::F32,
+            _ => embed_anything::reranker::jina::Dtype::F32,
         };
         let model = embed_anything::reranker::jina::JinaReranker::new(model_id, revision, dtype)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;

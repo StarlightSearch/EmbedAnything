@@ -101,6 +101,8 @@ pub enum ONNXModel {
     AllMiniLML6V2Q,
     AllMiniLML12V2,
     AllMiniLML12V2Q,
+    ModernBERTBase,
+    ModernBERTLarge,
     BGEBaseENV15,
     BGEBaseENV15Q,
     BGELargeENV15,
@@ -284,12 +286,22 @@ impl EmbeddingModel {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None))]
+    #[pyo3(signature = (model, model_id, revision=None, dtype=None))]
     fn from_pretrained_onnx(
         model: &WhichModel,
         model_id: &ONNXModel,
         revision: Option<&str>,
+        dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
+        let dtype = match dtype.unwrap_or(&Dtype::F32) {
+            Dtype::Q4F16 => embed_anything::reranker::jina::Dtype::Q4F16,
+            Dtype::F16 => embed_anything::reranker::jina::Dtype::F16,
+            Dtype::INT8 => embed_anything::reranker::jina::Dtype::INT8,
+            Dtype::Q4 => embed_anything::reranker::jina::Dtype::Q4,
+            Dtype::UINT8 => embed_anything::reranker::jina::Dtype::UINT8,
+            Dtype::BNB4 => embed_anything::reranker::jina::Dtype::BNB4,
+            Dtype::F32 => embed_anything::reranker::jina::Dtype::F32,
+        };
         match model {
             WhichModel::Bert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
@@ -299,6 +311,7 @@ impl EmbeddingModel {
                         )
                         .unwrap(),
                         revision.map(|s| s.to_string()),
+                        Some(dtype),
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
