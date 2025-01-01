@@ -317,7 +317,7 @@ class ColpaliModel:
 
 class Reranker:
     """
-    Represents the Jina Reranker model.
+    Represents the Reranker model.
     """
 
     def __init__(self, model_id: str, revision: str | None = None, dtype: Dtype | None = None):
@@ -327,7 +327,7 @@ class Reranker:
 
     def from_pretrained(model_id: str, revision: str | None = None, dtype: Dtype | None = None) -> Reranker:
         """
-        Loads a pre-trained Jina Reranker model from the Hugging Face model hub.
+        Loads a pre-trained Reranker model from the Hugging Face model hub.
         """
 
     def rerank(self, query: list[str], documents: list[str], top_k: int) -> RerankerResult:
