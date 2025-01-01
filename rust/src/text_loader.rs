@@ -7,7 +7,8 @@ use std::{
 
 use crate::{
     chunkers::statistical::StatisticalChunker,
-    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder}, file_processor::docx_processor::DocxProcessor,
+    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
+    file_processor::docx_processor::DocxProcessor,
 };
 use crate::{
     embeddings::embed::Embedder,

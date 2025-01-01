@@ -3,11 +3,10 @@ fn main() {
     let reranker = embed_anything::reranker::jina::JinaReranker::new(
         "jinaai/jina-reranker-v2-base-multilingual",
         None,
-        Dtype::FP16,
+        Dtype::F16,
     )
     .unwrap();
 
-    
     let sentences = vec![
         "The cat sits outside",
         "A man is playing guitar",
@@ -18,7 +17,6 @@ fn main() {
         "The new movie is so great",
         "Do you like pizza?",
     ];
-   
 
     let query = vec!["There is a cat outside"];
 

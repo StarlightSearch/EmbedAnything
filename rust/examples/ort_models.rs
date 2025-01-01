@@ -2,6 +2,7 @@ use candle_core::{Device, Tensor};
 use embed_anything::config::TextEmbedConfig;
 use embed_anything::embeddings::embed::{EmbedData, Embedder};
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
+use embed_anything::reranker::jina::Dtype;
 use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
@@ -10,15 +11,16 @@ use std::time::Instant;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let model = Arc::new(Embedder::from_pretrained_onnx("jina", ONNXModel::JINAV3, None).unwrap());
-    let semantic_encoder =
-        Arc::new(Embedder::from_pretrained_onnx("jina", ONNXModel::JINAV2SMALLEN, None).unwrap());
+    let model = Arc::new(
+        Embedder::from_pretrained_onnx("bert", ONNXModel::ModernBERTBase, None, Some(Dtype::Q4F16))
+            .unwrap(),
+    );
+
     let config = TextEmbedConfig::default()
         .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(256)
-        .with_splitting_strategy(SplittingStrategy::Semantic)
-        .with_semantic_encoder(Arc::clone(&semantic_encoder));
+        .with_splitting_strategy(SplittingStrategy::Sentence);
 
     // get files in bench
     let files = std::fs::read_dir("bench")

@@ -651,7 +651,7 @@ where
             .filter(|chunk| !chunk.trim().is_empty())
             .collect::<Vec<_>>();
         if chunks.is_empty() {
-            return; 
+            return;
         }
         let metadata = TextLoader::get_metadata(file).unwrap();
         for chunk in chunks {

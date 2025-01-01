@@ -4,7 +4,10 @@ use candle_core::{Device, Tensor};
 use embed_anything::{
     config::TextEmbedConfig,
     embed_query,
-    embeddings::{embed::{Embedder, TextEmbedder}, local::text_embedding::ONNXModel},
+    embeddings::{
+        embed::{Embedder, TextEmbedder},
+        local::text_embedding::ONNXModel,
+    },
     text_loader::SplittingStrategy,
 };
 use std::sync::Arc;
@@ -23,13 +26,15 @@ struct Args {
     model_type: ModelType,
 }
 
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     let model = match args.model_type {
-        ModelType::Ort => Arc::new(Embedder::from_pretrained_onnx("sparse-bert", ONNXModel::SPLADEPPENV2, None).unwrap()),
+        ModelType::Ort => Arc::new(
+            Embedder::from_pretrained_onnx("sparse-bert", ONNXModel::SPLADEPPENV2, None, None)
+                .unwrap(),
+        ),
         ModelType::Normal => Arc::new(Embedder::Text(
             TextEmbedder::from_pretrained_hf("sparse-bert", "prithivida/Splade_PP_en_v1", None)
                 .unwrap(),
@@ -42,8 +47,6 @@ async fn main() -> anyhow::Result<()> {
         .with_buffer_size(100)
         .with_splitting_strategy(SplittingStrategy::Sentence)
         .with_semantic_encoder(Arc::clone(&model));
-
-
 
     let sentences = [
         "The cat sits outside",
@@ -70,7 +73,6 @@ async fn main() -> anyhow::Result<()> {
         .map(|embed| embed.embedding.to_dense().unwrap())
         .flatten()
         .collect::<Vec<_>>();
-
 
     let embeddings_tensor = Tensor::from_vec(
         embeddings.clone(),

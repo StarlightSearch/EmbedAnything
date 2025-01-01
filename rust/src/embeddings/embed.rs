@@ -1,8 +1,11 @@
 use crate::file_processor::audio::audio_processor::Segment;
+use crate::reranker::jina::Dtype;
 
 use super::cloud::cohere::CohereEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
-use super::local::bert::{BertEmbed, BertEmbedder, OrtBertEmbedder, OrtSparseBertEmbedder, SparseBertEmbedder};
+use super::local::bert::{
+    BertEmbed, BertEmbedder, OrtBertEmbedder, OrtSparseBertEmbedder, SparseBertEmbedder,
+};
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::{JinaEmbed, JinaEmbedder, OrtJinaEmbedder};
@@ -129,11 +132,13 @@ impl TextEmbedder {
         model_architecture: &str,
         model_name: ONNXModel,
         revision: Option<&str>,
+        dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
         match model_architecture {
             "Bert" | "bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
                 model_name,
                 revision.map(|s| s.to_string()),
+                dtype,
             )?))),
             "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
                 OrtSparseBertEmbedder::new(model_name, revision.map(|s| s.to_string()))?,
@@ -289,11 +294,13 @@ impl Embedder {
         model_architecture: &str,
         model_name: ONNXModel,
         revision: Option<&str>,
+        dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
         Ok(Self::Text(TextEmbedder::from_pretrained_ort(
             model_architecture,
             model_name,
             revision,
+            dtype,
         )?))
     }
 }

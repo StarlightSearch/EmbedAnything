@@ -477,7 +477,7 @@ class EmbeddingModel:
         model_architecture (WhichModel): The architecture of the embedding model to use.
         model_id (str): The ID of the model.
         revision (str | None, optional): The revision of the model. Defaults to None.
-
+        dtype (Dtype | None, optional): The dtype of the model. Defaults to None.
     Returns:
         EmbeddingModel: An initialized EmbeddingModel object.
 
@@ -485,7 +485,8 @@ class EmbeddingModel:
     ```python
     model = EmbeddingModel.from_pretrained_onnx(
         model_architecture=WhichModel.Bert,
-        model_id="BGESmallENV15Q"
+        model_id="BGESmallENV15Q",
+        dtype=Dtype.Q4F16
     )
     ```
 
@@ -495,7 +496,7 @@ class EmbeddingModel:
     scenarios where performance is critical.
     """
     def from_pretrained_onnx(
-        model_architecture: WhichModel, model_id: str, revision: str | None = None
+        model_architecture: WhichModel, model_id: str, revision: str | None = None, dtype: Dtype | None = None
     ) -> EmbeddingModel: ...
 
 class AudioDecoderModel:
@@ -552,6 +553,8 @@ class ONNXModel(Enum):
     | `AllMiniLML6V2Q`                 | Quantized sentence-transformers/all-MiniLM-L6-v2 |
     | `AllMiniLML12V2`                 | sentence-transformers/all-MiniLM-L12-v2          |
     | `AllMiniLML12V2Q`                | Quantized sentence-transformers/all-MiniLM-L12-v2|
+    | `ModernBERTBase`                 | nomic-ai/modernbert-embed-base                   |
+    | `ModernBERTLarge`                | nomic-ai/modernbert-embed-large                  |
     | `BGEBaseENV15`                   | BAAI/bge-base-en-v1.5                            |
     | `BGEBaseENV15Q`                  | Quantized BAAI/bge-base-en-v1.5                  |
     | `BGELargeENV15`                  | BAAI/bge-large-en-v1.5                           |
@@ -589,6 +592,10 @@ class ONNXModel(Enum):
     AllMiniLML12V2 = "AllMiniLML12V2"
 
     AllMiniLML12V2Q = "AllMiniLML12V2Q"
+
+    ModernBERTBase = "ModernBERTBase"
+
+    ModernBERTLarge = "ModernBERTLarge"
 
     BGEBaseENV15 = "BGEBaseENV15"
 
