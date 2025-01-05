@@ -94,9 +94,11 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Faster execution. <br />
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
-➡️Running language models or embedding models locally and efficiently <br />
+➡️Running embedding models locally and efficiently <br />
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage of EmbedAnything.
+➡️Decrease the memory usage of EmbedAnything. <br/>
+➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
+
 
 
 # ⭐ Supported Models
@@ -146,6 +148,19 @@ model = EmbeddingModel.from_pretrained_onnx(
 
 ```
 model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
+```
+### ModernBERT
+```
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+### ReRankers
+```
+reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
+
+results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
 ```
 
 ## For Semantic Chunking
@@ -274,6 +289,9 @@ This document provides guidelines and best practices to help you to contribute e
 ## Accomplishments
 
 One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
+
+### Adding Fine-tuning 
+One of the major goals of this year is to add finetuning these models on your data. Like a simple sentence transformer does.
 
 ### 🖼️ Modalities and Source
 
