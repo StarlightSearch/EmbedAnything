@@ -23,12 +23,13 @@
   <p align="center">
     <b> Inference, ingestion, and indexing – supercharged by Rust 🦀</b>
     <br />
-    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
+    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Python docs »</strong></a>
     <br />
+    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/"><strong>Rust docs »</strong></a>
     <br />
     <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
     ·
-    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing">Benches</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benches</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
     .
@@ -74,10 +75,11 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 - **ONNX Models**: Works with ONNX models for BERT and ColPali
 - **ColPali** : Support for ColPali in GPU version
 - **Splade** : Support for sparse embeddings for hybrid
+- **ReRankers** : Support for ReRanking Models for better RAG.
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
-- **Candle** : We have taken care of hardware acceleration as well, with Candle.
+- **GPU support** : We have taken care of hardware acceleration on GPU as well.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
 
@@ -92,9 +94,11 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Faster execution. <br />
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
-➡️Running language models or embedding models locally and efficiently <br />
+➡️Running embedding models locally and efficiently <br />
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage of EmbedAnything.
+➡️Decrease the memory usage of EmbedAnything. <br/>
+➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
+
 
 
 # ⭐ Supported Models
@@ -144,6 +148,19 @@ model = EmbeddingModel.from_pretrained_onnx(
 
 ```
 model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
+```
+### ModernBERT
+```
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+### ReRankers
+```
+reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
+
+results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
 ```
 
 ## For Semantic Chunking
@@ -272,6 +289,9 @@ This document provides guidelines and best practices to help you to contribute e
 ## Accomplishments
 
 One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
+
+### Adding Fine-tuning 
+One of the major goals of this year is to add finetuning these models on your data. Like a simple sentence transformer does.
 
 ### 🖼️ Modalities and Source
 

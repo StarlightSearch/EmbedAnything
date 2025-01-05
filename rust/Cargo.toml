@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.4.13"
+version = "0.4.17"
 edition.workspace = true
 license.workspace = true
 description.workspace = true
@@ -49,7 +49,6 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 
 
 # Markdown Processing
-markdown-parser = "0.1.2"
 markdown_to_text = "1.0.0"
 
 # Web Scraping
@@ -69,7 +68,8 @@ byteorder = "1.5.0"
 futures = "0.3.30"
 
 pdf-extract = {workspace = true}
-docx-parser = {workspace = true}
+docx-parser = "0.1.1"
+docx-rust = "=0.1.8"
 ort = {workspace = true}
 ndarray = "0.16.1"
 ndarray-linalg = {version = "0.16.0"}

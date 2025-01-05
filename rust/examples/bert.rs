@@ -46,7 +46,17 @@ async fn main() {
     .unwrap()
     .unwrap();
 
-    let embedded_files = _out.iter().map(|e| e.metadata.as_ref().unwrap().get("file_name").unwrap().clone()).collect::<Vec<_>>();
+    let embedded_files = _out
+        .iter()
+        .map(|e| {
+            e.metadata
+                .as_ref()
+                .unwrap()
+                .get("file_name")
+                .unwrap()
+                .clone()
+        })
+        .collect::<Vec<_>>();
     let mut embedded_files_set = HashSet::new();
     embedded_files_set.extend(embedded_files);
     println!("Embedded files: {:?}", embedded_files_set);

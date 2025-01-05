@@ -5,12 +5,15 @@ from embed_anything import (
     WhichModel,
     embed_query,
     ONNXModel,
+    Dtype,
 )
 import os
 from time import time
 import numpy as np
 
-model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, ONNXModel.BGESmallENV15Q)
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
 
 # model = EmbeddingModel.from_pretrained_hf(
 #     WhichModel.Bert, "BAAI/bge-small-en-v1.5"

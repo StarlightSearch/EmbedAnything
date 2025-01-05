@@ -17,7 +17,6 @@ exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/
 
 [workspace.dependencies]
 pdf-extract = "0.7.7"
-docx-parser = "0.1.1"
 candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
 candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }

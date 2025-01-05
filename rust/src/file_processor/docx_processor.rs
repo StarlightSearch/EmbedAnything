@@ -17,8 +17,8 @@ impl DocxProcessor {
     pub fn extract_text<T: AsRef<std::path::Path>>(file_path: &T) -> Result<String, Error> {
         let docs = MarkdownDocument::from_file(file_path);
         let markdown = docs.to_markdown(false);
-
-        Ok(markdown)
+        let content = markdown_to_text::convert(&markdown);
+        Ok(content)
     }
 }
 
@@ -34,7 +34,6 @@ mod tests {
         let txt_file = "test_files/test.docx";
 
         DocxProcessor::extract_text(&txt_file).unwrap_err();
-
     }
 
     // Returns an error if the file path is invalid.

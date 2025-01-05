@@ -1,7 +1,9 @@
-from embed_anything import JinaReranker, Dtype, RerankerResult
+from embed_anything import Reranker, Dtype, RerankerResult, DocumentRank
 
-reranker = JinaReranker.from_pretrained("Xenova/bge-reranker-base", dtype=Dtype.FP16)
+reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
 
-results = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
+results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
 
-print(results[0].documents)
+for result in results:
+    documents: list[DocumentRank] = result.documents
+    print(documents)
