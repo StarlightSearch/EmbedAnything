@@ -8,6 +8,8 @@
 | `AllMiniLML6V2Q`                 | Quantized sentence-transformers/all-MiniLM-L6-v2 |
 | `AllMiniLML12V2`                 | sentence-transformers/all-MiniLM-L12-v2          |
 | `AllMiniLML12V2Q`                | Quantized sentence-transformers/all-MiniLM-L12-v2|
+| `ModernBERTBase`                 | nomic-ai/modernbert-embed-base                   |
+| `ModernBERTLarge`                | nomic-ai/modernbert-embed-large                  |
 | `BGEBaseENV15`                   | BAAI/bge-base-en-v1.5                            |
 | `BGEBaseENV15Q`                  | Quantized BAAI/bge-base-en-v1.5                  |
 | `BGELargeENV15`                  | BAAI/bge-large-en-v1.5                           |

@@ -18,8 +18,7 @@ impl DocxProcessor {
         let docs = MarkdownDocument::from_file(file_path);
         let markdown = docs.to_markdown(false);
         let content = markdown_to_text::convert(&markdown);
-
-        Ok(markdown)
+        Ok(content)
     }
 }
 
@@ -35,7 +34,6 @@ mod tests {
         let txt_file = "test_files/test.docx";
 
         DocxProcessor::extract_text(&txt_file).unwrap_err();
-
     }
 
     // Returns an error if the file path is invalid.
