@@ -23,12 +23,13 @@
   <p align="center">
     <b> Inference, ingestion, and indexing – supercharged by Rust 🦀</b>
     <br />
-    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
+    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Python docs »</strong></a>
     <br />
+    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/"><strong>Rust docs »</strong></a>
     <br />
     <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
     ·
-    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing">Benches</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benches</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
     .
@@ -74,10 +75,11 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 - **ONNX Models**: Works with ONNX models for BERT and ColPali
 - **ColPali** : Support for ColPali in GPU version
 - **Splade** : Support for sparse embeddings for hybrid
+- **ReRankers** : Support for ReRanking Models for better RAG.
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
-- **Candle** : We have taken care of hardware acceleration as well, with Candle.
+- **GPU support** : We have taken care of hardware acceleration on GPU as well.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
 
