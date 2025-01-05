@@ -10,13 +10,7 @@ use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::embeddings::local::bert::TokenizerConfig;
 use serde::Serialize;
-pub enum Dtype {
-    FP16,
-    INT8,
-    Q4,
-    UINT8,
-    BNB4,
-}
+use crate::Dtype;
 
 #[derive(Debug, Serialize)]
 pub struct RerankerResult {
@@ -25,18 +19,18 @@ pub struct RerankerResult {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct DocumentRank{
+pub struct DocumentRank {
     pub document: String,
     pub relevance_score: f32,
     pub rank: usize,
 }
 
-pub struct JinaReranker {
+pub struct Reranker {
     model: Session,
     tokenizer: Tokenizer,
 }
 
-impl JinaReranker {
+impl Reranker {
     pub fn new(model_id: &str, revision: Option<&str>, dtype: Dtype) -> Result<Self, E> {
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
             let api = Api::new().unwrap();
@@ -55,11 +49,14 @@ impl JinaReranker {
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
             let weights = match dtype {
-                Dtype::FP16 => api.get("onnx/model_fp16.onnx")?,
+                Dtype::Q4F16 => api.get("onnx/model_q4f16.onnx")?,
+                Dtype::F16 => api.get("onnx/model_fp16.onnx")?,
                 Dtype::INT8 => api.get("onnx/model_int8.onnx")?,
                 Dtype::Q4 => api.get("onnx/model_q4.onnx")?,
                 Dtype::UINT8 => api.get("onnx/model_uint8.onnx")?,
                 Dtype::BNB4 => api.get("onnx/model_bnb4.onnx")?,
+                Dtype::F32 => api.get("onnx/model.onnx")?,
+                Dtype::QUANTIZED => api.get("onnx/model_quantized.onnx")?,
             };
             (config, tokenizer, weights, tokenizer_config)
         };
@@ -110,10 +107,7 @@ impl JinaReranker {
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
 
-        Ok(JinaReranker {
-            model,
-            tokenizer,
-        })
+        Ok(Reranker { model, tokenizer })
     }
 
     pub fn compute_scores(
@@ -122,10 +116,11 @@ impl JinaReranker {
         documents: Vec<&str>,
         batch_size: usize,
     ) -> Result<Vec<Vec<f32>>, E> {
-        let pairs = queries.iter()
+        let pairs = queries
+            .iter()
             .flat_map(|query| documents.iter().map(move |doc| (*query, *doc)))
             .collect::<Vec<_>>();
-        let mut scores= Vec::with_capacity(pairs.len());
+        let mut scores = Vec::with_capacity(pairs.len());
         for pair in pairs.chunks(batch_size) {
             let input_ids = self.tokenize_batch_ndarray(pair)?;
             let attention_mask = self.get_attention_mask_ndarray(pair)?;
@@ -136,9 +131,19 @@ impl JinaReranker {
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix2>()?;
-            scores.extend(logits.outer_iter().map(|row| row.to_vec()).flatten().collect::<Vec<_>>());
+            scores.extend(
+                logits
+                    .outer_iter()
+                    .map(|row| row.to_vec())
+                    .flatten()
+                    .collect::<Vec<_>>(),
+            );
         }
-        let scores_tensor = Tensor::from_vec(scores.clone(), (queries.len(), documents.len()), &Device::Cpu)?;
+        let scores_tensor = Tensor::from_vec(
+            scores.clone(),
+            (queries.len(), documents.len()),
+            &Device::Cpu,
+        )?;
         let sigmoid_scores = candle_nn::ops::sigmoid(&scores_tensor).unwrap();
         Ok(sigmoid_scores.to_vec2::<f32>()?)
     }
@@ -154,13 +159,21 @@ impl JinaReranker {
         for (i, query) in queries.iter().enumerate() {
             let scores = scores[i].clone();
             let mut indices: Vec<usize> = (0..scores.len()).collect();
-            indices.sort_by(|&j, &k| scores[k].partial_cmp(&scores[j]).unwrap_or(std::cmp::Ordering::Equal));
-            let document_ranks = scores.iter().enumerate().map(|(p, score)| DocumentRank {
-                document: documents[p].to_string(),
-                relevance_score: score.clone(),
-                rank: indices.iter().position(|&i| i == p).unwrap()+1,
-            }).collect::<Vec<_>>();
-            
+            indices.sort_by(|&j, &k| {
+                scores[k]
+                    .partial_cmp(&scores[j])
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            let document_ranks = scores
+                .iter()
+                .enumerate()
+                .map(|(p, score)| DocumentRank {
+                    document: documents[p].to_string(),
+                    relevance_score: score.clone(),
+                    rank: indices.iter().position(|&i| i == p).unwrap() + 1,
+                })
+                .collect::<Vec<_>>();
+
             reranker_results.push(RerankerResult {
                 query: query.to_string(),
                 documents: document_ranks,
@@ -169,10 +182,7 @@ impl JinaReranker {
         Ok(reranker_results)
     }
 
-    pub fn tokenize_batch_ndarray(
-        &self,
-        pairs: &[(&str, &str)],
-    ) -> anyhow::Result<Array2<i64>> {
+    pub fn tokenize_batch_ndarray(&self, pairs: &[(&str, &str)]) -> anyhow::Result<Array2<i64>> {
         let token_ids = self
             .tokenizer
             .encode_batch(pairs.to_vec(), true)

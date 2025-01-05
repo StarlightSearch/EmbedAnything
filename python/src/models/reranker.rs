@@ -3,24 +3,26 @@ use pyo3::prelude::*;
 use pyo3::PyResult;
 
 #[pyclass]
-pub struct JinaReranker {
-    pub model: embed_anything::reranker::jina::JinaReranker,
+pub struct Reranker {
+    pub model: embed_anything::reranker::model::Reranker,
 }
 
 #[pyclass(eq, eq_int)]
 #[derive(PartialEq)]
 
 pub enum Dtype {
-    FP16,
+    F16,
     INT8,
     Q4,
     UINT8,
     BNB4,
+    Q4F16,
+    F32,
 }
 
 #[pyclass]
 pub struct RerankerResult {
-    pub inner: embed_anything::reranker::jina::RerankerResult,
+    pub inner: embed_anything::reranker::model::RerankerResult,
 }
 
 #[pyclass]
@@ -45,6 +47,20 @@ impl DocumentRank {
     #[getter(rank)]
     fn rank(&self) -> usize {
         self.rank
+    }
+
+    fn __str__(&self) -> String {
+        format!(
+            "{{\"document\": \"{}\", \"relevance_score\": {}, \"rank\": {}}}",
+            self.document, self.relevance_score, self.rank
+        )
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "DocumentRank(document={}, relevance_score={}, rank={})",
+            self.document, self.relevance_score, self.rank
+        )
     }
 }
 
@@ -86,7 +102,7 @@ impl RerankerResult {
 }
 
 #[pymethods]
-impl JinaReranker {
+impl Reranker {
     #[staticmethod]
     #[pyo3(signature = (model_id, revision=None, dtype=None))]
     pub fn from_pretrained(
@@ -94,14 +110,16 @@ impl JinaReranker {
         revision: Option<&str>,
         dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
-        let dtype = match dtype.unwrap_or(&Dtype::FP16) {
-            Dtype::FP16 => embed_anything::reranker::jina::Dtype::FP16,
-            Dtype::INT8 => embed_anything::reranker::jina::Dtype::INT8,
-            Dtype::Q4 => embed_anything::reranker::jina::Dtype::Q4,
-            Dtype::UINT8 => embed_anything::reranker::jina::Dtype::UINT8,
-            Dtype::BNB4 => embed_anything::reranker::jina::Dtype::BNB4,
+        let dtype = match dtype {
+            Some(Dtype::F16) => embed_anything::Dtype::F16,
+            Some(Dtype::INT8) => embed_anything::Dtype::INT8,
+            Some(Dtype::Q4) => embed_anything::Dtype::Q4,
+            Some(Dtype::UINT8) => embed_anything::Dtype::UINT8,
+            Some(Dtype::BNB4) => embed_anything::Dtype::BNB4,
+            Some(Dtype::F32) => embed_anything::Dtype::F32,
+            _ => embed_anything::Dtype::F32,
         };
-        let model = embed_anything::reranker::jina::JinaReranker::new(model_id, revision, dtype)
+        let model = embed_anything::reranker::model::Reranker::new(model_id, revision, dtype)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self { model })
     }

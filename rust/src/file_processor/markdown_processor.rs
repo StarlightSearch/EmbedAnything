@@ -1,5 +1,4 @@
 use anyhow::Error;
-use markdown_parser::read_file;
 
 /// A struct that provides functionality to process Markdown files.
 pub struct MarkdownProcessor;
@@ -16,9 +15,9 @@ impl MarkdownProcessor {
     /// Returns a `Result` containing the extracted text content as a `String` if successful,
     /// or an `Error` if an error occurred while reading the file or converting the Markdown.
     pub fn extract_text<T: AsRef<std::path::Path>>(file_path: &T) -> Result<String, Error> {
-        let md = read_file(file_path)?;
-        let content = md.content();
-        let content = markdown_to_text::convert(content);
+        let bytes = std::fs::read(file_path)?;
+        let out = String::from_utf8_lossy(&bytes).to_string();
+        let content = markdown_to_text::convert(&out);
         Ok(content)
     }
 }
