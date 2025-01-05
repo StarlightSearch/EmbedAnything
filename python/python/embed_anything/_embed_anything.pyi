@@ -336,6 +336,9 @@ class Reranker:
         """
 
 class Dtype(Enum):
+    """
+    Represents the data type of the model.
+    """
     F16 = "F16"
     INT8 = "INT8"
     Q4 = "Q4"
@@ -345,6 +348,10 @@ class Dtype(Enum):
 class RerankerResult:
     """
     Represents the result of the reranking process.
+
+    Attributes:
+        query: The query to rerank.
+        documents: The list of documents to rerank.
     """
     query: str
     documents: list[DocumentRank]
@@ -352,10 +359,16 @@ class RerankerResult:
 class DocumentRank:
     """
     Represents the rank of a document.
+
+    Attributes:
+        document: The document to rank.
+        relevance_score: The relevance score of the document.
+        rank: The rank of the document.
     """
     document: str
     relevance_score: float
     rank: int
+
 
 class TextEmbedConfig:
     """
