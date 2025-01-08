@@ -309,15 +309,10 @@ impl EmbeddingModel {
             Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
             None => None,
         };
-        let model_name = match model_name {
-            Some(model_name) => Some(
-                embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+        let model_name = model_name.map(|model_name| embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
                     &model_name.to_string(),
                 )
-                .unwrap(),
-            ),
-            None => None,
-        };
+                .unwrap());
         match model {
             WhichModel::Bert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(

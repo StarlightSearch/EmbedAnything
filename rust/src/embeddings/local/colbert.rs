@@ -17,13 +17,10 @@ use ort::{
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use crate::{
-    embeddings::{
+use crate::embeddings::{
         embed::EmbeddingResult,
         utils::{get_attention_mask_ndarray, tokenize_batch_ndarray},
-    },
-    Dtype,
-};
+    };
 
 use super::bert::{BertEmbed, TokenizerConfig};
 
@@ -222,7 +219,7 @@ impl ColbertEmbed for OrtColbertEmbedder {
                 }
                 let outputs = self.model.run(inputs)?;
                 let embeddings: Array3<f32> = outputs
-                    [self.model.outputs.get(0).unwrap().name.as_str()]
+                    [self.model.outputs.first().unwrap().name.as_str()]
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix3>()?;
@@ -247,7 +244,7 @@ impl ColbertEmbed for OrtColbertEmbedder {
 
                 let e = normalized_embeddings
                     .into_iter()
-                    .map(|row| EmbeddingResult::MultiVector(row))
+                    .map(EmbeddingResult::MultiVector)
                     .collect::<Vec<_>>();
 
                 Ok(e)
@@ -292,7 +289,7 @@ impl BertEmbed for OrtColbertEmbedder {
                 }
                 let outputs = self.model.run(inputs)?;
                 let embeddings: Array3<f32> = outputs
-                    [self.model.outputs.get(0).unwrap().name.as_str()]
+                    [self.model.outputs.first().unwrap().name.as_str()]
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix3>()?;
@@ -317,7 +314,7 @@ impl BertEmbed for OrtColbertEmbedder {
 
                 let e = normalized_embeddings
                     .into_iter()
-                    .map(|row| EmbeddingResult::MultiVector(row))
+                    .map(EmbeddingResult::MultiVector)
                     .collect::<Vec<_>>();
 
                 Ok(e)

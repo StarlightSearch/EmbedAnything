@@ -5,7 +5,6 @@ extern crate intel_mkl_src;
 extern crate accelerate_src;
 
 use std::collections::HashMap;
-use std::path;
 
 use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
@@ -229,7 +228,7 @@ impl BertEmbed for OrtBertEmbedder {
                 }
                 let outputs = self.model.run(inputs)?;
                 let embeddings: Array3<f32> = outputs
-                    [self.model.outputs.get(0).unwrap().name.as_str()]
+                    [self.model.outputs.first().unwrap().name.as_str()]
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix3>()?;

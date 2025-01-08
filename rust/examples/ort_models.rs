@@ -78,8 +78,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .map(|embed| embed.embedding.clone())
             .collect::<Vec<_>>()
             .into_iter()
-            .map(|x| x.to_dense().unwrap())
-            .flatten()
+            .flat_map(|x| x.to_dense().unwrap())
             .collect::<Vec<_>>(),
         (
             n_vectors,

@@ -139,7 +139,7 @@ impl TextEmbedder {
         dtype: Option<Dtype>,
         path_in_repo: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
-        if !model_name.is_none() {
+        if model_name.is_some() {
             match model_architecture {
                 "Bert" | "bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
                     model_name,
@@ -161,7 +161,7 @@ impl TextEmbedder {
 
                 _ => Err(anyhow::anyhow!("Model not supported")),
             }
-        } else if !model_id.is_none() {
+        } else if model_id.is_some() {
             match model_architecture {
                 "colbert" | "Colbert" | "COLBERT" => Ok(Self::ColBert(Box::new(
                     OrtColbertEmbedder::new(model_id, revision, path_in_repo)?,

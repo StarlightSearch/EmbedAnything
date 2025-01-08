@@ -71,7 +71,7 @@ mod tests {
         File::create(pdf_file).unwrap();
 
         let pdf_file = "test_files/test.pdf";
-        let text = PdfProcessor::extract_text(&pdf_file, false).unwrap();
+        let text = PdfProcessor::extract_text(pdf_file, false).unwrap();
         assert_eq!(text.len(), 4271);
     }
 
