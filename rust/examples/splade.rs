@@ -77,8 +77,7 @@ async fn main() -> anyhow::Result<()> {
 
     let embeddings = out
         .iter()
-        .map(|embed| embed.embedding.to_dense().unwrap())
-        .flatten()
+        .flat_map(|embed| embed.embedding.to_dense().unwrap())
         .collect::<Vec<_>>();
 
     let embeddings_tensor = Tensor::from_vec(

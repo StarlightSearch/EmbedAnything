@@ -7,10 +7,7 @@ use pyo3::prelude::*;
 use pyo3::PyResult;
 
 use crate::EmbedData;
-use crate::ONNXModel;
-use crate::WhichModel;
 
-use super::reranker::Dtype;
 #[pyclass]
 pub struct ColbertModel {
     pub model: Box<dyn ColbertEmbed + Send + Sync>,

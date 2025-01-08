@@ -31,8 +31,7 @@ async fn main() {
         .map(|embed| embed.embedding.clone())
         .collect::<Vec<_>>()
         .into_iter()
-        .map(|x| x.to_dense().unwrap())
-        .flatten()
+        .flat_map(|x| x.to_dense().unwrap())
         .collect::<Vec<_>>();
 
     let out_embeddings = Tensor::from_vec(
@@ -53,8 +52,7 @@ async fn main() {
             .map(|embed| embed.embedding.clone())
             .collect::<Vec<_>>()
             .into_iter()
-            .map(|x| x.to_dense().unwrap())
-            .flatten()
+            .flat_map(|x| x.to_dense().unwrap())
             .collect::<Vec<_>>(),
         (1, query_emb_data[0].embedding.to_dense().unwrap().len()),
         &Device::Cpu,

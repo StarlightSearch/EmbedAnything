@@ -52,8 +52,7 @@ async fn main() {
         .await
         .unwrap()
         .iter()
-        .map(|data| data.embedding.to_dense().unwrap())
-        .flatten()
+        .flat_map(|data| data.embedding.to_dense().unwrap())
         .collect();
 
     let query_embedding_tensor = Tensor::from_vec(
