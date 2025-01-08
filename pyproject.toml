@@ -3,7 +3,7 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "embed_anything_gpu"
+name = "embed_anything"
 requires-python = ">=3.8"
 description = "Embed anything at lightning speed"
 readme = "README.md"
@@ -18,7 +18,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 license = {file = "LICENSE"}
-dependencies = ["onnxruntime-gpu==1.20.1"]
+dependencies = ["onnxruntime==1.20.1"]
 
 [tool.maturin]
 features = ["extension-module"]
