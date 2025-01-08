@@ -9,8 +9,8 @@ use ort::{
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::embeddings::local::bert::TokenizerConfig;
-use serde::Serialize;
 use crate::Dtype;
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct RerankerResult {
