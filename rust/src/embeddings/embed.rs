@@ -7,6 +7,7 @@ use super::local::bert::{
     BertEmbed, BertEmbedder, OrtBertEmbedder, OrtSparseBertEmbedder, SparseBertEmbedder,
 };
 use super::local::clip::ClipEmbedder;
+use super::local::colbert::OrtColbertEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::{JinaEmbed, JinaEmbedder, OrtJinaEmbedder};
 use super::local::text_embedding::ONNXModel;
@@ -38,7 +39,7 @@ impl EmbeddingResult {
         match self {
             EmbeddingResult::DenseVector(x) => Ok(x.to_vec()),
             EmbeddingResult::MultiVector(_) => Err(anyhow!(
-                "Sparse Embedding are not supported for this operation"
+                "Multi-vector Embedding are not supported for this operation"
             )),
         }
     }
@@ -93,6 +94,7 @@ pub enum TextEmbedder {
     Cohere(CohereEmbedder),
     Jina(Box<dyn JinaEmbed + Send + Sync>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
+    ColBert(Box<dyn BertEmbed + Send + Sync>),
 }
 
 impl TextEmbedder {
@@ -106,6 +108,7 @@ impl TextEmbedder {
             TextEmbedder::Cohere(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size),
+            TextEmbedder::ColBert(embedder) => embedder.embed(text_batch, batch_size),
         }
     }
 
@@ -130,23 +133,64 @@ impl TextEmbedder {
 
     pub fn from_pretrained_ort(
         model_architecture: &str,
-        model_name: ONNXModel,
+        model_name: Option<ONNXModel>,
         revision: Option<&str>,
+        model_id: Option<&str>,
         dtype: Option<Dtype>,
+        path_in_repo: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
-        match model_architecture {
-            "Bert" | "bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
-                model_name,
-                revision.map(|s| s.to_string()),
-                dtype,
-            )?))),
-            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
-                OrtSparseBertEmbedder::new(model_name, revision.map(|s| s.to_string()))?,
-            ))),
-            "jina" | "Jina" => Ok(Self::Jina(Box::new(OrtJinaEmbedder::new(
-                model_name, revision,
-            )?))),
-            _ => Err(anyhow::anyhow!("Model not supported")),
+        if !model_name.is_none() {
+            match model_architecture {
+                "Bert" | "bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
+                    model_name,
+                    model_id,
+                    revision,
+                    dtype,
+                    path_in_repo,
+                )?))),
+                "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
+                    OrtSparseBertEmbedder::new(model_name, model_id, revision, path_in_repo)?,
+                ))),
+                "jina" | "Jina" => Ok(Self::Jina(Box::new(OrtJinaEmbedder::new(
+                    model_name,
+                    model_id,
+                    revision,
+                    dtype,
+                    path_in_repo,
+                )?))),
+
+                _ => Err(anyhow::anyhow!("Model not supported")),
+            }
+        } else if !model_id.is_none() {
+            match model_architecture {
+                "colbert" | "Colbert" | "COLBERT" => {
+                    Ok(Self::ColBert(Box::new(OrtColbertEmbedder::new(
+                        model_id,
+                        revision,
+                        dtype,
+                        path_in_repo,
+                    )?)))
+                }
+                "bert" | "Bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
+                    None,
+                    model_id,
+                    revision,
+                    None,
+                    path_in_repo,
+                )?))),
+                "jina" | "Jina" => Ok(Self::Jina(Box::new(OrtJinaEmbedder::new(
+                    None,
+                    model_id,
+                    revision,
+                    dtype,
+                    path_in_repo,
+                )?))),
+                _ => Err(anyhow::anyhow!("Model not supported")),
+            }
+        } else {
+            Err(anyhow::anyhow!(
+                "Please provide either model_name or model_id"
+            ))
         }
     }
 
@@ -292,15 +336,19 @@ impl Embedder {
 
     pub fn from_pretrained_onnx(
         model_architecture: &str,
-        model_name: ONNXModel,
+        model_name: Option<ONNXModel>,
+        model_id: Option<&str>,
         revision: Option<&str>,
         dtype: Option<Dtype>,
+        path_in_repo: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         Ok(Self::Text(TextEmbedder::from_pretrained_ort(
             model_architecture,
             model_name,
             revision,
+            model_id,
             dtype,
+            path_in_repo,
         )?))
     }
 }

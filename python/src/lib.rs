@@ -89,6 +89,7 @@ pub enum WhichModel {
     Cohere,
     Bert,
     SparseBert,
+    ColBert,
     Clip,
     Jina,
     Colpali,
@@ -144,6 +145,7 @@ impl From<&str> for WhichModel {
             "cohere" | "Cohere" => WhichModel::Cohere,
             "bert" | "Bert" => WhichModel::Bert,
             "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
+            "colbert" | "Colbert" => WhichModel::ColBert,
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
             "colpali" | "Colpali" => WhichModel::Colpali,
@@ -162,6 +164,7 @@ impl From<String> for WhichModel {
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
             "colpali" | "Colpali" => WhichModel::Colpali,
+            "colbert" | "Colbert" => WhichModel::ColBert,
             _ => panic!("Invalid model"),
         }
     }
@@ -286,12 +289,14 @@ impl EmbeddingModel {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None, dtype=None))]
+    #[pyo3(signature = (model, model_name=None, hf_model_id=None, revision=None, dtype=None, path_in_repo=None))]
     fn from_pretrained_onnx(
         model: &WhichModel,
-        model_id: &ONNXModel,
+        model_name: Option<&ONNXModel>,
+        hf_model_id: Option<&str>,
         revision: Option<&str>,
         dtype: Option<&Dtype>,
+        path_in_repo: Option<&str>,
     ) -> PyResult<Self> {
         let dtype = match dtype.unwrap_or(&Dtype::F32) {
             Dtype::Q4F16 => embed_anything::Dtype::Q4F16,
@@ -302,16 +307,58 @@ impl EmbeddingModel {
             Dtype::BNB4 => embed_anything::Dtype::BNB4,
             Dtype::F32 => embed_anything::Dtype::F32,
         };
+        let model_name = match model_name {
+            Some(model_name) => Some(
+                embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+                    &model_name.to_string(),
+                )
+                .unwrap(),
+            ),
+            None => None,
+        };
         match model {
             WhichModel::Bert => {
+               
+                    let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                            embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
+                                model_name,
+                                hf_model_id,
+                                revision,
+                                Some(dtype),
+                                path_in_repo,
+                            )
+                            .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                        )));
+                    Ok(EmbeddingModel {
+                        inner: Arc::new(model),
+                    })
+                
+              
+            },
+            WhichModel::SparseBert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
-                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
-                            &model_id.to_string(),
-                        )
-                        .unwrap(),
-                        revision.map(|s| s.to_string()),
+                    embed_anything::embeddings::local::bert::OrtSparseBertEmbedder::new(
+                        model_name,
+                        hf_model_id,
+                        revision,
+                        path_in_repo,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+            Ok(EmbeddingModel {
+                inner: Arc::new(model),
+            })
+        
+      
+            }
+            WhichModel::Jina => {
+                let model = Embedder::Text(TextEmbedder::Jina(Box::new(
+                    embed_anything::embeddings::local::jina::OrtJinaEmbedder::new(
+                        model_name,
+                        hf_model_id,
+                        revision,
                         Some(dtype),
+                        path_in_repo,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
@@ -319,29 +366,13 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
-            WhichModel::SparseBert => {
+            WhichModel::ColBert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::OrtSparseBertEmbedder::new(
-                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
-                            &model_id.to_string(),
-                        )
-                        .unwrap(),
-                        revision.map(|s| s.to_string()),
-                    )
-                    .unwrap(),
-                )));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::Jina => {
-                let model = Embedder::Text(TextEmbedder::Jina(Box::new(
-                    embed_anything::embeddings::local::jina::OrtJinaEmbedder::new(
-                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
-                            &model_id.to_string(),
-                        )
-                        .unwrap(),
+                    embed_anything::embeddings::local::colbert::OrtColbertEmbedder::new(
+                        hf_model_id,
                         revision,
+                        None,
+                        path_in_repo,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
