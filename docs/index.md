@@ -121,10 +121,10 @@ data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 | CLIP | openai/clip-* | 
 | Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
 | ColPali | vidore/colpali-v1.2-merged |
-| Splade | [Splade Models] (https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade based models |
+| Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
+| Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 
-  
 
 ### ♠️ Splade Models
 
@@ -196,6 +196,25 @@ end_time = time.time()
 print("Time taken: ", end_time - start_time)
 
 ```
+
+### Colbert
+
+Several Colbert Models are supported. The tested models are:
+- `jinaai/jina-colbert-v2`
+- `answerdotai/answerai-colbert-small-v1`
+- `onnx-models/jina-colbert-v1-en-onnx`
+
+```python
+sentences = [
+"The quick brown fox jumps over the lazy dog", 
+"The cat is sleeping on the mat", "The dog is barking at the moon", 
+"I love pizza", 
+"The dog is sitting in the park"]
+
+model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
+embeddings = model.embed(sentences, batch_size=2)
+```
+
 
 ### ⬆️Reranker Model
 

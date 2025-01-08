@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 from abc import ABC, abstractmethod
 
 class Adapter(ABC):
@@ -336,7 +336,7 @@ class ColbertModel:
         hf_model_id: str | None = None,
         revision: str | None = None,
         path_in_repo: str | None = None,
-    ):
+    ) -> ColbertModel:
         """
         Loads a pre-trained Colbert model from the Hugging Face model hub.
 
@@ -490,7 +490,7 @@ class EmbeddingModel:
         Example:
         ```python
         model = EmbeddingModel.from_pretrained_hf(
-            model_id="prithivida/miniMiracle_te_v1",
+            model_id="sentence-transformers/all-MiniLM-L6-v2",
             revision="main"
         )
         ```
@@ -536,17 +536,17 @@ class EmbeddingModel:
 
     def from_pretrained_onnx(
         model: WhichModel,
-        model_name: ONNXModel | None = None,
-        hf_model_id: str | None = None,
-        revision: str | None = None,
-        dtype: Dtype | None = None,
-        path_in_repo: str | None = None,
+        model_name: Optional[ONNXModel] | None = None,
+        hf_model_id: Optional[str] | None = None,
+        revision: Optional[str] | None = None,
+        dtype: Optional[Dtype] | None = None,
+        path_in_repo: Optional[str] | None = None,
     ) -> EmbeddingModel:
         """
         Loads an ONNX embedding model.
 
         Args:
-            model_architecture (WhichModel): The architecture of the embedding model to use.
+            model (WhichModel): The architecture of the embedding model to use.
             model_name (ONNXModel | None, optional): The name of the model. Defaults to None.
             hf_model_id (str | None, optional): The ID of the model from Hugging Face. Defaults to None.
             revision (str | None, optional): The revision of the model. Defaults to None.
@@ -565,13 +565,13 @@ class EmbeddingModel:
         Example:
         ```python
         model = EmbeddingModel.from_pretrained_onnx(
-            model_architecture=WhichModel.Bert,
+            model=WhichModel.Bert,
             model_name=ONNXModel.BGESmallENV15Q,
             dtype=Dtype.Q4F16
         )
 
         model = EmbeddingModel.from_pretrained_onnx(
-            model_architecture=WhichModel.Bert,
+            model=WhichModel.Bert,
             hf_model_id="jinaai/jina-embeddings-v3",
             path_in_repo="onnx/model_fp16.onnx"
         )
