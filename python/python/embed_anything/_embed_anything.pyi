@@ -320,17 +320,23 @@ class Reranker:
     Represents the Reranker model.
     """
 
-    def __init__(self, model_id: str, revision: str | None = None, dtype: Dtype | None = None):
+    def __init__(
+        self, model_id: str, revision: str | None = None, dtype: Dtype | None = None
+    ):
         """
         Initializes the Reranker object.
         """
 
-    def from_pretrained(model_id: str, revision: str | None = None, dtype: Dtype | None = None) -> Reranker:
+    def from_pretrained(
+        model_id: str, revision: str | None = None, dtype: Dtype | None = None
+    ) -> Reranker:
         """
         Loads a pre-trained Reranker model from the Hugging Face model hub.
         """
 
-    def rerank(self, query: list[str], documents: list[str], top_k: int) -> RerankerResult:
+    def rerank(
+        self, query: list[str], documents: list[str], top_k: int
+    ) -> RerankerResult:
         """
         Reranks the given documents for the query and returns a list of RerankerResult objects.
         """
@@ -339,12 +345,14 @@ class Dtype(Enum):
     """
     Represents the data type of the model.
     """
+
     F16 = "F16"
     INT8 = "INT8"
     Q4 = "Q4"
     UINT8 = "UINT8"
     BNB4 = "BNB4"
     Q4F16 = "Q4F16"
+
 class RerankerResult:
     """
     Represents the result of the reranking process.
@@ -353,6 +361,7 @@ class RerankerResult:
         query: The query to rerank.
         documents: The list of documents to rerank.
     """
+
     query: str
     documents: list[DocumentRank]
 
@@ -365,10 +374,10 @@ class DocumentRank:
         relevance_score: The relevance score of the document.
         rank: The rank of the document.
     """
+
     document: str
     relevance_score: float
     rank: int
-
 
 class TextEmbedConfig:
     """
@@ -488,18 +497,33 @@ class EmbeddingModel:
 
     Args:
         model_architecture (WhichModel): The architecture of the embedding model to use.
-        model_id (str): The ID of the model.
+        model_name (ONNXModel | None, optional): The name of the model. Defaults to None.
+        hf_model_id (str | None, optional): The ID of the model from Hugging Face. Defaults to None.
         revision (str | None, optional): The revision of the model. Defaults to None.
         dtype (Dtype | None, optional): The dtype of the model. Defaults to None.
+        path_in_repo (str | None, optional): The path to the model in the repository. Defaults to None.
     Returns:
         EmbeddingModel: An initialized EmbeddingModel object.
 
+    Atleast one of the following arguments must be provided:
+        - model_name
+        - hf_model_id
+    
+    If hf_model_id is provided, dtype is ignored and the path_in_repo has to be provided pointing to the model file in the repository.
+    If model_name is provided, dtype is used to determine the model file to load.
+        
     Example:
     ```python
     model = EmbeddingModel.from_pretrained_onnx(
         model_architecture=WhichModel.Bert,
-        model_id="BGESmallENV15Q",
+        model_name=ONNXModel.BGESmallENV15Q,
         dtype=Dtype.Q4F16
+    )
+
+    model = EmbeddingModel.from_pretrained_onnx(
+        model_architecture=WhichModel.Bert,
+        hf_model_id="jinaai/jina-embeddings-v3",
+        path_in_repo="onnx/model_fp16.onnx"
     )
     ```
 
@@ -509,7 +533,12 @@ class EmbeddingModel:
     scenarios where performance is critical.
     """
     def from_pretrained_onnx(
-        model_architecture: WhichModel, model_id: str, revision: str | None = None, dtype: Dtype | None = None
+        model: WhichModel,
+        model_name: ONNXModel | None = None,
+        hf_model_id: str | None = None,
+        revision: str | None = None,
+        dtype: Dtype | None = None,
+        path_in_repo: str | None = None,
     ) -> EmbeddingModel: ...
 
 class AudioDecoderModel:
@@ -553,6 +582,7 @@ class WhichModel(Enum):
     Jina = ("Jina",)
     Clip = ("Clip",)
     Colpali = ("Colpali",)
+    ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
 
 class ONNXModel(Enum):
