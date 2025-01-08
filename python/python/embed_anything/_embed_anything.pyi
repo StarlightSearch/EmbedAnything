@@ -313,6 +313,47 @@ class ColpaliModel:
 
         Returns:
             A list of EmbedData objects.
+
+        """
+
+class ColbertModel:
+    """
+    Represents the Colbert model.
+    """
+
+    def __init__(
+        self,
+        hf_model_id: str | None = None,
+        revision: str | None = None,
+        path_in_repo: str | None = None,
+    ):
+        """
+        Initializes the ColbertModel object.
+        """
+
+    def from_pretrained_onnx(
+        self,
+        hf_model_id: str | None = None,
+        revision: str | None = None,
+        path_in_repo: str | None = None,
+    ):
+        """
+        Loads a pre-trained Colbert model from the Hugging Face model hub.
+
+        Attributes:
+            hf_model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+            path_in_repo: The path to the model in the repository.
+
+        Returns:
+            A ColbertModel object.
+        """
+
+    def embed(
+        self, text_batch: list[str], batch_size: int | None = None, is_doc: bool = True
+    ) -> list[EmbedData]:
+        """
+        Embeds the given text and returns a list of EmbedData objects.
         """
 
 class Reranker:
@@ -433,105 +474,66 @@ class EmbeddingModel:
     Represents an embedding model.
     """
 
-    """
-    Loads an embedding model from the Hugging Face model hub.
-
-    Args:
-        model_id: The ID of the model.
-        revision: The revision of the model.
-    
-    Returns:
-        An EmbeddingModel object.
-
-    Example:
-    ```python
-    model = EmbeddingModel.from_pretrained_hf(
-        model_id="prithivida/miniMiracle_te_v1",
-        revision="main"
-    )
-    ```
-
-    """
     def from_pretrained_hf(
         model: WhichModel, model_id: str, revision: str | None = None
-    ) -> EmbeddingModel: ...
+    ) -> EmbeddingModel:
+        """
+        Loads an embedding model from the Hugging Face model hub.
 
-    """
-    Loads an embedding model from a cloud-based service.
+        Attributes:
+            model_id: The ID of the model.
+            revision: The revision of the model.
 
-    Args:
-        model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
-        model_id (str): The ID of the model to use.
-            - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
-            - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
-        api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
-            - For OpenAI: OPENAI_API_KEY
-            - For Cohere: CO_API_KEY
+        Returns:
+            An EmbeddingModel object.
 
-    Returns:
-        EmbeddingModel: An initialized EmbeddingModel object.
+        Example:
+        ```python
+        model = EmbeddingModel.from_pretrained_hf(
+            model_id="prithivida/miniMiracle_te_v1",
+            revision="main"
+        )
+        ```
 
-    Raises:
-        ValueError: If an unsupported model is specified.
+        """
 
-    Example:
-    ```python
-    # Using Cohere
-    model = EmbeddingModel.from_pretrained_cloud(
-        model=WhichModel.Cohere, 
-        model_id="embed-english-v3.0"
-    )
-
-    # Using OpenAI
-    model = EmbeddingModel.from_pretrained_cloud(
-        model=WhichModel.OpenAI, 
-        model_id="text-embedding-3-small"
-    )
-    ```
-    """
     def from_pretrained_cloud(
         model: WhichModel, model_id: str, api_key: str | None = None
-    ) -> EmbeddingModel: ...
-    """
-    Loads an ONNX embedding model.
+    ) -> EmbeddingModel:
+        """
+        Loads an embedding model from a cloud-based service.
 
-    Args:
-        model_architecture (WhichModel): The architecture of the embedding model to use.
-        model_name (ONNXModel | None, optional): The name of the model. Defaults to None.
-        hf_model_id (str | None, optional): The ID of the model from Hugging Face. Defaults to None.
-        revision (str | None, optional): The revision of the model. Defaults to None.
-        dtype (Dtype | None, optional): The dtype of the model. Defaults to None.
-        path_in_repo (str | None, optional): The path to the model in the repository. Defaults to None.
-    Returns:
-        EmbeddingModel: An initialized EmbeddingModel object.
+        Attributes:
+            model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
+            model_id (str): The ID of the model to use.
+                - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
+                - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
+            api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
+                - For OpenAI: OPENAI_API_KEY
+                - For Cohere: CO_API_KEY
 
-    Atleast one of the following arguments must be provided:
-        - model_name
-        - hf_model_id
-    
-    If hf_model_id is provided, dtype is ignored and the path_in_repo has to be provided pointing to the model file in the repository.
-    If model_name is provided, dtype is used to determine the model file to load.
-        
-    Example:
-    ```python
-    model = EmbeddingModel.from_pretrained_onnx(
-        model_architecture=WhichModel.Bert,
-        model_name=ONNXModel.BGESmallENV15Q,
-        dtype=Dtype.Q4F16
-    )
+        Returns:
+            EmbeddingModel: An initialized EmbeddingModel object.
 
-    model = EmbeddingModel.from_pretrained_onnx(
-        model_architecture=WhichModel.Bert,
-        hf_model_id="jinaai/jina-embeddings-v3",
-        path_in_repo="onnx/model_fp16.onnx"
-    )
-    ```
+        Raises:
+            ValueError: If an unsupported model is specified.
 
-    Note:
-    This method loads a pre-trained model in ONNX format, which can offer improved inference speed
-    compared to standard PyTorch models. ONNX models are particularly useful for deployment
-    scenarios where performance is critical.
-    """
+        Example:
+        ```python
+        # Using Cohere
+        model = EmbeddingModel.from_pretrained_cloud(
+            model=WhichModel.Cohere,
+            model_id="embed-english-v3.0"
+        )
+
+        # Using OpenAI
+        model = EmbeddingModel.from_pretrained_cloud(
+            model=WhichModel.OpenAI,
+            model_id="text-embedding-3-small"
+        )
+        ```
+        """
+
     def from_pretrained_onnx(
         model: WhichModel,
         model_name: ONNXModel | None = None,
@@ -539,7 +541,47 @@ class EmbeddingModel:
         revision: str | None = None,
         dtype: Dtype | None = None,
         path_in_repo: str | None = None,
-    ) -> EmbeddingModel: ...
+    ) -> EmbeddingModel:
+        """
+        Loads an ONNX embedding model.
+
+        Args:
+            model_architecture (WhichModel): The architecture of the embedding model to use.
+            model_name (ONNXModel | None, optional): The name of the model. Defaults to None.
+            hf_model_id (str | None, optional): The ID of the model from Hugging Face. Defaults to None.
+            revision (str | None, optional): The revision of the model. Defaults to None.
+            dtype (Dtype | None, optional): The dtype of the model. Defaults to None.
+            path_in_repo (str | None, optional): The path to the model in the repository. Defaults to None.
+        Returns:
+            EmbeddingModel: An initialized EmbeddingModel object.
+
+        Atleast one of the following arguments must be provided:
+            - model_name
+            - hf_model_id
+
+        If hf_model_id is provided, dtype is ignored and the path_in_repo has to be provided pointing to the model file in the repository.
+        If model_name is provided, dtype is used to determine the model file to load.
+
+        Example:
+        ```python
+        model = EmbeddingModel.from_pretrained_onnx(
+            model_architecture=WhichModel.Bert,
+            model_name=ONNXModel.BGESmallENV15Q,
+            dtype=Dtype.Q4F16
+        )
+
+        model = EmbeddingModel.from_pretrained_onnx(
+            model_architecture=WhichModel.Bert,
+            hf_model_id="jinaai/jina-embeddings-v3",
+            path_in_repo="onnx/model_fp16.onnx"
+        )
+        ```
+
+        Note:
+        This method loads a pre-trained model in ONNX format, which can offer improved inference speed
+        compared to standard PyTorch models. ONNX models are particularly useful for deployment
+        scenarios where performance is critical.
+        """
 
 class AudioDecoderModel:
     """

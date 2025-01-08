@@ -9,6 +9,7 @@ use embed_anything::{
     file_processor::audio::audio_processor,
     text_loader::FileLoadingError,
 };
+use models::colbert::ColbertModel;
 use models::colpali::ColpaliModel;
 use models::reranker::{DocumentRank, Dtype, Reranker, RerankerResult};
 use pyo3::{
@@ -298,14 +299,15 @@ impl EmbeddingModel {
         dtype: Option<&Dtype>,
         path_in_repo: Option<&str>,
     ) -> PyResult<Self> {
-        let dtype = match dtype.unwrap_or(&Dtype::F32) {
-            Dtype::Q4F16 => embed_anything::Dtype::Q4F16,
-            Dtype::F16 => embed_anything::Dtype::F16,
-            Dtype::INT8 => embed_anything::Dtype::INT8,
-            Dtype::Q4 => embed_anything::Dtype::Q4,
-            Dtype::UINT8 => embed_anything::Dtype::UINT8,
-            Dtype::BNB4 => embed_anything::Dtype::BNB4,
-            Dtype::F32 => embed_anything::Dtype::F32,
+        let dtype = match dtype {
+            Some(Dtype::Q4F16) => Some(embed_anything::Dtype::Q4F16),
+            Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+            Some(Dtype::INT8) => Some(embed_anything::Dtype::INT8),
+            Some(Dtype::Q4) => Some(embed_anything::Dtype::Q4),
+            Some(Dtype::UINT8) => Some(embed_anything::Dtype::UINT8),
+            Some(Dtype::BNB4) => Some(embed_anything::Dtype::BNB4),
+            Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+            None => None,
         };
         let model_name = match model_name {
             Some(model_name) => Some(
@@ -318,23 +320,20 @@ impl EmbeddingModel {
         };
         match model {
             WhichModel::Bert => {
-               
-                    let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                            embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
-                                model_name,
-                                hf_model_id,
-                                revision,
-                                Some(dtype),
-                                path_in_repo,
-                            )
-                            .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                        )));
-                    Ok(EmbeddingModel {
-                        inner: Arc::new(model),
-                    })
-                
-              
-            },
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
+                        model_name,
+                        hf_model_id,
+                        revision,
+                        dtype,
+                        path_in_repo,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
             WhichModel::SparseBert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
                     embed_anything::embeddings::local::bert::OrtSparseBertEmbedder::new(
@@ -345,11 +344,9 @@ impl EmbeddingModel {
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
-            Ok(EmbeddingModel {
-                inner: Arc::new(model),
-            })
-        
-      
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
             }
             WhichModel::Jina => {
                 let model = Embedder::Text(TextEmbedder::Jina(Box::new(
@@ -357,7 +354,7 @@ impl EmbeddingModel {
                         model_name,
                         hf_model_id,
                         revision,
-                        Some(dtype),
+                        dtype,
                         path_in_repo,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
@@ -371,7 +368,6 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::colbert::OrtColbertEmbedder::new(
                         hf_model_id,
                         revision,
-                        None,
                         path_in_repo,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
@@ -678,6 +674,7 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
     m.add_function(wrap_pyfunction!(embed_audio_file, m)?)?;
     m.add_class::<ColpaliModel>()?;
+    m.add_class::<ColbertModel>()?;
     m.add_class::<EmbeddingModel>()?;
     m.add_class::<AudioDecoderModel>()?;
     m.add_class::<WhichModel>()?;

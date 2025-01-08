@@ -4,6 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use std::collections::HashMap;
 use std::path;
 
 use crate::embeddings::embed::EmbeddingResult;
@@ -26,7 +27,7 @@ use ort::session::Session;
 use ort::value::Value;
 use rayon::prelude::*;
 use serde::Deserialize;
-use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
+use tokenizers::{AddedToken, PaddingParams, Tokenizer, TruncationParams};
 
 use super::pooling::{ModelOutput, Pooling};
 use super::text_embedding::ONNXModel;
@@ -38,10 +39,23 @@ pub trait BertEmbed {
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct TokenizerConfig {
     pub max_length: Option<usize>,
     pub model_max_length: Option<usize>,
+    pub mask_token: Option<String>,
+    pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
+}
+
+impl TokenizerConfig {
+    pub fn get_token_id_from_token(&self, token_string: &str) -> Option<i64> {
+        // First check if added_tokens_decoder exists
+        self.added_tokens_decoder
+            .as_ref()?
+            .iter()
+            .find(|(_, value)| value.content == token_string)
+            .and_then(|(key, _)| key.parse::<i64>().ok())
+    }
 }
 
 #[derive(Debug)]
@@ -59,17 +73,25 @@ impl OrtBertEmbedder {
         dtype: Option<Dtype>,
         path_in_repo: Option<&str>,
     ) -> Result<Self, E> {
-        
         let hf_model_id = match model_id {
             Some(id) => id,
             None => match model_name {
                 Some(name) => models_map().get(&name).unwrap().model_code.as_str(),
-                None => return Err(anyhow::anyhow!("Please provide either model_name or model_id")),
+                None => {
+                    return Err(anyhow::anyhow!(
+                        "Please provide either model_name or model_id"
+                    ))
+                }
             },
         };
 
         let pooling = match model_name {
-            Some(name) => models_map().get(&name).unwrap().model.get_default_pooling_method().unwrap_or(Pooling::Mean),
+            Some(name) => models_map()
+                .get(&name)
+                .unwrap()
+                .model
+                .get_default_pooling_method()
+                .unwrap_or(Pooling::Mean),
             None => Pooling::Mean,
         };
         let path = match path_in_repo {
@@ -96,10 +118,7 @@ impl OrtBertEmbedder {
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let base_path = path
-                .rsplit_once('/')
-                .map(|(p, _)| p)
-                .unwrap_or("");
+            let base_path = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
             let model_path = match dtype {
                 Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
                 Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
@@ -363,12 +382,21 @@ pub struct OrtSparseBertEmbedder {
 }
 
 impl OrtSparseBertEmbedder {
-    pub fn new(model_name: Option<ONNXModel>, model_id: Option<&str>, revision: Option<&str>, path_in_repo: Option<&str>) -> Result<Self, E> {
+    pub fn new(
+        model_name: Option<ONNXModel>,
+        model_id: Option<&str>,
+        revision: Option<&str>,
+        path_in_repo: Option<&str>,
+    ) -> Result<Self, E> {
         let hf_model_id = match model_id {
             Some(id) => id,
             None => match model_name {
                 Some(name) => models_map().get(&name).unwrap().model_code.as_str(),
-                None => return Err(anyhow::anyhow!("Please provide either model_name or model_id")),
+                None => {
+                    return Err(anyhow::anyhow!(
+                        "Please provide either model_name or model_id"
+                    ))
+                }
             },
         };
 

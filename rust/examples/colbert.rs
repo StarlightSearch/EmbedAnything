@@ -1,9 +1,6 @@
-use candle_core::{Device, Tensor};
 use embed_anything::config::TextEmbedConfig;
 use embed_anything::embeddings::embed::{EmbedData, Embedder};
-use embed_anything::embeddings::local::text_embedding::ONNXModel;
 use embed_anything::text_loader::SplittingStrategy;
-use embed_anything::Dtype;
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
 use std::sync::Arc;
@@ -45,13 +42,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let _data = futures.into_iter().next().unwrap().await?.unwrap();
 
-    for chunk in _data {
-        println!("--------------------------------");
-
-        println!("{:?}", chunk.text.unwrap());
-        println!("\n");
-    }
-
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 
@@ -69,44 +59,9 @@ async fn main() -> Result<(), anyhow::Error> {
     .map(|s| s.to_string())
     .collect::<Vec<_>>();
 
-    let doc_embeddings = embed_query(sentences.clone(), &model, Some(&config))
+    let _doc_embeddings = embed_query(sentences.clone(), &model, Some(&config))
         .await
         .unwrap();
-    // println!("{:?}", doc_embeddings);
-    // let n_vectors = doc_embeddings.len();
-    // let out_embeddings = Tensor::from_vec(
-    //     doc_embeddings
-    //         .iter()
-    //         .map(|embed| embed.embedding.clone())
-    //         .collect::<Vec<_>>()
-    //         .into_iter()
-    //         .map(|x| x.to_dense().unwrap())
-    //         .flatten()
-    //         .collect::<Vec<_>>(),
-    //     (
-    //         n_vectors,
-    //         doc_embeddings[0].embedding.to_multi_vector().unwrap().len(),
-    //     ),
-    //     &Device::Cpu,
-    // )
-    // .unwrap();
-
-    // let mut similarities = vec![];
-    // for i in 0..n_vectors {
-    //     let e_i = out_embeddings.get(i)?;
-    //     for j in (i + 1)..n_vectors {
-    //         let e_j = out_embeddings.get(j)?;
-    //         let sum_ij = (&e_i * &e_j)?.sum_all()?.to_scalar::<f32>()?;
-    //         let sum_i2 = (&e_i * &e_i)?.sum_all()?.to_scalar::<f32>()?;
-    //         let sum_j2 = (&e_j * &e_j)?.sum_all()?.to_scalar::<f32>()?;
-    //         let cosine_similarity = sum_ij / (sum_i2 * sum_j2).sqrt();
-    //         similarities.push((cosine_similarity, i, j))
-    //     }
-    // }
-    // similarities.sort_by(|u, v| v.0.total_cmp(&u.0));
-    // for &(score, i, j) in similarities[..5].iter() {
-    //     println!("score: {score:.2} '{}' '{}'", sentences[i], sentences[j])
-    // }
 
     Ok(())
 }

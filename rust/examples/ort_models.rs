@@ -13,13 +13,12 @@ use std::time::Instant;
 async fn main() -> Result<(), anyhow::Error> {
     let model = Arc::new(
         Embedder::from_pretrained_onnx(
-            "colbert",
-            // Some(ONNXModel::ModernBERTBase),
-            None,
-            Some("answerdotai/answerai-colbert-small-v1"),
+            "bert",
+            Some(ONNXModel::ModernBERTBase),
             None,
             None,
-            Some("onnx/model_fp16.onnx"),
+            Some(Dtype::F16),
+            None,
         )
         .unwrap(),
     );

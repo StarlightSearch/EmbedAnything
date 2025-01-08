@@ -1,19 +1,22 @@
-import heapq
+
 from embed_anything import (
-    EmbeddingModel,
-    TextEmbedConfig,
-    WhichModel,
     embed_query,
-    ONNXModel,
-    Dtype,
+    ColbertModel
 )
 import os
 from time import time
 import numpy as np
 
-model = EmbeddingModel.from_pretrained_onnx(
-    model = WhichModel.ColBert, hf_model_id = "answerdotai/answerai-colbert-small-v1", path_in_repo="onnx/model_fp16.onnx"
+model:ColbertModel = ColbertModel.from_pretrained_onnx(
+    hf_model_id="jinaai/jina-colbert-v2",
+    path_in_repo="onnx/model.onnx",
 )
+
+# model:ColbertModel = ColbertModel.from_pretrained_onnx(
+#     hf_model_id="answerdotai/answerai-colbert-small-v1",
+#     path_in_repo="onnx/model_fp16.onnx",
+# )
+
 
 sentences = [
     "The quick brown fox jumps over the lazy dog",
@@ -24,13 +27,11 @@ sentences = [
     "The dog is sitting in the park",
 ]
 
-query = "There is a dog walking in the park"
+query = "I like italian food"
 
+doc_embeddings = np.array([e.embedding for e in model.embed(sentences, is_doc=True)])
 
-doc_embeddings = np.array([e.embedding for e in embed_query(sentences, embedder=model)])
-
-query_embeddings = np.array([e.embedding for e in embed_query([query], embedder=model)])
-
+query_embeddings = np.array([e.embedding for e in model.embed([query], is_doc=False)])
 
 print("shape of doc_embedddings", doc_embeddings.shape)
 

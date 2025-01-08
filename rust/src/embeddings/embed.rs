@@ -163,14 +163,9 @@ impl TextEmbedder {
             }
         } else if !model_id.is_none() {
             match model_architecture {
-                "colbert" | "Colbert" | "COLBERT" => {
-                    Ok(Self::ColBert(Box::new(OrtColbertEmbedder::new(
-                        model_id,
-                        revision,
-                        dtype,
-                        path_in_repo,
-                    )?)))
-                }
+                "colbert" | "Colbert" | "COLBERT" => Ok(Self::ColBert(Box::new(
+                    OrtColbertEmbedder::new(model_id, revision, path_in_repo)?,
+                ))),
                 "bert" | "Bert" => Ok(Self::Bert(Box::new(OrtBertEmbedder::new(
                     None,
                     model_id,

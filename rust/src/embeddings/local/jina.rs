@@ -48,17 +48,25 @@ impl OrtJinaEmbedder {
         dtype: Option<Dtype>,
         path_in_repo: Option<&str>,
     ) -> Result<Self, E> {
-         
         let hf_model_id = match model_id {
             Some(id) => id,
             None => match model_name {
                 Some(name) => models_map().get(&name).unwrap().model_code.as_str(),
-                None => return Err(anyhow::anyhow!("Please provide either model_name or model_id")),
+                None => {
+                    return Err(anyhow::anyhow!(
+                        "Please provide either model_name or model_id"
+                    ))
+                }
             },
         };
 
         let pooling = match model_name {
-            Some(name) => models_map().get(&name).unwrap().model.get_default_pooling_method().unwrap_or(Pooling::Mean),
+            Some(name) => models_map()
+                .get(&name)
+                .unwrap()
+                .model
+                .get_default_pooling_method()
+                .unwrap_or(Pooling::Mean),
             None => Pooling::Mean,
         };
         let path = match path_in_repo {
@@ -85,10 +93,7 @@ impl OrtJinaEmbedder {
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let base_path = path
-                .rsplit_once('/')
-                .map(|(p, _)| p)
-                .unwrap_or("");
+            let base_path = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
             let model_path = match dtype {
                 Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
                 Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
@@ -172,8 +177,6 @@ impl OrtJinaEmbedder {
             pooling,
         })
     }
-    
-    
 
     fn tokenize_batch(&self, text_batch: &[String]) -> Result<Array2<i64>, E> {
         let token_ids = self

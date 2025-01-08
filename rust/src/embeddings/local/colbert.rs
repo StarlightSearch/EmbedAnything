@@ -1,13 +1,14 @@
-
 #[cfg(feature = "mkl")]
 extern crate intel_mkl_src;
 
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use std::ops::Mul;
+
 use anyhow::{Error as E, Result};
 use hf_hub::{api::sync::Api, Repo};
-use ndarray::{Array2, Array3};
+use ndarray::{Array2, Array3, Axis};
 use ort::{
     execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider},
     session::{builder::GraphOptimizationLevel, Session},
@@ -17,24 +18,38 @@ use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::{
-    embeddings::{embed::EmbeddingResult, utils::tokenize_batch_ndarray},
+    embeddings::{
+        embed::EmbeddingResult,
+        utils::{get_attention_mask_ndarray, tokenize_batch_ndarray},
+    },
     Dtype,
 };
 
 use super::bert::{BertEmbed, TokenizerConfig};
 
+pub trait ColbertEmbed {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+        is_doc: bool,
+    ) -> Result<Vec<EmbeddingResult>, E>;
+}
 
 #[derive(Debug)]
 pub struct OrtColbertEmbedder {
     pub tokenizer: Tokenizer,
     pub model: Session,
+    pub document_marker_token_id: Option<i64>,
+    pub query_marker_token_id: Option<i64>,
+    pub pad_id: Option<i64>,
+    pub mask_token: Option<String>,
 }
 
 impl OrtColbertEmbedder {
     pub fn new(
         model_id: Option<&str>,
         revision: Option<&str>,
-        dtype: Option<Dtype>,
         path_in_repo: Option<&str>,
     ) -> Result<Self, E> {
         let path_in_repo = path_in_repo.unwrap_or("model.onnx");
@@ -43,7 +58,7 @@ impl OrtColbertEmbedder {
             None => return Err(anyhow::anyhow!("Please provide hf model id")),
         };
 
-        let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
+        let (_, tokenizer_filename, weights_filename, tokenizer_config_filename, data_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
@@ -59,32 +74,30 @@ impl OrtColbertEmbedder {
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let base_path = path_in_repo.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
-            let model_path = match dtype {
-                Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
-                Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
-                Some(Dtype::INT8) => format!("{base_path}/model_int8.onnx"),
-                Some(Dtype::Q4) => format!("{base_path}/model_q4.onnx"),
-                Some(Dtype::UINT8) => format!("{base_path}/model_uint8.onnx"),
-                Some(Dtype::BNB4) => format!("{base_path}/model_bnb4.onnx"),
-                Some(Dtype::F32) => format!("{base_path}/model.onnx"),
-                Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
-                None => path_in_repo.to_string(),
-            };
-            let weights = api.get(model_path.as_str());
-            (config, tokenizer, weights, tokenizer_config)
+
+            let weights = api.get(path_in_repo);
+            let data = api.get(format!("{path_in_repo}_data").as_str());
+
+            (config, tokenizer, weights, tokenizer_config, data)
         };
 
         let weights_filename = match weights_filename {
             Ok(weights) => weights,
             Err(e) => {
-                return Err(anyhow::anyhow!("ONNX weights not found for the model. Please check if the weights for the specified dtype exists. {}", e));
+                return Err(anyhow::anyhow!(
+                    "Specified ONNX weights not found for the model. {}",
+                    e
+                ));
             }
+        };
+
+        let _ = match data_filename {
+            Ok(data) => Some(data),
+            Err(_) => None,
         };
 
         let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
         let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
-
         // Set max_length to the minimum of max_length and model_max_length if both are present
         let max_length = match (
             tokenizer_config.max_length,
@@ -97,6 +110,13 @@ impl OrtColbertEmbedder {
         };
 
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
+        let mask_token = tokenizer_config.clone().mask_token;
+        let pad_id = match mask_token.clone() {
+            Some(mask_token) => tokenizer_config.get_token_id_from_token(&mask_token),
+            None => None,
+        };
+        let document_marker_token_id = tokenizer_config.get_token_id_from_token("[DocumentMarker]");
+        let query_marker_token_id = tokenizer_config.get_token_id_from_token("[QueryMarker]");
 
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
@@ -106,7 +126,6 @@ impl OrtColbertEmbedder {
             max_length,
             ..Default::default()
         };
-
         tokenizer
             .with_padding(Some(pp))
             .with_truncation(Some(trunc))
@@ -130,7 +149,113 @@ impl OrtColbertEmbedder {
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
 
-        Ok(OrtColbertEmbedder { tokenizer, model })
+        Ok(OrtColbertEmbedder {
+            tokenizer,
+            model,
+            document_marker_token_id,
+            query_marker_token_id,
+            pad_id,
+            mask_token,
+        })
+    }
+}
+
+impl ColbertEmbed for OrtColbertEmbedder {
+    fn embed(
+        &self,
+        text_batch: &[String],
+        batch_size: Option<usize>,
+        is_doc: bool,
+    ) -> Result<Vec<EmbeddingResult>, E> {
+        let mut tokenizer = self.tokenizer.clone();
+
+        if !is_doc && self.mask_token.is_some() && self.pad_id.is_some() {
+            let pp = PaddingParams {
+                strategy: tokenizers::PaddingStrategy::Fixed(32),
+                pad_token: self.mask_token.clone().unwrap(),
+                pad_id: self.pad_id.unwrap() as u32,
+                ..Default::default()
+            };
+            tokenizer.with_padding(Some(pp));
+        }
+
+        let batch_size = batch_size.unwrap_or(32);
+        let encodings = text_batch
+            .par_chunks(batch_size)
+            .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
+                let mut input_ids: Array2<i64> =
+                    tokenize_batch_ndarray(&tokenizer, mini_text_batch)?;
+                let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
+                let mut attention_mask: Array2<i64> = get_attention_mask_ndarray(&tokenizer, mini_text_batch)?;
+
+                // Insert marker token after the first token if available
+                if let Some(marker_id) = if is_doc {
+                    self.document_marker_token_id
+                } else {
+                    self.query_marker_token_id
+                } {
+                    for (mut row, mut mask_row) in input_ids.rows_mut().into_iter().zip(attention_mask.rows_mut().into_iter()) {
+                        // Shift all tokens after position 0 one position to the right
+                        for i in (2..row.len()).rev() {
+                            row[i] = row[i - 1];
+                            mask_row[i] = mask_row[i - 1];
+                        }
+                        // Insert marker token at position 1 (after first token)
+                        row[1] = marker_id;
+                        mask_row[1] = 1;
+                    }
+                }
+                let input_names = self
+                    .model
+                    .inputs
+                    .iter()
+                    .map(|input| input.name.as_str())
+                    .collect::<Vec<_>>();
+
+                let mut inputs =
+                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask.clone()]?;
+                if input_names.iter().any(|&x| x == "token_type_ids") {
+                    inputs.push((
+                        "token_type_ids".into(),
+                        Value::from_array(token_type_ids.clone())?.into(),
+                    ));
+                }
+                let outputs = self.model.run(inputs)?;
+                let embeddings: Array3<f32> = outputs
+                    [self.model.outputs.get(0).unwrap().name.as_str()]
+                .try_extract_tensor::<f32>()?
+                .to_owned()
+                .into_dimensionality::<ndarray::Ix3>()?;
+
+                let attention_mask = attention_mask.mapv(|x| x as f32).insert_axis(Axis(2));
+                let embeddings = embeddings.mul(attention_mask);
+                let (batch_size, seq_len, embed_dim) = embeddings.dim();
+                // Normalize each token's embedding vector
+                let normalized_embeddings = embeddings.to_owned().to_shape((batch_size * seq_len, embed_dim))?
+                    .outer_iter()
+                    .map(|vector| {
+                        let norm = (vector.dot(&vector)).sqrt();
+                        vector.map(|&x| x / (norm + 1e-10)).to_vec()
+                    })
+                    .collect::<Vec<_>>();
+
+                // Reshape back to [Batch, Seq, Embedding Dimension]
+                let normalized_embeddings = normalized_embeddings
+                    .chunks(seq_len)
+                    .map(|batch| batch.to_vec())
+                    .collect::<Vec<_>>();
+
+                let e = normalized_embeddings
+                    .into_iter()
+                    .map(|row| EmbeddingResult::MultiVector(row))
+                    .collect::<Vec<_>>();
+
+                Ok(e)
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+
+        Ok(encodings)
     }
 }
 
@@ -146,8 +271,9 @@ impl BertEmbed for OrtColbertEmbedder {
             .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
                 let input_ids: Array2<i64> =
                     tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
+
                 let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-                let attention_mask: Array2<i64> = Array2::ones(input_ids.raw_dim());
+                let attention_mask: Array2<i64> = get_attention_mask_ndarray(&self.tokenizer, mini_text_batch)?;
 
                 let input_names = self
                     .model
@@ -157,7 +283,7 @@ impl BertEmbed for OrtColbertEmbedder {
                     .collect::<Vec<_>>();
 
                 let mut inputs =
-                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask]?;
+                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask.clone()]?;
                 if input_names.iter().any(|&x| x == "token_type_ids") {
                     inputs.push((
                         "token_type_ids".into(),
@@ -170,15 +296,28 @@ impl BertEmbed for OrtColbertEmbedder {
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix3>()?;
-                let (_, _, _) = embeddings.dim();
 
-                let e = embeddings
+                let attention_mask = attention_mask.mapv(|x| x as f32).insert_axis(Axis(2));
+                let embeddings = embeddings.mul(attention_mask);
+                let (batch_size, seq_len, embed_dim) = embeddings.dim();
+                // Normalize each token's embedding vector
+                let normalized_embeddings = embeddings.to_owned().to_shape((batch_size * seq_len, embed_dim))?
                     .outer_iter()
-                    .map(|row| {
-                        EmbeddingResult::MultiVector(
-                            row.outer_iter().map(|x| x.to_vec()).collect::<Vec<_>>(),
-                        )
+                    .map(|vector| {
+                        let norm = (vector.dot(&vector)).sqrt();
+                        vector.map(|&x| x / (norm + 1e-10)).to_vec()
                     })
+                    .collect::<Vec<_>>();
+
+                // Reshape back to [Batch, Seq, Embedding Dimension]
+                let normalized_embeddings = normalized_embeddings
+                    .chunks(seq_len)
+                    .map(|batch| batch.to_vec())
+                    .collect::<Vec<_>>();
+
+                let e = normalized_embeddings
+                    .into_iter()
+                    .map(|row| EmbeddingResult::MultiVector(row))
                     .collect::<Vec<_>>();
 
                 Ok(e)
