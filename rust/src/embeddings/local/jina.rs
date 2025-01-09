@@ -106,7 +106,10 @@ impl OrtJinaEmbedder {
                 None => path.to_string(),
             };
             let weights = api.get(model_path.as_str());
+            let _ = api.get(format!("{path}_data").as_str());
+
             (config, tokenizer, weights, tokenizer_config)
+
         };
 
         let weights_filename = match weights_filename {
