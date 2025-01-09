@@ -282,6 +282,33 @@ print(data[0].metadata)
 
 ```
 
+### Using ONNX Models
+
+To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Bert, model_name = ONNXModel.AllMiniLML6V2Q
+)
+```
+
+For some models, you can also specify the dtype to use for the model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+Using the above method is best to ensure that the model works correctly as these models are tested. But if you want to use other models, like finetuned models, you can use the `hf_model_id` and `path_in_repo` to load the model like below.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Jina, hf_model_id = "jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
+)
+```
+To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
+
 
 
 
