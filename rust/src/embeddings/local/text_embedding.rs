@@ -79,6 +79,8 @@ pub enum ONNXModel {
     SPLADEPPENV1,
     /// prithivida/Splade_PP_en_v2
     SPLADEPPENV2,
+    /// onnx-models/jina-colbert-v1-en-onnx
+    JinaColBERTv1,
 }
 
 /// Centralized function to initialize the models map.
@@ -356,6 +358,14 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             model_code: String::from("prithivida/Splade_PP_en_v2"),
             model_file: String::from("onnx/model.onnx"),
         },
+        ModelInfo {
+            model: ONNXModel::JinaColBERTv1,
+            dim: 384,
+            description: String::from("Jina ColBERT v1"),
+            hf_model_id: String::from("jinaai/jina-embeddings-v2-small-en"),
+            model_code: String::from("onnx-models/jina-colbert-v1-en-onnx"),
+            model_file: String::from("model.onnx"),
+        },
     ];
 
     // TODO: Use when out in stable
@@ -441,6 +451,7 @@ impl ONNXModel {
             ONNXModel::JINAV3 => Some(Pooling::Mean),
             ONNXModel::SPLADEPPENV1 => Some(Pooling::Mean),
             ONNXModel::SPLADEPPENV2 => Some(Pooling::Mean),
+            ONNXModel::JinaColBERTv1 => None,
         }
     }
 

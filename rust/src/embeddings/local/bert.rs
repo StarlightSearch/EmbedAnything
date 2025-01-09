@@ -4,6 +4,8 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use std::collections::HashMap;
+
 use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::{get_model_info_by_hf_id, models_map};
 use crate::embeddings::utils::{
@@ -24,7 +26,7 @@ use ort::session::Session;
 use ort::value::Value;
 use rayon::prelude::*;
 use serde::Deserialize;
-use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
+use tokenizers::{AddedToken, PaddingParams, Tokenizer, TruncationParams};
 
 use super::pooling::{ModelOutput, Pooling};
 use super::text_embedding::ONNXModel;
@@ -36,10 +38,23 @@ pub trait BertEmbed {
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct TokenizerConfig {
     pub max_length: Option<usize>,
     pub model_max_length: Option<usize>,
+    pub mask_token: Option<String>,
+    pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
+}
+
+impl TokenizerConfig {
+    pub fn get_token_id_from_token(&self, token_string: &str) -> Option<i64> {
+        // First check if added_tokens_decoder exists
+        self.added_tokens_decoder
+            .as_ref()?
+            .iter()
+            .find(|(_, value)| value.content == token_string)
+            .and_then(|(key, _)| key.parse::<i64>().ok())
+    }
 }
 
 #[derive(Debug)]
@@ -51,48 +66,68 @@ pub struct OrtBertEmbedder {
 
 impl OrtBertEmbedder {
     pub fn new(
-        model: ONNXModel,
-        revision: Option<String>,
+        model_name: Option<ONNXModel>,
+        model_id: Option<&str>,
+        revision: Option<&str>,
         dtype: Option<Dtype>,
+        path_in_repo: Option<&str>,
     ) -> Result<Self, E> {
-        let model_info = models_map()
-            .get(&model)
-            .ok_or_else(|| E::msg("ONNX model does not exist for the specified model"))?;
-        let pooling = model_info
-            .model
-            .get_default_pooling_method()
-            .unwrap_or(Pooling::Mean);
+        let hf_model_id = match model_id {
+            Some(id) => id,
+            None => match model_name {
+                Some(name) => models_map().get(&name).unwrap().model_code.as_str(),
+                None => {
+                    return Err(anyhow::anyhow!(
+                        "Please provide either model_name or model_id"
+                    ))
+                }
+            },
+        };
+
+        let pooling = match model_name {
+            Some(name) => models_map()
+                .get(&name)
+                .unwrap()
+                .model
+                .get_default_pooling_method()
+                .unwrap_or(Pooling::Mean),
+            None => Pooling::Mean,
+        };
+        let path = match path_in_repo {
+            Some(path) => path,
+            None => match model_name {
+                Some(name) => models_map().get(&name).unwrap().model_file.as_str(),
+                None => "model.onnx",
+            },
+        };
 
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
-                    model_info.model_code.to_string(),
+                    hf_model_id.to_string(),
                     hf_hub::RepoType::Model,
-                    rev,
+                    rev.to_string(),
                 )),
                 None => api.repo(hf_hub::Repo::new(
-                    model_info.model_code.to_string(),
+                    hf_model_id.to_string(),
                     hf_hub::RepoType::Model,
                 )),
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let base_path = model_info
-                .model_file
-                .rsplit_once('/')
-                .map(|(p, _)| p)
-                .unwrap_or("");
-            let model_path = match dtype.unwrap_or(Dtype::F32) {
-                Dtype::Q4F16 => format!("{base_path}/model_q4f16.onnx"),
-                Dtype::F16 => format!("{base_path}/model_fp16.onnx"),
-                Dtype::INT8 => format!("{base_path}/model_int8.onnx"),
-                Dtype::Q4 => format!("{base_path}/model_q4.onnx"),
-                Dtype::UINT8 => format!("{base_path}/model_uint8.onnx"),
-                Dtype::BNB4 => format!("{base_path}/model_bnb4.onnx"),
-                Dtype::F32 => model_info.model_file.clone(),
-                Dtype::QUANTIZED => format!("{base_path}/model_quantized.onnx"),
+            let base_path = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+            let model_path = match dtype {
+                Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
+                Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
+                Some(Dtype::INT8) => format!("{base_path}/model_int8.onnx"),
+                Some(Dtype::Q4) => format!("{base_path}/model_q4.onnx"),
+                Some(Dtype::UINT8) => format!("{base_path}/model_uint8.onnx"),
+                Some(Dtype::BNB4) => format!("{base_path}/model_bnb4.onnx"),
+                Some(Dtype::F32) => format!("{base_path}/model.onnx"),
+                Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
+                None => path.to_string(),
             };
             let weights = api.get(model_path.as_str());
             (config, tokenizer, weights, tokenizer_config)
@@ -193,7 +228,7 @@ impl BertEmbed for OrtBertEmbedder {
                 }
                 let outputs = self.model.run(inputs)?;
                 let embeddings: Array3<f32> = outputs
-                    [self.model.outputs.get(0).unwrap().name.as_str()]
+                    [self.model.outputs.first().unwrap().name.as_str()]
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix3>()?;
@@ -346,27 +381,49 @@ pub struct OrtSparseBertEmbedder {
 }
 
 impl OrtSparseBertEmbedder {
-    pub fn new(model: ONNXModel, revision: Option<String>) -> Result<Self, E> {
-        let model_info = models_map()
-            .get(&model)
-            .ok_or_else(|| E::msg("ONNX model does not exist for the specified model"))?;
+    pub fn new(
+        model_name: Option<ONNXModel>,
+        model_id: Option<&str>,
+        revision: Option<&str>,
+        path_in_repo: Option<&str>,
+    ) -> Result<Self, E> {
+        let hf_model_id = match model_id {
+            Some(id) => id,
+            None => match model_name {
+                Some(name) => models_map().get(&name).unwrap().model_code.as_str(),
+                None => {
+                    return Err(anyhow::anyhow!(
+                        "Please provide either model_name or model_id"
+                    ))
+                }
+            },
+        };
+
+        let path = match path_in_repo {
+            Some(path) => path,
+            None => match model_name {
+                Some(name) => models_map().get(&name).unwrap().model_file.as_str(),
+                None => "model.onnx",
+            },
+        };
+
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
-                    model_info.model_code.to_string(),
+                    hf_model_id.to_string(),
                     hf_hub::RepoType::Model,
-                    rev,
+                    rev.to_string(),
                 )),
                 None => api.repo(hf_hub::Repo::new(
-                    model_info.model_code.to_string(),
+                    hf_model_id.to_string(),
                     hf_hub::RepoType::Model,
                 )),
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let weights = api.get(model_info.model_file.as_str())?;
+            let weights = api.get(path)?;
             (config, tokenizer, weights, tokenizer_config)
         };
         let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
