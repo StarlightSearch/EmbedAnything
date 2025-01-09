@@ -9,8 +9,8 @@ use ort::{
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::embeddings::local::bert::TokenizerConfig;
-use serde::Serialize;
 use crate::Dtype;
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct RerankerResult {
@@ -134,8 +134,7 @@ impl Reranker {
             scores.extend(
                 logits
                     .outer_iter()
-                    .map(|row| row.to_vec())
-                    .flatten()
+                    .flat_map(|row| row.to_vec())
                     .collect::<Vec<_>>(),
             );
         }
@@ -169,7 +168,7 @@ impl Reranker {
                 .enumerate()
                 .map(|(p, score)| DocumentRank {
                     document: documents[p].to_string(),
-                    relevance_score: score.clone(),
+                    relevance_score: *score,
                     rank: indices.iter().position(|&i| i == p).unwrap() + 1,
                 })
                 .collect::<Vec<_>>();

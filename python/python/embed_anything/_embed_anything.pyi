@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Optional
 from abc import ABC, abstractmethod
 
 class Adapter(ABC):
@@ -313,6 +313,47 @@ class ColpaliModel:
 
         Returns:
             A list of EmbedData objects.
+
+        """
+
+class ColbertModel:
+    """
+    Represents the Colbert model.
+    """
+
+    def __init__(
+        self,
+        hf_model_id: str | None = None,
+        revision: str | None = None,
+        path_in_repo: str | None = None,
+    ):
+        """
+        Initializes the ColbertModel object.
+        """
+
+    def from_pretrained_onnx(
+        self,
+        hf_model_id: str | None = None,
+        revision: str | None = None,
+        path_in_repo: str | None = None,
+    ) -> ColbertModel:
+        """
+        Loads a pre-trained Colbert model from the Hugging Face model hub.
+
+        Attributes:
+            hf_model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+            path_in_repo: The path to the model in the repository.
+
+        Returns:
+            A ColbertModel object.
+        """
+
+    def embed(
+        self, text_batch: list[str], batch_size: int | None = None, is_doc: bool = True
+    ) -> list[EmbedData]:
+        """
+        Embeds the given text and returns a list of EmbedData objects.
         """
 
 class Reranker:
@@ -320,39 +361,61 @@ class Reranker:
     Represents the Reranker model.
     """
 
-    def __init__(self, model_id: str, revision: str | None = None, dtype: Dtype | None = None):
+    def __init__(
+        self, model_id: str, revision: str | None = None, dtype: Dtype | None = None
+    ):
         """
         Initializes the Reranker object.
         """
 
-    def from_pretrained(model_id: str, revision: str | None = None, dtype: Dtype | None = None) -> Reranker:
+    def from_pretrained(
+        model_id: str, revision: str | None = None, dtype: Dtype | None = None
+    ) -> Reranker:
         """
         Loads a pre-trained Reranker model from the Hugging Face model hub.
         """
 
-    def rerank(self, query: list[str], documents: list[str], top_k: int) -> RerankerResult:
+    def rerank(
+        self, query: list[str], documents: list[str], top_k: int
+    ) -> RerankerResult:
         """
         Reranks the given documents for the query and returns a list of RerankerResult objects.
         """
 
 class Dtype(Enum):
+    """
+    Represents the data type of the model.
+    """
+
     F16 = "F16"
     INT8 = "INT8"
     Q4 = "Q4"
     UINT8 = "UINT8"
     BNB4 = "BNB4"
     Q4F16 = "Q4F16"
+
 class RerankerResult:
     """
     Represents the result of the reranking process.
+
+    Attributes:
+        query: The query to rerank.
+        documents: The list of documents to rerank.
     """
+
     query: str
     documents: list[DocumentRank]
 
 class DocumentRank:
     """
     Represents the rank of a document.
+
+    Attributes:
+        document: The document to rank.
+        relevance_score: The relevance score of the document.
+        rank: The rank of the document.
     """
+
     document: str
     relevance_score: float
     rank: int
@@ -411,93 +474,114 @@ class EmbeddingModel:
     Represents an embedding model.
     """
 
-    """
-    Loads an embedding model from the Hugging Face model hub.
-
-    Args:
-        model_id: The ID of the model.
-        revision: The revision of the model.
-    
-    Returns:
-        An EmbeddingModel object.
-
-    Example:
-    ```python
-    model = EmbeddingModel.from_pretrained_hf(
-        model_id="prithivida/miniMiracle_te_v1",
-        revision="main"
-    )
-    ```
-
-    """
     def from_pretrained_hf(
         model: WhichModel, model_id: str, revision: str | None = None
-    ) -> EmbeddingModel: ...
+    ) -> EmbeddingModel:
+        """
+        Loads an embedding model from the Hugging Face model hub.
 
-    """
-    Loads an embedding model from a cloud-based service.
+        Attributes:
+            model_id: The ID of the model.
+            revision: The revision of the model.
 
-    Args:
-        model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
-        model_id (str): The ID of the model to use.
-            - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
-            - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
-        api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
-            - For OpenAI: OPENAI_API_KEY
-            - For Cohere: CO_API_KEY
+        Returns:
+            An EmbeddingModel object.
 
-    Returns:
-        EmbeddingModel: An initialized EmbeddingModel object.
+        Example:
+        ```python
+        model = EmbeddingModel.from_pretrained_hf(
+            model_id="sentence-transformers/all-MiniLM-L6-v2",
+            revision="main"
+        )
+        ```
 
-    Raises:
-        ValueError: If an unsupported model is specified.
+        """
 
-    Example:
-    ```python
-    # Using Cohere
-    model = EmbeddingModel.from_pretrained_cloud(
-        model=WhichModel.Cohere, 
-        model_id="embed-english-v3.0"
-    )
-
-    # Using OpenAI
-    model = EmbeddingModel.from_pretrained_cloud(
-        model=WhichModel.OpenAI, 
-        model_id="text-embedding-3-small"
-    )
-    ```
-    """
     def from_pretrained_cloud(
         model: WhichModel, model_id: str, api_key: str | None = None
-    ) -> EmbeddingModel: ...
-    """
-    Loads an ONNX embedding model.
+    ) -> EmbeddingModel:
+        """
+        Loads an embedding model from a cloud-based service.
 
-    Args:
-        model_architecture (WhichModel): The architecture of the embedding model to use.
-        model_id (str): The ID of the model.
-        revision (str | None, optional): The revision of the model. Defaults to None.
-        dtype (Dtype | None, optional): The dtype of the model. Defaults to None.
-    Returns:
-        EmbeddingModel: An initialized EmbeddingModel object.
+        Attributes:
+            model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
+            model_id (str): The ID of the model to use.
+                - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
+                - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
+            api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
+                - For OpenAI: OPENAI_API_KEY
+                - For Cohere: CO_API_KEY
 
-    Example:
-    ```python
-    model = EmbeddingModel.from_pretrained_onnx(
-        model_architecture=WhichModel.Bert,
-        model_id="BGESmallENV15Q",
-        dtype=Dtype.Q4F16
-    )
-    ```
+        Returns:
+            EmbeddingModel: An initialized EmbeddingModel object.
 
-    Note:
-    This method loads a pre-trained model in ONNX format, which can offer improved inference speed
-    compared to standard PyTorch models. ONNX models are particularly useful for deployment
-    scenarios where performance is critical.
-    """
+        Raises:
+            ValueError: If an unsupported model is specified.
+
+        Example:
+        ```python
+        # Using Cohere
+        model = EmbeddingModel.from_pretrained_cloud(
+            model=WhichModel.Cohere,
+            model_id="embed-english-v3.0"
+        )
+
+        # Using OpenAI
+        model = EmbeddingModel.from_pretrained_cloud(
+            model=WhichModel.OpenAI,
+            model_id="text-embedding-3-small"
+        )
+        ```
+        """
+
     def from_pretrained_onnx(
-        model_architecture: WhichModel, model_id: str, revision: str | None = None, dtype: Dtype | None = None
-    ) -> EmbeddingModel: ...
+        model: WhichModel,
+        model_name: Optional[ONNXModel] | None = None,
+        hf_model_id: Optional[str] | None = None,
+        revision: Optional[str] | None = None,
+        dtype: Optional[Dtype] | None = None,
+        path_in_repo: Optional[str] | None = None,
+    ) -> EmbeddingModel:
+        """
+        Loads an ONNX embedding model.
+
+        Args:
+            model (WhichModel): The architecture of the embedding model to use.
+            model_name (ONNXModel | None, optional): The name of the model. Defaults to None.
+            hf_model_id (str | None, optional): The ID of the model from Hugging Face. Defaults to None.
+            revision (str | None, optional): The revision of the model. Defaults to None.
+            dtype (Dtype | None, optional): The dtype of the model. Defaults to None.
+            path_in_repo (str | None, optional): The path to the model in the repository. Defaults to None.
+        Returns:
+            EmbeddingModel: An initialized EmbeddingModel object.
+
+        Atleast one of the following arguments must be provided:
+            - model_name
+            - hf_model_id
+
+        If hf_model_id is provided, dtype is ignored and the path_in_repo has to be provided pointing to the model file in the repository.
+        If model_name is provided, dtype is used to determine the model file to load.
+
+        Example:
+        ```python
+        model = EmbeddingModel.from_pretrained_onnx(
+            model=WhichModel.Bert,
+            model_name=ONNXModel.BGESmallENV15Q,
+            dtype=Dtype.Q4F16
+        )
+
+        model = EmbeddingModel.from_pretrained_onnx(
+            model=WhichModel.Bert,
+            hf_model_id="jinaai/jina-embeddings-v3",
+            path_in_repo="onnx/model_fp16.onnx"
+        )
+        ```
+
+        Note:
+        This method loads a pre-trained model in ONNX format, which can offer improved inference speed
+        compared to standard PyTorch models. ONNX models are particularly useful for deployment
+        scenarios where performance is critical.
+        """
 
 class AudioDecoderModel:
     """
@@ -540,6 +624,7 @@ class WhichModel(Enum):
     Jina = ("Jina",)
     Clip = ("Clip",)
     Colpali = ("Colpali",)
+    ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
 
 class ONNXModel(Enum):

@@ -115,20 +115,21 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 ```
 
 
-| Model  | Custom link |
-| ------------- | ------------- |
-| Jina  | jinaai/jina-embeddings-v2-base-en  |
-|   | jinaai/jina-embeddings-v2-small-en  |
-| Bert | sentence-transformers/all-MiniLM-L6-v2 |
-|      | sentence-transformers/all-MiniLM-L12-v2 |
-|      | sentence-transformers/paraphrase-MiniLM-L6-v2 |
-| Clip | openai/clip-vit-base-patch32 | 
-| Whisper| Most OpenAI Whisper from huggingface supported.
+| Model  | HF link |
+| ------------- | ------------- | 
+| Jina  | [Jina Models](https://huggingface.co/collections/jinaai/jina-embeddings-v2-65708e3ec4993b8fb968e744) | 
+| Bert | All Bert based models |
+| CLIP | openai/clip-* | 
+| Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
+| ColPali | vidore/colpali-v1.2-merged |
+| Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
+| Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
+| Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 
 
 ## Splade Models:
 
-```
+```python
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
 )
@@ -138,7 +139,7 @@ model = EmbeddingModel.from_pretrained_hf(
 
 ### BERT
 
-```
+```python
 model = EmbeddingModel.from_pretrained_onnx(
   WhichModel.Bert, model_id="onnx_model_link"
 )
@@ -146,18 +147,33 @@ model = EmbeddingModel.from_pretrained_onnx(
 
 ### ColPali
 
-```
+```python
 model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
 ```
-### ModernBERT
+
+### Colbert
+
+```python
+sentences = [
+"The quick brown fox jumps over the lazy dog", 
+"The cat is sleeping on the mat", "The dog is barking at the moon", 
+"I love pizza", 
+"The dog is sitting in the park"]
+
+model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
+embeddings = model.embed(sentences, batch_size=2)
 ```
+
+### ModernBERT
+
+```python
 model = EmbeddingModel.from_pretrained_onnx(
     WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
 )
 ```
 
 ### ReRankers
-```
+```python
 reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
 
 results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
@@ -265,6 +281,33 @@ data = embed_anything.embed_audio_file(
 print(data[0].metadata)
 
 ```
+
+### Using ONNX Models
+
+To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Bert, model_name = ONNXModel.AllMiniLML6V2Q
+)
+```
+
+For some models, you can also specify the dtype to use for the model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+Using the above method is best to ensure that the model works correctly as these models are tested. But if you want to use other models, like finetuned models, you can use the `hf_model_id` and `path_in_repo` to load the model like below.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Jina, hf_model_id = "jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
+)
+```
+To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
 
 
 

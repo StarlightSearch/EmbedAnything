@@ -32,8 +32,15 @@ async fn main() -> anyhow::Result<()> {
 
     let model = match args.model_type {
         ModelType::Ort => Arc::new(
-            Embedder::from_pretrained_onnx("sparse-bert", ONNXModel::SPLADEPPENV2, None, None)
-                .unwrap(),
+            Embedder::from_pretrained_onnx(
+                "sparse-bert",
+                Some(ONNXModel::SPLADEPPENV2),
+                None,
+                None,
+                None,
+                None,
+            )
+            .unwrap(),
         ),
         ModelType::Normal => Arc::new(Embedder::Text(
             TextEmbedder::from_pretrained_hf("sparse-bert", "prithivida/Splade_PP_en_v1", None)
@@ -70,8 +77,7 @@ async fn main() -> anyhow::Result<()> {
 
     let embeddings = out
         .iter()
-        .map(|embed| embed.embedding.to_dense().unwrap())
-        .flatten()
+        .flat_map(|embed| embed.embedding.to_dense().unwrap())
         .collect::<Vec<_>>();
 
     let embeddings_tensor = Tensor::from_vec(

@@ -121,10 +121,10 @@ data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 | CLIP | openai/clip-* | 
 | Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
 | ColPali | vidore/colpali-v1.2-merged |
-| Splade | [Splade Models] (https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade based models |
+| Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
+| Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 
-  
 
 ### ♠️ Splade Models
 
@@ -197,6 +197,25 @@ print("Time taken: ", end_time - start_time)
 
 ```
 
+### Colbert
+
+Several Colbert Models are supported. The tested models are:
+- `jinaai/jina-colbert-v2`
+- `answerdotai/answerai-colbert-small-v1`
+- `onnx-models/jina-colbert-v1-en-onnx`
+
+```python
+sentences = [
+"The quick brown fox jumps over the lazy dog", 
+"The cat is sleeping on the mat", "The dog is barking at the moon", 
+"I love pizza", 
+"The dog is sitting in the park"]
+
+model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
+embeddings = model.embed(sentences, batch_size=2)
+```
+
+
 ### ⬆️Reranker Model
 
 We support reranker models that are available as ONNX models. Currently the models that are tested are:
@@ -220,11 +239,28 @@ The output is a list of documents with their relevance scores and rank for each 
 
 ### Using ONNX Models
 
+To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
+
 ```python
 
 model = EmbeddingModel.from_pretrained_onnx(
-  WhichModel.Bert, model_id="onnx_model_id"
+  WhichModel.Bert, model_name = ONNXModel.AllMiniLML6V2Q
 )
 ```
-To see all the ONNX models supported, see [here](../guides/onnx_models)
+For some models, you can also specify the dtype to use for the model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+Using the above method is best to ensure that the model works correctly as these models are tested. But if you want to use other models, like finetuned models, you can use the `hf_model_id` and `path_in_repo` to load the model like below.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Jina, hf_model_id = "jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
+)
+```
+To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
 

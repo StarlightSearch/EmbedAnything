@@ -7,6 +7,7 @@ extern crate accelerate_src;
 use crate::embeddings::select_device;
 use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
 use crate::models::jina_bert::{BertModel, Config};
+use crate::Dtype;
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
@@ -34,46 +35,90 @@ pub trait JinaEmbed {
 #[derive(Debug)]
 pub struct OrtJinaEmbedder {
     pub session: Session,
-    pub model: ONNXModel,
+    pub version: String,
     pub tokenizer: Tokenizer,
     pub pooling: Pooling,
 }
 
 impl OrtJinaEmbedder {
-    pub fn new(model: ONNXModel, revision: Option<&str>) -> Result<Self, E> {
-        let model_info = models_map()
-            .get(&model)
-            .ok_or_else(|| E::msg("ONNX model does not exist for the specified model"))?;
-        let pooling = model_info
-            .model
-            .get_default_pooling_method()
-            .unwrap_or(Pooling::Mean);
+    pub fn new(
+        model_name: Option<ONNXModel>,
+        model_id: Option<&str>,
+        revision: Option<&str>,
+        dtype: Option<Dtype>,
+        path_in_repo: Option<&str>,
+    ) -> Result<Self, E> {
+        let hf_model_id = match model_id {
+            Some(id) => id,
+            None => match model_name {
+                Some(name) => models_map().get(&name).unwrap().model_code.as_str(),
+                None => {
+                    return Err(anyhow::anyhow!(
+                        "Please provide either model_name or model_id"
+                    ))
+                }
+            },
+        };
+
+        let pooling = match model_name {
+            Some(name) => models_map()
+                .get(&name)
+                .unwrap()
+                .model
+                .get_default_pooling_method()
+                .unwrap_or(Pooling::Mean),
+            None => Pooling::Mean,
+        };
+        let path = match path_in_repo {
+            Some(path) => path,
+            None => match model_name {
+                Some(name) => models_map().get(&name).unwrap().model_file.as_str(),
+                None => "model.onnx",
+            },
+        };
 
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
-                    model_info.model_code.to_string(),
+                    hf_model_id.to_string(),
                     hf_hub::RepoType::Model,
                     rev.to_string(),
                 )),
                 None => api.repo(hf_hub::Repo::new(
-                    model_info.model_code.to_string(),
+                    hf_model_id.to_string(),
                     hf_hub::RepoType::Model,
                 )),
             };
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let weights = api.get(model_info.model_file.as_str())?;
+            let base_path = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+            let model_path = match dtype {
+                Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
+                Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
+                Some(Dtype::INT8) => format!("{base_path}/model_int8.onnx"),
+                Some(Dtype::Q4) => format!("{base_path}/model_q4.onnx"),
+                Some(Dtype::UINT8) => format!("{base_path}/model_uint8.onnx"),
+                Some(Dtype::BNB4) => format!("{base_path}/model_bnb4.onnx"),
+                Some(Dtype::F32) => format!("{base_path}/model.onnx"),
+                Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
+                None => path.to_string(),
+            };
+            let weights = api.get(model_path.as_str());
+            let _ = api.get(format!("{path}_data").as_str());
 
-            if model == ONNXModel::JINAV3 {
-                let weights = api.get(&("onnx/model_fp16.onnx"))?;
-                (config, tokenizer, weights, tokenizer_config)
-            } else {
-                (config, tokenizer, weights, tokenizer_config)
+            (config, tokenizer, weights, tokenizer_config)
+
+        };
+
+        let weights_filename = match weights_filename {
+            Ok(weights) => weights,
+            Err(e) => {
+                return Err(anyhow::anyhow!("ONNX weights not found for the model. Please check if the weights for the specified dtype exists. {}", e));
             }
         };
+
         let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
         let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
 
@@ -113,7 +158,7 @@ impl OrtJinaEmbedder {
         }
 
         let threads = std::thread::available_parallelism().unwrap().get();
-        let session = Session::builder()?
+        let model = Session::builder()?
             .with_execution_providers([
                 CUDAExecutionProvider::default().build(),
                 CoreMLExecutionProvider::default().build(),
@@ -122,9 +167,15 @@ impl OrtJinaEmbedder {
             .with_intra_threads(threads)?
             .commit_from_file(weights_filename)?;
 
+        let version = match (model_name, model_id) {
+            (Some(ONNXModel::JINAV3), _) => "v3",
+            (_, Some(id)) if id.contains("jina-embeddings-v3") => "v3",
+            _ => "v2",
+        };
+
         Ok(OrtJinaEmbedder {
-            session,
-            model,
+            session: model,
+            version: version.to_string(),
             tokenizer,
             pooling,
         })
@@ -168,7 +219,7 @@ impl JinaEmbed for OrtJinaEmbedder {
                 let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
                 let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
 
-                let embeddings = if self.model == ONNXModel::JINAV3 {
+                let embeddings = if self.version == "v3" {
                     let outputs = self.session.run(ort::inputs! {
                         "input_ids" => token_ids,
                         "attention_mask" => attention_mask,

@@ -477,7 +477,7 @@ mod tests {
         download_image().await?;
         let model = MODEL.lock().unwrap();
         let embeddings = model
-            .embed_image_batch(&vec![PathBuf::from(IMAGE_PATH), PathBuf::from(IMAGE_PATH)])
+            .embed_image_batch(&[PathBuf::from(IMAGE_PATH), PathBuf::from(IMAGE_PATH)])
             .unwrap();
         assert_eq!(embeddings.len(), 2, "There should be two embeddings");
         Ok(())
