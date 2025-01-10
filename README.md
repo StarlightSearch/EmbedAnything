@@ -21,7 +21,7 @@
 <div align="center">
 
   <p align="center">
-    <b> Inference, ingestion, and indexing – supercharged by Rust 🦀</b>
+    <b> Inference, Ingestion, and Indexing – supercharged by Rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Python docs »</strong></a>
     <br />
@@ -73,9 +73,11 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
 - **ONNX Models**: Works with ONNX models for BERT and ColPali
-- **ColPali** : Support for ColPali in GPU version
+- **ColPali** : Support for ColPali in GPU version both on ONNX and Candle
 - **Splade** : Support for sparse embeddings for hybrid
 - **ReRankers** : Support for ReRanking Models for better RAG.
+- **ColBERT** : Support for ColBert on ONNX
+- **ModernBERT**: Increase your token length to 8K
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
@@ -121,7 +123,7 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | Bert | All Bert based models |
 | CLIP | openai/clip-* | 
 | Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
-| ColPali | vidore/colpali-v1.2-merged |
+| ColPali | starlight-ai/colpali-v1.2-merged-onnx|
 | Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
