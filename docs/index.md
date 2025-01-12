@@ -1,34 +1,27 @@
 # 🏠 Home
 
-
-<p align ="center">
-<img width=400 src = "https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
+<p align="center">
+<img width=400 src="https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
 </p>
 
-
-
-
 <div align="center">
-
   <p align="center">
-    <b>Supercharge your embedding pipeline with minimalist and lightening fast framework built in rust 🦀</b>
+    <b>Supercharge your embedding pipeline with a minimalist and lightning-fast framework built in Rust 🦀</b>
     <br />
     <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
+    <a href="https://youtu.be/HLXIuznnXcI">View Demo</a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples">Examples</a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/issues/new">Request Feature</a>
-    .
+    ·
     <a href="https://huggingface.co/spaces/akshayballal/search_in_audio">Search in Audio Space</a>
-    
   </p>
 </div>
 
-
-EmbedAnything is a minimalist yet highly performant, lightweight, lightening fast, multisource, multimodal and local embedding pipeline, built in rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database.We support dense, sparse and late-interaction embeddings.
+EmbedAnything is a minimalist yet highly performant, lightweight, lightning-fast, multi-source, multimodal and local embedding pipeline, built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database. We support dense, sparse and late-interaction embeddings.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -60,23 +53,23 @@ To sign up for future updates, sign up to our newsletter:
 <script async data-uid="c65e5ea14d" src="https://starlight-3.kit.com/c65e5ea14d/index.js"></script>
 
 
-## 💡What is Vector Streaming
+## 💡 What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once.
+Vector Streaming enables you to process and generate embeddings for files and stream them. If you have a 10 GB file, it can continuously generate embeddings chunk by chunk that you can segment semantically and store in the vector database of your choice. This eliminates the need for bulk embeddings storage in RAM at once.
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
 ## 🚀 Key Features
 
-- **Local Embedding** : Works with local embedding models like BERT and JINA
-- **ColPali** : Support for ColPali in GPU version
-- **Splade** : Support for sparse embeddings for hybrid
-- **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
-- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
-- **Rust** : All the file processing is done in rust for speed and efficiency
-- **Candle** : We have taken care of hardware acceleration as well, with Candle.
-- **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
-- **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
+- **Local Embedding**: Works with local embedding models like BERT and JINA
+- **ColPali**: Support for ColPali in GPU version
+- **Splade**: Support for sparse embeddings for hybrid search
+- **Cloud Embedding Models**: Supports OpenAI and Cohere
+- **Multimodality**: Works with text sources like PDFs, TXT, MD, images (JPG), and audio (WAV)
+- **Rust**: All file processing is done in Rust for speed and efficiency
+- **Candle**: We have taken care of hardware acceleration with Candle
+- **Python Interface**: Packaged as a Python library for seamless integration into your existing projects
+- **Vector Streaming**: Continuously create and stream embeddings if you have low resources
 
 
 
@@ -91,10 +84,6 @@ Vector Streaming enables you to process and generate embeddings for files and st
 
 ![image](https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png)
 
-
-## ⭐ Supported Models
-
-We support a range of models, that can be supported by Candle, We have given a set of tested models but if you have specific usecase do mention it in the issue.
 
 
 ## 🧑‍🚀 Getting Started
@@ -132,9 +121,10 @@ data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 | CLIP | openai/clip-* | 
 | Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
 | ColPali | vidore/colpali-v1.2-merged |
-| Splade | [Splade Models] (https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade based models |
+| Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
+| Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
+| Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 
-  
 
 ### ♠️ Splade Models
 
@@ -205,16 +195,72 @@ print(data[0].metadata)
 end_time = time.time()
 print("Time taken: ", end_time - start_time)
 
-
 ```
 
+### Colbert
+
+Several Colbert Models are supported. The tested models are:
+- `jinaai/jina-colbert-v2`
+- `answerdotai/answerai-colbert-small-v1`
+- `onnx-models/jina-colbert-v1-en-onnx`
+
+```python
+sentences = [
+"The quick brown fox jumps over the lazy dog", 
+"The cat is sleeping on the mat", "The dog is barking at the moon", 
+"I love pizza", 
+"The dog is sitting in the park"]
+
+model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
+embeddings = model.embed(sentences, batch_size=2)
+```
+
+
+### ⬆️Reranker Model
+
+We support reranker models that are available as ONNX models. Currently the models that are tested are:
+1. `jinaai/jina-reranker-v2-base-multilingual`
+2. `jinaai/jina-reranker-v1-tiny-en`
+3. `jinaai/jina-reranker-v1-turbo-en`
+4. `Xenova/bge-reranker-base`
+5. `Xenova/bge-reranker-large`
+
+```python
+from embed_anything import Reranker, Dtype, RerankerResult, DocumentRank
+
+reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.FP16)
+
+results: RerankerResult = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
+
+documents: list[DocumentRank] = results[0].documents
+```
+
+The output is a list of documents with their relevance scores and rank for each input query.
+
 ### Using ONNX Models
+
+To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
 
 ```python
 
 model = EmbeddingModel.from_pretrained_onnx(
-  WhichModel.Bert, model_id="onnx_model_link"
+  WhichModel.Bert, model_name = ONNXModel.AllMiniLML6V2Q
 )
 ```
-To see all the ONNX models supported, see [here](../guides/onnx_models)
+For some models, you can also specify the dtype to use for the model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+Using the above method is best to ensure that the model works correctly as these models are tested. But if you want to use other models, like finetuned models, you can use the `hf_model_id` and `path_in_repo` to load the model like below.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Jina, hf_model_id = "jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
+)
+```
+To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
 

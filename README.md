@@ -21,14 +21,15 @@
 <div align="center">
 
   <p align="center">
-    <b> Inference, ingestion, and indexing – supercharged by Rust 🦀</b>
+    <b> Inference, Ingestion, and Indexing – supercharged by Rust 🦀</b>
     <br />
-    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
+    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Python docs »</strong></a>
     <br />
+    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/"><strong>Rust docs »</strong></a>
     <br />
     <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
     ·
-    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing">Benches</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benches</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
     .
@@ -72,12 +73,15 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 - **Local Embedding** : Works with local embedding models like BERT and JINA
 - **ONNX Models**: Works with ONNX models for BERT and ColPali
-- **ColPali** : Support for ColPali in GPU version
+- **ColPali** : Support for ColPali in GPU version both on ONNX and Candle
 - **Splade** : Support for sparse embeddings for hybrid
+- **ReRankers** : Support for ReRanking Models for better RAG.
+- **ColBERT** : Support for ColBert on ONNX
+- **ModernBERT**: Increase your token length to 8K
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
-- **Candle** : We have taken care of hardware acceleration as well, with Candle.
+- **GPU support** : We have taken care of hardware acceleration on GPU as well.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
 
@@ -92,9 +96,11 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Faster execution. <br />
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
-➡️Running language models or embedding models locally and efficiently <br />
+➡️Running embedding models locally and efficiently <br />
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage of EmbedAnything.
+➡️Decrease the memory usage of EmbedAnything. <br/>
+➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
+
 
 
 # ⭐ Supported Models
@@ -111,20 +117,21 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 ```
 
 
-| Model  | Custom link |
-| ------------- | ------------- |
-| Jina  | jinaai/jina-embeddings-v2-base-en  |
-|   | jinaai/jina-embeddings-v2-small-en  |
-| Bert | sentence-transformers/all-MiniLM-L6-v2 |
-|      | sentence-transformers/all-MiniLM-L12-v2 |
-|      | sentence-transformers/paraphrase-MiniLM-L6-v2 |
-| Clip | openai/clip-vit-base-patch32 | 
-| Whisper| Most OpenAI Whisper from huggingface supported.
+| Model  | HF link |
+| ------------- | ------------- | 
+| Jina  | [Jina Models](https://huggingface.co/collections/jinaai/jina-embeddings-v2-65708e3ec4993b8fb968e744) | 
+| Bert | All Bert based models |
+| CLIP | openai/clip-* | 
+| Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
+| ColPali | starlight-ai/colpali-v1.2-merged-onnx|
+| Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
+| Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
+| Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 
 
 ## Splade Models:
 
-```
+```python
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
 )
@@ -134,7 +141,7 @@ model = EmbeddingModel.from_pretrained_hf(
 
 ### BERT
 
-```
+```python
 model = EmbeddingModel.from_pretrained_onnx(
   WhichModel.Bert, model_id="onnx_model_link"
 )
@@ -142,8 +149,36 @@ model = EmbeddingModel.from_pretrained_onnx(
 
 ### ColPali
 
-```
+```python
 model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
+```
+
+### Colbert
+
+```python
+sentences = [
+"The quick brown fox jumps over the lazy dog", 
+"The cat is sleeping on the mat", "The dog is barking at the moon", 
+"I love pizza", 
+"The dog is sitting in the park"]
+
+model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
+embeddings = model.embed(sentences, batch_size=2)
+```
+
+### ModernBERT
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+### ReRankers
+```python
+reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
+
+results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
 ```
 
 ## For Semantic Chunking
@@ -249,6 +284,33 @@ print(data[0].metadata)
 
 ```
 
+### Using ONNX Models
+
+To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Bert, model_name = ONNXModel.AllMiniLML6V2Q
+)
+```
+
+For some models, you can also specify the dtype to use for the model.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+Using the above method is best to ensure that the model works correctly as these models are tested. But if you want to use other models, like finetuned models, you can use the `hf_model_id` and `path_in_repo` to load the model like below.
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Jina, hf_model_id = "jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
+)
+```
+To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
+
 
 
 
@@ -272,6 +334,9 @@ This document provides guidelines and best practices to help you to contribute e
 ## Accomplishments
 
 One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
+
+### Adding Fine-tuning 
+One of the major goals of this year is to add finetuning these models on your data. Like a simple sentence transformer does.
 
 ### 🖼️ Modalities and Source
 

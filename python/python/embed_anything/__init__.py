@@ -129,7 +129,8 @@ import glob
 path = os.path.dirname(onnxruntime.__file__) + "/capi/"
 
 if path is None:
-    print("onnxruntime is not installed. Install it using `pip install onnxruntime`")
+    print("onnxruntime is not installed. Install it using `pip install onnxruntime-gpu`")
+
 else:
     if platform.system() == "Windows":
         # For Windows, look for DLL files

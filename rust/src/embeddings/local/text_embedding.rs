@@ -21,6 +21,10 @@ pub enum ONNXModel {
     AllMiniLML12V2,
     /// Quantized sentence-transformers/all-MiniLM-L12-v2
     AllMiniLML12V2Q,
+    /// ModernBERTBASE
+    ModernBERTBase,
+    /// ModernBERTLARGE
+    ModernBERTLarge,
     /// BAAI/bge-base-en-v1.5
     BGEBaseENV15,
     /// Quantized BAAI/bge-base-en-v1.5
@@ -71,6 +75,12 @@ pub enum ONNXModel {
     JINAV2BASEEN,
     /// jinaai/jina-embeddings-v3
     JINAV3,
+    /// prithivida/Splade_PP_en_v1
+    SPLADEPPENV1,
+    /// prithivida/Splade_PP_en_v2
+    SPLADEPPENV2,
+    /// onnx-models/jina-colbert-v1-en-onnx
+    JinaColBERTv1,
 }
 
 /// Centralized function to initialize the models map.
@@ -107,6 +117,22 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             hf_model_id: String::from("Xenova/all-MiniLM-L12-v2"),
             model_code: String::from("Xenova/all-MiniLM-L12-v2"),
             model_file: String::from("onnx/model_quantized.onnx"),
+        },
+        ModelInfo {
+            model: ONNXModel::ModernBERTBase,
+            dim: 768,
+            description: String::from("Modern BERT model"),
+            hf_model_id: String::from("nomic-ai/modernbert-embed-base"),
+            model_code: String::from("nomic-ai/modernbert-embed-base"),
+            model_file: String::from("onnx/model.onnx"),
+        },
+        ModelInfo {
+            model: ONNXModel::ModernBERTLarge,
+            dim: 1024,
+            description: String::from("Modern BERT model"),
+            hf_model_id: String::from("answerdotai/ModernBERT-large"),
+            model_code: String::from("answerdotai/ModernBERT-large"),
+            model_file: String::from("onnx/model.onnx"),
         },
         ModelInfo {
             model: ONNXModel::BGEBaseENV15,
@@ -316,6 +342,30 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             model_code: String::from("jinaai/jina-embeddings-v3"),
             model_file: String::from("onnx/model.onnx"),
         },
+        ModelInfo {
+            model: ONNXModel::SPLADEPPENV1,
+            dim: 768,
+            description: String::from("Sparse BERT model"),
+            hf_model_id: String::from("prithivida/Splade_PP_en_v1"),
+            model_code: String::from("prithivida/Splade_PP_en_v1"),
+            model_file: String::from("onnx/model.onnx"),
+        },
+        ModelInfo {
+            model: ONNXModel::SPLADEPPENV2,
+            dim: 768,
+            description: String::from("Sparse BERT model"),
+            hf_model_id: String::from("prithivida/Splade_PP_en_v2"),
+            model_code: String::from("prithivida/Splade_PP_en_v2"),
+            model_file: String::from("onnx/model.onnx"),
+        },
+        ModelInfo {
+            model: ONNXModel::JinaColBERTv1,
+            dim: 384,
+            description: String::from("Jina ColBERT v1"),
+            hf_model_id: String::from("jinaai/jina-embeddings-v2-small-en"),
+            model_code: String::from("onnx-models/jina-colbert-v1-en-onnx"),
+            model_file: String::from("model.onnx"),
+        },
     ];
 
     // TODO: Use when out in stable
@@ -365,6 +415,8 @@ impl ONNXModel {
             ONNXModel::AllMiniLML6V2Q => Some(Pooling::Mean),
             ONNXModel::AllMiniLML12V2 => Some(Pooling::Mean),
             ONNXModel::AllMiniLML12V2Q => Some(Pooling::Mean),
+            ONNXModel::ModernBERTBase => Some(Pooling::Mean),
+            ONNXModel::ModernBERTLarge => Some(Pooling::Mean),
 
             ONNXModel::BGEBaseENV15 => Some(Pooling::Cls),
             ONNXModel::BGEBaseENV15Q => Some(Pooling::Cls),
@@ -397,6 +449,9 @@ impl ONNXModel {
             ONNXModel::JINAV2SMALLEN => Some(Pooling::Mean),
             ONNXModel::JINAV2BASEEN => Some(Pooling::Mean),
             ONNXModel::JINAV3 => Some(Pooling::Mean),
+            ONNXModel::SPLADEPPENV1 => Some(Pooling::Mean),
+            ONNXModel::SPLADEPPENV2 => Some(Pooling::Mean),
+            ONNXModel::JinaColBERTv1 => None,
         }
     }
 

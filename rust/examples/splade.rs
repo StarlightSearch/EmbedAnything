@@ -1,18 +1,52 @@
+use clap::{Parser, ValueEnum};
+
 use candle_core::{Device, Tensor};
 use embed_anything::{
     config::TextEmbedConfig,
     embed_query,
-    embeddings::embed::{Embedder, TextEmbedder},
+    embeddings::{
+        embed::{Embedder, TextEmbedder},
+        local::text_embedding::ONNXModel,
+    },
     text_loader::SplittingStrategy,
 };
 use std::sync::Arc;
 
+#[derive(Parser, Debug, Clone, ValueEnum)]
+enum ModelType {
+    Ort,
+    Normal,
+}
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Choose model type: 'ort' or 'normal'
+    #[arg(short, long, default_value = "normal")]
+    model_type: ModelType,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let model = Arc::new(Embedder::Text(
-        TextEmbedder::from_pretrained_hf("sparse-bert", "prithivida/Splade_PP_en_v1", None)
+    let args = Args::parse();
+
+    let model = match args.model_type {
+        ModelType::Ort => Arc::new(
+            Embedder::from_pretrained_onnx(
+                "sparse-bert",
+                Some(ONNXModel::SPLADEPPENV2),
+                None,
+                None,
+                None,
+                None,
+            )
             .unwrap(),
-    ));
+        ),
+        ModelType::Normal => Arc::new(Embedder::Text(
+            TextEmbedder::from_pretrained_hf("sparse-bert", "prithivida/Splade_PP_en_v1", None)
+                .unwrap(),
+        )),
+    };
 
     let config = TextEmbedConfig::default()
         .with_chunk_size(256, Some(0.3))
@@ -43,8 +77,7 @@ async fn main() -> anyhow::Result<()> {
 
     let embeddings = out
         .iter()
-        .map(|embed| embed.embedding.to_dense().unwrap())
-        .flatten()
+        .flat_map(|embed| embed.embedding.to_dense().unwrap())
         .collect::<Vec<_>>();
 
     let embeddings_tensor = Tensor::from_vec(

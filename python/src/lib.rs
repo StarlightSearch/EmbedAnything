@@ -9,7 +9,9 @@ use embed_anything::{
     file_processor::audio::audio_processor,
     text_loader::FileLoadingError,
 };
+use models::colbert::ColbertModel;
 use models::colpali::ColpaliModel;
+use models::reranker::{DocumentRank, Dtype, Reranker, RerankerResult};
 use pyo3::{
     exceptions::{PyFileNotFoundError, PyValueError},
     prelude::*,
@@ -88,6 +90,7 @@ pub enum WhichModel {
     Cohere,
     Bert,
     SparseBert,
+    ColBert,
     Clip,
     Jina,
     Colpali,
@@ -100,6 +103,8 @@ pub enum ONNXModel {
     AllMiniLML6V2Q,
     AllMiniLML12V2,
     AllMiniLML12V2Q,
+    ModernBERTBase,
+    ModernBERTLarge,
     BGEBaseENV15,
     BGEBaseENV15Q,
     BGELargeENV15,
@@ -125,6 +130,8 @@ pub enum ONNXModel {
     JINAV2SMALLEN,
     JINAV2BASEEN,
     JINAV3,
+    SPLADEPPENV1,
+    SPLADEPPENV2,
 }
 impl fmt::Display for ONNXModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -139,6 +146,7 @@ impl From<&str> for WhichModel {
             "cohere" | "Cohere" => WhichModel::Cohere,
             "bert" | "Bert" => WhichModel::Bert,
             "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
+            "colbert" | "Colbert" => WhichModel::ColBert,
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
             "colpali" | "Colpali" => WhichModel::Colpali,
@@ -157,6 +165,7 @@ impl From<String> for WhichModel {
             "clip" | "Clip" => WhichModel::Clip,
             "jina" | "Jina" => WhichModel::Jina,
             "colpali" | "Colpali" => WhichModel::Colpali,
+            "colbert" | "Colbert" => WhichModel::ColBert,
             _ => panic!("Invalid model"),
         }
     }
@@ -281,21 +290,52 @@ impl EmbeddingModel {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None))]
+    #[pyo3(signature = (model, model_name=None, hf_model_id=None, revision=None, dtype=None, path_in_repo=None))]
     fn from_pretrained_onnx(
         model: &WhichModel,
-        model_id: &ONNXModel,
+        model_name: Option<&ONNXModel>,
+        hf_model_id: Option<&str>,
         revision: Option<&str>,
+        dtype: Option<&Dtype>,
+        path_in_repo: Option<&str>,
     ) -> PyResult<Self> {
+        let dtype = match dtype {
+            Some(Dtype::Q4F16) => Some(embed_anything::Dtype::Q4F16),
+            Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+            Some(Dtype::INT8) => Some(embed_anything::Dtype::INT8),
+            Some(Dtype::Q4) => Some(embed_anything::Dtype::Q4),
+            Some(Dtype::UINT8) => Some(embed_anything::Dtype::UINT8),
+            Some(Dtype::BNB4) => Some(embed_anything::Dtype::BNB4),
+            Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+            None => None,
+        };
+        let model_name = model_name.map(|model_name| embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+                    &model_name.to_string(),
+                )
+                .unwrap());
         match model {
             WhichModel::Bert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
                     embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
-                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
-                            &model_id.to_string(),
-                        )
-                        .unwrap(),
-                        revision.map(|s| s.to_string()),
+                        model_name,
+                        hf_model_id,
+                        revision,
+                        dtype,
+                        path_in_repo,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::SparseBert => {
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::bert::OrtSparseBertEmbedder::new(
+                        model_name,
+                        hf_model_id,
+                        revision,
+                        path_in_repo,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
@@ -306,11 +346,24 @@ impl EmbeddingModel {
             WhichModel::Jina => {
                 let model = Embedder::Text(TextEmbedder::Jina(Box::new(
                     embed_anything::embeddings::local::jina::OrtJinaEmbedder::new(
-                        embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
-                            &model_id.to_string(),
-                        )
-                        .unwrap(),
+                        model_name,
+                        hf_model_id,
                         revision,
+                        dtype,
+                        path_in_repo,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::ColBert => {
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::colbert::OrtColbertEmbedder::new(
+                        hf_model_id,
+                        revision,
+                        path_in_repo,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
@@ -616,11 +669,16 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
     m.add_function(wrap_pyfunction!(embed_audio_file, m)?)?;
     m.add_class::<ColpaliModel>()?;
+    m.add_class::<ColbertModel>()?;
     m.add_class::<EmbeddingModel>()?;
     m.add_class::<AudioDecoderModel>()?;
     m.add_class::<WhichModel>()?;
     m.add_class::<EmbedData>()?;
     m.add_class::<config::TextEmbedConfig>()?;
     m.add_class::<ONNXModel>()?;
+    m.add_class::<Reranker>()?;
+    m.add_class::<Dtype>()?;
+    m.add_class::<RerankerResult>()?;
+    m.add_class::<DocumentRank>()?;
     Ok(())
 }

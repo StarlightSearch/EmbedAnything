@@ -9,6 +9,8 @@ title: The path ahead of EmbedAnything
 ---
 In March, we set out to build a local file search app. We aimed to create a tool that would make file searching faster, more innovative, and more efficient. However, we quickly hit a roadblock: no high-performance backend fit our needs.
 
+<!-- more -->
+
 ![image.png](https://royal-hygienic-522.notion.site/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2Ff1bf59bf-2c3f-4b4d-a5f9-109d041ef45a%2Faa8abe48-4210-494c-af98-458b6694b09a%2Fimage.png?table=block&id=15d81b6a-6bbe-80cc-883e-fcafd65e619d&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=1420&userId=&cache=v2)
 
 ### Short of backend
@@ -48,7 +50,7 @@ And thus, vector streaming was born.
 
 It's time to release 0.3 because we underwent major code refactoring. All the major functions are refactored, making calling models more intuitive and optimized. Check out our docs and usage. We also added audio modality and different types of ingestions.
 
-We only supported dense, so we expanded the types of embedding we could support. We went for sparse and started supporting ColPali, Onnx, and Candle.
+We only supported dense, so we expanded the types of embedding we could support. We went for sparse and started supporting ColPali, ColBert, ModernBert, Reranker, Jina V3.
 
 ## What We Got Right
 
@@ -59,7 +61,7 @@ We also released benches comparing it with other inference and to our suprise it
 
 We presented Embedanything at many conferences, like Pydata Global, Elastic, voxel 51 meetups, AI builders, etc. Additionally, we forged collaborations with major brands like Weaviate and Elastic, a strategy we’re excited to continue expanding in 2025.
 
-[Weaviate Collab](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
+[Elastic Collab](https://www.youtube.com/live/OzQopxkxHyY?si=shJ2hADyPPsYWmIF)
 
 
 ## What We Initially Got Wrong
