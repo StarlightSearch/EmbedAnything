@@ -2189,8 +2189,7 @@ dependencies = [
 [[package]]
 name = "lax"
 version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f96a229d9557112e574164f8024ce703625ad9f88a90964c1780809358e53da"
+source = "git+https://github.com/mike-kfed/ndarray-linalg.git?branch=arm-cross-compile#7213ae839d533c8c25dadf90c0a70034248dfbee"
 dependencies = [
  "cauchy",
  "katexit",
