@@ -55,7 +55,6 @@ markdown_to_text = "1.0.0"
 scraper = "0.20.0"
 
 # Text Processing
-text-cleaner = "0.1.0"
 url = "2.5.0"
 chrono = "0.4.38"
 rand = "0.8.5"
