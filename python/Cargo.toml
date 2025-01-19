@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything_python"
-version = "0.5.0"
+version = "0.5.2"
 edition = "2021"
 
 [lib]
