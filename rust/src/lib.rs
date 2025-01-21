@@ -76,7 +76,7 @@ use file_processor::audio::audio_processor::{self, AudioDecoderModel};
 use itertools::Itertools;
 use rayon::prelude::*;
 use text_loader::{SplittingStrategy, TextLoader};
-use tokio::sync::mpsc; // Add this at the top of your file
+use tokio::sync::mpsc;
 
 pub enum Dtype {
     F16,
@@ -148,11 +148,11 @@ pub async fn embed_query(
 ///
 /// ```rust
 /// use embed_anything::embed_file;
-/// use embed_anything::embeddings::embed::Embedder;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
 /// use embed_anything::embeddings::local::bert::BertEmbedder;
 ///
 /// let file_name = "path/to/file.pdf";
-/// let embedder = Embedder::Text(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap());
+/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap()));
 /// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
 /// ```
 pub async fn embed_file<T: AsRef<std::path::Path>, F>(
@@ -274,13 +274,19 @@ where
 /// # Example
 ///
 /// ```
-/// embed_html(
-///     "test_files/test.html",
-///     "https://example.com/",
-///     &Embedder::Text(TextEmbedder::Jina(JinaEmbedder::default())),
-///     Some(&config),
-///     None,
-/// )
+/// use embed_anything::embed_html;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+/// 
+/// async fn get_embeddings() {
+///     let embeddings = embed_html(
+///         "test_files/test.html",
+///         Some("https://example.com/"),
+///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
+///         None,
+///         None,
+///     ).await.unwrap();
+/// }
 /// ```
 pub async fn embed_html(
     file_name: impl AsRef<std::path::Path>,
@@ -409,10 +415,13 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// use embed_anything::embed_image_directory;
 /// use std::path::PathBuf;
 /// use std::sync::Arc;
+/// use embed_anything::embeddings::embed::Embedder;
 ///
-/// let directory = PathBuf::from("/path/to/directory");
-/// let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
-/// let embeddings = embed_image_directory(directory, &embedder, None).await.unwrap();
+/// async fn embed_images() {
+///     let directory = PathBuf::from("/path/to/directory");
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let embeddings = embed_image_directory(directory, &embedder, None, None).await.unwrap();
+/// }
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
 ///
@@ -566,12 +575,16 @@ async fn process_images<E: EmbedImage>(
 /// use embed_anything::embed_directory_stream;
 /// use std::path::PathBuf;
 /// use std::sync::Arc;
+/// use embed_anything::config::TextEmbedConfig;
+/// use embed_anything::embeddings::embed::Embedder;
 ///
-/// let directory = PathBuf::from("/path/to/directory");
-/// let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
-/// let config = Some(TextEmbedConfig::default());
-/// let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
-/// let embeddings = embed_directory_stream(directory, &embedder, extensions, config, None).await.unwrap();
+/// async fn generate_embeddings() {
+///     let directory = PathBuf::from("/path/to/directory");
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let config = Some(&TextEmbedConfig::default());
+///     let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
+///     let embeddings = embed_directory_stream(directory, &embedder, extensions, config, None).await.unwrap();
+/// }
 /// ```
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
 pub async fn embed_directory_stream<F>(
