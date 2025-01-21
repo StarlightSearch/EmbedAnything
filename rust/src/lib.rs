@@ -1,3 +1,6 @@
+#![doc(html_favicon_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/icon.ico")]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/Square310x310Logo.png")]
+#![doc(issue_tracker_base_url = "https://github.com/StarlightSearch/EmbedAnything/issues/")]
 //! embed_anything is a minimalist, highly performant, lightning-fast, lightweight, multisource,
 //! multimodal, and local embedding pipeline.
 //!
@@ -277,7 +280,7 @@ where
 /// use embed_anything::embed_html;
 /// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
 /// use embed_anything::embeddings::local::jina::JinaEmbedder;
-/// 
+///
 /// async fn get_embeddings() {
 ///     let embeddings = embed_html(
 ///         "test_files/test.html",
