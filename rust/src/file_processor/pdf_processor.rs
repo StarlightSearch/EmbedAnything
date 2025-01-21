@@ -61,7 +61,6 @@ mod tests {
     use super::*;
     use std::fs::File;
     use tempdir::TempDir;
-    use text_cleaner::clean::Clean;
 
     #[test]
     fn test_extract_text() {
@@ -89,10 +88,8 @@ mod tests {
         println!("Absolute path: {}", path.canonicalize().unwrap().display());
 
         let text = extract_text_with_ocr(&pdf_file)
-            .unwrap()
-            .remove_leading_spaces()
-            .remove_trailing_spaces()
-            .remove_empty_lines();
+            .unwrap();
+
         println!("Text: {}", text);
     }
 }
