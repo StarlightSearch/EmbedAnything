@@ -47,7 +47,7 @@ pub struct TextEmbedConfig {
     /// Defaults to [SplittingStrategy::Sentence]
     pub splitting_strategy: Option<SplittingStrategy>,
     /// Allows overriding the embedder used when the splitting strategy is
-    /// [SplittingStrategy::Semantic]. Defaults to [JinaEmbedder::default()].
+    /// [SplittingStrategy::Semantic]. Defaults to JINA.
     pub semantic_encoder: Option<Arc<Embedder>>,
     /// When embedding a PDF, controls whether **o**ptical **c**haracter **r**ecognition is used on
     /// the PDF to extract text. This process involves rendering the PDF as a series of images, and

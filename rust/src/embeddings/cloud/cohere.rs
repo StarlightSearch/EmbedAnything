@@ -36,7 +36,7 @@ impl CohereEmbedder {
     ///
     /// # Arguments
     ///
-    /// * `model` - A string slice that holds the model to be used for embedding. Find available models at https://docs.cohere.com/docs/cohere-embed
+    /// * `model` - A string slice that holds the model to be used for embedding. Find available models at <https://docs.cohere.com/docs/cohere-embed>
     /// * `api_key` - An optional string slice that holds the API key for authenticating requests to the Cohere API.
     ///
     /// # Returns
