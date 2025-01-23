@@ -84,7 +84,8 @@ impl EmbedData {
 }
 
 #[pyclass(eq, eq_int)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Hash, EnumString, Debug)]
+#[strum(serialize_all = "snake_case")]
 pub enum WhichModel {
     OpenAI,
     Cohere,
@@ -136,38 +137,6 @@ pub enum ONNXModel {
 impl fmt::Display for ONNXModel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
-    }
-}
-
-impl From<&str> for WhichModel {
-    fn from(s: &str) -> Self {
-        match s {
-            "openai" | "OpenAI" => WhichModel::OpenAI,
-            "cohere" | "Cohere" => WhichModel::Cohere,
-            "bert" | "Bert" => WhichModel::Bert,
-            "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
-            "colbert" | "Colbert" => WhichModel::ColBert,
-            "clip" | "Clip" => WhichModel::Clip,
-            "jina" | "Jina" => WhichModel::Jina,
-            "colpali" | "Colpali" => WhichModel::Colpali,
-            _ => panic!("Invalid model"),
-        }
-    }
-}
-
-impl From<String> for WhichModel {
-    fn from(s: String) -> Self {
-        match s.as_str() {
-            "openai" | "OpenAI" => WhichModel::OpenAI,
-            "cohere" | "Cohere" => WhichModel::Cohere,
-            "bert" | "Bert" => WhichModel::Bert,
-            "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
-            "clip" | "Clip" => WhichModel::Clip,
-            "jina" | "Jina" => WhichModel::Jina,
-            "colpali" | "Colpali" => WhichModel::Colpali,
-            "colbert" | "Colbert" => WhichModel::ColBert,
-            _ => panic!("Invalid model"),
-        }
     }
 }
 
