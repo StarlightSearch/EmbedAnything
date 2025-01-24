@@ -40,13 +40,15 @@ pub struct JinaEmbedder {
 
 impl Default for JinaEmbedder {
     fn default() -> Self {
-        Self::new("jinaai/jina-embeddings-v2-small-en", None).unwrap()
+        Self::new("jinaai/jina-embeddings-v2-small-en", None, None).unwrap()
     }
 }
 
 impl JinaEmbedder {
-    pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, E> {
-        let api = hf_hub::api::sync::Api::new()?;
+    pub fn new(model_id: &str, revision: Option<&str>, token: Option<&str>) -> Result<Self, E> {
+        let api = hf_hub::api::sync::ApiBuilder::new()
+            .with_token(token.map(|s| s.to_string()))
+            .build()?;
         let api = match revision {
             Some(rev) => api.repo(Repo::with_revision(
                 model_id.to_string(),
@@ -144,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_embed() {
-        let embedder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None).unwrap();
+        let embedder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None, None).unwrap();
         let text_batch = vec!["Hello, world!".to_string()];
 
         let encodings = embedder.embed(&text_batch, None).unwrap();

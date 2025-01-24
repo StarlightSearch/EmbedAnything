@@ -14,7 +14,8 @@ use crate::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
-use hf_hub::{api::sync::Api, Repo};
+use hf_hub::api::sync::ApiBuilder;
+use hf_hub::Repo;
 
 use serde::Deserialize;
 use tokenizers::{AddedToken, PaddingParams, Tokenizer, TruncationParams};
@@ -55,11 +56,20 @@ pub struct BertEmbedder {
 
 impl Default for BertEmbedder {
     fn default() -> Self {
-        Self::new("sentence-transformers/all-MiniLM-L12-v2".to_string(), None).unwrap()
+        Self::new(
+            "sentence-transformers/all-MiniLM-L12-v2".to_string(),
+            None,
+            None,
+        )
+        .unwrap()
     }
 }
 impl BertEmbedder {
-    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+    pub fn new(
+        model_id: String,
+        revision: Option<String>,
+        token: Option<&str>,
+    ) -> Result<Self, E> {
         let model_info = get_model_info_by_hf_id(&model_id);
         let pooling = match model_info {
             Some(info) => info
@@ -70,7 +80,10 @@ impl BertEmbedder {
         };
 
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = Api::new().unwrap();
+            let api = ApiBuilder::new()
+                .with_token(token.map(|s| s.to_string()))
+                .build()
+                .unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
                 None => api.repo(hf_hub::Repo::new(
@@ -114,7 +127,6 @@ impl BertEmbedder {
             .with_truncation(Some(trunc))
             .unwrap();
 
-        println!("Loading weights from {:?}", weights_filename);
         let device = select_device();
 
         let vb = if weights_filename.ends_with("model.safetensors") {
@@ -178,9 +190,12 @@ pub struct SparseBertEmbedder {
 }
 
 impl SparseBertEmbedder {
-    pub fn new(model_id: String, revision: Option<String>) -> Result<Self, E> {
+    pub fn new(model_id: String, revision: Option<String>, token: Option<&str>) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = Api::new().unwrap();
+            let api = ApiBuilder::new()
+                .with_token(token.map(|s| s.to_string()))
+                .build()
+                .unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
                 None => api.repo(hf_hub::Repo::new(
@@ -224,13 +239,10 @@ impl SparseBertEmbedder {
             .with_truncation(Some(trunc))
             .unwrap();
 
-        println!("Loading weights from {:?}", weights_filename);
-
         let device = select_device();
         let vb = if weights_filename.ends_with("model.safetensors") {
             unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)? }
         } else {
-            println!("Loading weights from pytorch_model.bin");
             VarBuilder::from_pth(&weights_filename, DTYPE, &device)?
         };
         let model = BertForMaskedLM::load(vb, &config)?;

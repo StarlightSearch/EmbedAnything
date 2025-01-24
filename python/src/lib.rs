@@ -148,11 +148,12 @@ pub struct EmbeddingModel {
 #[pymethods]
 impl EmbeddingModel {
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None))]
+    #[pyo3(signature = (model, model_id, revision=None, token=None))]
     fn from_pretrained_hf(
         model: &WhichModel,
         model_id: Option<&str>,
         revision: Option<&str>,
+        token: Option<&str>,
     ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
         match model {
@@ -162,6 +163,7 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::bert::BertEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
+                        token,
                     )
                     .unwrap(),
                 )));
@@ -175,6 +177,7 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::bert::SparseBertEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
+                        token,
                     )
                     .unwrap(),
                 )));
@@ -188,6 +191,7 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::clip::ClipEmbedder::new(
                         model_id.to_string(),
                         revision,
+                        token,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 ));
@@ -198,8 +202,12 @@ impl EmbeddingModel {
             WhichModel::Jina => {
                 let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
                 let model = Embedder::Text(TextEmbedder::Jina(Box::new(
-                    embed_anything::embeddings::local::jina::JinaEmbedder::new(model_id, revision)
-                        .unwrap(),
+                    embed_anything::embeddings::local::jina::JinaEmbedder::new(
+                        model_id,
+                        revision,
+                        token,
+                    )
+                    .unwrap(),
                 )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),

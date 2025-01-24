@@ -29,14 +29,17 @@ impl Default for ClipEmbedder {
         Self::new(
             "openai/clip-vit-base-patch32".to_string(),
             Some("refs/pr/15"),
+            None,
         )
         .unwrap()
     }
 }
 
 impl ClipEmbedder {
-    pub fn new(model_id: String, revision: Option<&str>) -> Result<Self, E> {
-        let api = hf_hub::api::sync::Api::new()?;
+    pub fn new(model_id: String, revision: Option<&str>, token: Option<&str>) -> Result<Self, E> {
+        let api = hf_hub::api::sync::ApiBuilder::new()
+            .with_token(token.map(|s| s.to_string()))
+            .build()?;
 
         let api = match revision {
             Some(rev) => api.repo(hf_hub::Repo::with_revision(

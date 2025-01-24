@@ -3,16 +3,8 @@ use crate::Dtype;
 
 use super::cloud::cohere::CohereEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
-use super::local::bert::{
-    BertEmbed, BertEmbedder, SparseBertEmbedder,
-};
+use super::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder};
 
-#[cfg(feature = "ort")]
-use {
-    super::local::ort_bert::{OrtBertEmbedder, OrtSparseBertEmbedder},
-    super::local::colbert::OrtColbertEmbedder,
-    super::local::ort_jina::OrtJinaEmbedder,
-};
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::{JinaEmbed, JinaEmbedder};
@@ -21,6 +13,12 @@ use anyhow::anyhow;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
+#[cfg(feature = "ort")]
+use {
+    super::local::colbert::OrtColbertEmbedder,
+    super::local::ort_bert::{OrtBertEmbedder, OrtSparseBertEmbedder},
+    super::local::ort_jina::OrtJinaEmbedder,
+};
 
 #[derive(Deserialize, Debug, Clone)]
 pub enum EmbeddingResult {
@@ -122,16 +120,18 @@ impl TextEmbedder {
         model: &str,
         model_id: &str,
         revision: Option<&str>,
+        token: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "jina" | "Jina" => Ok(Self::Jina(Box::new(JinaEmbedder::new(model_id, revision)?))),
+            "jina" | "Jina" => Ok(Self::Jina(Box::new(JinaEmbedder::new(model_id, revision, token)?))),
 
             "Bert" | "bert" => Ok(Self::Bert(Box::new(BertEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
+                token,
             )?))),
             "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
-                SparseBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()))?,
+                SparseBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token)?,
             ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
@@ -267,17 +267,142 @@ impl VisionEmbedder {
         model: &str,
         model_id: &str,
         revision: Option<&str>,
+        token: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         match model {
             "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(
                 model_id.to_string(),
                 revision,
+                token,
             )?)),
             "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
                 model_id, revision,
             )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
+    }
+}
+
+/// This is a builder for the Embedder. You can use it to build an Embedder from either HF or ONNX models.
+/// You need to provide atleast the `model_id` or the `onnx_model_id`.
+/// ## Example
+/// ```rust
+/// let embedder = EmbedderBuilder::new()
+///     .model_architecture("bert")
+///     .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
+///     .revision(None)
+///     .from_pretrained_hf()
+///     .unwrap();
+/// ```
+#[derive(Default)]
+pub struct EmbedderBuilder {
+    // The model architecture that you want to use. For cloud models, it is the provider name.
+    model_architecture: String,
+    // Either HF Model ID or the Cloud Model that youu want to use
+    model_id: Option<String>,
+    revision: Option<String>,
+    token: Option<String>,
+    path_in_repo: Option<String>,
+    // The ONNX Model ID that you want to use
+    onnx_model_id: Option<ONNXModel>,
+    dtype: Option<Dtype>,
+}
+
+impl EmbedderBuilder {
+    pub fn new() -> Self {
+        Self {
+            model_architecture: String::new(),
+            model_id: None,
+            revision: None,
+            token: None,
+            path_in_repo: None,
+            onnx_model_id: None,
+            dtype: None,
+        }
+    }
+
+    // The model architecture that you want to use. For cloud models, it is the provider name.
+    pub fn model_architecture(mut self, model_architecture: &str) -> Self {
+        self.model_architecture = model_architecture.to_string();
+        self
+    }
+
+    // The model ID that you want to use. For HF models, it is the model name on Hugging Face Hub.
+    pub fn model_id(mut self, model_id: Option<&str>) -> Self {
+        self.model_id = model_id.map(|s| s.to_string());
+        self
+    }
+
+    pub fn revision(mut self, revision: Option<&str>) -> Self {
+        self.revision = revision.map(|s| s.to_string());
+        self
+    }
+
+    pub fn token(mut self, token: Option<&str>) -> Self {
+        self.token = token.map(|s| s.to_string());
+        self
+    }
+
+    pub fn path_in_repo(mut self, path_in_repo: Option<&str>) -> Self {
+        self.path_in_repo = path_in_repo.map(|s| s.to_string());
+        self
+    }
+
+    pub fn onnx_model_id(mut self, onnx_model_id: Option<ONNXModel>) -> Self {
+        self.onnx_model_id = onnx_model_id;
+        self
+    }
+
+    pub fn dtype(mut self, dtype: Option<Dtype>) -> Self {
+        self.dtype = dtype;
+        self
+    }
+
+    pub fn from_pretrained_hf(self) -> Result<Embedder, anyhow::Error> {
+        match self.model_id {
+            Some(model_id) => Embedder::from_pretrained_hf(
+                &self.model_architecture,
+                &model_id,
+                self.revision.as_deref(),
+                self.token.as_deref(),
+            ),
+            None => Err(anyhow::anyhow!("Model ID is required")),
+        }
+    }
+
+    pub fn from_pretrained_onnx(self) -> Result<Embedder, anyhow::Error> {
+        match (self.onnx_model_id, self.model_id) {
+            (None, None) => Err(anyhow::anyhow!(
+                "Either model_id or onnx_model_id is required"
+            )),
+            (Some(_), Some(_)) => Err(anyhow::anyhow!(
+                "Only one of model_id or onnx_model_id can be provided"
+            )),
+            (Some(onnx_model_id), None) => Embedder::from_pretrained_onnx(
+                &self.model_architecture,
+                Some(onnx_model_id),
+                self.revision.as_deref(),
+                None,
+                self.dtype,
+                self.path_in_repo.as_deref(),
+            ),
+            (None, Some(model_id)) => Embedder::from_pretrained_onnx(
+                &self.model_architecture,
+                None,
+                self.revision.as_deref(),
+                Some(model_id.as_str()),
+                self.dtype,
+                self.path_in_repo.as_deref(),
+            ),
+        }
+    }
+
+    pub fn from_pretrained_cloud(self) -> Result<Embedder, anyhow::Error> {
+        Embedder::from_pretrained_cloud(
+            &self.model_architecture,
+            &self.model_id.unwrap(),
+            self.token,
+        )
     }
 }
 
@@ -299,22 +424,38 @@ impl Embedder {
     }
 
     pub fn from_pretrained_hf(
-        model: &str,
+        model_architecture: &str,
         model_id: &str,
         revision: Option<&str>,
+        token: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
-        match model {
+        match model_architecture {
             "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(
-                model, model_id, revision,
+                model_architecture,
+                model_id,
+                revision,
+                token,
             )?)),
             "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(
-                VisionEmbedder::from_pretrained_hf(model, model_id, revision)?,
+                VisionEmbedder::from_pretrained_hf(model_architecture, model_id, revision, token)?,
             )),
             "bert" | "Bert" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                model, model_id, revision,
+                model_architecture,
+                model_id,
+                revision,
+                token,
             )?)),
             "jina" | "Jina" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                model, model_id, revision,
+                model_architecture,
+                model_id,
+                revision,
+                token,
+            )?)),
+            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                model_architecture,
+                model_id,
+                revision,
+                token,
             )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
@@ -337,7 +478,7 @@ impl Embedder {
     }
 
     #[cfg(not(feature = "ort"))]
-    pub fn from_pretrained_ort(
+    pub fn from_pretrained_onnx(
         _model_architecture: &str,
         _model_name: Option<ONNXModel>,
         _revision: Option<&str>,
@@ -345,11 +486,13 @@ impl Embedder {
         _dtype: Option<Dtype>,
         _path_in_repo: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
-        Err(anyhow::anyhow!("The 'ort' feature must be enabled to use the 'from_pretrained_ort' function."))
+        Err(anyhow::anyhow!(
+            "The 'ort' feature must be enabled to use the 'from_pretrained_ort' function."
+        ))
     }
 
     #[cfg(feature = "ort")]
-    pub fn from_pretrained_ort(
+    pub fn from_pretrained_onnx(
         model_architecture: &str,
         model_name: Option<ONNXModel>,
         revision: Option<&str>,

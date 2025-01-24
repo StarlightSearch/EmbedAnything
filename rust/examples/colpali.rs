@@ -1,8 +1,8 @@
 use clap::{Parser, ValueEnum};
-use embed_anything::embeddings::local::{
-    colpali::{ColPaliEmbed, ColPaliEmbedder},
-    colpali_ort::OrtColPaliEmbedder,
-};
+use embed_anything::embeddings::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
+
+#[cfg(feature = "ort")]
+use embed_anything::embeddings::local::colpali_ort::OrtColPaliEmbedder;
 
 #[derive(Parser, Debug, Clone, ValueEnum)]
 enum ModelType {
@@ -22,10 +22,19 @@ fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
 
     let colpali_model = match args.model_type {
-        ModelType::Ort => Box::new(OrtColPaliEmbedder::new(
-            "akshayballal/colpali-v1.2-merged-onnx",
-            None,
-        )?) as Box<dyn ColPaliEmbed>,
+        ModelType::Ort => {
+            #[cfg(feature = "ort")]
+            {
+                Box::new(OrtColPaliEmbedder::new(
+                    "akshayballal/colpali-v1.2-merged-onnx",
+                    None,
+                )?) as Box<dyn ColPaliEmbed>
+            }
+            #[cfg(not(feature = "ort"))]
+            {
+                panic!("ORT is not supported without ORT");
+            }
+        }
         ModelType::Normal => Box::new(ColPaliEmbedder::new("vidore/colpali-v1.2-merged", None)?)
             as Box<dyn ColPaliEmbed>,
     };

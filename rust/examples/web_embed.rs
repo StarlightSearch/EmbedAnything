@@ -4,7 +4,7 @@ use candle_core::Tensor;
 use embed_anything::{
     config::TextEmbedConfig,
     embed_query, embed_webpage,
-    embeddings::embed::{EmbedData, Embedder},
+    embeddings::embed::{EmbedData,  EmbedderBuilder},
     text_loader::SplittingStrategy,
 };
 
@@ -14,7 +14,11 @@ async fn main() {
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
 
     let embedder = Arc::new(
-        Embedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+        EmbedderBuilder::new()
+            .model_architecture("bert")
+            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
+            .revision(None)
+            .from_pretrained_hf()
             .unwrap(),
     );
 

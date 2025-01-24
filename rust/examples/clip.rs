@@ -1,7 +1,7 @@
 use candle_core::{Device, Tensor};
 use embed_anything::{
     embed_image_directory, embed_query,
-    embeddings::embed::{EmbedData, Embedder},
+    embeddings::embed::{EmbedData, Embedder, EmbedderBuilder},
 };
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
@@ -9,7 +9,13 @@ use std::{path::PathBuf, sync::Arc, time::Instant};
 async fn main() {
     let now = Instant::now();
 
-    let model = Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch32", None).unwrap();
+    let model = EmbedderBuilder::new()
+        .model_architecture("clip")
+        .model_id(Some("openai/clip-vit-base-patch32"))
+        .revision(None)
+        .token(None)
+        .from_pretrained_hf()
+        .unwrap();
     let model: Arc<Embedder> = Arc::new(model);
     let out = embed_image_directory(
         PathBuf::from("test_files"),
