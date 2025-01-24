@@ -285,7 +285,7 @@ impl EmbeddingModel {
         match model {
             WhichModel::Bert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
+                    embed_anything::embeddings::local::ort_bert::OrtBertEmbedder::new(
                         model_name,
                         hf_model_id,
                         revision,
@@ -300,7 +300,7 @@ impl EmbeddingModel {
             }
             WhichModel::SparseBert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::OrtSparseBertEmbedder::new(
+                    embed_anything::embeddings::local::ort_bert::OrtSparseBertEmbedder::new(
                         model_name,
                         hf_model_id,
                         revision,
@@ -314,7 +314,7 @@ impl EmbeddingModel {
             }
             WhichModel::Jina => {
                 let model = Embedder::Text(TextEmbedder::Jina(Box::new(
-                    embed_anything::embeddings::local::jina::OrtJinaEmbedder::new(
+                    embed_anything::embeddings::local::ort_jina::OrtJinaEmbedder::new(
                         model_name,
                         hf_model_id,
                         revision,

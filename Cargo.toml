@@ -22,7 +22,6 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", versi
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
 candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
 
-ort = {version = "=2.0.0-rc.9", features = ["cuda", "load-dynamic"]}
 strum = "0.26.1"
 strum_macros = "0.26"
 
@@ -31,6 +30,10 @@ pdf-extract = { git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs
 
 [profile.dev]
 rpath = true
+features = ["all"]
+
  
 [profile.release]
 rpath = true
+features = ["all"]
+

@@ -6,6 +6,7 @@ pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
 pub mod models;
+#[cfg(feature = "ort")]
 pub mod reranker;
 pub mod text_loader;
 
@@ -15,14 +16,18 @@ use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
-    embed_audio, get_text_metadata,
+    get_text_metadata,
 };
 use file_loader::FileParser;
-use file_processor::audio::audio_processor::{self, AudioDecoderModel};
+use file_processor::audio::audio_processor::AudioDecoderModel;
 use itertools::Itertools;
 use rayon::prelude::*;
 use text_loader::{SplittingStrategy, TextLoader};
 use tokio::sync::mpsc; // Add this at the top of your file
+
+
+#[cfg(feature = "audio")]
+use embeddings::embed_audio;
 
 pub enum Dtype {
     F16,
@@ -332,12 +337,15 @@ fn emb_image<T: AsRef<std::path::Path>>(
     Ok(embedding.clone())
 }
 
+#[cfg(feature = "audio")]
 pub async fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
     embedder: &Arc<Embedder>,
     text_embed_config: Option<&TextEmbedConfig>,
 ) -> Result<Option<Vec<EmbedData>>> {
+    use file_processor::audio::audio_processor;
+
     let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
     let embeddings = embed_audio(
         embedder,
@@ -350,6 +358,18 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
     .await?;
 
     Ok(Some(embeddings))
+}
+
+#[cfg(not(feature = "audio"))]
+pub async fn emb_audio<T: AsRef<std::path::Path>>(
+    _audio_file: T,
+    _audio_decoder: &mut AudioDecoderModel,
+    _embedder: &Arc<Embedder>,
+    _text_embed_config: Option<&TextEmbedConfig>,
+) -> Result<Option<Vec<EmbedData>>> {
+    Err(anyhow::anyhow!(
+        "The 'audio' feature is not enabled. Please enable it to use the emb_audio function."
+    ))
 }
 
 /// Embeds images in a directory using the specified embedding model.

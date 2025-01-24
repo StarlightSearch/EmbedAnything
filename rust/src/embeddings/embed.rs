@@ -4,12 +4,18 @@ use crate::Dtype;
 use super::cloud::cohere::CohereEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
 use super::local::bert::{
-    BertEmbed, BertEmbedder, OrtBertEmbedder, OrtSparseBertEmbedder, SparseBertEmbedder,
+    BertEmbed, BertEmbedder, SparseBertEmbedder,
+};
+
+#[cfg(feature = "ort")]
+use {
+    super::local::ort_bert::{OrtBertEmbedder, OrtSparseBertEmbedder},
+    super::local::colbert::OrtColbertEmbedder,
+    super::local::ort_jina::OrtJinaEmbedder,
 };
 use super::local::clip::ClipEmbedder;
-use super::local::colbert::OrtColbertEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
-use super::local::jina::{JinaEmbed, JinaEmbedder, OrtJinaEmbedder};
+use super::local::jina::{JinaEmbed, JinaEmbedder};
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
 use serde::Deserialize;
@@ -131,6 +137,7 @@ impl TextEmbedder {
         }
     }
 
+    #[cfg(feature = "ort")]
     pub fn from_pretrained_ort(
         model_architecture: &str,
         model_name: Option<ONNXModel>,
@@ -329,11 +336,24 @@ impl Embedder {
         }
     }
 
-    pub fn from_pretrained_onnx(
+    #[cfg(not(feature = "ort"))]
+    pub fn from_pretrained_ort(
+        _model_architecture: &str,
+        _model_name: Option<ONNXModel>,
+        _revision: Option<&str>,
+        _model_id: Option<&str>,
+        _dtype: Option<Dtype>,
+        _path_in_repo: Option<&str>,
+    ) -> Result<Self, anyhow::Error> {
+        Err(anyhow::anyhow!("The 'ort' feature must be enabled to use the 'from_pretrained_ort' function."))
+    }
+
+    #[cfg(feature = "ort")]
+    pub fn from_pretrained_ort(
         model_architecture: &str,
         model_name: Option<ONNXModel>,
-        model_id: Option<&str>,
         revision: Option<&str>,
+        model_id: Option<&str>,
         dtype: Option<Dtype>,
         path_in_repo: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
