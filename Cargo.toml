@@ -30,10 +30,7 @@ pdf-extract = { git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs
 
 [profile.dev]
 rpath = true
-features = ["all"]
 
- 
 [profile.release]
 rpath = true
-features = ["all"]
 
