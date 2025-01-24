@@ -286,12 +286,49 @@ impl VisionEmbedder {
 /// This is a builder for the Embedder. You can use it to build an Embedder from either HF or ONNX models.
 /// You need to provide atleast the `model_id` or the `onnx_model_id`.
 /// ## Example
+/// ### Text Embedding Model
 /// ```rust
+/// use embed_anything::embeddings::embed::EmbedderBuilder;
 /// let embedder = EmbedderBuilder::new()
 ///     .model_architecture("bert")
 ///     .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
 ///     .revision(None)
 ///     .from_pretrained_hf()
+///     .unwrap();
+/// ```
+/// ### Vision Embedding Model
+/// ```rust
+/// use embed_anything::embeddings::embed::EmbedderBuilder;
+/// let embedder = EmbedderBuilder::new()
+///     .model_architecture("clip")
+///     .model_id(Some("openai/clip-vit-base-patch32"))
+///     .revision(None)
+///     .from_pretrained_hf()
+///     .unwrap();
+/// ```
+/// 
+/// ### Cloud Embedding Model
+/// ```rust
+/// use embed_anything::embeddings::embed::EmbedderBuilder;
+/// let embedder = EmbedderBuilder::new()
+///     .model_architecture("openai")
+///     .model_id(Some("text-embedding-3-small"))
+///     .api_key(Some("your_api_key"))
+///     .from_pretrained_cloud()
+///     .unwrap();
+/// ```
+/// 
+/// ### ONNX Embedding Model
+/// ```rust,ignore
+/// use embed_anything::embeddings::embed::EmbedderBuilder;
+/// use embed_anything::embeddings::local::text_embedding::ONNXModel;
+/// use embed_anything::Dtype;
+/// let embedder = EmbedderBuilder::new()
+///     .model_architecture("bert")
+///     .onnx_model_id(Some(ONNXModel::AllMiniLML12V2))
+///     .revision(None)
+///     .dtype(Some(Dtype::F32))
+///     .from_pretrained_onnx()
 ///     .unwrap();
 /// ```
 #[derive(Default)]
@@ -301,7 +338,10 @@ pub struct EmbedderBuilder {
     // Either HF Model ID or the Cloud Model that youu want to use
     model_id: Option<String>,
     revision: Option<String>,
+    // The Hugging Face token 
     token: Option<String>,
+    // The API key for the cloud model
+    api_key: Option<String>,
     path_in_repo: Option<String>,
     // The ONNX Model ID that you want to use
     onnx_model_id: Option<ONNXModel>,
@@ -315,6 +355,7 @@ impl EmbedderBuilder {
             model_id: None,
             revision: None,
             token: None,
+            api_key: None,
             path_in_repo: None,
             onnx_model_id: None,
             dtype: None,
@@ -338,8 +379,14 @@ impl EmbedderBuilder {
         self
     }
 
+    /// Provide the Hugging Face token. Useful to access gated models.
     pub fn token(mut self, token: Option<&str>) -> Self {
         self.token = token.map(|s| s.to_string());
+        self
+    }
+
+    pub fn api_key(mut self, api_key: Option<&str>) -> Self {
+        self.api_key = api_key.map(|s| s.to_string());
         self
     }
 
@@ -401,7 +448,7 @@ impl EmbedderBuilder {
         Embedder::from_pretrained_cloud(
             &self.model_architecture,
             &self.model_id.unwrap(),
-            self.token,
+            self.api_key,
         )
     }
 }

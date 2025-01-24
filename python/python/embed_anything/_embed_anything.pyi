@@ -475,7 +475,7 @@ class EmbeddingModel:
     """
 
     def from_pretrained_hf(
-        model: WhichModel, model_id: str, revision: str | None = None
+        model: WhichModel, model_id: str, revision: str | None = None, token: str | None = None
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
@@ -483,7 +483,7 @@ class EmbeddingModel:
         Attributes:
             model_id: The ID of the model.
             revision: The revision of the model.
-
+            token: The Hugging Face token.
         Returns:
             An EmbeddingModel object.
 
