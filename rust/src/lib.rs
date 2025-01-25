@@ -7,6 +7,7 @@ pub mod file_loader;
 pub mod file_processor;
 pub mod models;
 pub mod reranker;
+pub mod tesseract;
 pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
@@ -118,29 +119,15 @@ pub async fn embed_file<T: AsRef<std::path::Path>, F>(
 where
     F: Fn(Vec<EmbedData>), // Add Send trait bound here
 {
-    let binding = TextEmbedConfig::default();
-    let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(256);
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
-    let batch_size = config.batch_size;
-    let splitting_strategy = config
-        .splitting_strategy
-        .unwrap_or(SplittingStrategy::Sentence);
-    let semantic_encoder = config.semantic_encoder.clone();
-    let use_ocr = config.use_ocr.unwrap_or(false);
+  
 
     match embedder {
         Embedder::Text(embedder) => {
             emb_text(
                 file_name,
                 embedder,
-                Some(chunk_size),
-                Some(overlap_ratio),
-                batch_size,
-                Some(splitting_strategy),
-                semantic_encoder,
+                config,
                 adapter,
-                use_ocr,
             )
             .await
         }
@@ -280,23 +267,30 @@ pub async fn embed_html(
 async fn emb_text<T: AsRef<std::path::Path>, F>(
     file: T,
     embedding_model: &TextEmbedder,
-    chunk_size: Option<usize>,
-    overlap_ratio: Option<f32>,
-    batch_size: Option<usize>,
-    splitting_strategy: Option<SplittingStrategy>,
-    semantic_encoder: Option<Arc<Embedder>>,
+    config: Option<&TextEmbedConfig>,
     adapter: Option<F>,
-    use_ocr: bool,
 ) -> Result<Option<Vec<EmbedData>>>
 where
     F: Fn(Vec<EmbedData>),
 {
-    let text = TextLoader::extract_text(&file, use_ocr)?;
-    let textloader = TextLoader::new(chunk_size.unwrap_or(256), overlap_ratio.unwrap_or(0.0));
+
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
+    let chunk_size = config.chunk_size.unwrap_or(256);
+    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
+    let batch_size = config.batch_size;
+    let splitting_strategy = config
+        .splitting_strategy
+        .unwrap_or(SplittingStrategy::Sentence);
+    let semantic_encoder = config.semantic_encoder.clone();
+    let use_ocr = config.use_ocr.unwrap_or(false);
+    let tesseract_path = config.tesseract_path.clone();
+    let text = TextLoader::extract_text(&file, use_ocr, tesseract_path.as_deref())?;
+    let textloader = TextLoader::new(chunk_size, overlap_ratio);
     let chunks = textloader
         .split_into_chunks(
             &text,
-            splitting_strategy.unwrap_or(SplittingStrategy::Sentence),
+            splitting_strategy,
             semantic_encoder,
         )
         .unwrap_or_default();
@@ -556,6 +550,7 @@ where
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
     let use_ocr = config.use_ocr.unwrap_or(false);
+    let tesseract_path = config.tesseract_path.as_deref();
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
@@ -642,8 +637,8 @@ where
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
 
     file_parser.files.iter().for_each(|file| {
-        let text = match TextLoader::extract_text(file, use_ocr) {
-            Ok(text) => text,   
+        let text = match TextLoader::extract_text(file, use_ocr, tesseract_path) {
+            Ok(text) => text,
             Err(_) => {
                 return;
             }

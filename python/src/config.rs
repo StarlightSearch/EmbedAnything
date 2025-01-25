@@ -14,7 +14,7 @@ pub struct TextEmbedConfig {
 #[pymethods]
 impl TextEmbedConfig {
     #[new]
-    #[pyo3(signature = (chunk_size=None, batch_size=None, buffer_size=None, overlap_ratio=None, splitting_strategy=None, semantic_encoder=None, use_ocr=None))]
+    #[pyo3(signature = (chunk_size=None, batch_size=None, buffer_size=None, overlap_ratio=None, splitting_strategy=None, semantic_encoder=None, use_ocr=None, tesseract_path=None))]
     pub fn new(
         chunk_size: Option<usize>,
         batch_size: Option<usize>,
@@ -23,6 +23,7 @@ impl TextEmbedConfig {
         splitting_strategy: Option<&str>,
         semantic_encoder: Option<&EmbeddingModel>,
         use_ocr: Option<bool>,
+        tesseract_path: Option<&str>,
     ) -> Self {
         let strategy = match splitting_strategy {
             Some(strategy) => match strategy {
@@ -33,16 +34,17 @@ impl TextEmbedConfig {
             None => None,
         };
         let semantic_encoder = semantic_encoder.map(|model| Arc::clone(&model.inner));
+        if matches!(strategy, Some(SplittingStrategy::Semantic)) && semantic_encoder.is_none() {
+            panic!("Semantic encoder is required when using Semantic splitting strategy");
+        }
         Self {
-            inner: embed_anything::config::TextEmbedConfig::new(
-                chunk_size,
-                batch_size,
-                buffer_size,
-                overlap_ratio,
-                strategy,
-                semantic_encoder,
-                use_ocr,
-            ),
+            inner: embed_anything::config::TextEmbedConfig::default()
+                .with_chunk_size(chunk_size.unwrap_or(256), overlap_ratio)
+                .with_batch_size(batch_size.unwrap_or(32))
+                .with_buffer_size(buffer_size.unwrap_or(100))
+                .with_splitting_strategy(strategy.unwrap_or(SplittingStrategy::Sentence))
+                .with_semantic_encoder(semantic_encoder)
+                .with_ocr(use_ocr.unwrap_or(false), tesseract_path)
         }
     }
 

@@ -427,9 +427,10 @@ class TextEmbedConfig:
     Attributes:
         chunk_size: The chunk size for the Text Embedding model.
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
-        splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence".
+        splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence". If semantic splitting is used, semantic_encoder is required.
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
         use_ocr: A flag indicating whether to use OCR for the Text Embedding model. Default is False.
+        tesseract_path: The path to the Tesseract OCR executable. Default is None and uses the system path.
     """
 
     def __init__(
@@ -441,6 +442,7 @@ class TextEmbedConfig:
         splitting_strategy: str | None = "sentence",
         semantic_encoder: EmbeddingModel | None = None,
         use_ocr: bool | None = False,
+        tesseract_path: str | None = None,
     ):
         self.chunk_size = chunk_size
         self.overlap_ratio = overlap_ratio
@@ -449,6 +451,7 @@ class TextEmbedConfig:
         self.splitting_strategy = splitting_strategy
         self.semantic_encoder = semantic_encoder
         self.use_ocr = use_ocr
+        self.tesseract_path = tesseract_path
     chunk_size: int | None
     overlap_ratio: float | None
     batch_size: int | None
@@ -456,6 +459,7 @@ class TextEmbedConfig:
     splitting_strategy: str | None
     semantic_encoder: EmbeddingModel | None
     use_ocr: bool | None
+    tesseract_path: str | None
 
 class ImageEmbedConfig:
     """

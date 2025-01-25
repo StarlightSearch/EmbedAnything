@@ -11,6 +11,7 @@ pub struct TextEmbedConfig {
     pub splitting_strategy: Option<SplittingStrategy>,
     pub semantic_encoder: Option<Arc<Embedder>>,
     pub use_ocr: Option<bool>,
+    pub tesseract_path: Option<String>,
 }
 
 impl Default for TextEmbedConfig {
@@ -23,6 +24,7 @@ impl Default for TextEmbedConfig {
             splitting_strategy: None,
             semantic_encoder: None,
             use_ocr: None,
+            tesseract_path: None,
         }
     }
 }
@@ -36,12 +38,13 @@ impl TextEmbedConfig {
         splitting_strategy: Option<SplittingStrategy>,
         semantic_encoder: Option<Arc<Embedder>>,
         use_ocr: Option<bool>,
+        tesseract_path: Option<String>,
     ) -> Self {
         let config = Self::default()
             .with_chunk_size(chunk_size.unwrap_or(256), overlap_ratio)
             .with_batch_size(batch_size.unwrap_or(32))
             .with_buffer_size(buffer_size.unwrap_or(100))
-            .with_ocr(use_ocr.unwrap_or(false));
+            .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref());
 
         match splitting_strategy {
             Some(SplittingStrategy::Semantic) => {
@@ -49,7 +52,7 @@ impl TextEmbedConfig {
                     panic!("Semantic encoder is required when using Semantic splitting strategy");
                 }
                 config
-                    .with_semantic_encoder(semantic_encoder.unwrap())
+                    .with_semantic_encoder(Some(semantic_encoder.unwrap()))
                     .with_splitting_strategy(SplittingStrategy::Semantic)
             }
             Some(strategy) => config.with_splitting_strategy(strategy),
@@ -78,13 +81,25 @@ impl TextEmbedConfig {
         self
     }
 
-    pub fn with_semantic_encoder(mut self, encoder: Arc<Embedder>) -> Self {
-        self.semantic_encoder = Some(encoder);
+    pub fn with_semantic_encoder(mut self, encoder: Option<Arc<Embedder>>) -> Self {
+        self.semantic_encoder = encoder;
         self
     }
 
-    pub fn with_ocr(mut self, use_ocr: bool) -> Self {
+    /// Use this to do OCR on the documents to extract text. 
+    /// Set the path to None if you want to use the default path with tesseract installed on your system. 
+    /// You can check if tesseract is installed by running tesseract in your command line. 
+    /// If you want to use a custom path, you can set the path to the path of the tesseract executable.
+    pub fn with_ocr(mut self, use_ocr: bool, tesseract_path: Option<&str>) -> Self {
         self.use_ocr = Some(use_ocr);
+        self.tesseract_path = tesseract_path.map(|p| p.to_string());
+        self
+    }
+
+    pub fn build(self) -> TextEmbedConfig {
+        if self.semantic_encoder.is_none() && self.splitting_strategy.is_some() {
+            panic!("Semantic encoder is required when using Semantic splitting strategy");
+        }
         self
     }
 }

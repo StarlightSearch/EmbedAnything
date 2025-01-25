@@ -53,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
         .with_batch_size(32)
         .with_buffer_size(100)
         .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Arc::clone(&model));
+        .with_semantic_encoder(Some(Arc::clone(&model)));
 
     let sentences = [
         "The cat sits outside",

@@ -127,6 +127,7 @@ impl TextLoader {
     pub fn extract_text<T: AsRef<std::path::Path>>(
         file: &T,
         use_ocr: bool,
+        tesseract_path: Option<&str>,
     ) -> Result<String, Error> {
         if !file.as_ref().exists() {
             return Err(FileLoadingError::FileNotFound(
@@ -136,7 +137,7 @@ impl TextLoader {
         }
         let file_extension = file.as_ref().extension().unwrap();
         match file_extension.to_str().unwrap() {
-            "pdf" => PdfProcessor::extract_text(file, use_ocr),
+            "pdf" => PdfProcessor::extract_text(file, use_ocr, tesseract_path),
             "md" => MarkdownProcessor::extract_text(file),
             "txt" => TxtProcessor::extract_text(file),
             "docx" => DocxProcessor::extract_text(file),
@@ -183,7 +184,7 @@ mod tests {
     #[test]
     fn test_text_loader() {
         let file_path = PathBuf::from("../test_files/test.pdf");
-        let text = TextLoader::extract_text(&file_path, false)
+        let text = TextLoader::extract_text(&file_path, false, None)
             .unwrap()
             .replace("\n\n", "{{DOUBLE_NEWLINE}}")
             .replace("\n", " ")

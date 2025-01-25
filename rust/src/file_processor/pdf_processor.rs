@@ -1,7 +1,7 @@
+use crate::tesseract::input::{Args, Image};
 use anyhow::Error;
 use image::DynamicImage;
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
-use rusty_tesseract::{self, Args, Image};
 
 /// A struct for processing PDF files.
 pub struct PdfProcessor;
@@ -20,9 +20,10 @@ impl PdfProcessor {
     pub fn extract_text<T: AsRef<std::path::Path>>(
         file_path: T,
         use_ocr: bool,
+        tesseract_path: Option<&str>,
     ) -> Result<String, Error> {
         if use_ocr {
-            extract_text_with_ocr(&file_path)
+            extract_text_with_ocr(&file_path, tesseract_path)
         } else {
             pdf_extract::extract_text(file_path).map_err(|e| anyhow::anyhow!(e))
         }
@@ -43,15 +44,23 @@ fn get_images_from_pdf<T: AsRef<std::path::Path>>(
 
 fn extract_text_from_image(image: &DynamicImage, args: &Args) -> Result<String, Error> {
     let image = Image::from_dynamic_image(image).unwrap();
-    let text = rusty_tesseract::image_to_string(&image, args).unwrap();
+    let text = crate::tesseract::command::image_to_string(&image, args).unwrap();
     Ok(text)
 }
 
-fn extract_text_with_ocr<T: AsRef<std::path::Path>>(file_path: &T) -> Result<String, Error> {
+fn extract_text_with_ocr<T: AsRef<std::path::Path>>(
+    file_path: &T,
+    tesseract_path: Option<&str>,
+) -> Result<String, Error> {
     let images = get_images_from_pdf(file_path)?;
     let texts: Result<Vec<String>, Error> = images
         .iter()
-        .map(|image| extract_text_from_image(image, &Args::default()))
+        .map(|image| {
+            extract_text_from_image(
+                image,
+                &Args::default().with_path(tesseract_path),
+            )
+        })
         .collect();
     Ok(texts.unwrap().join("\n"))
 }
@@ -70,7 +79,7 @@ mod tests {
         File::create(pdf_file).unwrap();
 
         let pdf_file = "test_files/test.pdf";
-        let text = PdfProcessor::extract_text(pdf_file, false).unwrap();
+        let text = PdfProcessor::extract_text(pdf_file, false, None).unwrap();
         assert_eq!(text.len(), 4271);
     }
 
@@ -87,8 +96,7 @@ mod tests {
         // Print the absolute path
         println!("Absolute path: {}", path.canonicalize().unwrap().display());
 
-        let text = extract_text_with_ocr(&pdf_file)
-            .unwrap();
+        let text = extract_text_with_ocr(&pdf_file, None).unwrap();
 
         println!("Text: {}", text);
     }

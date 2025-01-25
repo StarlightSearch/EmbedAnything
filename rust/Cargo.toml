@@ -76,7 +76,6 @@ pdf2image = "0.1.2"
 strum = {workspace = true}
 strum_macros = {workspace = true}
 base64 = "0.22.1"
-rusty-tesseract = "1.1.0"
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
 accelerate-src = { version = "0.3.2", optional = true }
@@ -84,6 +83,8 @@ indicatif = "0.17.8"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
+thiserror = "1.0.40"
+tempfile = "3.4.0"
 
 
 [dev-dependencies]

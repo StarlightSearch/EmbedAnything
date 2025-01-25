@@ -28,7 +28,7 @@ async fn main() {
         .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)
         .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Arc::clone(&semantic_encoder));
+        .with_semantic_encoder(Some(Arc::clone(&semantic_encoder)));
 
     let embeddings = emb_audio(
         audio_path,
