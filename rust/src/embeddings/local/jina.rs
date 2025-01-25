@@ -7,22 +7,12 @@ extern crate accelerate_src;
 use crate::embeddings::select_device;
 use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
 use crate::models::jina_bert::{BertModel, Config};
-use crate::Dtype;
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
-use hf_hub::api::sync::Api;
 use hf_hub::Repo;
-use ndarray::prelude::*;
-use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider};
-use ort::session::builder::GraphOptimizationLevel;
-use ort::session::Session;
-use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use super::bert::TokenizerConfig;
-use super::pooling::{ModelOutput, Pooling};
-use super::text_embedding::{models_map, ONNXModel};
-use rayon::prelude::*;
+use tokenizers::Tokenizer;
 
 pub trait JinaEmbed {
     fn embed(
@@ -30,235 +20,6 @@ pub trait JinaEmbed {
         text_batch: &[String],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
-}
-
-#[derive(Debug)]
-pub struct OrtJinaEmbedder {
-    pub session: Session,
-    pub version: String,
-    pub tokenizer: Tokenizer,
-    pub pooling: Pooling,
-}
-
-impl OrtJinaEmbedder {
-    pub fn new(
-        model_name: Option<ONNXModel>,
-        model_id: Option<&str>,
-        revision: Option<&str>,
-        dtype: Option<Dtype>,
-        path_in_repo: Option<&str>,
-    ) -> Result<Self, E> {
-        let hf_model_id = match model_id {
-            Some(id) => id,
-            None => match model_name {
-                Some(name) => models_map().get(&name).unwrap().model_code.as_str(),
-                None => {
-                    return Err(anyhow::anyhow!(
-                        "Please provide either model_name or model_id"
-                    ))
-                }
-            },
-        };
-
-        let pooling = match model_name {
-            Some(name) => models_map()
-                .get(&name)
-                .unwrap()
-                .model
-                .get_default_pooling_method()
-                .unwrap_or(Pooling::Mean),
-            None => Pooling::Mean,
-        };
-        let path = match path_in_repo {
-            Some(path) => path,
-            None => match model_name {
-                Some(name) => models_map().get(&name).unwrap().model_file.as_str(),
-                None => "model.onnx",
-            },
-        };
-
-        let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
-            let api = Api::new().unwrap();
-            let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                    rev.to_string(),
-                )),
-                None => api.repo(hf_hub::Repo::new(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                )),
-            };
-            let config = api.get("config.json")?;
-            let tokenizer = api.get("tokenizer.json")?;
-            let tokenizer_config = api.get("tokenizer_config.json")?;
-            let base_path = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
-            let model_path = match dtype {
-                Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
-                Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
-                Some(Dtype::INT8) => format!("{base_path}/model_int8.onnx"),
-                Some(Dtype::Q4) => format!("{base_path}/model_q4.onnx"),
-                Some(Dtype::UINT8) => format!("{base_path}/model_uint8.onnx"),
-                Some(Dtype::BNB4) => format!("{base_path}/model_bnb4.onnx"),
-                Some(Dtype::F32) => format!("{base_path}/model.onnx"),
-                Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
-                None => path.to_string(),
-            };
-            let weights = api.get(model_path.as_str());
-            let _ = api.get(format!("{path}_data").as_str());
-
-            (config, tokenizer, weights, tokenizer_config)
-
-        };
-
-        let weights_filename = match weights_filename {
-            Ok(weights) => weights,
-            Err(e) => {
-                return Err(anyhow::anyhow!("ONNX weights not found for the model. Please check if the weights for the specified dtype exists. {}", e));
-            }
-        };
-
-        let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
-        let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
-
-        // Set max_length to the minimum of max_length and model_max_length if both are present
-        let max_length = match (
-            tokenizer_config.max_length,
-            tokenizer_config.model_max_length,
-        ) {
-            (Some(max_len), Some(model_max_len)) => std::cmp::min(max_len, model_max_len),
-            (Some(max_len), None) => max_len,
-            (None, Some(model_max_len)) => model_max_len,
-            (None, None) => 128,
-        };
-
-        let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
-
-        let pp = PaddingParams {
-            strategy: tokenizers::PaddingStrategy::BatchLongest,
-            ..Default::default()
-        };
-        let trunc = TruncationParams {
-            max_length,
-            ..Default::default()
-        };
-
-        tokenizer
-            .with_padding(Some(pp))
-            .with_truncation(Some(trunc))
-            .unwrap();
-
-        let cuda = CUDAExecutionProvider::default();
-
-        if !cuda.is_available()? {
-            eprintln!("CUDAExecutionProvider is not available");
-        } else {
-            println!("Session is using CUDAExecutionProvider");
-        }
-
-        let threads = std::thread::available_parallelism().unwrap().get();
-        let model = Session::builder()?
-            .with_execution_providers([
-                CUDAExecutionProvider::default().build(),
-                CoreMLExecutionProvider::default().build(),
-            ])?
-            .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(threads)?
-            .commit_from_file(weights_filename)?;
-
-        let version = match (model_name, model_id) {
-            (Some(ONNXModel::JINAV3), _) => "v3",
-            (_, Some(id)) if id.contains("jina-embeddings-v3") => "v3",
-            _ => "v2",
-        };
-
-        Ok(OrtJinaEmbedder {
-            session: model,
-            version: version.to_string(),
-            tokenizer,
-            pooling,
-        })
-    }
-
-    fn tokenize_batch(&self, text_batch: &[String]) -> Result<Array2<i64>, E> {
-        let token_ids = self
-            .tokenizer
-            .encode_batch(text_batch.to_vec(), true)
-            .map_err(E::msg)?
-            .iter()
-            .map(|tokens| {
-                tokens
-                    .get_ids()
-                    .iter()
-                    .map(|&id| id as i64)
-                    .collect::<Vec<i64>>()
-            })
-            .collect::<Vec<Vec<i64>>>();
-
-        let token_ids_array = Array2::from_shape_vec(
-            (token_ids.len(), token_ids[0].len()),
-            token_ids.into_iter().flatten().collect::<Vec<i64>>(),
-        )
-        .unwrap();
-        Ok(token_ids_array)
-    }
-}
-
-impl JinaEmbed for OrtJinaEmbedder {
-    fn embed(
-        &self,
-        text_batch: &[String],
-        batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, E> {
-        let batch_size = batch_size.unwrap_or(32);
-        let encodings = text_batch
-            .par_chunks(batch_size)
-            .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
-                let token_ids: Array2<i64> = self.tokenize_batch(mini_text_batch)?;
-                let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
-                let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
-
-                let embeddings = if self.version == "v3" {
-                    let outputs = self.session.run(ort::inputs! {
-                        "input_ids" => token_ids,
-                        "attention_mask" => attention_mask,
-                        "task_id" => Array1::<i64>::from_vec(vec![4])
-                    }?)?;
-                    outputs["text_embeds"]
-                        .try_extract_tensor::<f32>()?
-                        .to_owned()
-                        .into_dimensionality::<ndarray::Ix3>()?
-                } else {
-                    let outputs = self.session.run(ort::inputs! {
-                        "input_ids" => token_ids,
-                        "token_type_ids" => token_type_ids,
-                        "attention_mask" => attention_mask
-                    }?)?;
-                    outputs["last_hidden_state"]
-                        .try_extract_tensor::<f32>()?
-                        .to_owned()
-                        .into_dimensionality::<ndarray::Ix3>()?
-                };
-
-                let (_, _, _) = embeddings.dim();
-                let embeddings = self
-                    .pooling
-                    .pool(&ModelOutput::Array(embeddings))?
-                    .to_array()?;
-                let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
-                let embeddings = &embeddings / &norms.insert_axis(Axis(1));
-
-                Ok(embeddings.outer_iter().map(|row| row.to_vec()).collect())
-            })
-            .flatten()
-            .collect::<Vec<_>>();
-
-        Ok(encodings
-            .iter()
-            .map(|x| EmbeddingResult::DenseVector(x.to_vec()))
-            .collect())
-    }
 }
 
 ///jina-embeddings-v2-base-en is an English, monolingual embedding model supporting 8192 sequence length. It is based on a BERT architecture (JinaBERT) that supports the symmetric bidirectional variant of ALiBi to allow longer sequence length. The backbone jina-bert-v2-base-en is pretrained on the C4 dataset. The model is further trained on Jina AI's collection of more than 400 millions of sentence pairs and hard negatives. These pairs were obtained from various domains and were carefully selected through a thorough cleaning process.
@@ -279,13 +40,15 @@ pub struct JinaEmbedder {
 
 impl Default for JinaEmbedder {
     fn default() -> Self {
-        Self::new("jinaai/jina-embeddings-v2-small-en", None).unwrap()
+        Self::new("jinaai/jina-embeddings-v2-small-en", None, None).unwrap()
     }
 }
 
 impl JinaEmbedder {
-    pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, E> {
-        let api = hf_hub::api::sync::Api::new()?;
+    pub fn new(model_id: &str, revision: Option<&str>, token: Option<&str>) -> Result<Self, E> {
+        let api = hf_hub::api::sync::ApiBuilder::new()
+            .with_token(token.map(|s| s.to_string()))
+            .build()?;
         let api = match revision {
             Some(rev) => api.repo(Repo::with_revision(
                 model_id.to_string(),
@@ -383,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_embed() {
-        let embedder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None).unwrap();
+        let embedder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None, None).unwrap();
         let text_batch = vec!["Hello, world!".to_string()];
 
         let encodings = embedder.embed(&text_batch, None).unwrap();

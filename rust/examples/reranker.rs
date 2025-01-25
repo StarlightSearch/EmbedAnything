@@ -1,5 +1,8 @@
-use embed_anything::Dtype;
+
+#[cfg(feature = "ort")]
 fn main() {
+    use embed_anything::Dtype;
+
     let reranker = embed_anything::reranker::model::Reranker::new(
         "jinaai/jina-reranker-v2-base-multilingual",
         None,
@@ -23,4 +26,9 @@ fn main() {
     let reranker_results = reranker.rerank(query, sentences, 32).unwrap();
     let pretty_results = serde_json::to_string_pretty(&reranker_results).unwrap();
     println!("{}", pretty_results);
+}
+
+#[cfg(not(feature = "ort"))]
+fn main() {
+    println!("Reranker is not supported without ORT");
 }

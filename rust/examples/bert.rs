@@ -1,5 +1,5 @@
 use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embedder, TextEmbedder};
+use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
 use embed_anything::file_processor::docx_processor::DocxProcessor;
 use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::{embed_directory_stream, embed_file};
@@ -9,10 +9,14 @@ use std::{path::PathBuf, time::Instant};
 
 #[tokio::main]
 async fn main() {
-    let model = Arc::new(Embedder::Text(
-        TextEmbedder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
-            .unwrap(),
-    ));
+    let model = Arc::new(EmbedderBuilder::new()
+        .model_architecture("jina")
+        .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+        .revision(None)
+        .token(None)
+        .from_pretrained_hf()
+        .unwrap());
+    
     let config = TextEmbedConfig::default()
         .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)

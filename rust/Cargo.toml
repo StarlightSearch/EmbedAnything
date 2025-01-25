@@ -61,7 +61,7 @@ rand = "0.8.5"
 itertools = "0.13.0"
 
 # Audio Processing
-symphonia = { version = "0.5.3", features = ["all"]}
+symphonia = { version = "0.5.3", optional = true, features = ["all"] }
 byteorder = "1.5.0"
 
 futures = "0.3.30"
@@ -69,7 +69,7 @@ futures = "0.3.30"
 pdf-extract = {workspace = true}
 docx-parser = "0.1.1"
 docx-rust = "=0.1.8"
-ort = {workspace = true}
+ort = {version = "=2.0.0-rc.9", features = ["cuda", "load-dynamic"], optional = true}
 ndarray = "0.16.1"
 ndarray-linalg = {version = "0.16.0"}
 pdf2image = "0.1.2"
@@ -99,6 +99,7 @@ mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-
 accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
 cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 cudnn = ["candle-core/cudnn"]
-load-dynamic = ["ort/load-dynamic"]
 flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]
 metal = ["candle-core/metal", "candle-nn/metal"]
+audio = ["dep:symphonia"]
+ort = ["dep:ort"]

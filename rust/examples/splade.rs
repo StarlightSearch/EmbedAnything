@@ -5,7 +5,7 @@ use embed_anything::{
     config::TextEmbedConfig,
     embed_query,
     embeddings::{
-        embed::{Embedder, TextEmbedder},
+        embed::{Embedder, EmbedderBuilder},
         local::text_embedding::ONNXModel,
     },
     text_loader::SplittingStrategy,
@@ -42,10 +42,14 @@ async fn main() -> anyhow::Result<()> {
             )
             .unwrap(),
         ),
-        ModelType::Normal => Arc::new(Embedder::Text(
-            TextEmbedder::from_pretrained_hf("sparse-bert", "prithivida/Splade_PP_en_v1", None)
+        ModelType::Normal => Arc::new(
+            EmbedderBuilder::new()
+                .model_architecture("sparse-bert")
+                .model_id(Some("prithivida/Splade_PP_en_v1"))
+                .revision(None)
+                .from_pretrained_hf()
                 .unwrap(),
-        )),
+        ),
     };
 
     let config = TextEmbedConfig::default()
