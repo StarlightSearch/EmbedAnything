@@ -5,7 +5,7 @@ authors:
  - sonam
  - akshay
 slug: smolagent
-title: SmolAgentXEmbedAnything
+title: In-and-Out of domain query with EmbedAnything and SmolAgent
 ---
 When working with domain-specific queries, we often struggle with the challenge of balancing in-domain and out-of-domain requests. But not anymore! With **embedanything**, you can leverage fine-tuned, domain-focused models while **smolagent** takes the lead in smart decision-making. Whether you're handling queries from different domains or need to combine their insights seamlessly, smolagent ensures smooth collaboration, merging responses for a unified, accurate answer.
 <!-- more -->
@@ -43,6 +43,13 @@ This streamlined pipeline eliminates the usual complexity of document embedding 
 ![image.png](https://royal-hygienic-522.notion.site/image/attachment%3A41be6388-8ff8-4226-84c2-265233366357%3Aimage.png?table=block&id=18881b6a-6bbe-80dd-9918-fe24ba89ef76&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=1420&userId=&cache=v2)
 
 ## Let’s get into the code:
+
+In the accompanying diagram, we showcase two distinct folders containing different types of documents: one for general information and the other for domain-specific content—for example, medicine-related documents.
+
+For domain-specific queries, we use a PubMed fine-tuned model, while for general queries, we rely on an ONNX model through embedanything. When a query is received, smolagent intelligently decides which tool to use based on the query's nature. It then processes the relevant parts of the query, performs retrieval, and rephrases the results to deliver a final, cohesive answer.
+
+Now, let’s dive into the retrieval code and explore how this process works behind the scenes!
+
 
 ```python
 class RetrieverTool(Tool):
@@ -87,26 +94,6 @@ Let’s begin by setting up a general query retrieval tool. This process generat
 One key point to keep in mind: ensure you create separate tables for different domains in LanceDB. This structure allows for better organization and efficient retrieval. For each domain, you can also fine-tune different models tailored to that specific domain. In the next steps, we’ll explore how to effectively handle in-domain queries to achieve precise and context-aware results.
 
 
-```python
-
-self.model = EmbeddingModel.from_pretrained_onnx(WhichModel.Bert, ONNXModel.AllMiniLML6V2Q)
-
-```
-
-```python
- self.connection = lancedb.connect("tmp/general")
-```
-
-```python
-for e in self.embeddings:
-                docs.append({
-                    "vector": e.embedding,
-                    "text": e.text,
-                    "id": str(uuid4())
-                })
-            self.table = self.connection.create_table("docs", docs)
-```
-
 ## For Domain Specific models
 
  For domain-specific models, we are using Candle because it allows any fine-tuned model to run if it has a similar architecture. Three things have changed.
@@ -119,8 +106,8 @@ for e in self.embeddings:
 ``
 
 ```python
-        self.model =EmbeddingModel.from_pretrained_hf(WhichModel.Bert, model_id='NeuML/pubmedbert-base-embeddings')
-        self.connection = lancedb.connect("tmp/medical")
+self.model =EmbeddingModel.from_pretrained_hf(WhichModel.Bert, model_id='NeuML/pubmedbert-base-embeddings')
+self.connection = lancedb.connect("tmp/medical")
 ```
 
 ## Run SmolAgent
@@ -154,3 +141,7 @@ The output generated involves multiple well-defined steps:
 This seamless workflow ensures precise handling of complex, multi-domain queries while maintaining context relevance across all steps.
 
 ![alt text](image.png)
+
+Check out our 
+
+![Colab!](https://colab.research.google.com/drive/1oZFebkh_uU3oJ73-ATs0I74LXpPJFkec?usp=sharing)
