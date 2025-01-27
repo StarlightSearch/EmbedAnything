@@ -8,6 +8,8 @@ slug: smolagent
 title: SmolAgentXEmbedAnything
 ---
 When working with domain-specific queries, we often struggle with the challenge of balancing in-domain and out-of-domain requests. But not anymore! With **embedanything**, you can leverage fine-tuned, domain-focused models while **smolagent** takes the lead in smart decision-making. Whether you're handling queries from different domains or need to combine their insights seamlessly, smolagent ensures smooth collaboration, merging responses for a unified, accurate answer.
+<!-- more -->
+
 
 But first let’s discuss what is SmolAgent and then we can discuss each retrieval :
 
