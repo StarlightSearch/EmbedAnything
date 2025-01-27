@@ -1,11 +1,11 @@
 ---
 draft: false 
-date: 2024-12-31 
+date: 2025-01-25
 authors: 
  - sonam
  - akshay
-slug: colpali-vision-rag
-title: Optimize VLM Tokens with EmbedAnything x ColPali
+slug: smolagent
+title: SmolAgentXEmbedAnything
 ---
 When working with domain-specific queries, we often struggle with the challenge of balancing in-domain and out-of-domain requests. But not anymore! With **embedanything**, you can leverage fine-tuned, domain-focused models while **smolagent** takes the lead in smart decision-making. Whether you're handling queries from different domains or need to combine their insights seamlessly, smolagent ensures smooth collaboration, merging responses for a unified, accurate answer.
 
