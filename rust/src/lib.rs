@@ -1,5 +1,62 @@
-//! # Embed Anything
-//! This library provides a simple interface to embed text and images using various embedding models.
+#![doc(html_favicon_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/icon.ico")]
+#![doc(html_logo_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/Square310x310Logo.png")]
+#![doc(issue_tracker_base_url = "https://github.com/StarlightSearch/EmbedAnything/issues/")]
+//! embed_anything is a minimalist, highly performant, lightning-fast, lightweight, multisource,
+//! multimodal, and local embedding pipeline.
+//!
+//! Whether you're working with text, images, audio, PDFs, websites, or other media, embed_anything
+//! streamlines the process of generating embeddings from various sources and seamlessly streaming
+//! (memory-efficient-indexing) them to a vector database.
+//!
+//! It supports dense, sparse, [ONNX](https://github.com/onnx/onnx) and late-interaction embeddings,
+//! offering flexibility for a wide range of use cases.
+//!
+//! # Usage
+//!
+//! ## Creating an [Embedder]
+//!
+//! To get started, you'll need to create an [Embedder] for the type of content you want to embed.
+//! We offer some utility functions to streamline creating embedders from various sources, such as
+//! [Embedder::from_pretrained_hf], [Embedder::from_pretrained_onnx], and
+//! [Embedder::from_pretrained_cloud]. You can use any of these to quickly create an Embedder like so:
+//!
+//! ```rust
+//! use embed_anything::embeddings::embed::Embedder;
+//!
+//! // Create a local CLIP embedder from a Hugging Face model
+//! let clip_embedder = Embedder::from_pretrained_hf("CLIP", "jina-clip-v2", None);
+//!
+//! // Create a cloud OpenAI embedder
+//! let openai_embedder = Embedder::from_pretrained_cloud("OpenAI", "gpt-3.5-turbo", Some("my-api-key".to_string()));
+//! ```
+//!
+//! If needed, you can also create an instance of [Embedder] manually, allowing you to create your
+//! own embedder! Here's an example of manually creating embedders:
+//!
+//! ```rust
+//! use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+//! use embed_anything::embeddings::local::jina::JinaEmbedder;
+//!
+//! let jina_embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
+//! ```
+//!
+//! ## Generate embeddings
+//!
+//! # Example: Embed a text file
+//!
+//! Let's see how embed_anything can help us generate embeddings from a plain text file:
+//!
+//! ```rust
+//! use embed_anything::embed_file;
+//! use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+//! use embed_anything::embeddings::local::jina::JinaEmbedder;
+//!
+//! // Create an Embedder for text. We support a variety of models out-of-the-box, including cloud-based models!
+//! let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
+//! // Generate embeddings for 'path/to/file.txt' using the embedder we just created.
+//! let embedding = embed_file("path/to/file.txt", &embedder, None, None);
+//! ```
+
 pub mod chunkers;
 pub mod config;
 pub mod embeddings;
@@ -62,15 +119,14 @@ pub enum Dtype {
 ///
 /// ```
 /// use embed_anything::embed_query;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::jina::JinaEmbedder;
 ///
 /// let query = vec!["Hello".to_string(), "World".to_string()];
-/// let embedder = "OpenAI";
-/// let openai_config = OpenAIConfig{ model: Some("text-embedding-3-small".to_string()), api_key: None, chunk_size: Some(256) };
-/// let config = EmbedConfig{ openai: Some(openai_config), ..Default::default() };
-/// let embeddings = embed_query(query, embedder).unwrap();
+/// let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
+/// let embeddings = embed_query(query, &embedder, None).unwrap();
 /// println!("{:?}", embeddings);
 /// ```
-/// This will output the embeddings of the queries using the OpenAI embedding model.
 pub async fn embed_query(
     query: Vec<String>,
     embedder: &Embedder,
@@ -81,7 +137,7 @@ pub async fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embedder.embed(&query, batch_size).await.unwrap();
+    let encodings = embedder.embed(&query, batch_size).await?;
     let embeddings = get_text_metadata(&Rc::new(encodings), &query, &None)?;
 
     Ok(embeddings)
@@ -108,13 +164,13 @@ pub async fn embed_query(
 ///
 /// ```rust
 /// use embed_anything::embed_file;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::bert::BertEmbedder;
 ///
-/// let file_name = "test_files/test.pdf";
-/// let embedder = "Bert";
-/// let bert_config = BertConfig{ model_id: Some("sentence-transformers/all-MiniLM-L12-v2".to_string()), revision: None, chunk_size: Some(256) };
-/// let embeddings = embed_file(file_name, embedder, config).unwrap();
+/// let file_name = "path/to/file.pdf";
+/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap()));
+/// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
 /// ```
-/// This will output the embeddings of the file using the OpenAI embedding model.
 pub async fn embed_file<T: AsRef<std::path::Path>, F>(
     file_name: T,
     embedder: &Embedder,
@@ -158,22 +214,12 @@ where
 /// # Example
 ///
 /// ```
-/// let embeddings = match embedder {
-///     "OpenAI" => webpage
-///         .embed_webpage(&embedding_model::openai::OpenAIEmbedder::default())
-///         .unwrap(),
-///     "Jina" => webpage
-///         .embed_webpage(&embedding_model::jina::JinaEmbedder::default())
-///         .unwrap(),
-///     "Bert" => webpage
-///         .embed_webpage(&embedding_model::bert::BertEmbedder::default())
-///         .unwrap(),
-///     _ => {
-///         return Err(PyValueError::new_err(
-///             "Invalid embedding model. Choose between OpenAI and AllMiniLmL12V2.",
-///         ))
-///     }
-/// };
+/// use embed_anything::embed_webpage;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+///
+/// let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
+/// let embeddings = embed_webpage("https://en.wikipedia.org/wiki/Embedding".into(), &embedder, None, None).unwrap();
 /// ```
 pub async fn embed_webpage<F>(
     url: String,
@@ -230,13 +276,19 @@ where
 /// # Example
 ///
 /// ```
-/// embed_html(
-///     "test_files/test.html",
-///     "https://example.com/",
-///     &Embedder::Text(TextEmbedder::Jina(JinaEmbedder::default())),
-///     Some(&config),
-///     None,
-/// )
+/// use embed_anything::embed_html;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+///
+/// async fn get_embeddings() {
+///     let embeddings = embed_html(
+///         "test_files/test.html",
+///         Some("https://example.com/"),
+///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
+///         None,
+///         None,
+///     ).await.unwrap();
+/// }
 /// ```
 pub async fn embed_html(
     file_name: impl AsRef<std::path::Path>,
@@ -387,10 +439,13 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// use embed_anything::embed_image_directory;
 /// use std::path::PathBuf;
 /// use std::sync::Arc;
+/// use embed_anything::embeddings::embed::Embedder;
 ///
-/// let directory = PathBuf::from("/path/to/directory");
-/// let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
-/// let embeddings = embed_image_directory(directory, &embedder, None).await.unwrap();
+/// async fn embed_images() {
+///     let directory = PathBuf::from("/path/to/directory");
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let embeddings = embed_image_directory(directory, &embedder, None, None).await.unwrap();
+/// }
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
 ///
@@ -544,12 +599,16 @@ async fn process_images<E: EmbedImage>(
 /// use embed_anything::embed_directory_stream;
 /// use std::path::PathBuf;
 /// use std::sync::Arc;
+/// use embed_anything::config::TextEmbedConfig;
+/// use embed_anything::embeddings::embed::Embedder;
 ///
-/// let directory = PathBuf::from("/path/to/directory");
-/// let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
-/// let config = Some(TextEmbedConfig::default());
-/// let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
-/// let embeddings = embed_directory_stream(directory, &embedder, extensions, config, None).await.unwrap();
+/// async fn generate_embeddings() {
+///     let directory = PathBuf::from("/path/to/directory");
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let config = Some(&TextEmbedConfig::default());
+///     let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
+///     let embeddings = embed_directory_stream(directory, &embedder, extensions, config, None).await.unwrap();
+/// }
 /// ```
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
 pub async fn embed_directory_stream<F>(

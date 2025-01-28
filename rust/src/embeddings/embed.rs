@@ -205,8 +205,8 @@ impl TextEmbedder {
     ///             - "cohere"
     ///
     /// * `model_id` - A string holds the model ID for the model to be used for embedding.
-    ///     - For OpenAI, find available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
-    ///     - For Cohere, find available models at https://docs.cohere.com/docs/cohere-embed
+    ///     - For OpenAI, find available models at <https://platform.openai.com/docs/guides/embeddings/embedding-models>
+    ///     - For Cohere, find available models at <https://docs.cohere.com/docs/cohere-embed>
     /// * `api_key` - An optional string holds the API key for authenticating requests to the Cohere API. If not provided, it is taken from the environment variable
     ///         - For OpenAI, create environment variable `OPENAI_API_KEY`
     ///         - For Cohere, create environment variable `CO_API_KEY`
