@@ -1,6 +1,6 @@
 use candle_core::{Device, Tensor};
 use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embedder};
+use embed_anything::embeddings::embed::{EmbedData, Embedder, EmbedderBuilder};
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
 use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::Dtype;
@@ -12,15 +12,11 @@ use std::time::Instant;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let model = Arc::new(
-        Embedder::from_pretrained_onnx(
-            "jina",
-            Some(ONNXModel::JINAV3),
-            None,
-            None,
-            Some(Dtype::F16),
-            None,
-        )
-        .unwrap(),
+        EmbedderBuilder::new()
+        .model_architecture("bert")
+        .onnx_model_id(Some(ONNXModel::ModernBERTBase))
+        .from_pretrained_onnx()
+        .unwrap()
     );
 
     let config = TextEmbedConfig::default()

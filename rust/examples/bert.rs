@@ -10,8 +10,8 @@ use std::{path::PathBuf, time::Instant};
 #[tokio::main]
 async fn main() {
     let model = Arc::new(EmbedderBuilder::new()
-        .model_architecture("jina")
-        .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+        .model_architecture("modernbert")
+        .model_id(Some("nomic-ai/modernbert-embed-base"))
         .revision(None)
         .token(None)
         .from_pretrained_hf()
