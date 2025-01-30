@@ -107,9 +107,11 @@ impl BertEmbed for ModernBertEmbedder {
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
+            println!("mini_text_batch: {:?}", mini_text_batch.len());
             let token_ids =
                 tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
-            let attention_mask = get_attention_mask(&self.tokenizer, text_batch, &self.device)?;
+            println!("token_ids: {:?}", token_ids.shape());
+            let attention_mask = get_attention_mask(&self.tokenizer, mini_text_batch, &self.device)?;
             let embeddings: Tensor = self.model.forward(&token_ids, &attention_mask)?;
             let pooled_output = self
                 .pooling
