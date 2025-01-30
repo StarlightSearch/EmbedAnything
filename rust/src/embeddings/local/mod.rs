@@ -13,3 +13,4 @@ pub mod text_embedding;
 pub mod ort_jina;
 #[cfg(feature = "ort")]
 pub mod ort_bert;
+pub mod modernbert;

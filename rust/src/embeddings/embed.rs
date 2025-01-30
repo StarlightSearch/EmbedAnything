@@ -8,6 +8,7 @@ use super::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder};
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::{JinaEmbed, JinaEmbedder};
+use super::local::modernbert::ModernBertEmbedder;
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
 use serde::Deserialize;
@@ -99,6 +100,7 @@ pub enum TextEmbedder {
     Jina(Box<dyn JinaEmbed + Send + Sync>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
     ColBert(Box<dyn BertEmbed + Send + Sync>),
+    ModernBert(Box<dyn BertEmbed + Send + Sync>),
 }
 
 impl TextEmbedder {
@@ -113,6 +115,7 @@ impl TextEmbedder {
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size),
             TextEmbedder::ColBert(embedder) => embedder.embed(text_batch, batch_size),
+            TextEmbedder::ModernBert(embedder) => embedder.embed(text_batch, batch_size),
         }
     }
 
@@ -132,6 +135,9 @@ impl TextEmbedder {
             )?))),
             "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
                 SparseBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token)?,
+            ))),
+            "modernbert" | "ModernBert" | "MODERNBERT" => Ok(Self::ModernBert(Box::new(
+                ModernBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token)?,
             ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
@@ -499,6 +505,12 @@ impl Embedder {
                 token,
             )?)),
             "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                model_architecture,
+                model_id,
+                revision,
+                token,
+            )?)),
+            "modernbert" | "ModernBert" | "MODERNBERT" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 model_architecture,
                 model_id,
                 revision,
