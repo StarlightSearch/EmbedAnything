@@ -2,7 +2,7 @@ use embed_anything::config::TextEmbedConfig;
 use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
 use embed_anything::file_processor::docx_processor::DocxProcessor;
 use embed_anything::text_loader::SplittingStrategy;
-use embed_anything::{embed_directory_stream, embed_file};
+use embed_anything::{embed_directory_stream, embed_file, Dtype};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
@@ -14,6 +14,7 @@ async fn main() {
         .model_id(Some("nomic-ai/modernbert-embed-base"))
         .revision(None)
         .token(None)
+        .dtype(Some(Dtype::F16))
         .from_pretrained_hf()
         .unwrap());
     
@@ -21,10 +22,11 @@ async fn main() {
         .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(32)
-        .with_splitting_strategy(SplittingStrategy::Semantic)
+        .with_splitting_strategy(SplittingStrategy::Sentence)
         .with_semantic_encoder(Some(Arc::clone(&model)));
 
     DocxProcessor::extract_text(&PathBuf::from("test_files/test.docx")).unwrap();
+    let now = Instant::now();
 
     let _out = embed_file(
         "test_files/test.pdf",
@@ -35,6 +37,10 @@ async fn main() {
     .await
     .unwrap()
     .unwrap();
+
+    let elapsed_time: std::time::Duration = now.elapsed();
+
+    println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 
     let now = Instant::now();
 
@@ -66,6 +72,6 @@ async fn main() {
     println!("Embedded files: {:?}", embedded_files_set);
 
     println!("Number of chunks: {:?}", _out.len());
-    let elapsed_time = now.elapsed();
+    let elapsed_time: std::time::Duration = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 }

@@ -124,6 +124,7 @@ impl TextEmbedder {
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
+        dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
         match model {
             "jina" | "Jina" => Ok(Self::Jina(Box::new(JinaEmbedder::new(model_id, revision, token)?))),
@@ -137,7 +138,7 @@ impl TextEmbedder {
                 SparseBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token)?,
             ))),
             "modernbert" | "ModernBert" | "MODERNBERT" => Ok(Self::ModernBert(Box::new(
-                ModernBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token)?,
+                ModernBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token, dtype)?,
             ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
@@ -418,6 +419,7 @@ impl EmbedderBuilder {
                 &model_id,
                 self.revision.as_deref(),
                 self.token.as_deref(),
+                self.dtype,
             ),
             None => Err(anyhow::anyhow!("Model ID is required")),
         }
@@ -481,6 +483,7 @@ impl Embedder {
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
+        dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
         match model_architecture {
             "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(
@@ -497,24 +500,28 @@ impl Embedder {
                 model_id,
                 revision,
                 token,
+                dtype,
             )?)),
             "jina" | "Jina" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 model_architecture,
                 model_id,
                 revision,
                 token,
+                dtype,
             )?)),
             "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 model_architecture,
                 model_id,
                 revision,
                 token,
+                dtype,
             )?)),
             "modernbert" | "ModernBert" | "MODERNBERT" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 model_architecture,
                 model_id,
                 revision,
                 token,
+                dtype,
             )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
