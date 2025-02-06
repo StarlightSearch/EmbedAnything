@@ -4,7 +4,7 @@ import os
 from typing import Dict, List
 from embed_anything import EmbedData
 from embed_anything.vectordb import Adapter
-from embed_anything import BertConfig, EmbedConfig
+from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
 
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
@@ -67,19 +67,15 @@ elasticsearch_adapter = ElasticsearchAdapter(
 )
 
 # Prase PDF and insert documents into Elasticsearch.
-bert_config = BertConfig(
-    model_id="sentence-transformers/all-MiniLM-L6-v2",
-    chunk_size=100,
-    buffer_size=200,
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
-embed_config = EmbedConfig(bert=bert_config)
 
 data = embed_anything.embed_file(
-    "/path/to/my-file.pdf",
-    embedder="Bert",
-    adapter=elasticsearch_adapter,
-    config=embed_config,
+    "/home/sonamAI/projects/EmbedAnything/test_files/attention.pdf",
+    embedder=model,
+    adapter=elasticsearch_adapter
 )
 
 # Create an Index with explicit mappings.
