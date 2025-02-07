@@ -1,16 +1,15 @@
-
-use hf_hub::Repo;
-use ndarray::prelude::*;
-use hf_hub::api::sync::Api;
 use super::bert::TokenizerConfig;
 use super::jina::JinaEmbed;
 use super::pooling::{ModelOutput, Pooling};
-use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 use super::text_embedding::{models_map, ONNXModel};
 use crate::embeddings::embed::EmbeddingResult;
 use crate::Dtype;
 use anyhow::Error as E;
+use hf_hub::api::sync::Api;
+use hf_hub::Repo;
+use ndarray::prelude::*;
 use rayon::prelude::*;
+use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use {
     ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider},
@@ -94,7 +93,6 @@ impl OrtJinaEmbedder {
             let _ = api.get(format!("{path}_data").as_str());
 
             (config, tokenizer, weights, tokenizer_config)
-
         };
 
         let weights_filename = match weights_filename {

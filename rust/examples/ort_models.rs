@@ -13,10 +13,10 @@ use std::time::Instant;
 async fn main() -> Result<(), anyhow::Error> {
     let model = Arc::new(
         EmbedderBuilder::new()
-        .model_architecture("bert")
-        .onnx_model_id(Some(ONNXModel::ModernBERTBase))
-        .from_pretrained_onnx()
-        .unwrap()
+            .model_architecture("bert")
+            .onnx_model_id(Some(ONNXModel::ModernBERTBase))
+            .from_pretrained_onnx()
+            .unwrap(),
     );
 
     let config = TextEmbedConfig::default()

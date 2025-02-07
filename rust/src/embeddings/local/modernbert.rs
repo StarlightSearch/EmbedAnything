@@ -1,6 +1,10 @@
 use crate::{
-    embeddings::{normalize_l2, utils::{get_attention_mask, tokenize_batch}},
-    models::modernbert::{Config, ModernBert}, Dtype,
+    embeddings::{
+        normalize_l2,
+        utils::{get_attention_mask, tokenize_batch},
+    },
+    models::modernbert::{Config, ModernBert},
+    Dtype,
 };
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
@@ -8,12 +12,12 @@ use candle_nn::VarBuilder;
 use hf_hub::{api::sync::ApiBuilder, Repo};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use crate::{
-    embeddings::{embed::EmbeddingResult, select_device},
-    models::bert::DTYPE,
-};
+use crate::embeddings::{embed::EmbeddingResult, select_device};
 
-use super::{bert::BertEmbed, pooling::{ModelOutput, Pooling}};
+use super::{
+    bert::BertEmbed,
+    pooling::{ModelOutput, Pooling},
+};
 pub struct ModernBertEmbedder {
     pub model: ModernBert,
     pub tokenizer: Tokenizer,
@@ -27,7 +31,12 @@ impl Default for ModernBertEmbedder {
     }
 }
 impl ModernBertEmbedder {
-    pub fn new(model_id: String, revision: Option<String>, token: Option<&str>, dtype: Option<Dtype>) -> Result<Self, E> {
+    pub fn new(
+        model_id: String,
+        revision: Option<String>,
+        token: Option<&str>,
+        dtype: Option<Dtype>,
+    ) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = ApiBuilder::new()
                 .with_token(token.map(|s| s.to_string()))
@@ -83,7 +92,6 @@ impl ModernBertEmbedder {
             _ => DType::F32,
         };
         let vb = if weights_filename.ends_with("model.safetensors") {
-         
             unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], dtype, &device)? }
         } else {
             println!("Can't find model.safetensors, loading from pytorch_model.bin");
@@ -112,10 +120,15 @@ impl BertEmbed for ModernBertEmbedder {
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let token_ids =
-                tokenize_batch(&self.tokenizer, mini_text_batch, &self.device).unwrap();
-            let attention_mask = get_attention_mask(&self.tokenizer, mini_text_batch, &self.device).unwrap();
-            let embeddings: Tensor = self.model.forward(&token_ids, &attention_mask).unwrap().to_dtype(DType::F32).unwrap();
+            let token_ids = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device).unwrap();
+            let attention_mask =
+                get_attention_mask(&self.tokenizer, mini_text_batch, &self.device).unwrap();
+            let embeddings: Tensor = self
+                .model
+                .forward(&token_ids, &attention_mask)
+                .unwrap()
+                .to_dtype(DType::F32)
+                .unwrap();
             let pooled_output = self
                 .pooling
                 .pool(&ModelOutput::Tensor(embeddings.clone()))

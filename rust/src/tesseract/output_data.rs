@@ -73,7 +73,10 @@ impl FromLine for Data {
     }
 }
 
-pub fn image_to_data(image: &Image, args: &Args) -> crate::tesseract::error::TessResult<DataOutput> {
+pub fn image_to_data(
+    image: &Image,
+    args: &Args,
+) -> crate::tesseract::error::TessResult<DataOutput> {
     let mut command = crate::tesseract::command::create_tesseract_command(image, args)?;
     command.arg("tsv");
 
@@ -87,9 +90,8 @@ pub fn image_to_data(image: &Image, args: &Args) -> crate::tesseract::error::Tes
 fn string_to_data(output: &str) -> crate::tesseract::error::TessResult<Vec<Data>> {
     output
         .lines()
-        .into_iter()
         .skip(1)
-        .map(|line| Data::parse(line.into()))
+        .map(Data::parse)
         .collect::<_>()
 }
 
@@ -129,7 +131,8 @@ mod tests {
         let mut image_to_boxes_args = Args::default();
         image_to_boxes_args.psm = Some(6);
 
-        let result = crate::tesseract::output_data::image_to_data(&img, &image_to_boxes_args).unwrap();
+        let result =
+            crate::tesseract::output_data::image_to_data(&img, &image_to_boxes_args).unwrap();
         assert_eq!(
             result.data,
             string_to_data(
@@ -154,8 +157,9 @@ mod tests {
         Test");
         assert_eq!(
             result,
-            Err(crate::tesseract::error::TessError::ParseError("invalid line 'Test'".into()))
+            Err(crate::tesseract::error::TessError::ParseError(
+                "invalid line 'Test'".into()
+            ))
         )
     }
 }
-

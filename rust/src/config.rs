@@ -71,6 +71,7 @@ impl Default for TextEmbedConfig {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl TextEmbedConfig {
     pub fn new(
         chunk_size: Option<usize>,
@@ -128,9 +129,9 @@ impl TextEmbedConfig {
         self
     }
 
-    /// Use this to do OCR on the documents to extract text. 
-    /// Set the path to None if you want to use the default path with tesseract installed on your system. 
-    /// You can check if tesseract is installed by running tesseract in your command line. 
+    /// Use this to do OCR on the documents to extract text.
+    /// Set the path to None if you want to use the default path with tesseract installed on your system.
+    /// You can check if tesseract is installed by running tesseract in your command line.
     /// If you want to use a custom path, you can set the path to the path of the tesseract executable.
     pub fn with_ocr(mut self, use_ocr: bool, tesseract_path: Option<&str>) -> Self {
         self.use_ocr = Some(use_ocr);

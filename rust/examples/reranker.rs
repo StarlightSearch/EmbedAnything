@@ -1,4 +1,3 @@
-
 #[cfg(feature = "ort")]
 fn main() {
     use embed_anything::Dtype;

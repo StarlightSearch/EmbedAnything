@@ -216,8 +216,6 @@ impl ModernBertLayer {
     }
 }
 
-
-
 // Global attention mask calculated from padded token inputs
 fn prepare_4d_attention_mask(
     mask: &Tensor,
@@ -338,4 +336,3 @@ impl ModernBert {
         Ok(xs)
     }
 }
-

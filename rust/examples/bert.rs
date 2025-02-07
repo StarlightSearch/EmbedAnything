@@ -9,15 +9,17 @@ use std::{path::PathBuf, time::Instant};
 
 #[tokio::main]
 async fn main() {
-    let model = Arc::new(EmbedderBuilder::new()
-        .model_architecture("modernbert")
-        .model_id(Some("nomic-ai/modernbert-embed-base"))
-        .revision(None)
-        .token(None)
-        .dtype(Some(Dtype::F16))
-        .from_pretrained_hf()
-        .unwrap());
-    
+    let model = Arc::new(
+        EmbedderBuilder::new()
+            .model_architecture("modernbert")
+            .model_id(Some("nomic-ai/modernbert-embed-base"))
+            .revision(None)
+            .token(None)
+            .dtype(Some(Dtype::F16))
+            .from_pretrained_hf()
+            .unwrap(),
+    );
+
     let config = TextEmbedConfig::default()
         .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)

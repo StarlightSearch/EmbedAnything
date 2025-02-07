@@ -4,15 +4,19 @@ pub mod audio_processing {
     use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
     use symphonia::core::conv::FromSample;
 
-    fn conv<T>(samples: &mut Vec<f32>, data: std::borrow::Cow<symphonia::core::audio::AudioBuffer<T>>)
-    where
+    fn conv<T>(
+        samples: &mut Vec<f32>,
+        data: std::borrow::Cow<symphonia::core::audio::AudioBuffer<T>>,
+    ) where
         T: symphonia::core::sample::Sample,
         f32: symphonia::core::conv::FromSample<T>,
     {
         samples.extend(data.chan(0).iter().map(|v| f32::from_sample(*v)))
     }
 
-    pub(crate) fn pcm_decode<P: AsRef<std::path::Path>>(path: P) -> anyhow::Result<(Vec<f32>, u32)> {
+    pub(crate) fn pcm_decode<P: AsRef<std::path::Path>>(
+        path: P,
+    ) -> anyhow::Result<(Vec<f32>, u32)> {
         // Open the media source.
         let src = std::fs::File::open(path)?;
 
