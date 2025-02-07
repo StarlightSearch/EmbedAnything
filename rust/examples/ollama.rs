@@ -17,8 +17,12 @@ use reqwest::get;
 use tokio::runtime::Runtime;
 
 const IMAGE_URL: &str = "https://images.pexels.com/photos/1054655/pexels-photo-1054655.jpeg";
-const PDF_FILE: &str = "test_files/attention.pdf";
-const PROMPT: &str = "OCR all text from this document word by word exactly as it is in markdown format.";
+const PDF_FILE: &str = "/home/akshay/colpali/court.pdf";
+const PROMPT: &str = "Please look at this image and extract all the text content. Format the output in markdown:
+                - Use headers (# ## ###) for titles and sections
+                - Use bullet points (-) for lists
+                - Use proper markdown formatting for emphasis and structure
+                - Do not add any other text or comments";
 
 fn main() {
     let rt = Runtime::new().unwrap();
@@ -45,12 +49,22 @@ fn main() {
 
             let request = GenerationRequest::new("minicpm-v:latest".to_string(), PROMPT.to_string())
                 .add_image(images_converted[0].clone())
-                // .add_image(images_converted[1].clone())
-                .options(GenerationOptions::default().num_predict(-1));
+                .options(GenerationOptions::default().num_predict(2048).temperature(0.1));
 
             let response = send_request(request).await.unwrap();
             println!("{}", response.response);
-            let mut file = std::fs::File::create(format!("output_{}.md", i)).unwrap();
+            
+            // Open file in append mode instead of create mode
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("output.md")
+                .unwrap();
+                
+            // Add a separator between pages if it's not the first page
+            if i > 0 {
+                file.write_all(b"\n\n---\n\n").unwrap();
+            }
             file.write_all(response.response.as_bytes()).unwrap();
         }
 
