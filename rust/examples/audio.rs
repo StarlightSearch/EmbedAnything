@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use embed_anything::{
-    config::TextEmbedConfig, emb_audio, embeddings::embed:: EmbedderBuilder,
+    config::TextEmbedConfig, emb_audio, embeddings::embed::EmbedderBuilder,
     file_processor::audio::audio_processor::AudioDecoderModel, text_loader::SplittingStrategy,
 };
 

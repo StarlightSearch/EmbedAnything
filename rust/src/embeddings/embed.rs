@@ -124,21 +124,33 @@ impl TextEmbedder {
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
+        dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "jina" | "Jina" => Ok(Self::Jina(Box::new(JinaEmbedder::new(model_id, revision, token)?))),
+            "jina" | "Jina" => Ok(Self::Jina(Box::new(JinaEmbedder::new(
+                model_id, revision, token,
+            )?))),
 
             "Bert" | "bert" => Ok(Self::Bert(Box::new(BertEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
                 token,
             )?))),
-            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Bert(Box::new(
-                SparseBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token)?,
-            ))),
-            "modernbert" | "ModernBert" | "MODERNBERT" => Ok(Self::ModernBert(Box::new(
-                ModernBertEmbedder::new(model_id.to_string(), revision.map(|s| s.to_string()), token)?,
-            ))),
+            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => {
+                Ok(Self::Bert(Box::new(SparseBertEmbedder::new(
+                    model_id.to_string(),
+                    revision.map(|s| s.to_string()),
+                    token,
+                )?)))
+            }
+            "modernbert" | "ModernBert" | "MODERNBERT" => {
+                Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
+                    model_id.to_string(),
+                    revision.map(|s| s.to_string()),
+                    token,
+                    dtype,
+                )?)))
+            }
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -312,7 +324,7 @@ impl VisionEmbedder {
 ///     .from_pretrained_hf()
 ///     .unwrap();
 /// ```
-/// 
+///
 /// ### Cloud Embedding Model
 /// ```rust
 /// use embed_anything::embeddings::embed::EmbedderBuilder;
@@ -323,7 +335,7 @@ impl VisionEmbedder {
 ///     .from_pretrained_cloud()
 ///     .unwrap();
 /// ```
-/// 
+///
 /// ### ONNX Embedding Model
 /// ```rust,ignore
 /// use embed_anything::embeddings::embed::EmbedderBuilder;
@@ -344,7 +356,7 @@ pub struct EmbedderBuilder {
     // Either HF Model ID or the Cloud Model that youu want to use
     model_id: Option<String>,
     revision: Option<String>,
-    // The Hugging Face token 
+    // The Hugging Face token
     token: Option<String>,
     // The API key for the cloud model
     api_key: Option<String>,
@@ -418,6 +430,7 @@ impl EmbedderBuilder {
                 &model_id,
                 self.revision.as_deref(),
                 self.token.as_deref(),
+                self.dtype,
             ),
             None => Err(anyhow::anyhow!("Model ID is required")),
         }
@@ -481,6 +494,7 @@ impl Embedder {
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
+        dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
         match model_architecture {
             "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(
@@ -497,25 +511,33 @@ impl Embedder {
                 model_id,
                 revision,
                 token,
+                dtype,
             )?)),
             "jina" | "Jina" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 model_architecture,
                 model_id,
                 revision,
                 token,
+                dtype,
             )?)),
-            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                model_architecture,
-                model_id,
-                revision,
-                token,
-            )?)),
-            "modernbert" | "ModernBert" | "MODERNBERT" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                model_architecture,
-                model_id,
-                revision,
-                token,
-            )?)),
+            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => {
+                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                    model_architecture,
+                    model_id,
+                    revision,
+                    token,
+                    dtype,
+                )?))
+            }
+            "modernbert" | "ModernBert" | "MODERNBERT" => {
+                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                    model_architecture,
+                    model_id,
+                    revision,
+                    token,
+                    dtype,
+                )?))
+            }
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }

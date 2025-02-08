@@ -7,10 +7,10 @@ pub mod colpali;
 pub mod colpali_ort;
 pub mod jina;
 pub mod model_info;
-pub mod pooling;
-pub mod text_embedding;
-#[cfg(feature = "ort")]
-pub mod ort_jina;
+pub mod modernbert;
 #[cfg(feature = "ort")]
 pub mod ort_bert;
-pub mod modernbert;
+#[cfg(feature = "ort")]
+pub mod ort_jina;
+pub mod pooling;
+pub mod text_embedding;

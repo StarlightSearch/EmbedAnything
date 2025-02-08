@@ -116,7 +116,7 @@ impl ModernBertAttention {
 
         let att = q.matmul(&k.transpose(D::Minus2, D::Minus1)?)?;
 
-        let att = att.broadcast_add(attention_mask)?;
+        let att = att.broadcast_add(&attention_mask.to_dtype(hidden_states.dtype())?)?;
         let att = softmax(&att, D::Minus1)?;
 
         let xs = att.matmul(&v)?;
@@ -215,28 +215,6 @@ impl ModernBertLayer {
         Ok(xs)
     }
 }
-
-#[derive(Clone)]
-pub struct ModernBertHead {
-    dense: Linear,
-    norm: LayerNorm,
-}
-
-impl ModernBertHead {
-    fn load(vb: VarBuilder, config: &Config) -> Result<Self> {
-        let dense = linear_no_bias(config.hidden_size, config.hidden_size, vb.pp("dense"))?;
-        let norm = layer_norm_no_bias(config.hidden_size, config.layer_norm_eps, vb.pp("norm"))?;
-        Ok(Self { dense, norm })
-    }
-}
-
-impl Module for ModernBertHead {
-    fn forward(&self, xs: &Tensor) -> Result<Tensor> {
-        let xs = xs.apply(&self.dense)?.gelu_erf()?.apply(&self.norm)?;
-        Ok(xs)
-    }
-}
-
 
 // Global attention mask calculated from padded token inputs
 fn prepare_4d_attention_mask(
@@ -358,4 +336,3 @@ impl ModernBert {
         Ok(xs)
     }
 }
-

@@ -4,7 +4,7 @@ use candle_core::Tensor;
 use embed_anything::{
     config::TextEmbedConfig,
     embed_query, embed_webpage,
-    embeddings::embed::{EmbedData,  EmbedderBuilder},
+    embeddings::embed::{EmbedData, EmbedderBuilder},
     text_loader::SplittingStrategy,
 };
 

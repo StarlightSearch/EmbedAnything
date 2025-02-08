@@ -18,9 +18,9 @@ use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::embeddings::{
-        embed::EmbeddingResult,
-        utils::{get_attention_mask_ndarray, tokenize_batch_ndarray},
-    };
+    embed::EmbeddingResult,
+    utils::{get_attention_mask_ndarray, tokenize_batch_ndarray},
+};
 
 use super::bert::{BertEmbed, TokenizerConfig};
 

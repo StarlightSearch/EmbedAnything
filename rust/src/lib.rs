@@ -1,5 +1,9 @@
-#![doc(html_favicon_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/icon.ico")]
-#![doc(html_logo_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/Square310x310Logo.png")]
+#![doc(
+    html_favicon_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/icon.ico"
+)]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/StarlightSearch/EmbedAnything/refs/heads/main/docs/assets/Square310x310Logo.png"
+)]
 #![doc(issue_tracker_base_url = "https://github.com/StarlightSearch/EmbedAnything/issues/")]
 //! embed_anything is a minimalist, highly performant, lightning-fast, lightweight, multisource,
 //! multimodal, and local embedding pipeline.
@@ -82,7 +86,6 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use text_loader::TextLoader;
 use tokio::sync::mpsc; // Add this at the top of your file
-
 
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
@@ -181,18 +184,8 @@ pub async fn embed_file<T: AsRef<std::path::Path>, F>(
 where
     F: Fn(Vec<EmbedData>), // Add Send trait bound here
 {
-  
-
     match embedder {
-        Embedder::Text(embedder) => {
-            emb_text(
-                file_name,
-                embedder,
-                config,
-                adapter,
-            )
-            .await
-        }
+        Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
         Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
     }
 }
@@ -331,7 +324,6 @@ async fn emb_text<T: AsRef<std::path::Path>, F>(
 where
     F: Fn(Vec<EmbedData>),
 {
-
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
@@ -343,10 +335,7 @@ where
     let text = TextLoader::extract_text(&file, use_ocr, tesseract_path.as_deref())?;
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
     let chunks = textloader
-        .split_into_chunks(
-            &text,
-            splitting_strategy,
-        )
+        .split_into_chunks(&text, splitting_strategy)
         .unwrap_or_default();
 
     let metadata = TextLoader::get_metadata(file).ok();

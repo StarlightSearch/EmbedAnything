@@ -65,11 +65,7 @@ impl Default for BertEmbedder {
     }
 }
 impl BertEmbedder {
-    pub fn new(
-        model_id: String,
-        revision: Option<String>,
-        token: Option<&str>,
-    ) -> Result<Self, E> {
+    pub fn new(model_id: String, revision: Option<String>, token: Option<&str>) -> Result<Self, E> {
         let model_info = get_model_info_by_hf_id(&model_id);
         let pooling = match model_info {
             Some(info) => info

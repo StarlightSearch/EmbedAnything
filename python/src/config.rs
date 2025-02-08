@@ -8,6 +8,7 @@ pub struct TextEmbedConfig {
     pub inner: embed_anything::config::TextEmbedConfig,
 }
 
+#[allow(clippy::too_many_arguments)]
 #[pymethods]
 impl TextEmbedConfig {
     #[new]
@@ -44,7 +45,7 @@ impl TextEmbedConfig {
                 .with_batch_size(batch_size.unwrap_or(32))
                 .with_buffer_size(buffer_size.unwrap_or(100))
                 .with_splitting_strategy(strategy)
-                .with_ocr(use_ocr.unwrap_or(false), tesseract_path)
+                .with_ocr(use_ocr.unwrap_or(false), tesseract_path),
         }
     }
 

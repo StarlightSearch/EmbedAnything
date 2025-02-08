@@ -2,12 +2,13 @@ use super::bert::{BertEmbed, TokenizerConfig};
 use super::pooling::{ModelOutput, Pooling};
 use super::text_embedding::ONNXModel;
 use crate::embeddings::embed::EmbeddingResult;
+use crate::embeddings::local::text_embedding::models_map;
 use crate::embeddings::utils::{
     get_attention_mask_ndarray, get_type_ids_ndarray, tokenize_batch_ndarray,
 };
-use crate::embeddings::local::text_embedding::models_map;
 
 use crate::Dtype;
+use anyhow::Error as E;
 use hf_hub::api::sync::Api;
 use hf_hub::Repo;
 use ndarray::prelude::*;
@@ -17,7 +18,6 @@ use ort::session::Session;
 use ort::value::Value;
 use rayon::prelude::*;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
-use anyhow::Error as E;
 
 #[derive(Debug)]
 pub struct OrtBertEmbedder {

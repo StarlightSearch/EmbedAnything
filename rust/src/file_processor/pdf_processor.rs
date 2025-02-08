@@ -55,12 +55,7 @@ fn extract_text_with_ocr<T: AsRef<std::path::Path>>(
     let images = get_images_from_pdf(file_path)?;
     let texts: Result<Vec<String>, Error> = images
         .iter()
-        .map(|image| {
-            extract_text_from_image(
-                image,
-                &Args::default().with_path(tesseract_path),
-            )
-        })
+        .map(|image| extract_text_from_image(image, &Args::default().with_path(tesseract_path)))
         .collect();
     Ok(texts.unwrap().join("\n"))
 }

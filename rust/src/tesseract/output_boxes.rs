@@ -62,14 +62,17 @@ pub fn image_to_boxes(image: &Image, args: &Args) -> TessResult<BoxOutput> {
 fn string_to_boxes(output: &str) -> TessResult<Vec<Box>> {
     output
         .lines()
-        .into_iter()
-        .map(|line| Box::parse(line.into()))
+        .map(Box::parse)
         .collect::<_>()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::tesseract::{error::TessError, input::{Args, Image}, output_boxes::{image_to_boxes, string_to_boxes, Box}};
+    use crate::tesseract::{
+        error::TessError,
+        input::{Args, Image},
+        output_boxes::{image_to_boxes, string_to_boxes, Box},
+    };
 
     #[test]
     fn test_string_to_boxes() {

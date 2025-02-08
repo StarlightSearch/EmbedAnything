@@ -203,9 +203,7 @@ impl EmbeddingModel {
                 let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
                 let model = Embedder::Text(TextEmbedder::Jina(Box::new(
                     embed_anything::embeddings::local::jina::JinaEmbedder::new(
-                        model_id,
-                        revision,
-                        token,
+                        model_id, revision, token,
                     )
                     .unwrap(),
                 )));
@@ -286,10 +284,12 @@ impl EmbeddingModel {
             Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
             None => None,
         };
-        let model_name = model_name.map(|model_name| embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
-                    &model_name.to_string(),
-                )
-                .unwrap());
+        let model_name = model_name.map(|model_name| {
+            embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+                &model_name.to_string(),
+            )
+            .unwrap()
+        });
         match model {
             WhichModel::Bert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
