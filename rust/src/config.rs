@@ -1,32 +1,29 @@
+use crate::embeddings::embed::Embedder;
 use std::sync::Arc;
-
-use crate::{embeddings::embed::Embedder, text_loader::SplittingStrategy};
 
 /// Configuration for text embedding.
 ///
 /// # Example: Creating a new instance
 ///
 /// ```rust
-/// use embed_anything::config::TextEmbedConfig;
-/// use embed_anything::text_loader::SplittingStrategy;
+/// use embed_anything::config::{TextEmbedConfig, SplittingStrategy};
 /// let config = TextEmbedConfig::new(
 ///     Some(512),
 ///     Some(128),
 ///     Some(100),
 ///     Some(0.0),
-///     Some(SplittingStrategy::Sentence),
-///     None,
-///     Some(true)
+///     SplittingStrategy::Sentence,
+///     Some(true),
+///     None
 /// );
 /// ```
 ///
 /// # Example: Overriding a single default
 ///
 /// ```rust
-/// use embed_anything::config::TextEmbedConfig;
-/// use embed_anything::text_loader::SplittingStrategy;
+/// use embed_anything::config::{TextEmbedConfig, SplittingStrategy};
 /// let config = TextEmbedConfig {
-///     splitting_strategy: Some(SplittingStrategy::Semantic),
+///     splitting_strategy: SplittingStrategy::Semantic,
 ///     ..Default::default()
 /// };
 /// ```
@@ -45,10 +42,7 @@ pub struct TextEmbedConfig {
     pub buffer_size: Option<usize>,
     /// Controls how documents are split into segments. See [SplittingStrategy] for options.
     /// Defaults to [SplittingStrategy::Sentence]
-    pub splitting_strategy: Option<SplittingStrategy>,
-    /// Allows overriding the embedder used when the splitting strategy is
-    /// [SplittingStrategy::Semantic]. Defaults to JINA.
-    pub semantic_encoder: Option<Arc<Embedder>>,
+    pub splitting_strategy: SplittingStrategy,
     /// When embedding a PDF, controls whether **o**ptical **c**haracter **r**ecognition is used on
     /// the PDF to extract text. This process involves rendering the PDF as a series of images, and
     /// extracting text from the images. Defaults to false.
@@ -63,8 +57,7 @@ impl Default for TextEmbedConfig {
             overlap_ratio: Some(0.0),
             batch_size: Some(32),
             buffer_size: Some(100),
-            splitting_strategy: None,
-            semantic_encoder: None,
+            splitting_strategy: SplittingStrategy::Sentence,
             use_ocr: None,
             tesseract_path: None,
         }
@@ -77,29 +70,17 @@ impl TextEmbedConfig {
         batch_size: Option<usize>,
         buffer_size: Option<usize>,
         overlap_ratio: Option<f32>,
-        splitting_strategy: Option<SplittingStrategy>,
-        semantic_encoder: Option<Arc<Embedder>>,
+        splitting_strategy: SplittingStrategy,
         use_ocr: Option<bool>,
         tesseract_path: Option<String>,
     ) -> Self {
-        let config = Self::default()
+        Self::default()
             .with_chunk_size(chunk_size.unwrap_or(256), overlap_ratio)
             .with_batch_size(batch_size.unwrap_or(32))
             .with_buffer_size(buffer_size.unwrap_or(100))
-            .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref());
-
-        match splitting_strategy {
-            Some(SplittingStrategy::Semantic) => {
-                if semantic_encoder.is_none() {
-                    panic!("Semantic encoder is required when using Semantic splitting strategy");
-                }
-                config
-                    .with_semantic_encoder(Some(semantic_encoder.unwrap()))
-                    .with_splitting_strategy(SplittingStrategy::Semantic)
-            }
-            Some(strategy) => config.with_splitting_strategy(strategy),
-            None => config,
-        }
+            .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref())
+            .with_splitting_strategy(splitting_strategy)
+            .build()
     }
 
     pub fn with_chunk_size(mut self, size: usize, overlap_ratio: Option<f32>) -> Self {
@@ -119,12 +100,7 @@ impl TextEmbedConfig {
     }
 
     pub fn with_splitting_strategy(mut self, strategy: SplittingStrategy) -> Self {
-        self.splitting_strategy = Some(strategy);
-        self
-    }
-
-    pub fn with_semantic_encoder(mut self, encoder: Option<Arc<Embedder>>) -> Self {
-        self.semantic_encoder = encoder;
+        self.splitting_strategy = strategy;
         self
     }
 
@@ -139,11 +115,20 @@ impl TextEmbedConfig {
     }
 
     pub fn build(self) -> TextEmbedConfig {
-        if self.semantic_encoder.is_none() && self.splitting_strategy.is_some() {
-            panic!("Semantic encoder is required when using Semantic splitting strategy");
-        }
         self
     }
+}
+
+#[derive(Clone)]
+pub enum SplittingStrategy {
+    /// Splits text-based content by sentence, resulting in one embedding per sentence.
+    Sentence,
+    /// Uses an embedder to determine semantic relevance of chunks of text. Produces embeddings that
+    /// may be longer, or shorter than a sentence.
+    Semantic {
+        /// Specifies the embedder used when the splitting semantically.
+        semantic_encoder: Arc<Embedder>
+    },
 }
 
 #[derive(Clone)]

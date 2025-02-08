@@ -80,12 +80,13 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::AudioDecoderModel;
 use itertools::Itertools;
 use rayon::prelude::*;
-use text_loader::{SplittingStrategy, TextLoader};
+use text_loader::TextLoader;
 use tokio::sync::mpsc; // Add this at the top of your file
 
 
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
+use crate::config::SplittingStrategy;
 
 pub enum Dtype {
     F16,
@@ -336,10 +337,7 @@ where
     let chunk_size = config.chunk_size.unwrap_or(256);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
-    let splitting_strategy = config
-        .splitting_strategy
-        .unwrap_or(SplittingStrategy::Sentence);
-    let semantic_encoder = config.semantic_encoder.clone();
+    let splitting_strategy = config.splitting_strategy.clone();
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.clone();
     let text = TextLoader::extract_text(&file, use_ocr, tesseract_path.as_deref())?;
@@ -348,7 +346,6 @@ where
         .split_into_chunks(
             &text,
             splitting_strategy,
-            semantic_encoder,
         )
         .unwrap_or_default();
 
@@ -723,7 +720,7 @@ where
             }
         };
         let chunks = textloader
-            .split_into_chunks(&text, SplittingStrategy::Sentence, None)
+            .split_into_chunks(&text, SplittingStrategy::Sentence)
             .unwrap_or_else(|| vec![text.clone()])
             .into_iter()
             .filter(|chunk| !chunk.trim().is_empty())

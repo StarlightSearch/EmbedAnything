@@ -12,8 +12,9 @@ use crate::{
         get_text_metadata,
     },
     file_processor::html_processor::HtmlProcessor,
-    text_loader::{SplittingStrategy, TextLoader},
+    text_loader::TextLoader,
 };
+use crate::config::SplittingStrategy;
 
 #[derive(Debug)]
 pub struct WebPage {
@@ -94,7 +95,7 @@ impl WebPage {
         for content in tag_content {
             let textloader = TextLoader::new(chunk_size, overlap_ratio);
             let chunks =
-                match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
+                match textloader.split_into_chunks(content, SplittingStrategy::Sentence) {
                     Some(chunks) => chunks,
                     None => continue,
                 };
