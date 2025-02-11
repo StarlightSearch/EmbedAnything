@@ -17,7 +17,6 @@ use crate::{
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{Characters, ChunkConfig, TextSplitter};
-use tokenizers::Tokenizer;
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use rayon::prelude::*;

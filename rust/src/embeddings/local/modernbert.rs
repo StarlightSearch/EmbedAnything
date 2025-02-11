@@ -1,7 +1,7 @@
 use crate::{
     embeddings::{
         normalize_l2,
-        utils::{get_attention_mask, tokenize_batch},
+        utils::tokenize_batch,
     },
     models::modernbert::{Config, ModernBert},
     Dtype,

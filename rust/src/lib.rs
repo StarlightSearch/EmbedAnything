@@ -140,8 +140,8 @@ pub async fn embed_query(
     let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
-    let encodings = embedder.embed(&query, batch_size).await?;
-    let embeddings = get_text_metadata(&Rc::new(encodings), &query, &None)?;
+    let encodings = embedder.embed(query, batch_size).await?;
+    let embeddings = get_text_metadata(&Rc::new(encodings), query, &None)?;
 
     Ok(embeddings)
 }

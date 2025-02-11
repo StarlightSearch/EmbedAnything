@@ -110,14 +110,11 @@ impl ClipEmbedder {
             .get("<|endoftext|>")
             .ok_or(E::msg("No pad token"))?;
 
-        let vec_seq = match sequences {
-            Some(seq) => seq,
-            None => &[
-                "a cycling race",
-                "a photo of two cats",
-                "a robot holding a candle",
-            ],
-        };
+        let vec_seq = sequences.unwrap_or(&[
+            "a cycling race",
+            "a photo of two cats",
+            "a robot holding a candle",
+        ]);
 
         let mut tokens = vec![];
 

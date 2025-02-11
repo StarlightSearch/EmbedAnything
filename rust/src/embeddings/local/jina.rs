@@ -9,7 +9,7 @@ use crate::embeddings::utils::tokenize_batch;
 use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
 use crate::models::jina_bert::{BertModel, Config};
 use anyhow::Error as E;
-use candle_core::{DType, Device, Tensor};
+use candle_core::DType;
 use candle_nn::{Module, VarBuilder};
 use hf_hub::Repo;
 
@@ -122,7 +122,7 @@ impl JinaEmbed for JinaEmbedder {
         text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
-        self.embed(&text_batch, batch_size)
+        self.embed(text_batch, batch_size)
     }
 }
 

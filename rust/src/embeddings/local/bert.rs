@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::get_model_info_by_hf_id;
-use crate::embeddings::utils::{get_attention_mask, tokenize_batch};
+use crate::embeddings::utils::tokenize_batch;
 use crate::embeddings::{normalize_l2, select_device};
 use crate::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
 use anyhow::Error as E;
