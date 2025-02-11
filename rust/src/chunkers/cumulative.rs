@@ -1,7 +1,7 @@
-use crate::embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder};
+use crate::embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder, select_device};
 use candle_core::Tensor;
 use text_splitter::{ChunkConfig, ChunkSizer, TextSplitter};
-use tokenizers::Tokenizer;
+use tokenizers::tokenizer::Tokenizer;
 
 pub struct CumulativeChunker<Sizer: ChunkSizer> {
     pub encoder: TextEmbedder,
@@ -12,12 +12,11 @@ pub struct CumulativeChunker<Sizer: ChunkSizer> {
 
 impl Default for CumulativeChunker<Tokenizer> {
     fn default() -> Self {
-        let splitter = TextSplitter::new(ChunkConfig::new(200).with_sizer(
-            Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
-        ));
+        let tokenizer = Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap();
+        let splitter = TextSplitter::new(ChunkConfig::new(200).with_sizer(tokenizer));
         let encoder = TextEmbedder::Jina(Box::new(JinaEmbedder::default()));
         let score_threshold = 0.9;
-        let device = candle_core::Device::cuda_if_available(0).unwrap_or(candle_core::Device::Cpu);
+        let device = select_device();
         Self {
             encoder,
             splitter,
@@ -79,11 +78,7 @@ impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
                     .to_dense()
                     .unwrap();
 
-                let next_doc_embed = self
-                    .encoder
-                    .embed(&[&next_doc], Some(32))
-                    .await
-                    .unwrap();
+                let next_doc_embed = self.encoder.embed(&[&next_doc], Some(32)).await.unwrap();
 
                 let next_doc_embed = next_doc_embed
                     .into_iter()

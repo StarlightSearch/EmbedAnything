@@ -22,8 +22,8 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", versi
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
 candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
 
-strum = "0.26.1"
-strum_macros = "0.26"
+strum = "0.27.0"
+strum_macros = "0.27.0"
 
 [patch.crates-io]
 pdf-extract = { git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs/pull/91/head" }

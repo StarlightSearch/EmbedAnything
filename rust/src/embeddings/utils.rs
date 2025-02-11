@@ -9,7 +9,7 @@ pub fn tokenize_batch(
     device: &Device,
 ) -> anyhow::Result<(Tensor, Tensor)> {
     let tokens = tokenizer
-        .encode_batch(text_batch.to_vec(), true)
+        .encode_batch  (text_batch.to_vec(), true)
         .map_err(E::msg)?;
     let token_ids = tokens
         .iter()

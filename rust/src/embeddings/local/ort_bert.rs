@@ -171,7 +171,7 @@ impl BertEmbed for OrtBertEmbedder {
                 let input_ids: Array2<i64> =
                     tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
                 let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-                let attention_mask: Array2<i64> = Array2::ones(input_ids.raw_dim());
+                let attention_mask: Array2<i64> = get_attention_mask_ndarray(&self.tokenizer, mini_text_batch)?;
 
                 let input_names = self
                     .model
@@ -181,7 +181,7 @@ impl BertEmbed for OrtBertEmbedder {
                     .collect::<Vec<_>>();
 
                 let mut inputs =
-                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask]?;
+                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask.clone()]?;
                 if input_names.iter().any(|&x| x == "token_type_ids") {
                     inputs.push((
                         "token_type_ids".into(),
@@ -194,6 +194,8 @@ impl BertEmbed for OrtBertEmbedder {
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix3>()?;
+                let attention_mask = attention_mask.insert_axis(Axis(2)).mapv(|x| x as f32);
+                let embeddings = embeddings * attention_mask;
                 let (_, _, _) = embeddings.dim();
                 let embeddings = self
                     .pooling

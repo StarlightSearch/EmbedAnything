@@ -10,10 +10,10 @@ use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::get_model_info_by_hf_id;
 use crate::embeddings::utils::tokenize_batch;
 use crate::embeddings::{normalize_l2, select_device};
-use crate::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
+use candle_transformers::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
 use hf_hub::api::sync::ApiBuilder;
 use hf_hub::Repo;
 
@@ -118,13 +118,14 @@ impl BertEmbedder {
             ..Default::default()
         };
 
+ 
+
         tokenizer
             .with_padding(Some(pp))
             .with_truncation(Some(trunc))
-            .unwrap();
-
+            .map_err(E::msg)?;
+    
         let device = select_device();
-
         let vb = if weights_filename.ends_with("model.safetensors") {
             unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)? }
         } else {
@@ -155,10 +156,16 @@ impl BertEmbed for BertEmbedder {
         for mini_text_batch in text_batch.chunks(batch_size) {
             let (token_ids, attention_mask) =
                 tokenize_batch(&self.tokenizer, mini_text_batch, &self.model.device)?;
+    
             let token_type_ids = token_ids.zeros_like()?;
-            let embeddings: Tensor = self
-                .model
-                .forward(&token_ids, &token_type_ids, Some(&attention_mask))?;
+            let embeddings: Tensor =
+                self.model
+                    .forward(&token_ids, &token_type_ids, Some(&attention_mask))?;
+            let attention_mask = attention_mask
+                .unsqueeze(2)?
+                .expand(&[embeddings.dim(0)?, embeddings.dim(1)?, embeddings.dim(2)?])?
+                .to_dtype(embeddings.dtype())?;
+            let embeddings = embeddings.mul(&attention_mask)?;
             let pooled_output = self
                 .pooling
                 .pool(&ModelOutput::Tensor(embeddings.clone()))?
@@ -232,7 +239,7 @@ impl SparseBertEmbedder {
         tokenizer
             .with_padding(Some(pp))
             .with_truncation(Some(trunc))
-            .unwrap();
+            .map_err(E::msg)?;
 
         let device = select_device();
         let vb = if weights_filename.ends_with("model.safetensors") {
@@ -262,11 +269,12 @@ impl BertEmbed for SparseBertEmbedder {
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let (token_ids, attention_mask) = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
+            let (token_ids, attention_mask) =
+                tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
             let token_type_ids = token_ids.zeros_like()?;
-            let embeddings: Tensor = self
-                .model
-                .forward(&token_ids, &token_type_ids, Some(&attention_mask))?;
+            let embeddings: Tensor =
+                self.model
+                    .forward(&token_ids, &token_type_ids, Some(&attention_mask))?;
 
             let batch_encodings = Tensor::log(
                 &Tensor::try_from(1.0)?
