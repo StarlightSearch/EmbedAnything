@@ -1,32 +1,24 @@
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    fs,
-    sync::Arc,
+    fs
+    ,
 };
 
 use crate::{
-    chunkers::statistical::StatisticalChunker,
-    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
+    chunkers::statistical::StatisticalChunker
+    ,
     file_processor::docx_processor::DocxProcessor,
 };
-use crate::{
-    embeddings::embed::Embedder,
-    file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor},
-};
+use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
 use super::file_processor::pdf_processor::PdfProcessor;
+use crate::config::SplittingStrategy;
 use rayon::prelude::*;
-
-#[derive(Clone, Copy)]
-pub enum SplittingStrategy {
-    Sentence,
-    Semantic,
-}
 
 impl Default for TextLoader {
     fn default() -> Self {
@@ -86,7 +78,6 @@ impl TextLoader {
         &self,
         text: &str,
         splitting_strategy: SplittingStrategy,
-        semantic_encoder: Option<Arc<Embedder>>,
     ) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
@@ -104,12 +95,9 @@ impl TextLoader {
                 .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
-            SplittingStrategy::Semantic => {
-                let embedder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
-                    TextEmbedder::Jina(Box::new(JinaEmbedder::default())),
-                )));
+            SplittingStrategy::Semantic { semantic_encoder } => {
                 let chunker = StatisticalChunker {
-                    encoder: embedder,
+                    encoder: semantic_encoder,
                     ..Default::default()
                 };
 
@@ -192,7 +180,7 @@ mod tests {
             .replace("  ", " ");
 
         let text_loader = TextLoader::new(256, 0.0);
-        let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence, None);
+        let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence);
 
         for chunk in chunks.unwrap() {
             println!("-----------------------------------");
