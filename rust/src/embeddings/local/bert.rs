@@ -25,7 +25,7 @@ use super::pooling::{ModelOutput, Pooling};
 pub trait BertEmbed {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
@@ -146,27 +146,26 @@ impl BertEmbedder {
 impl BertEmbed for BertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let token_ids =
-                tokenize_batch(&self.tokenizer, mini_text_batch, &self.model.device).unwrap();
-            let token_type_ids = token_ids.zeros_like().unwrap();
+            let (token_ids, attention_mask) =
+                tokenize_batch(&self.tokenizer, mini_text_batch, &self.model.device)?;
+            let token_type_ids = token_ids.zeros_like()?;
             let embeddings: Tensor = self
                 .model
-                .forward(&token_ids, &token_type_ids, None)
-                .unwrap();
+                .forward(&token_ids, &token_type_ids, Some(&attention_mask))?;
             let pooled_output = self
                 .pooling
                 .pool(&ModelOutput::Tensor(embeddings.clone()))?
                 .to_tensor()?;
 
-            let embeddings = normalize_l2(&pooled_output).unwrap();
-            let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
+            let embeddings = normalize_l2(&pooled_output)?;
+            let batch_encodings = embeddings.to_vec2::<f32>()?;
 
             encodings.extend(
                 batch_encodings
@@ -256,21 +255,18 @@ impl SparseBertEmbedder {
 impl BertEmbed for SparseBertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let token_ids = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device).unwrap();
-            let token_type_ids = token_ids.zeros_like().unwrap();
+            let (token_ids, attention_mask) = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
+            let token_type_ids = token_ids.zeros_like()?;
             let embeddings: Tensor = self
                 .model
-                .forward(&token_ids, &token_type_ids, None)
-                .unwrap();
-            let attention_mask =
-                get_attention_mask(&self.tokenizer, mini_text_batch, &self.device).unwrap();
+                .forward(&token_ids, &token_type_ids, Some(&attention_mask))?;
 
             let batch_encodings = Tensor::log(
                 &Tensor::try_from(1.0)?

@@ -164,7 +164,7 @@ impl OrtJinaEmbedder {
         })
     }
 
-    fn tokenize_batch(&self, text_batch: &[String]) -> Result<Array2<i64>, E> {
+    fn tokenize_batch(&self, text_batch: &[&str]) -> Result<Array2<i64>, E> {
         let token_ids = self
             .tokenizer
             .encode_batch(text_batch.to_vec(), true)
@@ -191,7 +191,7 @@ impl OrtJinaEmbedder {
 impl JinaEmbed for OrtJinaEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);

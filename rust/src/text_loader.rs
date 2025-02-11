@@ -16,7 +16,7 @@ use crate::{
 };
 use anyhow::Error;
 use chrono::{DateTime, Local};
-use text_splitter::{ChunkConfig, TextSplitter};
+use text_splitter::{Characters, ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
 use super::file_processor::pdf_processor::PdfProcessor;
@@ -66,7 +66,7 @@ impl From<FileLoadingError> for Error {
 
 #[derive(Debug)]
 pub struct TextLoader {
-    pub splitter: TextSplitter<Tokenizer>,
+    pub splitter: TextSplitter<Characters>,
 }
 impl TextLoader {
     pub fn new(chunk_size: usize, overlap_ratio: f32) -> Self {
@@ -75,11 +75,7 @@ impl TextLoader {
                 ChunkConfig::new(chunk_size)
                     .with_overlap(chunk_size * overlap_ratio as usize)
                     .unwrap()
-                    .with_sizer(
-                        Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
-                    ),
             ),
-            // splitter: TextSplitter::new(ChunkConfig::new(chunk_size)),
         }
     }
     pub fn split_into_chunks(
@@ -121,7 +117,7 @@ impl TextLoader {
             }
         };
 
-        Some(chunks)
+        Some(chunks.iter().map(|s| s.to_string()).collect())
     }
 
     pub fn extract_text<T: AsRef<std::path::Path>>(

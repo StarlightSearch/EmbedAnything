@@ -27,7 +27,7 @@ async fn main() {
     .unwrap()
     .unwrap();
 
-    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], &model, None)
+    let query_emb_data = embed_query(&["Photo of a monkey"], &model, None)
         .await
         .unwrap();
     let n_vectors = out.len();

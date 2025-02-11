@@ -121,20 +121,20 @@ impl StatisticalChunker {
             }
         }
         let mut chunks: Vec<String> = Vec::new();
-        let mut last_chunk: String = String::new();
+        let mut last_chunk = String::new();
 
         for i in &(0..splits.len()).chunks(batch_size) {
             let indices = i.collect::<Vec<_>>();
             let mut batch_splits = indices
                 .into_iter()
-                .map(|idx| splits[idx].to_string())
+                .map(|idx| splits[idx])
                 .collect::<Vec<_>>();
 
             if !last_chunk.is_empty() {
-                batch_splits = vec![last_chunk.clone()]
+                batch_splits = vec![&last_chunk[..]]
                     .into_iter()
                     .chain(batch_splits)
-                    .collect::<Vec<_>>();
+                    .collect::<Vec<&str>>();
             }
 
             let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).await.unwrap();
@@ -147,15 +147,15 @@ impl StatisticalChunker {
             let calculated_threshold = self._find_optimal_threshold(&batch_splits, &similarities);
 
             let split_indices = self._find_split_indices(&similarities, calculated_threshold);
-            let doc_chunks: Vec<String> = self._split_documents(batch_splits, split_indices);
+            let doc_chunks: Vec<String> = self._split_documents(&batch_splits, split_indices);
 
             if doc_chunks.len() > 1 {
                 //add doc chunks to chunks
                 chunks.extend(doc_chunks[..doc_chunks.len() - 1].iter().cloned());
                 // last chunk is last element of doc_chunks
-                last_chunk = doc_chunks.last().unwrap().to_string();
+                last_chunk = doc_chunks.last().unwrap().clone();
             } else {
-                last_chunk.clone_from(&doc_chunks[0]);
+                last_chunk = doc_chunks[0].clone();
             }
         }
         if !last_chunk.is_empty() {
@@ -228,7 +228,7 @@ impl StatisticalChunker {
         raw_similarities
     }
 
-    fn _find_optimal_threshold(&self, batch_splits: &[String], similarities: &Vec<f32>) -> f32 {
+    fn _find_optimal_threshold(&self, batch_splits: &[&str], similarities: &Vec<f32>) -> f32 {
         let tokens = self
             .tokenizer
             .encode_batch(batch_splits.to_vec(), true)
@@ -298,7 +298,7 @@ impl StatisticalChunker {
         split_indices
     }
 
-    fn _split_documents(&self, docs: Vec<String>, split_indices: Vec<usize>) -> Vec<String> {
+    fn _split_documents(&self, docs: &[&str], split_indices: Vec<usize>) -> Vec<String> {
         let tokens = self.tokenizer.encode_batch(docs.to_vec(), true).unwrap();
         let token_counts = tokens
             .iter()
@@ -317,14 +317,14 @@ impl StatisticalChunker {
             {
                 current_split.push(doc);
 
-                chunks.push(current_split.join("\n"));
+                chunks.push(current_split.into_iter().join("\n"));
                 current_split = Vec::new();
                 current_tokens_count = 0;
                 continue;
             }
             if current_tokens_count + doc_token_count > self.max_split_tokens {
                 if current_tokens_count >= self.min_split_tokens {
-                    chunks.push(current_split.join("\n"));
+                    chunks.push(current_split.into_iter().join("\n"));
                 }
                 current_split = Vec::new();
                 current_tokens_count = 0;
@@ -334,7 +334,7 @@ impl StatisticalChunker {
         }
 
         if !current_split.is_empty() {
-            chunks.push(current_split.join("\n"));
+            chunks.push(current_split.into_iter().join("\n"));
         }
 
         chunks

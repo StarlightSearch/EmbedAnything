@@ -106,7 +106,7 @@ pub enum TextEmbedder {
 impl TextEmbedder {
     pub async fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
@@ -480,7 +480,7 @@ pub enum Embedder {
 impl Embedder {
     pub async fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
@@ -618,7 +618,7 @@ impl EmbedImage for Embedder {
 pub trait TextEmbed {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
@@ -626,7 +626,7 @@ pub trait TextEmbed {
 impl TextEmbed for VisionEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {

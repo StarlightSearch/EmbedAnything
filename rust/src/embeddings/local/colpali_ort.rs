@@ -101,7 +101,7 @@ impl OrtColPaliEmbedder {
     }
 }
 
-fn tokenize_batch(tokenizer: &Tokenizer, text_batch: &[String]) -> Result<Array2<i64>, E> {
+fn tokenize_batch(tokenizer: &Tokenizer, text_batch: &[&str]) -> Result<Array2<i64>, E> {
     let token_ids = tokenizer
         .encode_batch_fast(text_batch.to_vec(), true)
         .map_err(E::msg)?
@@ -138,7 +138,7 @@ fn tokenize(tokenizer: &Tokenizer, text: String) -> Result<Array2<i64>, E> {
     Ok(token_ids_array)
 }
 
-fn get_attention_mask(tokenizer: &Tokenizer, text_batch: &[String]) -> Result<Array2<i64>, E> {
+fn get_attention_mask(tokenizer: &Tokenizer, text_batch: &[&str]) -> Result<Array2<i64>, E> {
     let attention_mask = tokenizer
         .encode_batch(text_batch.to_vec(), true)
         .map_err(E::msg)?
@@ -195,7 +195,7 @@ impl OrtColPaliEmbedder {
 impl ColPaliEmbed for OrtColPaliEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
@@ -221,8 +221,8 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
     }
 
     fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>> {
-        let token_ids = tokenize_batch(&self.tokenizer, &[query.to_string()])?;
-        let attention_mask = get_attention_mask(&self.tokenizer, &[query.to_string()])?;
+        let token_ids = tokenize_batch(&self.tokenizer, &[query])?;
+        let attention_mask = get_attention_mask(&self.tokenizer, &[query])?;
         let pixel_values: Array4<f32> =
             Array4::zeros((1, self.num_channels, self.image_size, self.image_size));
         let e = self

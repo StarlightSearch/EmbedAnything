@@ -131,7 +131,7 @@ pub enum Dtype {
 /// println!("{:?}", embeddings);
 /// ```
 pub async fn embed_query(
-    query: Vec<String>,
+    query: &[&str],
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
@@ -338,18 +338,30 @@ where
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
     let chunks = textloader
         .split_into_chunks(&text, splitting_strategy, semantic_encoder)
-        .unwrap_or_default();
+        .unwrap_or_else(|| vec![text])
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
 
     let metadata = TextLoader::get_metadata(file).ok();
 
+    // Convert Vec<String> to Vec<&str> for embedding
+    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
+
     if let Some(adapter) = adapter {
-        let encodings = embedding_model.embed(&chunks, batch_size).await.unwrap();
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &metadata).unwrap();
+        let encodings = embedding_model
+            .embed(&chunk_refs, batch_size)
+            .await
+            .unwrap();
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
         adapter(embeddings);
         Ok(None)
     } else {
-        let encodings = embedding_model.embed(&chunks, batch_size).await.unwrap();
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &metadata).unwrap();
+        let encodings = embedding_model
+            .embed(&chunk_refs, batch_size)
+            .await
+            .unwrap();
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
 
         Ok(Some(embeddings))
     }
@@ -710,16 +722,14 @@ where
                 return;
             }
         };
+        let metadata = TextLoader::get_metadata(file).unwrap();
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
-            .unwrap_or_else(|| vec![text.clone()])
+            .unwrap_or_else(|| vec![text])
             .into_iter()
-            .filter(|chunk| !chunk.trim().is_empty())
-            .collect::<Vec<_>>();
-        if chunks.is_empty() {
-            return;
-        }
-        let metadata = TextLoader::get_metadata(file).unwrap();
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+
         for chunk in chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
                 eprintln!("Error sending chunk: {:?}", e);
@@ -748,12 +758,13 @@ where
 }
 
 pub async fn process_chunks(
-    chunks: &Vec<String>,
-    metadata: &Vec<Option<HashMap<String, String>>>,
+    chunks: &[String],
+    metadata: &[Option<HashMap<String, String>>],
     embedding_model: &Arc<Embedder>,
     batch_size: Option<usize>,
 ) -> Result<Arc<Vec<EmbedData>>> {
-    let encodings = embedding_model.embed(chunks, batch_size).await?;
+    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
+    let encodings = embedding_model.embed(&chunk_refs, batch_size).await?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings

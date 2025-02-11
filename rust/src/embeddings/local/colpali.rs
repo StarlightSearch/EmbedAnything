@@ -17,7 +17,7 @@ use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 pub trait ColPaliEmbed {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 
@@ -140,19 +140,12 @@ impl ColPaliEmbedder {
 impl ColPaliEmbed for ColPaliEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let mut encodings = Vec::new();
         for mini_text_batch in text_batch.chunks(batch_size.unwrap_or(32)) {
-            let input_ids = tokenize_batch(
-                &self.tokenizer,
-                mini_text_batch
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>(),
-                &self.device,
-            )?;
+            let input_ids = tokenize_batch(&self.tokenizer, mini_text_batch.to_vec(), &self.device)?;
             let batch_encodings = self
                 .model
                 .write()

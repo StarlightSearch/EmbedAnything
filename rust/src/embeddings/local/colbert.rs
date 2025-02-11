@@ -27,7 +27,7 @@ use super::bert::{BertEmbed, TokenizerConfig};
 pub trait ColbertEmbed {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
         is_doc: bool,
     ) -> Result<Vec<EmbeddingResult>, E>;
@@ -160,7 +160,7 @@ impl OrtColbertEmbedder {
 impl ColbertEmbed for OrtColbertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
         is_doc: bool,
     ) -> Result<Vec<EmbeddingResult>, E> {
@@ -259,7 +259,7 @@ impl ColbertEmbed for OrtColbertEmbedder {
 impl BertEmbed for OrtColbertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);

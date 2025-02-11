@@ -394,7 +394,7 @@ pub fn embed_query(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     Ok(rt.block_on(async {
         embed_anything::embed_query(
-            query,
+            &query.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
             embedding_model,
             Some(config.unwrap_or(&TextEmbedConfig::default())),
         )

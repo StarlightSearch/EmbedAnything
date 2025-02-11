@@ -51,8 +51,8 @@ async fn main() {
     )
     .unwrap();
 
-    let query = vec!["Rust for web scraping".to_string()];
-    let query_embedding: Vec<f32> = embed_query(query, &embedder, Some(&embed_config))
+    let query = ["Rust for web scraping"];
+    let query_embedding: Vec<f32> = embed_query(&query, &embedder, Some(&embed_config))
         .await
         .unwrap()
         .iter()

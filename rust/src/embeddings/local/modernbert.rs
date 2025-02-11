@@ -113,20 +113,17 @@ impl ModernBertEmbedder {
 impl BertEmbed for ModernBertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let token_ids = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device).unwrap();
-            let attention_mask =
-                get_attention_mask(&self.tokenizer, mini_text_batch, &self.device).unwrap();
+            let (token_ids, attention_mask) = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
             let embeddings: Tensor = self
                 .model
-                .forward(&token_ids, &attention_mask)
-                .unwrap()
+                .forward(&token_ids, &attention_mask)?
                 .to_dtype(DType::F32)
                 .unwrap();
             let pooled_output = self
@@ -136,8 +133,8 @@ impl BertEmbed for ModernBertEmbedder {
                 .to_tensor()
                 .unwrap();
 
-            let embeddings = normalize_l2(&pooled_output).unwrap();
-            let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
+            let embeddings = normalize_l2(&pooled_output)?;
+            let batch_encodings = embeddings.to_vec2::<f32>()?;
 
             encodings.extend(
                 batch_encodings

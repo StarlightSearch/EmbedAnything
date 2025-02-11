@@ -5,9 +5,9 @@ use tokenizers::Tokenizer;
 
 pub fn tokenize_batch(
     tokenizer: &Tokenizer,
-    text_batch: &[String],
+    text_batch: &[&str],
     device: &Device,
-) -> anyhow::Result<Tensor> {
+) -> anyhow::Result<(Tensor, Tensor)> {
     let tokens = tokenizer
         .encode_batch(text_batch.to_vec(), true)
         .map_err(E::msg)?;
@@ -18,8 +18,15 @@ pub fn tokenize_batch(
             Tensor::new(tokens.as_slice(), device)
         })
         .collect::<candle_core::Result<Vec<_>>>()?;
+    let attention_mask = tokens
+        .iter()
+        .map(|tokens| {
+            let tokens = tokens.get_attention_mask().to_vec();
+            Tensor::new(tokens.as_slice(), device)
+        })
+        .collect::<candle_core::Result<Vec<_>>>()?;
 
-    Ok(Tensor::stack(&token_ids, 0)?)
+    Ok((Tensor::stack(&token_ids, 0)?, Tensor::stack(&attention_mask, 0)?))
 }
 
 pub fn get_attention_mask(
@@ -43,7 +50,7 @@ pub fn get_attention_mask(
 
 pub fn get_attention_mask_ndarray(
     tokenizer: &Tokenizer,
-    text_batch: &[String],
+    text_batch: &[&str],
 ) -> anyhow::Result<Array2<i64>> {
     let attention_mask = tokenizer
         .encode_batch(text_batch.to_vec(), true)
@@ -68,7 +75,7 @@ pub fn get_attention_mask_ndarray(
 
 pub fn tokenize_batch_ndarray(
     tokenizer: &Tokenizer,
-    text_batch: &[String],
+    text_batch: &[&str],
 ) -> anyhow::Result<Array2<i64>> {
     let token_ids = tokenizer
         .encode_batch(text_batch.to_vec(), true)
@@ -93,7 +100,7 @@ pub fn tokenize_batch_ndarray(
 
 pub fn get_type_ids_ndarray(
     tokenizer: &Tokenizer,
-    text_batch: &[String],
+    text_batch: &[&str],
 ) -> anyhow::Result<Array2<i64>> {
     let token_ids = tokenizer
         .encode_batch(text_batch.to_vec(), true)

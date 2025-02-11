@@ -161,7 +161,7 @@ impl OrtBertEmbedder {
 impl BertEmbed for OrtBertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);
@@ -317,7 +317,7 @@ impl OrtSparseBertEmbedder {
 impl BertEmbed for OrtSparseBertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);

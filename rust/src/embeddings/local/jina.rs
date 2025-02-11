@@ -5,6 +5,7 @@ extern crate intel_mkl_src;
 extern crate accelerate_src;
 
 use crate::embeddings::select_device;
+use crate::embeddings::utils::tokenize_batch;
 use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
 use crate::models::jina_bert::{BertModel, Config};
 use anyhow::Error as E;
@@ -17,7 +18,7 @@ use tokenizers::Tokenizer;
 pub trait JinaEmbed {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
@@ -88,39 +89,24 @@ impl JinaEmbedder {
         Ok(Self { model, tokenizer })
     }
 
-    pub fn tokenize_batch(&self, text_batch: &[String], device: &Device) -> anyhow::Result<Tensor> {
-        let tokens = self
-            .tokenizer
-            .encode_batch(text_batch.to_vec(), true)
-            .map_err(E::msg)?;
-        let token_ids = tokens
-            .iter()
-            .map(|tokens| {
-                let tokens = tokens.get_ids().to_vec();
-                Tensor::new(tokens.as_slice(), device)
-            })
-            .collect::<candle_core::Result<Vec<_>>>()?;
-        Ok(Tensor::stack(&token_ids, 0)?)
-    }
+ 
+    
 
     pub fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let token_ids = self
-                .tokenize_batch(mini_text_batch, &self.model.device)
-                .unwrap();
-            let embeddings = self.model.forward(&token_ids).unwrap();
-            let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3().unwrap();
+            let (token_ids, _) = tokenize_batch(&self.tokenizer, mini_text_batch, &self.model.device)?;
+            let embeddings = self.model.forward(&token_ids)?;
+            let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3()?;
 
-            let embeddings = (embeddings.sum(1).unwrap() / (n_tokens as f64)).unwrap();
-            let embeddings = normalize_l2(&embeddings).unwrap();
+            let embeddings = (embeddings.sum(1)? / (n_tokens as f64))?;
+            let embeddings = normalize_l2(&embeddings)?;
 
-            // Avoid using to_vec2() and instead work with the Tensor directly
             encodings.extend((0..embeddings.dim(0)?).map(|i| {
                 EmbeddingResult::DenseVector(embeddings.get(i).unwrap().to_vec1().unwrap())
             }));
@@ -133,10 +119,10 @@ impl JinaEmbedder {
 impl JinaEmbed for JinaEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
-        self.embed(text_batch, batch_size)
+        self.embed(&text_batch, batch_size)
     }
 }
 
@@ -147,7 +133,7 @@ mod tests {
     #[test]
     fn test_embed() {
         let embedder = JinaEmbedder::new("jinaai/jina-embeddings-v2-small-en", None, None).unwrap();
-        let text_batch = vec!["Hello, world!".to_string()];
+        let text_batch = vec!["Hello, world!"];
 
         let encodings = embedder.embed(&text_batch, None).unwrap();
         println!("{:?}", encodings);
