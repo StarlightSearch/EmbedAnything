@@ -19,7 +19,7 @@ use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::embeddings::{
     embed::EmbeddingResult,
-    utils::{get_attention_mask_ndarray, tokenize_batch_ndarray},
+    utils::tokenize_batch_ndarray,
 };
 
 use super::bert::{BertEmbed, TokenizerConfig};
@@ -180,10 +180,9 @@ impl ColbertEmbed for OrtColbertEmbedder {
         let encodings = text_batch
             .par_chunks(batch_size)
             .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
-                let mut input_ids: Array2<i64> =
+                let (mut input_ids, mut attention_mask): (Array2<i64>, Array2<i64>) =
                     tokenize_batch_ndarray(&tokenizer, mini_text_batch)?;
                 let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-                let mut attention_mask: Array2<i64> = get_attention_mask_ndarray(&tokenizer, mini_text_batch)?;
 
                 // Insert marker token after the first token if available
                 if let Some(marker_id) = if is_doc {
@@ -266,12 +265,11 @@ impl BertEmbed for OrtColbertEmbedder {
         let encodings = text_batch
             .par_chunks(batch_size)
             .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
-                let input_ids: Array2<i64> =
-                    tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
+                let (input_ids, attention_mask): (Array2<i64>, Array2<i64>) =
+                        tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
 
                 let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-                let attention_mask: Array2<i64> = get_attention_mask_ndarray(&self.tokenizer, mini_text_batch)?;
-
+                    
                 let input_names = self
                     .model
                     .inputs

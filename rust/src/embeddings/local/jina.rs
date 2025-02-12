@@ -4,6 +4,8 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
+use super::bert::TokenizerConfig;
+use super::pooling::{ModelOutput, PooledOutputType, Pooling};
 use crate::embeddings::select_device;
 use crate::embeddings::utils::tokenize_batch;
 use crate::embeddings::{embed::EmbeddingResult, normalize_l2};
@@ -61,7 +63,23 @@ impl JinaEmbedder {
 
         let config_filename = api.get("config.json")?;
         let tokenizer_filename = api.get("tokenizer.json")?;
+        let tokenizer_config_filename = api.get("tokenizer_config.json")?;
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
+
+        let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
+        let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
+
+        // Set max_length to the minimum of max_length and model_max_length if both are present
+        let max_length = match (
+            tokenizer_config.max_length,
+            tokenizer_config.model_max_length,
+        ) {
+            (Some(max_len), Some(model_max_len)) => std::cmp::min(max_len, model_max_len),
+            (Some(max_len), None) => max_len,
+            (None, Some(model_max_len)) => model_max_len,
+            (None, None) => 256,
+        };
+
         let config = std::fs::read_to_string(config_filename)?;
         let config: Config = serde_json::from_str(&config)?;
         let device = select_device();
@@ -85,12 +103,17 @@ impl JinaEmbedder {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
             ..Default::default()
         };
-        tokenizer.with_padding(Some(pp));
+        let trunc = tokenizers::TruncationParams {
+            strategy: tokenizers::TruncationStrategy::LongestFirst,
+            max_length,
+            ..Default::default()
+        };
+        tokenizer
+            .with_padding(Some(pp))
+            .with_truncation(Some(trunc))
+            .unwrap();
         Ok(Self { model, tokenizer })
     }
-
- 
-    
 
     pub fn embed(
         &self,
@@ -100,18 +123,26 @@ impl JinaEmbedder {
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
         let batch_size = batch_size.unwrap_or(32);
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let (token_ids, _) = tokenize_batch(&self.tokenizer, mini_text_batch, &self.model.device)?;
+            let (token_ids, attention_mask) =
+                tokenize_batch(&self.tokenizer, mini_text_batch, &self.model.device)?;
+
             let embeddings = self.model.forward(&token_ids)?;
-            let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3()?;
+            let attention_mask = PooledOutputType::from(attention_mask);
+            let attention_mask = Some(&attention_mask);
+            let model_output = ModelOutput::Tensor(embeddings.clone());
+            let pooled_output = Pooling::Mean.pool(&model_output, attention_mask)?;
 
-            let embeddings = (embeddings.sum(1)? / (n_tokens as f64))?;
-            let embeddings = normalize_l2(&embeddings)?;
+            let pooled_output = pooled_output.to_tensor()?;
 
-            encodings.extend((0..embeddings.dim(0)?).map(|i| {
-                EmbeddingResult::DenseVector(embeddings.get(i).unwrap().to_vec1().unwrap())
-            }));
+            let embeddings = normalize_l2(pooled_output)?;
+            let batch_encodings = embeddings.to_vec2::<f32>()?;
+
+            encodings.extend(
+                batch_encodings
+                    .iter()
+                    .map(|x| EmbeddingResult::DenseVector(x.to_vec())),
+            );
         }
-
         Ok(encodings)
     }
 }

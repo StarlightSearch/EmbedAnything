@@ -94,6 +94,7 @@ pub enum WhichModel {
     ColBert,
     Clip,
     Jina,
+    ModernBert,
     Colpali,
 }
 
@@ -148,12 +149,13 @@ pub struct EmbeddingModel {
 #[pymethods]
 impl EmbeddingModel {
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None, token=None))]
+    #[pyo3(signature = (model, model_id, revision=None, token=None, dtype=None))]
     fn from_pretrained_hf(
         model: &WhichModel,
         model_id: Option<&str>,
         revision: Option<&str>,
         token: Option<&str>,
+        dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
         match model {
@@ -164,6 +166,26 @@ impl EmbeddingModel {
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                         token,
+                    )
+                    .unwrap(),
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::ModernBert => {
+                let model_id = model_id.unwrap_or("nomic-ai/modernbert-embed-base");
+                let dtype = match dtype {
+                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+                    _ => None,
+                };
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::modernbert::ModernBertEmbedder::new(
+                        model_id.to_string(),
+                        revision.map(|s| s.to_string()),
+                        token,
+                        dtype,
                     )
                     .unwrap(),
                 )));

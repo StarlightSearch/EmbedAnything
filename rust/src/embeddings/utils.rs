@@ -9,7 +9,7 @@ pub fn tokenize_batch(
     device: &Device,
 ) -> anyhow::Result<(Tensor, Tensor)> {
     let tokens = tokenizer
-        .encode_batch  (text_batch.to_vec(), true)
+        .encode_batch(text_batch.to_vec(), true)
         .map_err(E::msg)?;
     let token_ids = tokens
         .iter()
@@ -26,7 +26,10 @@ pub fn tokenize_batch(
         })
         .collect::<candle_core::Result<Vec<_>>>()?;
 
-    Ok((Tensor::stack(&token_ids, 0)?, Tensor::stack(&attention_mask, 0)?))
+    Ok((
+        Tensor::stack(&token_ids, 0)?,
+        Tensor::stack(&attention_mask, 0)?,
+    ))
 }
 
 pub fn get_attention_mask(
@@ -76,10 +79,11 @@ pub fn get_attention_mask_ndarray(
 pub fn tokenize_batch_ndarray(
     tokenizer: &Tokenizer,
     text_batch: &[&str],
-) -> anyhow::Result<Array2<i64>> {
-    let token_ids = tokenizer
+) -> anyhow::Result<(Array2<i64>, Array2<i64>)> {
+    let tokens = tokenizer
         .encode_batch(text_batch.to_vec(), true)
-        .map_err(E::msg)?
+        .map_err(E::msg)?;
+    let token_ids = tokens
         .iter()
         .map(|tokens| {
             tokens
@@ -89,13 +93,28 @@ pub fn tokenize_batch_ndarray(
                 .collect::<Vec<i64>>()
         })
         .collect::<Vec<Vec<i64>>>();
-
+    let attention_mask = tokens
+        .iter()
+        .map(|tokens| {
+            tokens
+                .get_attention_mask()
+                .to_vec()
+                .iter()
+                .map(|&id| id as i64)
+                .collect::<Vec<i64>>()
+        })
+        .collect::<Vec<Vec<i64>>>();
     let token_ids_array = Array2::from_shape_vec(
         (token_ids.len(), token_ids[0].len()),
         token_ids.into_iter().flatten().collect::<Vec<i64>>(),
     )
     .unwrap();
-    Ok(token_ids_array)
+    let attention_mask_array = Array2::from_shape_vec(
+        (attention_mask.len(), attention_mask[0].len()),
+        attention_mask.into_iter().flatten().collect::<Vec<i64>>(),
+    )
+    .unwrap();
+    Ok((token_ids_array, attention_mask_array))
 }
 
 pub fn get_type_ids_ndarray(

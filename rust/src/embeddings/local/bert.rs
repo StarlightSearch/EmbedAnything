@@ -20,7 +20,7 @@ use hf_hub::Repo;
 use serde::Deserialize;
 use tokenizers::{AddedToken, PaddingParams, Tokenizer, TruncationParams};
 
-use super::pooling::{ModelOutput, Pooling};
+use super::pooling::{ModelOutput, PooledOutputType, Pooling};
 
 pub trait BertEmbed {
     fn embed(
@@ -118,13 +118,11 @@ impl BertEmbedder {
             ..Default::default()
         };
 
- 
-
         tokenizer
             .with_padding(Some(pp))
             .with_truncation(Some(trunc))
             .map_err(E::msg)?;
-    
+
         let device = select_device();
         let vb = if weights_filename.ends_with("model.safetensors") {
             unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DTYPE, &device)? }
@@ -156,22 +154,22 @@ impl BertEmbed for BertEmbedder {
         for mini_text_batch in text_batch.chunks(batch_size) {
             let (token_ids, attention_mask) =
                 tokenize_batch(&self.tokenizer, mini_text_batch, &self.model.device)?;
-    
+
             let token_type_ids = token_ids.zeros_like()?;
             let embeddings: Tensor =
                 self.model
                     .forward(&token_ids, &token_type_ids, Some(&attention_mask))?;
-            let attention_mask = attention_mask
-                .unsqueeze(2)?
-                .expand(&[embeddings.dim(0)?, embeddings.dim(1)?, embeddings.dim(2)?])?
-                .to_dtype(embeddings.dtype())?;
-            let embeddings = embeddings.mul(&attention_mask)?;
-            let pooled_output = self
-                .pooling
-                .pool(&ModelOutput::Tensor(embeddings.clone()))?
-                .to_tensor()?;
 
-            let embeddings = normalize_l2(&pooled_output)?;
+            let attention_mask = PooledOutputType::from(attention_mask);
+            let attention_mask = Some(&attention_mask);
+            let model_output = ModelOutput::Tensor(embeddings.clone());
+            let pooled_output = match self.pooling {
+                Pooling::Cls => self.pooling.pool(&model_output, None)?,
+                Pooling::Mean => self.pooling.pool(&model_output, attention_mask)?,
+            };
+            let pooled_output = pooled_output.to_tensor()?;
+
+            let embeddings = normalize_l2(pooled_output)?;
             let batch_encodings = embeddings.to_vec2::<f32>()?;
 
             encodings.extend(
@@ -296,5 +294,37 @@ impl BertEmbed for SparseBertEmbedder {
             );
         }
         Ok(encodings)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_bert_embed() {
+        let embedder = BertEmbedder::new(
+            "sentence-transformers/all-MiniLM-L6-v2".to_string(),
+            None,
+            None,
+        )
+        .unwrap();
+        let embeddings = embedder
+            .embed(&["Hello, world!", "I am a rust programmer"], Some(32))
+            .unwrap();
+        let test_embeddings: Vec<f32> = vec![
+            -3.81771736e-02,
+            3.29111032e-02,
+            -5.45938499e-03,
+            1.43699143e-02,
+        ];
+        let embeddings = embeddings[0].to_dense().unwrap()[0..4].to_vec();
+        assert!(
+            (embeddings
+                .iter()
+                .zip(test_embeddings.iter())
+                .all(|(a, b)| a.abs() - b.abs() < 1e-5))
+        );
     }
 }

@@ -1,8 +1,9 @@
 use super::bert::TokenizerConfig;
 use super::jina::JinaEmbed;
-use super::pooling::{ModelOutput, Pooling};
+use super::pooling::{ModelOutput, PooledOutputType, Pooling};
 use super::text_embedding::{models_map, ONNXModel};
 use crate::embeddings::embed::EmbeddingResult;
+use crate::embeddings::utils::tokenize_batch_ndarray;
 use crate::Dtype;
 use anyhow::Error as E;
 use hf_hub::api::sync::Api;
@@ -113,7 +114,7 @@ impl OrtJinaEmbedder {
             (Some(max_len), Some(model_max_len)) => std::cmp::min(max_len, model_max_len),
             (Some(max_len), None) => max_len,
             (None, Some(model_max_len)) => model_max_len,
-            (None, None) => 128,
+            (None, None) => 256,
         };
 
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
@@ -164,28 +165,6 @@ impl OrtJinaEmbedder {
         })
     }
 
-    fn tokenize_batch(&self, text_batch: &[&str]) -> Result<Array2<i64>, E> {
-        let token_ids = self
-            .tokenizer
-            .encode_batch(text_batch.to_vec(), true)
-            .map_err(E::msg)?
-            .iter()
-            .map(|tokens| {
-                tokens
-                    .get_ids()
-                    .iter()
-                    .map(|&id| id as i64)
-                    .collect::<Vec<i64>>()
-            })
-            .collect::<Vec<Vec<i64>>>();
-
-        let token_ids_array = Array2::from_shape_vec(
-            (token_ids.len(), token_ids[0].len()),
-            token_ids.into_iter().flatten().collect::<Vec<i64>>(),
-        )
-        .unwrap();
-        Ok(token_ids_array)
-    }
 }
 
 impl JinaEmbed for OrtJinaEmbedder {
@@ -198,14 +177,14 @@ impl JinaEmbed for OrtJinaEmbedder {
         let encodings = text_batch
             .par_chunks(batch_size)
             .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
-                let token_ids: Array2<i64> = self.tokenize_batch(mini_text_batch)?;
+                let (token_ids, attention_mask): (Array2<i64>, Array2<i64>) =
+                    tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
                 let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
-                let attention_mask: Array2<i64> = Array2::ones(token_ids.raw_dim());
 
                 let embeddings = if self.version == "v3" {
                     let outputs = self.session.run(ort::inputs! {
                         "input_ids" => token_ids,
-                        "attention_mask" => attention_mask,
+                        "attention_mask" => attention_mask.clone(),
                         "task_id" => Array1::<i64>::from_vec(vec![4])
                     }?)?;
                     outputs["text_embeds"]
@@ -216,7 +195,7 @@ impl JinaEmbed for OrtJinaEmbedder {
                     let outputs = self.session.run(ort::inputs! {
                         "input_ids" => token_ids,
                         "token_type_ids" => token_type_ids,
-                        "attention_mask" => attention_mask
+                        "attention_mask" => attention_mask.clone()
                     }?)?;
                     outputs["last_hidden_state"]
                         .try_extract_tensor::<f32>()?
@@ -225,12 +204,18 @@ impl JinaEmbed for OrtJinaEmbedder {
                 };
 
                 let (_, _, _) = embeddings.dim();
-                let embeddings = self
-                    .pooling
-                    .pool(&ModelOutput::Array(embeddings))?
-                    .to_array()?;
+                let attention_mask = attention_mask.mapv(|x| x as f32);
+                let attention_mask = PooledOutputType::from(attention_mask);
+                let attention_mask = Some(&attention_mask);
+                let model_output = ModelOutput::Array(embeddings.clone());
+                let pooled_output = match self.pooling {
+                    Pooling::Cls => self.pooling.pool(&model_output, None)?,
+                    Pooling::Mean => self.pooling.pool(&model_output, attention_mask)?,
+                };
+                let embeddings = pooled_output.to_array()?;
+
                 let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
-                let embeddings = &embeddings / &norms.insert_axis(Axis(1));
+                let embeddings = embeddings / &norms.insert_axis(Axis(1));
 
                 Ok(embeddings.outer_iter().map(|row| row.to_vec()).collect())
             })
