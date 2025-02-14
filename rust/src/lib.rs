@@ -350,7 +350,8 @@ pub async fn embed_markdown(
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
-    let config = config.unwrap_or_default();
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
 
     let md_processor = MarkdownProcessor::new();
     let md = md_processor.process_markdown_file(file_name)?;
@@ -359,7 +360,7 @@ pub async fn embed_markdown(
         &embedder,
         config.chunk_size.unwrap_or(256),
         config.batch_size,
-    )
+    ).await
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -1,7 +1,9 @@
+use std::rc::Rc;
 use anyhow::Error;
 use anyhow::Result;
 use text_splitter::{ChunkConfig, MarkdownSplitter};
 use crate::embeddings::embed::{EmbedData, Embedder};
+use crate::embeddings::get_text_metadata;
 
 /// A struct that provides functionality to process Markdown files.
 pub struct MarkdownProcessor;
@@ -77,12 +79,17 @@ impl MarkdownDocument {
     ) -> Result<Vec<EmbedData>> {
         let splitter_config = ChunkConfig::new(chunk_size);
         let splitter = MarkdownSplitter::new(splitter_config);
-        splitter.chunks(&self.content)
-            .map(|part| {
-                embedder.embed(&[part.to_string()], batch_size)
-            })
-            .flatten()
-            .collect()
+        
+        let mut embed_data = Vec::new();
+        
+        for part in splitter.chunks(&self.content) {
+            let chunks = vec![part.to_string()];
+            let encodings = embedder.embed(&chunks, batch_size).await?;
+            let mut data = get_text_metadata(&Rc::new(encodings), &chunks, &None)?;
+            embed_data.append(&mut data)
+        }
+
+        Ok(embed_data)
     }
 }
 
