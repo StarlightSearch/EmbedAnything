@@ -30,7 +30,7 @@ image = "0.25.1"
 
 # Natural Language Processing
 tokenizers = {version="0.20.2", features=["http"]}
-text-splitter = {version="0.18.1", features=["tokenizers"]}
+text-splitter = {version="0.18.1", features=["tokenizers", "markdown"]}
 
 tracing = "0.1.37"
 

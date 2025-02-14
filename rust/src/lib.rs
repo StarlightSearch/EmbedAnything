@@ -90,6 +90,7 @@ use tokio::sync::mpsc; // Add this at the top of your file
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
 use crate::config::SplittingStrategy;
+use crate::file_processor::markdown_processor::MarkdownProcessor;
 
 pub enum Dtype {
     F16,
@@ -312,6 +313,53 @@ pub async fn embed_html(
     } else {
         Ok(Some(embeddings))
     }
+}
+
+/// Embeds a Markdown document using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `file_name` - The path of the HTML document to embed.
+/// * `embedder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
+///
+/// # Returns
+///
+/// The embeddings of the Markdown document.
+///
+/// # Errors
+///
+/// Returns an error if the specified embedding model is invalid.
+///
+/// # Example
+///
+/// ```
+/// use embed_anything::embed_markdown;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+///
+/// async fn get_embeddings() {
+///     let embeddings = embed_markdown(
+///         "test_files/test.md",
+///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
+///         None,
+///     ).await.unwrap();
+/// }
+/// ```
+pub async fn embed_markdown(
+    file_name: impl AsRef<std::path::Path>,
+    embedder: &Embedder,
+    config: Option<&TextEmbedConfig>,
+) -> Result<Vec<EmbedData>> {
+    let config = config.unwrap_or_default();
+
+    let md_processor = MarkdownProcessor::new();
+    let md = md_processor.process_markdown_file(file_name)?;
+
+    md.embed_markdown(
+        &embedder,
+        config.chunk_size.unwrap_or(256),
+        config.batch_size,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
