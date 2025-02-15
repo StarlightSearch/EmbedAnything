@@ -587,6 +587,124 @@ class EmbeddingModel:
         scenarios where performance is critical.
         """
 
+    def embed_file(
+        self,
+        file_path: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given file and returns a list of EmbedData objects.
+
+        Args:
+            file_path: The path to the file to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_audio_file(
+        self,
+        audio_file: str,
+        audio_decoder: AudioDecoderModel,
+        config: TextEmbedConfig | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given audio file and returns a list of EmbedData objects.
+
+        Args:
+            audio_file: The path to the audio file to embed.
+            audio_decoder: The audio decoder for the audio file.
+            config: The configuration for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_query(
+        self,
+        query: list[str],
+        config: TextEmbedConfig | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given list of queries and returns a list of EmbedData objects.
+
+        Args:
+            query: The list of queries to embed.
+            config: The configuration for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+
+    def embed_webpage(
+        self,
+        url: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given webpage and returns a list of EmbedData objects.
+
+        Args:
+            url: The URL of the webpage to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_directory(
+        self,
+        directory: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given directory and returns a list of EmbedData objects.
+
+        Args:
+            directory: The path to the directory to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_directory_stream(
+        self,
+        directory: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given directory and returns a list of EmbedData objects.
+
+        Args:
+            directory: The path to the directory to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_webpage(
+        self,
+        url: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given webpage and returns a list of EmbedData objects.
+
+        Args:
+            url: The URL of the webpage to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
 class AudioDecoderModel:
     """
     Represents an audio decoder model.
@@ -671,6 +789,7 @@ class ONNXModel(Enum):
     | `JINAV3`                         | jinaai/jina-embeddings-v3                        |
     | `SPLADEPPENV1`                   | prithivida/Splade_PP_en_v1                      |
     | `SPLADEPPENV2`                   | prithivida/Splade_PP_en_v2                      |
+    | `ModernBERTBase`                 | nomic-ai/modernbert-embed-base                   |
     ```
     """
 
@@ -739,3 +858,5 @@ class ONNXModel(Enum):
     SPLADEPPENV1 = "SPLADEPPENV1"
 
     SPLADEPPENV2 = "SPLADEPPENV2"
+
+    ModernBERTBase = "ModernBERTBase"

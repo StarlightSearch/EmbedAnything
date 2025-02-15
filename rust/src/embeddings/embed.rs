@@ -477,6 +477,7 @@ pub enum Embedder {
     Vision(VisionEmbedder),
 }
 
+
 impl Embedder {
     pub async fn embed(
         &self,

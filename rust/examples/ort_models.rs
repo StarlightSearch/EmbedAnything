@@ -1,9 +1,7 @@
 use candle_core::{Device, Tensor};
-use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embedder, EmbedderBuilder};
+use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
+use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
-use embed_anything::text_loader::SplittingStrategy;
-use embed_anything::Dtype;
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
 use std::sync::Arc;

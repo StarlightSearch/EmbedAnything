@@ -75,7 +75,7 @@ pub mod text_loader;
 use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::Result;
-use config::{ImageEmbedConfig, TextEmbedConfig};
+use config::{ImageEmbedConfig, TextEmbedConfig, SplittingStrategy};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
     get_text_metadata,
@@ -89,7 +89,6 @@ use tokio::sync::mpsc; // Add this at the top of your file
 
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
-use crate::config::SplittingStrategy;
 
 pub enum Dtype {
     F16,

@@ -351,6 +351,66 @@ impl EmbeddingModel {
             _ => panic!("Invalid model"),
         }
     }
+
+    #[pyo3(signature = (file_path, config=None, adapter=None))]
+    pub fn embed_file(
+        &self,
+        file_path: &str,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_file(file_path, self, config, adapter)
+    }
+
+    #[pyo3(signature = (url, config=None, adapter=None))]
+    pub fn embed_webpage(
+        &self,
+        url: &str,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_webpage(url.to_string(), self, config, adapter)
+    }
+
+    #[pyo3(signature = (directory, config=None, extensions=None, adapter=None))]
+    pub fn embed_directory(
+        &self,
+        directory: PathBuf,
+        config: Option<&config::TextEmbedConfig>,
+        extensions: Option<Vec<String>>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_directory(directory, self, extensions, config, adapter)
+    }
+
+    #[pyo3(signature = (directory, config=None, adapter=None))]
+    pub fn embed_image_directory(
+        &self,
+        directory: PathBuf,
+        config: Option<&config::ImageEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_image_directory(directory, self, config, adapter)
+    }
+
+    #[pyo3(signature = (query, config=None))]
+    pub fn embed_query(
+        &self,
+        query: Vec<String>,
+        config: Option<&config::TextEmbedConfig>,
+    ) -> PyResult<Vec<EmbedData>> {
+        embed_query(query, self, config)
+    }
+
+    #[pyo3(signature = (audio_file, audio_decoder, config=None))]
+    pub fn embed_audio_file(
+        &self,
+        audio_file: String,
+        audio_decoder: &mut AudioDecoderModel,
+        config: Option<&config::TextEmbedConfig>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_audio_file(audio_file, audio_decoder, self, config)
+    }
 }
 
 #[pyclass]
@@ -592,6 +652,7 @@ pub fn embed_image_directory(
     });
     Ok(data)
 }
+
 #[pyfunction]
 #[pyo3(signature = (url, embedder, config=None, adapter = None))]
 pub fn embed_webpage(

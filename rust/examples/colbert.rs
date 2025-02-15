@@ -1,6 +1,5 @@
-use embed_anything::config::TextEmbedConfig;
+use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
 use embed_anything::embeddings::embed::{EmbedData, Embedder};
-use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
 use std::sync::Arc;

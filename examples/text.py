@@ -4,7 +4,7 @@ import embed_anything
 from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
 
 # Initialize the model once
-model = EmbeddingModel.from_pretrained_hf(
+model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
     WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
@@ -20,8 +20,8 @@ def embed_directory_example():
     start = time.time()
 
     # Embed all files in a directory
-    data: list[EmbedData] = embed_anything.embed_directory(
-        "bench", embedder=model, config=config
+    data: list[EmbedData] = model.embed_directory(
+        "bench", config=config
     )
 
     # End timing
@@ -38,8 +38,8 @@ def embed_query_example():
     )
 
     # Embed a query
-    embeddings: EmbedData = embed_anything.embed_query(
-        ["Hello world my"], embedder=model, config=config
+    embeddings: EmbedData = model.embed_query(
+        ["Hello world my"], config=config
     )[0]
 
     # Print the shape of the embedding
@@ -61,8 +61,8 @@ def embed_file_example():
     )
 
     # Embed a single file
-    data: list[EmbedData] = embed_anything.embed_file(
-        "test_files/bank.txt", embedder=model, config=config
+    data: list[EmbedData] = model.embed_file(
+        "test_files/bank.txt", config=config
     )
 
     # Print the embedded data
