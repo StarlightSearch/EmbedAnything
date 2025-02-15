@@ -66,14 +66,11 @@ async fn main() -> anyhow::Result<()> {
         "A woman watches TV",
         "The new movie is so great",
         "Do you like pizza?",
-    ]
-    .iter()
-    .map(|x| x.to_string())
-    .collect::<Vec<_>>();
+    ];
 
     let n_sentences = sentences.len();
 
-    let out = embed_query(sentences.clone(), &model, Some(&config))
+    let out = embed_query(&sentences, &model, Some(&config))
         .await
         .unwrap();
 

@@ -94,6 +94,7 @@ pub enum WhichModel {
     ColBert,
     Clip,
     Jina,
+    ModernBert,
     Colpali,
 }
 
@@ -148,12 +149,13 @@ pub struct EmbeddingModel {
 #[pymethods]
 impl EmbeddingModel {
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None, token=None))]
+    #[pyo3(signature = (model, model_id, revision=None, token=None, dtype=None))]
     fn from_pretrained_hf(
         model: &WhichModel,
         model_id: Option<&str>,
         revision: Option<&str>,
         token: Option<&str>,
+        dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
         match model {
@@ -164,6 +166,26 @@ impl EmbeddingModel {
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                         token,
+                    )
+                    .unwrap(),
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::ModernBert => {
+                let model_id = model_id.unwrap_or("nomic-ai/modernbert-embed-base");
+                let dtype = match dtype {
+                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+                    _ => None,
+                };
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::modernbert::ModernBertEmbedder::new(
+                        model_id.to_string(),
+                        revision.map(|s| s.to_string()),
+                        token,
+                        dtype,
                     )
                     .unwrap(),
                 )));
@@ -362,6 +384,16 @@ impl EmbeddingModel {
         embed_file(file_path, self, config, adapter)
     }
 
+    #[pyo3(signature = (files, config=None, adapter=None))]
+    pub fn embed_files_batch(
+        &self,
+        files: Vec<PathBuf>,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_files_batch(files, self, config, adapter)
+    }
+    
     #[pyo3(signature = (url, config=None, adapter=None))]
     pub fn embed_webpage(
         &self,
@@ -454,7 +486,7 @@ pub fn embed_query(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     Ok(rt.block_on(async {
         embed_anything::embed_query(
-            query,
+            &query.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
             embedding_model,
             Some(config.unwrap_or(&TextEmbedConfig::default())),
         )
@@ -508,6 +540,58 @@ pub fn embed_file(
     let embeddings = rt
         .block_on(async {
             embed_anything::embed_file(file_name, embedding_model, config, adapter).await
+        })
+        .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
+            Some(FileLoadingError::FileNotFound(file)) => {
+                PyFileNotFoundError::new_err(file.clone())
+            }
+            Some(FileLoadingError::UnsupportedFileType(file)) => {
+                PyValueError::new_err(file.clone())
+            }
+            None => PyValueError::new_err(e.to_string()),
+        })?;
+
+    Ok(embeddings.map(|embs| {
+        embs.into_iter()
+            .map(|data| EmbedData { inner: data })
+            .collect()
+    }))
+}
+
+#[pyfunction]
+#[pyo3(signature = (files, embedder, config=None, adapter=None))]
+pub fn embed_files_batch(
+    files: Vec<PathBuf>,
+    embedder: &EmbeddingModel,
+    config: Option<&config::TextEmbedConfig>,
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
+    let config = config.map(|c| &c.inner);
+    let embedding_model = &embedder.inner;
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
+            };
+            Some(callback)
+        }
+        None => None,
+    };
+
+    let embeddings = rt
+        .block_on(async {
+            embed_anything::embed_files_batch(files, embedding_model, config, adapter).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {

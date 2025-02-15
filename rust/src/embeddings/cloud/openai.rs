@@ -53,7 +53,7 @@ impl OpenAIEmbedder {
 
     pub async fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let response = self
             .client

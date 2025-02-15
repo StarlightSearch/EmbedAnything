@@ -108,6 +108,41 @@ def embed_file(
     ```
     """
 
+def embed_files_batch(
+    files: list[str],
+    embedder: EmbeddingModel,
+    config: TextEmbedConfig | None = None,
+    adapter: Adapter | None = None,
+) -> list[EmbedData]:
+    """
+    Embeds the given files and returns a list of EmbedData objects.
+
+    Args:
+        files: The list of files to embed.
+        embedder: The embedding model to use.
+        config: The configuration for the embedding model.
+        adapter: The adapter to use for storing the embeddings in a vector database.
+
+    Returns:
+        A list of EmbedData objects.
+
+    Example:
+    ```python
+    import embed_anything
+    model = embed_anything.EmbeddingModel.from_pretrained_hf(
+        embed_anything.WhichModel.Bert,
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        revision="main",
+    )
+    data = embed_anything.embed_files_batch(
+        ["test_files/test.pdf", "test_files/test.txt"],
+        embedder=model,
+        config=embed_anything.TextEmbedConfig(),
+        adapter=None,
+    )
+    ```
+    """
+
 def embed_directory(
     file_path: str,
     embedder: EmbeddingModel,
@@ -479,7 +514,7 @@ class EmbeddingModel:
     """
 
     def from_pretrained_hf(
-        model: WhichModel, model_id: str, revision: str | None = None, token: str | None = None
+        model: WhichModel, model_id: str, revision: str | None = None, token: str | None = None, dtype: Dtype | None = None
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
@@ -488,6 +523,7 @@ class EmbeddingModel:
             model_id: The ID of the model.
             revision: The revision of the model.
             token: The Hugging Face token.
+            dtype: The dtype of the model.
         Returns:
             An EmbeddingModel object.
 
@@ -598,6 +634,23 @@ class EmbeddingModel:
 
         Args:
             file_path: The path to the file to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_files_batch(
+        self,
+        files: list[str],
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given files and returns a list of EmbedData objects.
+
+        Args:
+            files: The list of files to embed.
             config: The configuration for the embedding.
             adapter: The adapter for the embedding.
 
@@ -748,7 +801,7 @@ class WhichModel(Enum):
     Colpali = ("Colpali",)
     ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
-
+    ModernBert = ("ModernBert",)
 class ONNXModel(Enum):
     """
     Enum representing various ONNX models.

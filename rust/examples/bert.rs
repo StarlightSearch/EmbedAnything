@@ -1,7 +1,6 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
 use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
-use embed_anything::file_processor::docx_processor::DocxProcessor;
-use embed_anything::{embed_directory_stream, embed_file, Dtype};
+use embed_anything::{embed_directory_stream, embed_file, embed_files_batch, Dtype};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
@@ -10,8 +9,8 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("modernbert")
-            .model_id(Some("nomic-ai/modernbert-embed-base"))
+            .model_architecture("bert")
+            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
             .revision(None)
             .token(None)
             .dtype(Some(Dtype::F16))
@@ -20,16 +19,25 @@ async fn main() {
     );
 
     let config = TextEmbedConfig::default()
-        .with_chunk_size(256, Some(0.3))
+        .with_chunk_size(1000, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(32)
         .with_splitting_strategy(SplittingStrategy::Sentence);
 
-    DocxProcessor::extract_text(&PathBuf::from("test_files/test.docx")).unwrap();
     let now = Instant::now();
 
     let _out = embed_file(
         "test_files/test.pdf",
+        &model,
+        Some(&config),
+        None::<fn(Vec<EmbedData>)>,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+
+    let _out_2 = embed_files_batch(
+        vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
         &model,
         Some(&config),
         None::<fn(Vec<EmbedData>)>,
