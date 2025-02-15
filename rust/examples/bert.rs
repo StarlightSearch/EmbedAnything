@@ -1,26 +1,30 @@
-use embed_anything::config::TextEmbedConfig;
-use embed_anything::embeddings::embed::{EmbedData, Embedder, TextEmbedder};
-use embed_anything::file_processor::docx_processor::DocxProcessor;
-use embed_anything::text_loader::SplittingStrategy;
-use embed_anything::{embed_directory_stream, embed_file};
+use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
+use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
+use embed_anything::{embed_directory_stream, embed_file, embed_files_batch, Dtype};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
 
 #[tokio::main]
 async fn main() {
-    let model = Arc::new(Embedder::Text(
-        TextEmbedder::from_pretrained_hf("jina", "jinaai/jina-embeddings-v2-small-en", None)
+    let model = Arc::new(
+        EmbedderBuilder::new()
+            .model_architecture("bert")
+            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
+            .revision(None)
+            .token(None)
+            .dtype(Some(Dtype::F16))
+            .from_pretrained_hf()
             .unwrap(),
-    ));
+    );
+
     let config = TextEmbedConfig::default()
-        .with_chunk_size(256, Some(0.3))
+        .with_chunk_size(1000, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(32)
-        .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Arc::clone(&model));
+        .with_splitting_strategy(SplittingStrategy::Sentence);
 
-    DocxProcessor::extract_text(&PathBuf::from("test_files/test.docx")).unwrap();
+    let now = Instant::now();
 
     let _out = embed_file(
         "test_files/test.pdf",
@@ -31,6 +35,20 @@ async fn main() {
     .await
     .unwrap()
     .unwrap();
+
+    let _out_2 = embed_files_batch(
+        vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
+        &model,
+        Some(&config),
+        None::<fn(Vec<EmbedData>)>,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+
+    let elapsed_time: std::time::Duration = now.elapsed();
+
+    println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 
     let now = Instant::now();
 
@@ -62,6 +80,6 @@ async fn main() {
     println!("Embedded files: {:?}", embedded_files_set);
 
     println!("Number of chunks: {:?}", _out.len());
-    let elapsed_time = now.elapsed();
+    let elapsed_time: std::time::Duration = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());
 }

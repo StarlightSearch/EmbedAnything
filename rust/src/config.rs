@@ -1,16 +1,53 @@
+use crate::embeddings::embed::Embedder;
 use std::sync::Arc;
 
-use crate::{embeddings::embed::Embedder, text_loader::SplittingStrategy};
-
+/// Configuration for text embedding.
+///
+/// # Example: Creating a new instance
+///
+/// ```rust
+/// use embed_anything::config::{TextEmbedConfig, SplittingStrategy};
+/// let config = TextEmbedConfig::new(
+///     Some(512),
+///     Some(128),
+///     Some(100),
+///     Some(0.0),
+///     SplittingStrategy::Sentence,
+///     Some(true),
+///     None
+/// );
+/// ```
+///
+/// # Example: Overriding a single default
+///
+/// ```rust
+/// use embed_anything::config::{TextEmbedConfig, SplittingStrategy};
+/// let config = TextEmbedConfig {
+///     splitting_strategy: SplittingStrategy::Semantic,
+///     ..Default::default()
+/// };
+/// ```
 #[derive(Clone)]
 pub struct TextEmbedConfig {
+    /// Controls the size of each "chunk" of data that your input text gets split into. Defaults to
+    /// 256.
     pub chunk_size: Option<usize>,
+    /// Controls the ratio of overlapping data across "chunks" of your input text. Defaults to 0.0,
+    /// or no overlap.
     pub overlap_ratio: Option<f32>,
+    /// Controls the size of each "batch" of data sent to the embedder. The default value depends
+    /// largely on the embedder, but will be set to 32 when using [TextEmbedConfig::default()]
     pub batch_size: Option<usize>,
-    pub buffer_size: Option<usize>, // Required for adapter. Default is 100.
-    pub splitting_strategy: Option<SplittingStrategy>,
-    pub semantic_encoder: Option<Arc<Embedder>>,
+    /// When using an adapter, this controls the size of the buffer. Defaults to 100.
+    pub buffer_size: Option<usize>,
+    /// Controls how documents are split into segments. See [SplittingStrategy] for options.
+    /// Defaults to [SplittingStrategy::Sentence]
+    pub splitting_strategy: SplittingStrategy,
+    /// When embedding a PDF, controls whether **o**ptical **c**haracter **r**ecognition is used on
+    /// the PDF to extract text. This process involves rendering the PDF as a series of images, and
+    /// extracting text from the images. Defaults to false.
     pub use_ocr: Option<bool>,
+    pub tesseract_path: Option<String>,
 }
 
 impl Default for TextEmbedConfig {
@@ -20,41 +57,31 @@ impl Default for TextEmbedConfig {
             overlap_ratio: Some(0.0),
             batch_size: Some(32),
             buffer_size: Some(100),
-            splitting_strategy: None,
-            semantic_encoder: None,
+            splitting_strategy: SplittingStrategy::Sentence,
             use_ocr: None,
+            tesseract_path: None,
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl TextEmbedConfig {
     pub fn new(
         chunk_size: Option<usize>,
         batch_size: Option<usize>,
         buffer_size: Option<usize>,
         overlap_ratio: Option<f32>,
-        splitting_strategy: Option<SplittingStrategy>,
-        semantic_encoder: Option<Arc<Embedder>>,
+        splitting_strategy: SplittingStrategy,
         use_ocr: Option<bool>,
+        tesseract_path: Option<String>,
     ) -> Self {
-        let config = Self::default()
+        Self::default()
             .with_chunk_size(chunk_size.unwrap_or(256), overlap_ratio)
             .with_batch_size(batch_size.unwrap_or(32))
             .with_buffer_size(buffer_size.unwrap_or(100))
-            .with_ocr(use_ocr.unwrap_or(false));
-
-        match splitting_strategy {
-            Some(SplittingStrategy::Semantic) => {
-                if semantic_encoder.is_none() {
-                    panic!("Semantic encoder is required when using Semantic splitting strategy");
-                }
-                config
-                    .with_semantic_encoder(semantic_encoder.unwrap())
-                    .with_splitting_strategy(SplittingStrategy::Semantic)
-            }
-            Some(strategy) => config.with_splitting_strategy(strategy),
-            None => config,
-        }
+            .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref())
+            .with_splitting_strategy(splitting_strategy)
+            .build()
     }
 
     pub fn with_chunk_size(mut self, size: usize, overlap_ratio: Option<f32>) -> Self {
@@ -74,19 +101,35 @@ impl TextEmbedConfig {
     }
 
     pub fn with_splitting_strategy(mut self, strategy: SplittingStrategy) -> Self {
-        self.splitting_strategy = Some(strategy);
+        self.splitting_strategy = strategy;
         self
     }
 
-    pub fn with_semantic_encoder(mut self, encoder: Arc<Embedder>) -> Self {
-        self.semantic_encoder = Some(encoder);
-        self
-    }
-
-    pub fn with_ocr(mut self, use_ocr: bool) -> Self {
+    /// Use this to do OCR on the documents to extract text.
+    /// Set the path to None if you want to use the default path with tesseract installed on your system.
+    /// You can check if tesseract is installed by running tesseract in your command line.
+    /// If you want to use a custom path, you can set the path to the path of the tesseract executable.
+    pub fn with_ocr(mut self, use_ocr: bool, tesseract_path: Option<&str>) -> Self {
         self.use_ocr = Some(use_ocr);
+        self.tesseract_path = tesseract_path.map(|p| p.to_string());
         self
     }
+
+    pub fn build(self) -> TextEmbedConfig {
+        self
+    }
+}
+
+#[derive(Clone)]
+pub enum SplittingStrategy {
+    /// Splits text-based content by sentence, resulting in one embedding per sentence.
+    Sentence,
+    /// Uses an embedder to determine semantic relevance of chunks of text. Produces embeddings that
+    /// may be longer, or shorter than a sentence.
+    Semantic {
+        /// Specifies the embedder used when the splitting semantically.
+        semantic_encoder: Arc<Embedder>
+    },
 }
 
 #[derive(Clone)]

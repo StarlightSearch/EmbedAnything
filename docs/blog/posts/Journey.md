@@ -50,7 +50,7 @@ And thus, vector streaming was born.
 
 It's time to release 0.3 because we underwent major code refactoring. All the major functions are refactored, making calling models more intuitive and optimized. Check out our docs and usage. We also added audio modality and different types of ingestions.
 
-We only supported dense, so we expanded the types of embedding we could support. We went for sparse and started supporting ColPali, Onnx, and Candle.
+We only supported dense, so we expanded the types of embedding we could support. We went for sparse and started supporting ColPali, ColBert, ModernBert, Reranker, Jina V3.
 
 ## What We Got Right
 
@@ -61,7 +61,7 @@ We also released benches comparing it with other inference and to our suprise it
 
 We presented Embedanything at many conferences, like Pydata Global, Elastic, voxel 51 meetups, AI builders, etc. Additionally, we forged collaborations with major brands like Weaviate and Elastic, a strategy we’re excited to continue expanding in 2025.
 
-[Weaviate Collab](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
+[Elastic Collab](https://www.youtube.com/live/OzQopxkxHyY?si=shJ2hADyPPsYWmIF)
 
 
 ## What We Initially Got Wrong

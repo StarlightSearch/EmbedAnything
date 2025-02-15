@@ -13,10 +13,12 @@ use hf_hub::{api::sync::Api, Repo, RepoType};
 use rand::{distributions::Distribution, SeedableRng};
 use tokenizers::Tokenizer;
 
-use candle_transformers::models::whisper::{self as m, audio, Config};
+use candle_transformers::models::whisper::{self as m, Config};
 
 use crate::embeddings::select_device;
-use crate::{embeddings::embed::AudioDecoder, file_processor::audio::pcm_decode};
+
+#[cfg(feature = "audio")]
+use {crate::embeddings::embed::AudioDecoder, candle_transformers::models::whisper::audio};
 
 pub enum WhichAudioDecoderModel {
     Normal(m::model::Whisper),
@@ -84,28 +86,28 @@ pub struct Segment {
 }
 
 #[allow(dead_code)]
-enum Task {
+pub enum Task {
     Transcribe,
     Translate,
 }
 pub struct Decoder<'a> {
-    model: &'a mut AudioDecoderModel,
-    rng: rand::rngs::StdRng,
-    task: Option<Task>,
-    timestamps: bool,
-    verbose: bool,
-    suppress_tokens: Tensor,
-    sot_token: u32,
-    transcribe_token: u32,
-    translate_token: u32,
-    eot_token: u32,
-    no_speech_token: u32,
-    no_timestamps_token: u32,
-    language_token: Option<u32>,
+    pub model: &'a mut AudioDecoderModel,
+    pub rng: rand::rngs::StdRng,
+    pub task: Option<Task>,
+    pub timestamps: bool,
+    pub verbose: bool,
+    pub suppress_tokens: Tensor,
+    pub sot_token: u32,
+    pub transcribe_token: u32,
+    pub translate_token: u32,
+    pub eot_token: u32,
+    pub no_speech_token: u32,
+    pub no_timestamps_token: u32,
+    pub language_token: Option<u32>,
 }
 
 impl<'a> Decoder<'a> {
-    fn new(
+    pub fn new(
         model: &'a mut AudioDecoderModel,
         seed: u64,
         device: &Device,
@@ -156,7 +158,7 @@ impl<'a> Decoder<'a> {
         })
     }
 
-    fn decode(&mut self, mel: &Tensor, t: f64) -> Result<DecodingResult> {
+    pub fn decode(&mut self, mel: &Tensor, t: f64) -> Result<DecodingResult> {
         let model = &mut self.model;
         let audio_features = model.model.encoder_forward(mel, true)?;
         if self.verbose {
@@ -247,7 +249,7 @@ impl<'a> Decoder<'a> {
         })
     }
 
-    fn decode_with_fallback(&mut self, segment: &Tensor) -> Result<DecodingResult> {
+    pub fn decode_with_fallback(&mut self, segment: &Tensor) -> Result<DecodingResult> {
         for (i, &t) in m::TEMPERATURES.iter().enumerate() {
             let dr: Result<DecodingResult> = self.decode(segment, t);
             if i == m::TEMPERATURES.len() - 1 {
@@ -270,7 +272,7 @@ impl<'a> Decoder<'a> {
         unreachable!()
     }
 
-    fn run(&mut self, mel: &Tensor) -> Result<Vec<Segment>> {
+    pub fn run(&mut self, mel: &Tensor) -> Result<Vec<Segment>> {
         let (_, _, content_frames) = mel.dims3()?;
         let mut seek = 0;
         let mut segments = vec![];
@@ -555,59 +557,67 @@ impl AudioDecoderModel {
             }
         }
     }
-
-    pub fn process_audio<T: AsRef<std::path::Path>>(
-        &mut self,
-        audio_path: T,
-    ) -> Result<Vec<Segment>> {
-        let mel_bytes = match self.config.num_mel_bins {
-            80 => include_bytes!("melfilters.bytes").as_slice(),
-            128 => include_bytes!("melfilters128.bytes").as_slice(),
-            nmel => anyhow::bail!("unexpected num_mel_bins {nmel}"),
-        };
-        let mut mel_filters = vec![0f32; mel_bytes.len() / 4];
-        <byteorder::LittleEndian as byteorder::ByteOrder>::read_f32_into(
-            mel_bytes,
-            &mut mel_filters,
-        );
-
-        let (pcm_data, sample_rate) = pcm_decode::pcm_decode(audio_path)?;
-        if sample_rate != m::SAMPLE_RATE as u32 {
-            anyhow::bail!("input file must have a {} sampling rate", m::SAMPLE_RATE)
-        }
-        println!("pcm data loaded {}", pcm_data.len());
-        let mel = audio::pcm_to_mel(&self.config, &pcm_data, &mel_filters);
-        let mel_len = mel.len();
-        let mel = Tensor::from_vec(
-            mel,
-            (
-                1,
-                self.config.num_mel_bins,
-                mel_len / self.config.num_mel_bins,
-            ),
-            &self.device,
-        )?;
-        println!("loaded mel: {:?}", mel.dims());
-
-        let language_token = None;
-
-        let mut dc = Decoder::new(
-            self,
-            299792458,
-            &self.device.clone(),
-            language_token,
-            Some(Task::Transcribe),
-            false,
-            false,
-        )?;
-        let segments = dc.run(&mel)?;
-
-        Ok(segments)
-    }
 }
 
-impl AudioDecoder for AudioDecoderModel {
-    fn decode_audio(&mut self, audio_file: &std::path::Path) -> Result<Vec<Segment>> {
-        self.process_audio(audio_file)
+#[cfg(feature = "audio")]
+mod audio_processing {
+    use super::*;
+    use crate::file_processor::audio::pcm_decode;
+
+    impl AudioDecoderModel {
+        pub fn process_audio<T: AsRef<std::path::Path>>(
+            &mut self,
+            audio_path: T,
+        ) -> Result<Vec<Segment>> {
+            let mel_bytes = match self.config.num_mel_bins {
+                80 => include_bytes!("melfilters.bytes").as_slice(),
+                128 => include_bytes!("melfilters128.bytes").as_slice(),
+                nmel => anyhow::bail!("unexpected num_mel_bins {nmel}"),
+            };
+            let mut mel_filters = vec![0f32; mel_bytes.len() / 4];
+            <byteorder::LittleEndian as byteorder::ByteOrder>::read_f32_into(
+                mel_bytes,
+                &mut mel_filters,
+            );
+
+            let (pcm_data, sample_rate) = pcm_decode::audio_processing::pcm_decode(audio_path)?;
+            if sample_rate != m::SAMPLE_RATE as u32 {
+                anyhow::bail!("input file must have a {} sampling rate", m::SAMPLE_RATE)
+            }
+            println!("pcm data loaded {}", pcm_data.len());
+            let mel = audio::pcm_to_mel(&self.config, &pcm_data, &mel_filters);
+            let mel_len = mel.len();
+            let mel = Tensor::from_vec(
+                mel,
+                (
+                    1,
+                    self.config.num_mel_bins,
+                    mel_len / self.config.num_mel_bins,
+                ),
+                &self.device,
+            )?;
+            println!("loaded mel: {:?}", mel.dims());
+
+            let language_token = None;
+
+            let mut dc = Decoder::new(
+                self,
+                299792458,
+                &self.device.clone(),
+                language_token,
+                Some(Task::Transcribe),
+                false,
+                false,
+            )?;
+            let segments = dc.run(&mel)?;
+
+            Ok(segments)
+        }
+    }
+
+    impl AudioDecoder for AudioDecoderModel {
+        fn decode_audio(&mut self, audio_file: &std::path::Path) -> Result<Vec<Segment>> {
+            self.process_audio(audio_file)
+        }
     }
 }

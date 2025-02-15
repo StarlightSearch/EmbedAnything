@@ -12,8 +12,9 @@ use crate::{
         get_text_metadata,
     },
     file_processor::html_processor::HtmlProcessor,
-    text_loader::{SplittingStrategy, TextLoader},
+    text_loader::TextLoader,
 };
+use crate::config::SplittingStrategy;
 
 #[derive(Debug)]
 pub struct WebPage {
@@ -94,7 +95,7 @@ impl WebPage {
         for content in tag_content {
             let textloader = TextLoader::new(chunk_size, overlap_ratio);
             let chunks =
-                match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
+                match textloader.split_into_chunks(content, SplittingStrategy::Sentence) {
                     Some(chunks) => chunks,
                     None => continue,
                 };
@@ -119,10 +120,10 @@ impl WebPage {
             });
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
-
-            let encodings = embedder.embed(&chunks, batch_size).await?;
+            let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
+            let encodings = embedder.embed(&chunk_refs, batch_size).await?;
             let embeddings =
-                get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
+                get_text_metadata(&Rc::new(encodings), &chunk_refs, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
 

@@ -108,6 +108,41 @@ def embed_file(
     ```
     """
 
+def embed_files_batch(
+    files: list[str],
+    embedder: EmbeddingModel,
+    config: TextEmbedConfig | None = None,
+    adapter: Adapter | None = None,
+) -> list[EmbedData]:
+    """
+    Embeds the given files and returns a list of EmbedData objects.
+
+    Args:
+        files: The list of files to embed.
+        embedder: The embedding model to use.
+        config: The configuration for the embedding model.
+        adapter: The adapter to use for storing the embeddings in a vector database.
+
+    Returns:
+        A list of EmbedData objects.
+
+    Example:
+    ```python
+    import embed_anything
+    model = embed_anything.EmbeddingModel.from_pretrained_hf(
+        embed_anything.WhichModel.Bert,
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        revision="main",
+    )
+    data = embed_anything.embed_files_batch(
+        ["test_files/test.pdf", "test_files/test.txt"],
+        embedder=model,
+        config=embed_anything.TextEmbedConfig(),
+        adapter=None,
+    )
+    ```
+    """
+
 def embed_directory(
     file_path: str,
     embedder: EmbeddingModel,
@@ -427,9 +462,10 @@ class TextEmbedConfig:
     Attributes:
         chunk_size: The chunk size for the Text Embedding model.
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
-        splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence".
+        splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence". If semantic splitting is used, semantic_encoder is required.
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
         use_ocr: A flag indicating whether to use OCR for the Text Embedding model. Default is False.
+        tesseract_path: The path to the Tesseract OCR executable. Default is None and uses the system path.
     """
 
     def __init__(
@@ -441,6 +477,7 @@ class TextEmbedConfig:
         splitting_strategy: str | None = "sentence",
         semantic_encoder: EmbeddingModel | None = None,
         use_ocr: bool | None = False,
+        tesseract_path: str | None = None,
     ):
         self.chunk_size = chunk_size
         self.overlap_ratio = overlap_ratio
@@ -449,6 +486,7 @@ class TextEmbedConfig:
         self.splitting_strategy = splitting_strategy
         self.semantic_encoder = semantic_encoder
         self.use_ocr = use_ocr
+        self.tesseract_path = tesseract_path
     chunk_size: int | None
     overlap_ratio: float | None
     batch_size: int | None
@@ -456,6 +494,7 @@ class TextEmbedConfig:
     splitting_strategy: str | None
     semantic_encoder: EmbeddingModel | None
     use_ocr: bool | None
+    tesseract_path: str | None
 
 class ImageEmbedConfig:
     """
@@ -475,7 +514,7 @@ class EmbeddingModel:
     """
 
     def from_pretrained_hf(
-        model: WhichModel, model_id: str, revision: str | None = None
+        model: WhichModel, model_id: str, revision: str | None = None, token: str | None = None, dtype: Dtype | None = None
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
@@ -483,7 +522,8 @@ class EmbeddingModel:
         Attributes:
             model_id: The ID of the model.
             revision: The revision of the model.
-
+            token: The Hugging Face token.
+            dtype: The dtype of the model.
         Returns:
             An EmbeddingModel object.
 
@@ -583,6 +623,141 @@ class EmbeddingModel:
         scenarios where performance is critical.
         """
 
+    def embed_file(
+        self,
+        file_path: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given file and returns a list of EmbedData objects.
+
+        Args:
+            file_path: The path to the file to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_files_batch(
+        self,
+        files: list[str],
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given files and returns a list of EmbedData objects.
+
+        Args:
+            files: The list of files to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_audio_file(
+        self,
+        audio_file: str,
+        audio_decoder: AudioDecoderModel,
+        config: TextEmbedConfig | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given audio file and returns a list of EmbedData objects.
+
+        Args:
+            audio_file: The path to the audio file to embed.
+            audio_decoder: The audio decoder for the audio file.
+            config: The configuration for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_query(
+        self,
+        query: list[str],
+        config: TextEmbedConfig | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given list of queries and returns a list of EmbedData objects.
+
+        Args:
+            query: The list of queries to embed.
+            config: The configuration for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+
+    def embed_webpage(
+        self,
+        url: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given webpage and returns a list of EmbedData objects.
+
+        Args:
+            url: The URL of the webpage to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_directory(
+        self,
+        directory: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given directory and returns a list of EmbedData objects.
+
+        Args:
+            directory: The path to the directory to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_directory_stream(
+        self,
+        directory: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given directory and returns a list of EmbedData objects.
+
+        Args:
+            directory: The path to the directory to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+    def embed_webpage(
+        self,
+        url: str,
+        config: TextEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given webpage and returns a list of EmbedData objects.
+
+        Args:
+            url: The URL of the webpage to embed.
+            config: The configuration for the embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
 class AudioDecoderModel:
     """
     Represents an audio decoder model.
@@ -626,7 +801,7 @@ class WhichModel(Enum):
     Colpali = ("Colpali",)
     ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
-
+    ModernBert = ("ModernBert",)
 class ONNXModel(Enum):
     """
     Enum representing various ONNX models.
@@ -667,6 +842,7 @@ class ONNXModel(Enum):
     | `JINAV3`                         | jinaai/jina-embeddings-v3                        |
     | `SPLADEPPENV1`                   | prithivida/Splade_PP_en_v1                      |
     | `SPLADEPPENV2`                   | prithivida/Splade_PP_en_v2                      |
+    | `ModernBERTBase`                 | nomic-ai/modernbert-embed-base                   |
     ```
     """
 
@@ -735,3 +911,5 @@ class ONNXModel(Enum):
     SPLADEPPENV1 = "SPLADEPPENV1"
 
     SPLADEPPENV2 = "SPLADEPPENV2"
+
+    ModernBERTBase = "ModernBERTBase"

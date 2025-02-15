@@ -2,13 +2,12 @@ use clap::{Parser, ValueEnum};
 
 use candle_core::{Device, Tensor};
 use embed_anything::{
-    config::TextEmbedConfig,
+    config::{SplittingStrategy, TextEmbedConfig},
     embed_query,
     embeddings::{
-        embed::{Embedder, TextEmbedder},
+        embed::{Embedder, EmbedderBuilder},
         local::text_embedding::ONNXModel,
     },
-    text_loader::SplittingStrategy,
 };
 use std::sync::Arc;
 
@@ -42,18 +41,21 @@ async fn main() -> anyhow::Result<()> {
             )
             .unwrap(),
         ),
-        ModelType::Normal => Arc::new(Embedder::Text(
-            TextEmbedder::from_pretrained_hf("sparse-bert", "prithivida/Splade_PP_en_v1", None)
+        ModelType::Normal => Arc::new(
+            EmbedderBuilder::new()
+                .model_architecture("sparse-bert")
+                .model_id(Some("prithivida/Splade_PP_en_v1"))
+                .revision(None)
+                .from_pretrained_hf()
                 .unwrap(),
-        )),
+        ),
     };
 
     let config = TextEmbedConfig::default()
         .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(100)
-        .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Arc::clone(&model));
+        .with_splitting_strategy(SplittingStrategy::Sentence);
 
     let sentences = [
         "The cat sits outside",
@@ -64,14 +66,11 @@ async fn main() -> anyhow::Result<()> {
         "A woman watches TV",
         "The new movie is so great",
         "Do you like pizza?",
-    ]
-    .iter()
-    .map(|x| x.to_string())
-    .collect::<Vec<_>>();
+    ];
 
     let n_sentences = sentences.len();
 
-    let out = embed_query(sentences.clone(), &model, Some(&config))
+    let out = embed_query(&sentences, &model, Some(&config))
         .await
         .unwrap();
 

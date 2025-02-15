@@ -84,7 +84,8 @@ impl EmbedData {
 }
 
 #[pyclass(eq, eq_int)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Hash, EnumString, Debug)]
+#[strum(serialize_all = "snake_case")]
 pub enum WhichModel {
     OpenAI,
     Cohere,
@@ -93,6 +94,7 @@ pub enum WhichModel {
     ColBert,
     Clip,
     Jina,
+    ModernBert,
     Colpali,
 }
 
@@ -139,38 +141,6 @@ impl fmt::Display for ONNXModel {
     }
 }
 
-impl From<&str> for WhichModel {
-    fn from(s: &str) -> Self {
-        match s {
-            "openai" | "OpenAI" => WhichModel::OpenAI,
-            "cohere" | "Cohere" => WhichModel::Cohere,
-            "bert" | "Bert" => WhichModel::Bert,
-            "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
-            "colbert" | "Colbert" => WhichModel::ColBert,
-            "clip" | "Clip" => WhichModel::Clip,
-            "jina" | "Jina" => WhichModel::Jina,
-            "colpali" | "Colpali" => WhichModel::Colpali,
-            _ => panic!("Invalid model"),
-        }
-    }
-}
-
-impl From<String> for WhichModel {
-    fn from(s: String) -> Self {
-        match s.as_str() {
-            "openai" | "OpenAI" => WhichModel::OpenAI,
-            "cohere" | "Cohere" => WhichModel::Cohere,
-            "bert" | "Bert" => WhichModel::Bert,
-            "sparse-bert" | "SparseBert" => WhichModel::SparseBert,
-            "clip" | "Clip" => WhichModel::Clip,
-            "jina" | "Jina" => WhichModel::Jina,
-            "colpali" | "Colpali" => WhichModel::Colpali,
-            "colbert" | "Colbert" => WhichModel::ColBert,
-            _ => panic!("Invalid model"),
-        }
-    }
-}
-
 #[pyclass]
 pub struct EmbeddingModel {
     pub inner: Arc<Embedder>,
@@ -179,11 +149,13 @@ pub struct EmbeddingModel {
 #[pymethods]
 impl EmbeddingModel {
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None))]
+    #[pyo3(signature = (model, model_id, revision=None, token=None, dtype=None))]
     fn from_pretrained_hf(
         model: &WhichModel,
         model_id: Option<&str>,
         revision: Option<&str>,
+        token: Option<&str>,
+        dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
         match model {
@@ -193,6 +165,27 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::bert::BertEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
+                        token,
+                    )
+                    .unwrap(),
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::ModernBert => {
+                let model_id = model_id.unwrap_or("nomic-ai/modernbert-embed-base");
+                let dtype = match dtype {
+                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+                    _ => None,
+                };
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::modernbert::ModernBertEmbedder::new(
+                        model_id.to_string(),
+                        revision.map(|s| s.to_string()),
+                        token,
+                        dtype,
                     )
                     .unwrap(),
                 )));
@@ -206,6 +199,7 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::bert::SparseBertEmbedder::new(
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
+                        token,
                     )
                     .unwrap(),
                 )));
@@ -219,6 +213,7 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::clip::ClipEmbedder::new(
                         model_id.to_string(),
                         revision,
+                        token,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 ));
@@ -229,8 +224,10 @@ impl EmbeddingModel {
             WhichModel::Jina => {
                 let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
                 let model = Embedder::Text(TextEmbedder::Jina(Box::new(
-                    embed_anything::embeddings::local::jina::JinaEmbedder::new(model_id, revision)
-                        .unwrap(),
+                    embed_anything::embeddings::local::jina::JinaEmbedder::new(
+                        model_id, revision, token,
+                    )
+                    .unwrap(),
                 )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
@@ -309,14 +306,16 @@ impl EmbeddingModel {
             Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
             None => None,
         };
-        let model_name = model_name.map(|model_name| embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
-                    &model_name.to_string(),
-                )
-                .unwrap());
+        let model_name = model_name.map(|model_name| {
+            embed_anything::embeddings::local::text_embedding::ONNXModel::from_str(
+                &model_name.to_string(),
+            )
+            .unwrap()
+        });
         match model {
             WhichModel::Bert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::OrtBertEmbedder::new(
+                    embed_anything::embeddings::local::ort_bert::OrtBertEmbedder::new(
                         model_name,
                         hf_model_id,
                         revision,
@@ -331,7 +330,7 @@ impl EmbeddingModel {
             }
             WhichModel::SparseBert => {
                 let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::OrtSparseBertEmbedder::new(
+                    embed_anything::embeddings::local::ort_bert::OrtSparseBertEmbedder::new(
                         model_name,
                         hf_model_id,
                         revision,
@@ -345,7 +344,7 @@ impl EmbeddingModel {
             }
             WhichModel::Jina => {
                 let model = Embedder::Text(TextEmbedder::Jina(Box::new(
-                    embed_anything::embeddings::local::jina::OrtJinaEmbedder::new(
+                    embed_anything::embeddings::local::ort_jina::OrtJinaEmbedder::new(
                         model_name,
                         hf_model_id,
                         revision,
@@ -373,6 +372,76 @@ impl EmbeddingModel {
             }
             _ => panic!("Invalid model"),
         }
+    }
+
+    #[pyo3(signature = (file_path, config=None, adapter=None))]
+    pub fn embed_file(
+        &self,
+        file_path: &str,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_file(file_path, self, config, adapter)
+    }
+
+    #[pyo3(signature = (files, config=None, adapter=None))]
+    pub fn embed_files_batch(
+        &self,
+        files: Vec<PathBuf>,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_files_batch(files, self, config, adapter)
+    }
+    
+    #[pyo3(signature = (url, config=None, adapter=None))]
+    pub fn embed_webpage(
+        &self,
+        url: &str,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_webpage(url.to_string(), self, config, adapter)
+    }
+
+    #[pyo3(signature = (directory, config=None, extensions=None, adapter=None))]
+    pub fn embed_directory(
+        &self,
+        directory: PathBuf,
+        config: Option<&config::TextEmbedConfig>,
+        extensions: Option<Vec<String>>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_directory(directory, self, extensions, config, adapter)
+    }
+
+    #[pyo3(signature = (directory, config=None, adapter=None))]
+    pub fn embed_image_directory(
+        &self,
+        directory: PathBuf,
+        config: Option<&config::ImageEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_image_directory(directory, self, config, adapter)
+    }
+
+    #[pyo3(signature = (query, config=None))]
+    pub fn embed_query(
+        &self,
+        query: Vec<String>,
+        config: Option<&config::TextEmbedConfig>,
+    ) -> PyResult<Vec<EmbedData>> {
+        embed_query(query, self, config)
+    }
+
+    #[pyo3(signature = (audio_file, audio_decoder, config=None))]
+    pub fn embed_audio_file(
+        &self,
+        audio_file: String,
+        audio_decoder: &mut AudioDecoderModel,
+        config: Option<&config::TextEmbedConfig>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_audio_file(audio_file, audio_decoder, self, config)
     }
 }
 
@@ -417,7 +486,7 @@ pub fn embed_query(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     Ok(rt.block_on(async {
         embed_anything::embed_query(
-            query,
+            &query.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
             embedding_model,
             Some(config.unwrap_or(&TextEmbedConfig::default())),
         )
@@ -471,6 +540,58 @@ pub fn embed_file(
     let embeddings = rt
         .block_on(async {
             embed_anything::embed_file(file_name, embedding_model, config, adapter).await
+        })
+        .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
+            Some(FileLoadingError::FileNotFound(file)) => {
+                PyFileNotFoundError::new_err(file.clone())
+            }
+            Some(FileLoadingError::UnsupportedFileType(file)) => {
+                PyValueError::new_err(file.clone())
+            }
+            None => PyValueError::new_err(e.to_string()),
+        })?;
+
+    Ok(embeddings.map(|embs| {
+        embs.into_iter()
+            .map(|data| EmbedData { inner: data })
+            .collect()
+    }))
+}
+
+#[pyfunction]
+#[pyo3(signature = (files, embedder, config=None, adapter=None))]
+pub fn embed_files_batch(
+    files: Vec<PathBuf>,
+    embedder: &EmbeddingModel,
+    config: Option<&config::TextEmbedConfig>,
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
+    let config = config.map(|c| &c.inner);
+    let embedding_model = &embedder.inner;
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
+            };
+            Some(callback)
+        }
+        None => None,
+    };
+
+    let embeddings = rt
+        .block_on(async {
+            embed_anything::embed_files_batch(files, embedding_model, config, adapter).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -615,6 +736,7 @@ pub fn embed_image_directory(
     });
     Ok(data)
 }
+
 #[pyfunction]
 #[pyo3(signature = (url, embedder, config=None, adapter = None))]
 pub fn embed_webpage(

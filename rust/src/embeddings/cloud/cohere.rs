@@ -36,7 +36,7 @@ impl CohereEmbedder {
     ///
     /// # Arguments
     ///
-    /// * `model` - A string slice that holds the model to be used for embedding. Find available models at https://docs.cohere.com/docs/cohere-embed
+    /// * `model` - A string slice that holds the model to be used for embedding. Find available models at <https://docs.cohere.com/docs/cohere-embed>
     /// * `api_key` - An optional string slice that holds the API key for authenticating requests to the Cohere API.
     ///
     /// # Returns
@@ -56,7 +56,7 @@ impl CohereEmbedder {
 
     pub async fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let response = self
             .client
@@ -92,8 +92,8 @@ mod tests {
     async fn test_cohere_embed() {
         let cohere = CohereEmbedder::default();
         let text_batch = vec![
-            "Once upon a time".to_string(),
-            "The quick brown fox jumps over the lazy dog".to_string(),
+            "Once upon a time",
+            "The quick brown fox jumps over the lazy dog",
         ];
 
         let embeddings = cohere.embed(&text_batch).await.unwrap();

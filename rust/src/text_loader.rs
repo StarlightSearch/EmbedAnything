@@ -1,32 +1,23 @@
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    fs,
-    sync::Arc,
+    fs
+    ,
 };
 
 use crate::{
-    chunkers::statistical::StatisticalChunker,
-    embeddings::{embed::TextEmbedder, local::jina::JinaEmbedder},
+    chunkers::statistical::StatisticalChunker
+    ,
     file_processor::docx_processor::DocxProcessor,
 };
-use crate::{
-    embeddings::embed::Embedder,
-    file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor},
-};
+use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 use anyhow::Error;
 use chrono::{DateTime, Local};
-use text_splitter::{ChunkConfig, TextSplitter};
-use tokenizers::Tokenizer;
+use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
 use super::file_processor::pdf_processor::PdfProcessor;
+use crate::config::SplittingStrategy;
 use rayon::prelude::*;
-
-#[derive(Clone, Copy)]
-pub enum SplittingStrategy {
-    Sentence,
-    Semantic,
-}
 
 impl Default for TextLoader {
     fn default() -> Self {
@@ -66,7 +57,7 @@ impl From<FileLoadingError> for Error {
 
 #[derive(Debug)]
 pub struct TextLoader {
-    pub splitter: TextSplitter<Tokenizer>,
+    pub splitter: TextSplitter<Characters>,
 }
 impl TextLoader {
     pub fn new(chunk_size: usize, overlap_ratio: f32) -> Self {
@@ -75,18 +66,13 @@ impl TextLoader {
                 ChunkConfig::new(chunk_size)
                     .with_overlap(chunk_size * overlap_ratio as usize)
                     .unwrap()
-                    .with_sizer(
-                        Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
-                    ),
             ),
-            // splitter: TextSplitter::new(ChunkConfig::new(chunk_size)),
         }
     }
     pub fn split_into_chunks(
         &self,
         text: &str,
         splitting_strategy: SplittingStrategy,
-        semantic_encoder: Option<Arc<Embedder>>,
     ) -> Option<Vec<String>> {
         if text.is_empty() {
             return None;
@@ -104,12 +90,9 @@ impl TextLoader {
                 .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
-            SplittingStrategy::Semantic => {
-                let embedder = semantic_encoder.unwrap_or(Arc::new(Embedder::Text(
-                    TextEmbedder::Jina(Box::new(JinaEmbedder::default())),
-                )));
+            SplittingStrategy::Semantic { semantic_encoder } => {
                 let chunker = StatisticalChunker {
-                    encoder: embedder,
+                    encoder: semantic_encoder,
                     ..Default::default()
                 };
 
@@ -121,12 +104,13 @@ impl TextLoader {
             }
         };
 
-        Some(chunks)
+        Some(chunks.iter().map(|s| s.to_string()).collect())
     }
 
     pub fn extract_text<T: AsRef<std::path::Path>>(
         file: &T,
         use_ocr: bool,
+        tesseract_path: Option<&str>,
     ) -> Result<String, Error> {
         if !file.as_ref().exists() {
             return Err(FileLoadingError::FileNotFound(
@@ -136,7 +120,7 @@ impl TextLoader {
         }
         let file_extension = file.as_ref().extension().unwrap();
         match file_extension.to_str().unwrap() {
-            "pdf" => PdfProcessor::extract_text(file, use_ocr),
+            "pdf" => PdfProcessor::extract_text(file, use_ocr, tesseract_path),
             "md" => MarkdownProcessor::extract_text(file),
             "txt" => TxtProcessor::extract_text(file),
             "docx" => DocxProcessor::extract_text(file),
@@ -183,7 +167,7 @@ mod tests {
     #[test]
     fn test_text_loader() {
         let file_path = PathBuf::from("../test_files/test.pdf");
-        let text = TextLoader::extract_text(&file_path, false)
+        let text = TextLoader::extract_text(&file_path, false, None)
             .unwrap()
             .replace("\n\n", "{{DOUBLE_NEWLINE}}")
             .replace("\n", " ")
@@ -191,7 +175,7 @@ mod tests {
             .replace("  ", " ");
 
         let text_loader = TextLoader::new(256, 0.0);
-        let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence, None);
+        let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence);
 
         for chunk in chunks.unwrap() {
             println!("-----------------------------------");

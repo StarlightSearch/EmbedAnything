@@ -2,7 +2,7 @@ import weaviate, os
 import weaviate.classes as wvc
 from tqdm.auto import tqdm
 import embed_anything
-from embed_anything import EmbedData
+from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
 from embed_anything.vectordb import Adapter
 import textwrap
 
@@ -57,15 +57,15 @@ if index_name in weaviate_adapter.client.collections.list_all():
 weaviate_adapter.create_index("Test_index")
 
 
-# model id and embed image directory
-model = embed_anything.EmbeddingModel.from_pretrained_hf(
-    embed_anything.WhichModel.Bert,
-    model_id="sentence-transformers/all-MiniLM-L12-v2",
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
 
-data = embed_anything.embed_directory(
-    "test_files", embedder=model, adapter=weaviate_adapter
+data = embed_anything.embed_file(
+    "/home/sonamAI/projects/EmbedAnything/test_files/attention.pdf",
+    embedder=model,
+    adapter=weaviate_adapter,
 )
 
 query_vector = embed_anything.embed_query(["What is attention"], embedder=model)[

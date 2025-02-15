@@ -114,17 +114,22 @@ except:
 pinecone_adapter.create_index(dimension=512, metric="cosine")
 
 
-clip_model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Clip, "openai/clip-vit-base-patch16", revision="main"
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
-embed_config = TextEmbedConfig(chunk_size=512, batch_size=32, buffer_size=200)
+
+data = embed_anything.embed_file(
+    "/home/sonamAI/projects/EmbedAnything/test_files/attention.pdf",
+    embedder=model,
+    adapter=pinecone_adapter,
+)
+
 
 
 data = embed_anything.embed_image_directory(
     "test_files",
-    embedder=clip_model,
-    adapter=pinecone_adapter,
-    config=embed_config,
+    embedder=model,
+    adapter=pinecone_adapter
 )
 print(data)

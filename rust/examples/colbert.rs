@@ -1,6 +1,5 @@
-use embed_anything::config::TextEmbedConfig;
+use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
 use embed_anything::embeddings::embed::{EmbedData, Embedder};
-use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
 use std::sync::Arc;
@@ -54,12 +53,10 @@ async fn main() -> Result<(), anyhow::Error> {
         "Der Hund sitzt im Park", // German for "The dog is sitting in the park"
         "pizza is the best",
         "मैं पिज्जा पसंद करता हूं", // Hindi for "I like pizza"
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect::<Vec<_>>();
+    ];
 
-    let _doc_embeddings = embed_query(sentences.clone(), &model, Some(&config))
+
+    let _doc_embeddings = embed_query(&sentences, &model, Some(&config))
         .await
         .unwrap();
 

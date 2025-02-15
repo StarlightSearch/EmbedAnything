@@ -1,12 +1,13 @@
 use crate::embeddings::embed::{EmbedData, Embedder};
 use crate::embeddings::get_text_metadata;
-use crate::text_loader::{SplittingStrategy, TextLoader};
+use crate::text_loader::TextLoader;
 use anyhow::Result;
 use scraper::{Html, Selector};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use url::Url;
+use crate::config::SplittingStrategy;
 
 #[derive(Debug)]
 pub struct HtmlDocument {
@@ -87,7 +88,7 @@ impl HtmlDocument {
         for content in tag_content {
             let textloader = TextLoader::new(chunk_size, overlap_ratio);
             let chunks =
-                match textloader.split_into_chunks(content, SplittingStrategy::Sentence, None) {
+                match textloader.split_into_chunks(content, SplittingStrategy::Sentence) {
                     Some(chunks) => chunks,
                     None => continue,
                 };
@@ -112,10 +113,10 @@ impl HtmlDocument {
             });
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
-
-            let encodings = embedder.embed(&chunks, batch_size).await?;
+            let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
+            let encodings = embedder.embed(&chunk_refs, batch_size).await?;
             let embeddings =
-                get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
+                get_text_metadata(&Rc::new(encodings), &chunk_refs, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
 

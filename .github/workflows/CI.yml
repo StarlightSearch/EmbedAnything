@@ -66,7 +66,7 @@ jobs:
 
       - name: Build with Maturin
         run: |
-          maturin build --release --out dist --find-interpreter --features mkl,extension-module
+          maturin build --release --out dist --find-interpreter --features mkl,extension-module,ort,audio
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -91,7 +91,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features mkl,extension-module
+          args: --release --out dist --find-interpreter --features mkl,extension-module,ort,audio
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -116,7 +116,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features accelerate,extension-module
+          args: --release --out dist --find-interpreter --features accelerate,extension-module,ort,audio
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4

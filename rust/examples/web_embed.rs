@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use candle_core::Tensor;
 use embed_anything::{
-    config::TextEmbedConfig,
+    config::{SplittingStrategy, TextEmbedConfig},
     embed_query, embed_webpage,
-    embeddings::embed::{EmbedData, Embedder},
-    text_loader::SplittingStrategy,
+    embeddings::embed::{EmbedData, EmbedderBuilder},
 };
 
 #[tokio::main]
@@ -14,7 +13,11 @@ async fn main() {
     let url = "https://www.scrapingbee.com/blog/web-scraping-rust/".to_string();
 
     let embedder = Arc::new(
-        Embedder::from_pretrained_hf("bert", "sentence-transformers/all-MiniLM-L6-v2", None)
+        EmbedderBuilder::new()
+            .model_architecture("bert")
+            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
+            .revision(None)
+            .from_pretrained_hf()
             .unwrap(),
     );
 
@@ -22,8 +25,7 @@ async fn main() {
         .with_chunk_size(256, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(100)
-        .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Arc::clone(&embedder));
+        .with_splitting_strategy(SplittingStrategy::Sentence);
 
     let embed_data = embed_webpage(
         url,
@@ -47,8 +49,8 @@ async fn main() {
     )
     .unwrap();
 
-    let query = vec!["Rust for web scraping".to_string()];
-    let query_embedding: Vec<f32> = embed_query(query, &embedder, Some(&embed_config))
+    let query = ["Rust for web scraping"];
+    let query_embedding: Vec<f32> = embed_query(&query, &embedder, Some(&embed_config))
         .await
         .unwrap()
         .iter()
