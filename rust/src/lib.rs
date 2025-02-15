@@ -694,7 +694,7 @@ where
                         let files = embeddings
                             .iter()
                             .cloned()
-                            .map(|e| e.metadata.unwrap().get("file_name").unwrap().to_string())
+                            .map(|e| e.metadata.unwrap_or_default().get("file_name").unwrap().to_string())
                             .collect::<Vec<_>>();
                         let unique_files = files.into_iter().unique().collect::<Vec<_>>();
                         let old_len = files_processed.len() as u64;
@@ -718,11 +718,12 @@ where
     file_parser.files.iter().for_each(|file| {
         let text = match TextLoader::extract_text(file, use_ocr, tesseract_path) {
             Ok(text) => text,
-            Err(_) => {
-                return;
-            }
+            Err(_) => return,
         };
-        let metadata = TextLoader::get_metadata(file).unwrap();
+        let metadata = match TextLoader::get_metadata(file) {
+            Ok(metadata) => metadata,
+            Err(_) => return,
+        };
         let chunks = textloader
             .split_into_chunks(&text, SplittingStrategy::Sentence, None)
             .unwrap_or_else(|| vec![text])
