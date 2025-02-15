@@ -976,7 +976,7 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "embed_anything"
-version = "0.5.1"
+version = "0.5.3"
 dependencies = [
  "accelerate-src",
  "anyhow",
@@ -1028,7 +1028,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything_python"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "embed_anything",
  "pyo3",
