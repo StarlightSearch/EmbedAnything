@@ -69,7 +69,11 @@ futures = "0.3.30"
 pdf-extract = {workspace = true}
 docx-parser = "0.1.1"
 docx-rust = "=0.1.8"
-ort = {version = "=2.0.0-rc.9", features = ["cuda", "load-dynamic"], optional = true}
+
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ort = {version = "=2.0.0-rc.9", optional = true}
+
 ndarray = "0.16.1"
 ndarray-linalg = {version = "0.16.0"}
 pdf2image = "0.1.2"
