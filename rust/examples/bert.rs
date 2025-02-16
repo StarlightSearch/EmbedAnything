@@ -9,8 +9,8 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("bert")
-            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
+            .model_architecture("jina")
+            .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
             .revision(None)
             .token(None)
             .dtype(Some(Dtype::F16))
@@ -26,8 +26,10 @@ async fn main() {
 
     let now = Instant::now();
 
-    let _out = embed_file(
-        "test_files/test.pdf",
+
+
+    let _out_2 = embed_files_batch(
+        vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
         &model,
         Some(&config),
         None::<fn(Vec<EmbedData>)>,
@@ -36,9 +38,8 @@ async fn main() {
     .unwrap()
     .unwrap();
 
-    let _out_2 = embed_files_batch(
-        vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
-        &model,
+    let _out = model.embed_file(
+        "test_files/test.pdf",
         Some(&config),
         None::<fn(Vec<EmbedData>)>,
     )
@@ -52,13 +53,21 @@ async fn main() {
 
     let now = Instant::now();
 
-    let _out = embed_directory_stream(
+    let _out = model.embed_directory_stream(
         PathBuf::from("test_files"),
-        &model,
-        None,
-        // Some(vec!["txt".to_string()]),
+        Some(vec!["pdf".to_string(), "txt".to_string()]),
         Some(&config),
         None::<fn(Vec<EmbedData>)>,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+
+    let out2 = model.embed_html(
+        "test_files/test.html",
+        Some("https://www.google.com"),
+        Some(&config),
+        None,
     )
     .await
     .unwrap()

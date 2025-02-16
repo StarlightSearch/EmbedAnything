@@ -1,3 +1,4 @@
+use crate::config::{ImageEmbedConfig, TextEmbedConfig};
 use crate::file_processor::audio::audio_processor::Segment;
 use crate::Dtype;
 
@@ -11,9 +12,12 @@ use super::local::jina::{JinaEmbed, JinaEmbedder};
 use super::local::modernbert::ModernBertEmbedder;
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
+use anyhow::Result;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
+
 #[cfg(feature = "ort")]
 use {
     super::local::colbert::OrtColbertEmbedder,
@@ -477,7 +481,6 @@ pub enum Embedder {
     Vision(VisionEmbedder),
 }
 
-
 impl Embedder {
     pub async fn embed(
         &self,
@@ -590,6 +593,88 @@ impl Embedder {
             dtype,
             path_in_repo,
         )?))
+    }
+
+    pub async fn embed_directory_stream<F>(
+        self: &Arc<Self>,
+        directory: PathBuf,
+        extensions: Option<Vec<String>>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<F>,
+    ) -> Result<Option<Vec<EmbedData>>>
+    where
+        F: Fn(Vec<EmbedData>),
+    {
+        crate::embed_directory_stream(directory, self, extensions, config, adapter).await
+    }
+
+    pub async fn embed_image_directory<F>(
+        self: &Arc<Self>,
+        directory: PathBuf,
+        config: Option<&ImageEmbedConfig>,
+        adapter: Option<F>,
+    ) -> Result<Option<Vec<EmbedData>>>
+    where
+        F: Fn(Vec<EmbedData>),
+    {
+        crate::embed_image_directory(directory, self, config, adapter).await
+    }
+
+    pub async fn embed_file<T: AsRef<std::path::Path>, F>(
+        &self,
+        file_path: T,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<F>,
+    ) -> Result<Option<Vec<EmbedData>>>
+    where
+        F: Fn(Vec<EmbedData>),
+    {
+        crate::embed_file(file_path, self, config, adapter).await
+    }
+
+    pub async fn embed_files_batch<F>(
+        self: &Arc<Self>,
+        file_paths: Vec<PathBuf>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<F>,
+    ) -> Result<Option<Vec<EmbedData>>>
+    where
+        F: Fn(Vec<EmbedData>),
+    {
+        crate::embed_files_batch(file_paths, self, config, adapter).await
+    }
+
+    pub async fn embed_query<F>(
+        self: &Arc<Self>,
+        query: &[&str],
+        config: Option<&TextEmbedConfig>,
+    ) -> Result<Vec<EmbedData>>
+    where
+        F: Fn(Vec<EmbedData>),
+    {
+        crate::embed_query(query, self, config).await
+    }
+
+    pub async fn embed_webpage<F>(
+        &self,
+        url: String,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<F>,
+    ) -> Result<Option<Vec<EmbedData>>>
+    where
+        F: Fn(Vec<EmbedData>),
+    {
+        crate::embed_webpage(url, self, config, adapter).await
+    }
+
+    pub async fn embed_html(
+        &self,
+        file_name: impl AsRef<std::path::Path>,
+        origin: Option<impl Into<String>>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>)>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_html(file_name, origin, self, config, adapter).await
     }
 }
 

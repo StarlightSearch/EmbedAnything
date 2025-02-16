@@ -229,7 +229,7 @@ impl BertEmbed for OrtBertEmbedder {
 
         Ok(encodings
             .into_iter() // Use into_iter since we don't need the original vector
-            .map(|x| EmbeddingResult::DenseVector(x))
+            .map(EmbeddingResult::DenseVector)
             .collect())
     }
 }

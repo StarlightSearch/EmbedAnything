@@ -784,7 +784,6 @@ where
 /// }
 /// ```
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
-
 pub async fn embed_files_batch<F>(
     files: Vec<PathBuf>,
     embedder: &Arc<Embedder>,
