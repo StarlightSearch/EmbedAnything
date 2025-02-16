@@ -605,7 +605,9 @@ pub fn embed_files_batch(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_files_batch(files, embedding_model, config, adapter).await
+            embed_anything::embed_files_batch(files, embedding_model, config, adapter.map(|f| {
+                Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+            })).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -690,7 +692,9 @@ pub fn embed_directory(
             embedding_model,
             extensions,
             config,
-            adapter,
+            adapter.map(|f| {
+                Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+            }),
         )
         .await
         .map_err(|e| PyValueError::new_err(e.to_string()))
@@ -738,7 +742,9 @@ pub fn embed_image_directory(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_image_directory(directory, embedding_model, config, adapter)
+        embed_anything::embed_image_directory(directory, embedding_model, config, adapter.map(|f| {
+            Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+        }))
             .await
             .map_err(|e| PyValueError::new_err(e.to_string()))
             .unwrap()
@@ -783,7 +789,9 @@ pub fn embed_webpage(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_webpage(url, embedding_model, config, adapter)
+        embed_anything::embed_webpage(url, embedding_model, config, adapter.map(|f| {
+            Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+        }))
             .await
             .map_err(|e| PyValueError::new_err(e.to_string()))
             .unwrap()

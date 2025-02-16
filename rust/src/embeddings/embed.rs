@@ -595,28 +595,22 @@ impl Embedder {
         )?))
     }
 
-    pub async fn embed_directory_stream<F>(
+    pub async fn embed_directory_stream(
         self: &Arc<Self>,
         directory: PathBuf,
         extensions: Option<Vec<String>>,
         config: Option<&TextEmbedConfig>,
-        adapter: Option<F>,
-    ) -> Result<Option<Vec<EmbedData>>>
-    where
-        F: Fn(Vec<EmbedData>),
-    {
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_directory_stream(directory, self, extensions, config, adapter).await
     }
 
-    pub async fn embed_image_directory<F>(
+    pub async fn embed_image_directory(
         self: &Arc<Self>,
         directory: PathBuf,
         config: Option<&ImageEmbedConfig>,
-        adapter: Option<F>,
-    ) -> Result<Option<Vec<EmbedData>>>
-    where
-        F: Fn(Vec<EmbedData>),
-    {
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_image_directory(directory, self, config, adapter).await
     }
 
@@ -667,37 +661,30 @@ impl Embedder {
     /// }
     /// ```
     /// This will output the embeddings of the files in the specified directory using the specified embedding model.
-    pub async fn embed_files_batch<F>(
+    pub async fn embed_files_batch(
         self: &Arc<Self>,
-        file_paths: Vec<PathBuf>,
+        file_paths: impl IntoIterator<Item = impl AsRef<std::path::Path>>,
         config: Option<&TextEmbedConfig>,
-        adapter: Option<F>,
-    ) -> Result<Option<Vec<EmbedData>>>
-    where
-        F: Fn(Vec<EmbedData>),
-    {
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_files_batch(file_paths, self, config, adapter).await
     }
 
-    pub async fn embed_query<F>(
+    pub async fn embed_query(
         self: &Arc<Self>,
         query: &[&str],
         config: Option<&TextEmbedConfig>,
     ) -> Result<Vec<EmbedData>>
-    where
-        F: Fn(Vec<EmbedData>),
     {
         crate::embed_query(query, self, config).await
     }
 
-    pub async fn embed_webpage<F>(
+    pub async fn embed_webpage(
         &self,
         url: String,
         config: Option<&TextEmbedConfig>,
-        adapter: Option<F>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
     ) -> Result<Option<Vec<EmbedData>>>
-    where
-        F: Fn(Vec<EmbedData>),
     {
         crate::embed_webpage(url, self, config, adapter).await
     }

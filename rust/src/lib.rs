@@ -210,15 +210,13 @@ pub async fn embed_file<T: AsRef<std::path::Path>>(
 /// let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
 /// let embeddings = embed_webpage("https://en.wikipedia.org/wiki/Embedding".into(), &embedder, None, None).unwrap();
 /// ```
-pub async fn embed_webpage<F>(
+pub async fn embed_webpage(
     url: String,
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
-    adapter: Option<F>,
+    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>),
 {
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
@@ -437,14 +435,12 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
 ///
-pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static, F>(
+pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     directory: PathBuf,
     embedding_model: &Arc<T>,
     config: Option<&ImageEmbedConfig>,
-    adapter: Option<F>,
+    adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>),
 {
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
@@ -539,8 +535,9 @@ where
     drop(tx);
 
     let mut all_embeddings = Vec::new();
+    let mut adapter = adapter;
     while let Some(embeddings) = collector_rx.recv().await {
-        if let Some(adapter) = &adapter {
+        if let Some(adapter) = adapter.as_mut() {
             adapter(embeddings.to_vec());
         } else {
             all_embeddings.extend(embeddings.to_vec());
@@ -599,16 +596,13 @@ async fn process_images<E: EmbedImage>(
 /// }
 /// ```
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
-pub async fn embed_directory_stream<F>(
+pub async fn embed_directory_stream(
     directory: PathBuf,
     embedder: &Arc<Embedder>,
     extensions: Option<Vec<String>>,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>),
-{
+    adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+) -> Result<Option<Vec<EmbedData>>> {
     println!("Embedding directory: {:?}", directory);
 
     let binding = TextEmbedConfig::default();
@@ -626,6 +620,7 @@ where
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
     let embedder = embedder.clone();
+    let files: Vec<_> = files.into_iter().collect();
     let pb = indicatif::ProgressBar::new(files.len() as u64);
     pb.set_style(
         indicatif::ProgressStyle::with_template(
@@ -703,8 +698,8 @@ where
 
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
 
-    file_parser.files.iter().for_each(|file| {
-        let text = match TextLoader::extract_text(file, use_ocr, tesseract_path) {
+    files.into_iter().for_each(|file| {
+        let text = match TextLoader::extract_text(&file, use_ocr, tesseract_path) {
             Ok(text) => text,
             Err(_) => {
                 return;
@@ -728,8 +723,9 @@ where
     drop(tx);
 
     let mut all_embeddings = Vec::new();
+    let mut adapter = adapter;
     while let Some(embeddings) = collector_rx.recv().await {
-        if let Some(adapter) = &adapter {
+        if let Some(adapter) = adapter.as_mut() {
             adapter(embeddings.to_vec());
         } else {
             all_embeddings.extend(embeddings.to_vec());
@@ -777,14 +773,12 @@ where
 /// }
 /// ```
 /// This will output the embeddings of the files in the specified directory using the specified embedding model.
-pub async fn embed_files_batch<F>(
-    files: Vec<PathBuf>,
+pub async fn embed_files_batch(
+    files: impl IntoIterator<Item = impl AsRef<std::path::Path>>,
     embedder: &Arc<Embedder>,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
+    adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>),
 {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
@@ -799,6 +793,7 @@ where
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
     let embedder = embedder.clone();
+    let files: Vec<_> = files.into_iter().collect();
     let pb = indicatif::ProgressBar::new(files.len() as u64);
     pb.set_style(
         indicatif::ProgressStyle::with_template(
@@ -876,8 +871,8 @@ where
 
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
 
-    files.iter().for_each(|file| {
-        let text = match TextLoader::extract_text(file, use_ocr, tesseract_path) {
+    files.into_iter().for_each(|file| {
+        let text = match TextLoader::extract_text(&file, use_ocr, tesseract_path) {
             Ok(text) => text,
             Err(_) => {
                 return;
@@ -901,8 +896,9 @@ where
     drop(tx);
 
     let mut all_embeddings = Vec::new();
+    let mut adapter = adapter;
     while let Some(embeddings) = collector_rx.recv().await {
-        if let Some(adapter) = &adapter {
+        if let Some(adapter) = adapter.as_mut() {
             adapter(embeddings.to_vec());
         } else {
             all_embeddings.extend(embeddings.to_vec());

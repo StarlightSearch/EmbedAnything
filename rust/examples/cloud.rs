@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
         &openai_model,
         Some(vec!["pdf".to_string()]),
         Some(&text_embed_config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await?
     .unwrap();

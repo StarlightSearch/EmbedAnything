@@ -21,7 +21,7 @@ async fn main() {
         PathBuf::from("test_files"),
         &model,
         None,
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()

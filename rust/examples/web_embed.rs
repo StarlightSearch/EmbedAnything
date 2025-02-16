@@ -31,7 +31,7 @@ async fn main() {
         url,
         &embedder,
         Some(&embed_config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()

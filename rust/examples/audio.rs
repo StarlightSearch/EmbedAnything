@@ -26,15 +26,7 @@ async fn main() {
             .unwrap(),
     );
 
-    let semantic_encoder = Arc::new(
-        EmbedderBuilder::new()
-            .model_architecture("jina")
-            .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
-            .revision(None)
-            .token(None)
-            .from_pretrained_hf()
-            .unwrap(),
-    );
+
     let text_embed_config = TextEmbedConfig::default()
         .with_chunk_size(1000, Some(0.3))
         .with_batch_size(32)
