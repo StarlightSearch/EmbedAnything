@@ -1,6 +1,6 @@
 use candle_core::{Device, Tensor};
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
-use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
+use embed_anything::embeddings::embed::EmbedderBuilder;
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
