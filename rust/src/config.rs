@@ -30,7 +30,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct TextEmbedConfig {
     /// Controls the size of each "chunk" of data that your input text gets split into. Defaults to
-    /// 256.
+    /// 1000 Characters.
     pub chunk_size: Option<usize>,
     /// Controls the ratio of overlapping data across "chunks" of your input text. Defaults to 0.0,
     /// or no overlap.
@@ -53,7 +53,7 @@ pub struct TextEmbedConfig {
 impl Default for TextEmbedConfig {
     fn default() -> Self {
         Self {
-            chunk_size: Some(256),
+            chunk_size: Some(1000),
             overlap_ratio: Some(0.0),
             batch_size: Some(32),
             buffer_size: Some(100),
@@ -76,7 +76,7 @@ impl TextEmbedConfig {
         tesseract_path: Option<String>,
     ) -> Self {
         Self::default()
-            .with_chunk_size(chunk_size.unwrap_or(256), overlap_ratio)
+            .with_chunk_size(chunk_size.unwrap_or(1000), overlap_ratio)
             .with_batch_size(batch_size.unwrap_or(32))
             .with_buffer_size(buffer_size.unwrap_or(100))
             .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref())
@@ -86,7 +86,7 @@ impl TextEmbedConfig {
 
     pub fn with_chunk_size(mut self, size: usize, overlap_ratio: Option<f32>) -> Self {
         self.chunk_size = Some(size);
-        self.overlap_ratio = overlap_ratio;
+        self.overlap_ratio = Some(overlap_ratio.unwrap_or(0.0));
         self
     }
 

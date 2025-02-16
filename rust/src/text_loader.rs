@@ -21,7 +21,7 @@ use rayon::prelude::*;
 
 impl Default for TextLoader {
     fn default() -> Self {
-        Self::new(256, 0.0)
+        Self::new(1000, 0.0)
     }
 }
 
@@ -174,7 +174,7 @@ mod tests {
             .replace("{{DOUBLE_NEWLINE}}", "\n\n")
             .replace("  ", " ");
 
-        let text_loader = TextLoader::new(256, 0.0);
+        let text_loader = TextLoader::new(1000, 0.0);
         let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence);
 
         for chunk in chunks.unwrap() {

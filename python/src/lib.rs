@@ -443,6 +443,18 @@ impl EmbeddingModel {
     ) -> PyResult<Option<Vec<EmbedData>>> {
         embed_audio_file(audio_file, audio_decoder, self, config)
     }
+
+
+    #[pyo3(signature = (file_name, origin=None, config=None, adapter=None))]
+    pub fn embed_html(
+        &self,
+        file_name: &str,
+        origin: Option<&str>,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_html(file_name, self, origin, config, adapter)
+    }
 }
 
 #[pyclass]
@@ -539,7 +551,9 @@ pub fn embed_file(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_file(file_name, embedding_model, config, adapter).await
+            embed_anything::embed_file(file_name, embedding_model, config, adapter.map(|f| {
+                Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+            })).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -821,7 +835,7 @@ pub fn embed_html(
             embedding_model, 
             config,
             adapter.map(|f| {
-                Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>)>
+                Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
             }),
         )
         .await

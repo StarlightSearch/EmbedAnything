@@ -75,7 +75,7 @@ pub mod text_loader;
 use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::Result;
-use config::{ImageEmbedConfig, TextEmbedConfig, SplittingStrategy};
+use config::{ImageEmbedConfig, SplittingStrategy, TextEmbedConfig};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
     get_text_metadata,
@@ -137,7 +137,6 @@ pub async fn embed_query(
 ) -> Result<Vec<EmbedData>> {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let _chunk_size = config.chunk_size.unwrap_or(256);
     let batch_size = config.batch_size;
 
     let encodings = embedder.embed(query, batch_size).await?;
@@ -174,15 +173,12 @@ pub async fn embed_query(
 /// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap()));
 /// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
 /// ```
-pub async fn embed_file<T: AsRef<std::path::Path>, F>(
+pub async fn embed_file<T: AsRef<std::path::Path>>(
     file_name: T,
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>), // Add Send trait bound here
-{
+    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
+) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
         Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
@@ -233,7 +229,7 @@ where
 
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(256);
+    let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
 
@@ -289,14 +285,14 @@ pub async fn embed_html(
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
-    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>)>>,
+    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let html_processor = file_processor::html_processor::HtmlProcessor::new();
     let html = html_processor.process_html_file(file_name.as_ref(), origin)?;
 
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(256);
+    let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
 
@@ -314,18 +310,16 @@ pub async fn embed_html(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn emb_text<T: AsRef<std::path::Path>, F>(
+async fn emb_text<T: AsRef<std::path::Path>>(
     file: T,
     embedding_model: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
+    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>),
 {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(256);
+    let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
     let splitting_strategy = config.splitting_strategy.clone();
@@ -751,34 +745,33 @@ where
     }
 }
 
-
-/// Embeds a list of files. 
-/// 
+/// Embeds a list of files.
+///
 /// # Arguments
-/// 
+///
 /// * `files` - A vector of `PathBuf` objects representing the files to embed.
 /// * `embedder` - A reference to the embedding model to use.
 /// * `config` - An optional `TextEmbedConfig` object specifying the configuration for the embedding model.
 /// * `adapter` - An optional callback function to handle the embeddings.
-/// 
+///
 /// # Returns
 /// An `Option` containing a vector of `EmbedData` objects representing the embeddings of the files, or `None` if an adapter is used.
-/// 
+///
 /// # Errors
 /// Returns a `Result` with an error if the embedding process fails.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust
 /// use embed_anything::embed_files_batch;
 /// use std::path::PathBuf;
 /// use std::sync::Arc;
 /// use embed_anything::config::TextEmbedConfig;
 /// use embed_anything::embeddings::embed::Embedder;
-/// 
+///
 /// async fn generate_embeddings() {
 ///     let files = vec![PathBuf::from("test_files/test.txt"), PathBuf::from("test_files/test.pdf")];
-///     let embedder = Arc::new(Embedder::from_pretrained_hf("bert", "bert-base-uncased", None).unwrap());
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("bert", "jinaai/jina-embeddings-v2-small-en", None).unwrap());
 ///     let config = Some(&TextEmbedConfig::default());
 ///     let embeddings = embed_files_batch(files, &embedder, config, None).await.unwrap();
 /// }
@@ -793,7 +786,6 @@ pub async fn embed_files_batch<F>(
 where
     F: Fn(Vec<EmbedData>),
 {
-
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
@@ -925,7 +917,6 @@ where
         Ok(Some(all_embeddings))
     }
 }
-
 
 pub async fn process_chunks(
     chunks: &[String],

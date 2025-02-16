@@ -41,7 +41,7 @@ async fn main() {
     let _out = model.embed_file(
         "test_files/test.pdf",
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()
