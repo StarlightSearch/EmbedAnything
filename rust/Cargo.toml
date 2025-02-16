@@ -94,7 +94,7 @@ clap = { version = "4.5.20", features = ["derive"] }
 ort = {version = "=2.0.0-rc.9", features = ["load-dynamic"], optional = true}
 
 [target.'cfg(target_os = "macos")'.dependencies]
-ort = {version = "=2.0.0-rc.9", features = ["coreml"], optional = true}
+ort = {version = "=2.0.0-rc.9", optional = true}
 
 
 [features]
