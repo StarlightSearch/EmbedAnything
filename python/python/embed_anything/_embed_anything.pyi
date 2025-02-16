@@ -225,6 +225,41 @@ def embed_webpage(
     ```
     """
 
+def embed_html(
+    file_name: str,
+    embedder: EmbeddingModel,
+    origin: str | None = None,
+    config: TextEmbedConfig | None = None,
+    adapter: Adapter | None = None,
+) -> list[EmbedData]:
+    """
+    Embeds the given HTML file and returns a list of EmbedData objects.
+
+    Args:
+        file_name: The path to the HTML file to embed.
+        embedder: The embedding model to use.
+        origin: The origin of the HTML file.
+        config: The configuration for the embedding model.  
+        adapter: The adapter to use for storing the embeddings.
+
+    Returns:
+        A list of EmbedData objects.
+
+    Example:
+    ```python
+    import embed_anything
+    model = embed_anything.EmbeddingModel.from_pretrained_hf(
+        embed_anything.WhichModel.Bert,
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        revision="main",
+    )
+    data = embed_anything.embed_html(
+        "test_files/test.html", embedder=model, origin="https://www.akshaymakes.com/"
+    )
+    ```
+    """
+
+
 def embed_audio_file(
     file_path: str,
     audio_decoder: AudioDecoderModel,

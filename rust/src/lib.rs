@@ -281,8 +281,8 @@ where
 /// ```
 pub async fn embed_html(
     file_name: impl AsRef<std::path::Path>,
-    origin: Option<impl Into<String>>,
     embedder: &Embedder,
+    origin: Option<impl Into<String>>,
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,

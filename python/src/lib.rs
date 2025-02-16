@@ -831,8 +831,8 @@ pub fn embed_html(
     let data = rt.block_on(async {
         embed_anything::embed_html(
             file_name, 
-            origin, 
             embedding_model, 
+            origin, 
             config,
             adapter.map(|f| {
                 Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>

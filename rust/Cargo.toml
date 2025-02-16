@@ -69,7 +69,6 @@ futures = "0.3.30"
 pdf-extract = {workspace = true}
 docx-parser = "0.1.1"
 docx-rust = "=0.1.8"
-ort = {version = "=2.0.0-rc.9", features = ["cuda", "load-dynamic"], optional = true}
 ndarray = "0.16.1"
 ndarray-linalg = {version = "0.16.0"}
 pdf2image = "0.1.2"
@@ -91,12 +90,18 @@ tempdir = "0.3.7"
 lazy_static = "1.4.0"
 clap = { version = "4.5.20", features = ["derive"] }
 
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+ort = {version = "=2.0.0-rc.9", features = ["load-dynamic"], optional = true}
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ort = {version = "=2.0.0-rc.9", features = ["coreml"], optional = true}
+
 
 [features]
 default = []
 mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]
 accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
-cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
+cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda", "ort/cuda"]
 cudnn = ["candle-core/cudnn"]
 flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]
 metal = ["candle-core/metal", "candle-nn/metal"]

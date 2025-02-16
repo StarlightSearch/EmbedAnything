@@ -709,7 +709,7 @@ impl Embedder {
         config: Option<&TextEmbedConfig>,
         adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
     ) -> Result<Option<Vec<EmbedData>>> {
-        crate::embed_html(file_name, origin, self, config, adapter).await
+        crate::embed_html(file_name, self, origin, config, adapter).await
     }
 }
 
