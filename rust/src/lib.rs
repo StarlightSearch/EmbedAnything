@@ -339,14 +339,14 @@ pub async fn embed_html(
 ///
 /// async fn get_embeddings() {
 ///     let embeddings = embed_markdown(
-///         "test_files/test.md",
+///         "# This is some Markdown content",
 ///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
 ///         None,
 ///     ).await.unwrap();
 /// }
 /// ```
 pub async fn embed_markdown(
-    file_name: impl AsRef<std::path::Path>,
+    markdown: impl Into<String>,
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
@@ -354,7 +354,7 @@ pub async fn embed_markdown(
     let config = config.unwrap_or(&binding);
 
     let md_processor = MarkdownProcessor::new();
-    let md = md_processor.process_markdown_file(file_name)?;
+    let md = md_processor.process_markdown(markdown.into())?;
 
     md.embed_markdown(
         &embedder,
