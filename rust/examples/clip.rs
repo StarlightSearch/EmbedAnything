@@ -21,13 +21,13 @@ async fn main() {
         PathBuf::from("test_files"),
         &model,
         None,
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()
     .unwrap();
 
-    let query_emb_data = embed_query(vec!["Photo of a monkey".to_string()], &model, None)
+    let query_emb_data = embed_query(&["Photo of a monkey"], &model, None)
         .await
         .unwrap();
     let n_vectors = out.len();

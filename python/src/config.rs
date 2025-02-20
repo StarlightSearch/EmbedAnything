@@ -41,7 +41,7 @@ impl TextEmbedConfig {
 
         Self {
             inner: embed_anything::config::TextEmbedConfig::default()
-                .with_chunk_size(chunk_size.unwrap_or(256), overlap_ratio)
+                .with_chunk_size(chunk_size.unwrap_or(1000), overlap_ratio)
                 .with_batch_size(batch_size.unwrap_or(32))
                 .with_buffer_size(buffer_size.unwrap_or(100))
                 .with_splitting_strategy(strategy)

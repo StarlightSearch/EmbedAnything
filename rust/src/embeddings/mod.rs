@@ -15,13 +15,13 @@ pub mod utils;
 use rayon::prelude::*;
 pub fn get_text_metadata(
     encodings: &Rc<Vec<EmbeddingResult>>,
-    text_batch: &Vec<String>,
+    text_batch: &[&str],
     metadata: &Option<HashMap<String, String>>,
 ) -> anyhow::Result<Vec<EmbedData>> {
     let final_embeddings = encodings
         .par_iter()
         .zip(text_batch)
-        .map(|(data, text)| EmbedData::new(data.clone(), Some(text.clone()), metadata.clone()))
+        .map(|(data, text)| EmbedData::new(data.clone(), Some(text.to_string()), metadata.clone()))
         .collect::<Vec<_>>();
     Ok(final_embeddings)
 }
@@ -56,10 +56,10 @@ pub fn get_audio_metadata<T: AsRef<std::path::Path>>(
     Ok(final_embeddings)
 }
 
-pub fn text_batch_from_audio(segments: &[Segment]) -> Vec<String> {
+pub fn text_batch_from_audio(segments: &[Segment]) -> Vec<&str> {
     segments
         .iter()
-        .map(|segment| segment.dr.text.clone())
+        .map(|segment| segment.dr.text.as_str())
         .collect()
 }
 

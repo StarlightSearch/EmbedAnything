@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use candle_core::Tensor;
 use embed_anything::{
-    config::TextEmbedConfig,
+    config::{SplittingStrategy, TextEmbedConfig},
     embed_query, embed_webpage,
     embeddings::embed::{EmbedData, EmbedderBuilder},
-    text_loader::SplittingStrategy,
 };
 
 #[tokio::main]
@@ -23,17 +22,16 @@ async fn main() {
     );
 
     let embed_config = TextEmbedConfig::default()
-        .with_chunk_size(256, Some(0.3))
+        .with_chunk_size(1000, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(100)
-        .with_splitting_strategy(SplittingStrategy::Sentence)
-        .with_semantic_encoder(Some(Arc::clone(&embedder)));
+        .with_splitting_strategy(SplittingStrategy::Sentence);
 
     let embed_data = embed_webpage(
         url,
         &embedder,
         Some(&embed_config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()
@@ -51,8 +49,8 @@ async fn main() {
     )
     .unwrap();
 
-    let query = vec!["Rust for web scraping".to_string()];
-    let query_embedding: Vec<f32> = embed_query(query, &embedder, Some(&embed_config))
+    let query = ["Rust for web scraping"];
+    let query_embedding: Vec<f32> = embed_query(&query, &embedder, Some(&embed_config))
         .await
         .unwrap()
         .iter()

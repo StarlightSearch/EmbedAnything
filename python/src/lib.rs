@@ -94,6 +94,7 @@ pub enum WhichModel {
     ColBert,
     Clip,
     Jina,
+    ModernBert,
     Colpali,
 }
 
@@ -148,12 +149,13 @@ pub struct EmbeddingModel {
 #[pymethods]
 impl EmbeddingModel {
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None, token=None))]
+    #[pyo3(signature = (model, model_id, revision=None, token=None, dtype=None))]
     fn from_pretrained_hf(
         model: &WhichModel,
         model_id: Option<&str>,
         revision: Option<&str>,
         token: Option<&str>,
+        dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
         // let model = WhichModel::from(model);
         match model {
@@ -164,6 +166,26 @@ impl EmbeddingModel {
                         model_id.to_string(),
                         revision.map(|s| s.to_string()),
                         token,
+                    )
+                    .unwrap(),
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::ModernBert => {
+                let model_id = model_id.unwrap_or("nomic-ai/modernbert-embed-base");
+                let dtype = match dtype {
+                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+                    _ => None,
+                };
+                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
+                    embed_anything::embeddings::local::modernbert::ModernBertEmbedder::new(
+                        model_id.to_string(),
+                        revision.map(|s| s.to_string()),
+                        token,
+                        dtype,
                     )
                     .unwrap(),
                 )));
@@ -351,6 +373,88 @@ impl EmbeddingModel {
             _ => panic!("Invalid model"),
         }
     }
+
+    #[pyo3(signature = (file_path, config=None, adapter=None))]
+    pub fn embed_file(
+        &self,
+        file_path: &str,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_file(file_path, self, config, adapter)
+    }
+
+    #[pyo3(signature = (files, config=None, adapter=None))]
+    pub fn embed_files_batch(
+        &self,
+        files: Vec<PathBuf>,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_files_batch(files, self, config, adapter)
+    }
+
+    #[pyo3(signature = (url, config=None, adapter=None))]
+    pub fn embed_webpage(
+        &self,
+        url: &str,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_webpage(url.to_string(), self, config, adapter)
+    }
+
+    #[pyo3(signature = (directory, config=None, extensions=None, adapter=None))]
+    pub fn embed_directory(
+        &self,
+        directory: PathBuf,
+        config: Option<&config::TextEmbedConfig>,
+        extensions: Option<Vec<String>>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_directory(directory, self, extensions, config, adapter)
+    }
+
+    #[pyo3(signature = (directory, config=None, adapter=None))]
+    pub fn embed_image_directory(
+        &self,
+        directory: PathBuf,
+        config: Option<&config::ImageEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_image_directory(directory, self, config, adapter)
+    }
+
+    #[pyo3(signature = (query, config=None))]
+    pub fn embed_query(
+        &self,
+        query: Vec<String>,
+        config: Option<&config::TextEmbedConfig>,
+    ) -> PyResult<Vec<EmbedData>> {
+        embed_query(query, self, config)
+    }
+
+    #[pyo3(signature = (audio_file, audio_decoder, config=None))]
+    pub fn embed_audio_file(
+        &self,
+        audio_file: String,
+        audio_decoder: &mut AudioDecoderModel,
+        config: Option<&config::TextEmbedConfig>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_audio_file(audio_file, audio_decoder, self, config)
+    }
+
+
+    #[pyo3(signature = (file_name, origin=None, config=None, adapter=None))]
+    pub fn embed_html(
+        &self,
+        file_name: &str,
+        origin: Option<&str>,
+        config: Option<&config::TextEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_html(file_name, self, origin, config, adapter)
+    }
 }
 
 #[pyclass]
@@ -394,7 +498,7 @@ pub fn embed_query(
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
     Ok(rt.block_on(async {
         embed_anything::embed_query(
-            query,
+            &query.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
             embedding_model,
             Some(config.unwrap_or(&TextEmbedConfig::default())),
         )
@@ -447,7 +551,63 @@ pub fn embed_file(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_file(file_name, embedding_model, config, adapter).await
+            embed_anything::embed_file(file_name, embedding_model, config, adapter.map(|f| {
+                Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+            })).await
+        })
+        .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
+            Some(FileLoadingError::FileNotFound(file)) => {
+                PyFileNotFoundError::new_err(file.clone())
+            }
+            Some(FileLoadingError::UnsupportedFileType(file)) => {
+                PyValueError::new_err(file.clone())
+            }
+            None => PyValueError::new_err(e.to_string()),
+        })?;
+
+    Ok(embeddings.map(|embs| {
+        embs.into_iter()
+            .map(|data| EmbedData { inner: data })
+            .collect()
+    }))
+}
+
+#[pyfunction]
+#[pyo3(signature = (files, embedder, config=None, adapter=None))]
+pub fn embed_files_batch(
+    files: Vec<PathBuf>,
+    embedder: &EmbeddingModel,
+    config: Option<&config::TextEmbedConfig>,
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
+    let config = config.map(|c| &c.inner);
+    let embedding_model = &embedder.inner;
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
+            };
+            Some(callback)
+        }
+        None => None,
+    };
+
+    let embeddings = rt
+        .block_on(async {
+            embed_anything::embed_files_batch(files, embedding_model, config, adapter.map(|f| {
+                Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+            })).await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -532,7 +692,9 @@ pub fn embed_directory(
             embedding_model,
             extensions,
             config,
-            adapter,
+            adapter.map(|f| {
+                Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+            }),
         )
         .await
         .map_err(|e| PyValueError::new_err(e.to_string()))
@@ -580,7 +742,9 @@ pub fn embed_image_directory(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_image_directory(directory, embedding_model, config, adapter)
+        embed_anything::embed_image_directory(directory, embedding_model, config, adapter.map(|f| {
+            Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+        }))
             .await
             .map_err(|e| PyValueError::new_err(e.to_string()))
             .unwrap()
@@ -592,6 +756,7 @@ pub fn embed_image_directory(
     });
     Ok(data)
 }
+
 #[pyfunction]
 #[pyo3(signature = (url, embedder, config=None, adapter = None))]
 pub fn embed_webpage(
@@ -624,7 +789,9 @@ pub fn embed_webpage(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_webpage(url, embedding_model, config, adapter)
+        embed_anything::embed_webpage(url, embedding_model, config, adapter.map(|f| {
+            Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+        }))
             .await
             .map_err(|e| PyValueError::new_err(e.to_string()))
             .unwrap()
@@ -633,6 +800,60 @@ pub fn embed_webpage(
                     .map(|data| EmbedData { inner: data })
                     .collect::<Vec<_>>()
             })
+    });
+    Ok(data)
+}
+
+#[pyfunction]
+#[pyo3(signature = (file_name,  embedder, origin=None, config=None, adapter=None))]
+pub fn embed_html(
+    file_name: &str,
+    embedder: &EmbeddingModel,
+    origin: Option<&str>,
+    config: Option<&config::TextEmbedConfig>,
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
+    let embedding_model = &embedder.inner;
+    let config = config.map(|c| &c.inner);
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
+            };
+            Some(callback)
+        }
+        None => None,
+    };
+
+    let data = rt.block_on(async {
+        embed_anything::embed_html(
+            file_name, 
+            embedding_model, 
+            origin, 
+            config,
+            adapter.map(|f| {
+                Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+            }),
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        })
     });
     Ok(data)
 }

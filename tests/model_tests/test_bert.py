@@ -15,7 +15,7 @@ import itertools
 
 # Global test parameters
 MODEL_FIXTURES = ["bert_model", "onnx_model"]
-CONFIGS = [None, TextEmbedConfig(batch_size=32, chunk_size=256)]
+CONFIGS = [None, TextEmbedConfig(batch_size=32, chunk_size=1000)]
 ALL_COMBINATIONS = list(itertools.product(MODEL_FIXTURES, CONFIGS))
 
 # Define common parametrize decorator
@@ -28,7 +28,7 @@ model_and_config_parametrize = pytest.mark.parametrize(
 @model_and_config_parametrize
 def test_bert_model_file(model_fixture, config, test_pdf_file, request):
     model = request.getfixturevalue(model_fixture)
-    data = embed_file(test_pdf_file, model, config)
+    data = model.embed_file(test_pdf_file, config)
     path = os.path.abspath(test_pdf_file)
 
     assert len(data) > 0

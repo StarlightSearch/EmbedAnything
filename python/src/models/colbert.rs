@@ -51,9 +51,10 @@ impl ColbertModel {
         is_doc: bool,
     ) -> PyResult<Vec<EmbedData>> {
         let text_batch = text_batch
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>();
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<&str>>();
+
         let embed_data = self
             .model
             .embed(&text_batch, batch_size, is_doc)

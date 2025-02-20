@@ -13,8 +13,7 @@ use crate::{
 use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
 use anyhow::Error;
 use chrono::{DateTime, Local};
-use text_splitter::{ChunkConfig, TextSplitter};
-use tokenizers::Tokenizer;
+use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use crate::config::SplittingStrategy;
@@ -22,7 +21,7 @@ use rayon::prelude::*;
 
 impl Default for TextLoader {
     fn default() -> Self {
-        Self::new(256, 0.0)
+        Self::new(1000, 0.0)
     }
 }
 
@@ -58,7 +57,7 @@ impl From<FileLoadingError> for Error {
 
 #[derive(Debug)]
 pub struct TextLoader {
-    pub splitter: TextSplitter<Tokenizer>,
+    pub splitter: TextSplitter<Characters>,
 }
 impl TextLoader {
     pub fn new(chunk_size: usize, overlap_ratio: f32) -> Self {
@@ -67,11 +66,7 @@ impl TextLoader {
                 ChunkConfig::new(chunk_size)
                     .with_overlap(chunk_size * overlap_ratio as usize)
                     .unwrap()
-                    .with_sizer(
-                        Tokenizer::from_pretrained("BEE-spoke-data/cl100k_base-mlm", None).unwrap(),
-                    ),
             ),
-            // splitter: TextSplitter::new(ChunkConfig::new(chunk_size)),
         }
     }
     pub fn split_into_chunks(
@@ -109,7 +104,7 @@ impl TextLoader {
             }
         };
 
-        Some(chunks)
+        Some(chunks.iter().map(|s| s.to_string()).collect())
     }
 
     pub fn extract_text<T: AsRef<std::path::Path>>(
@@ -179,7 +174,7 @@ mod tests {
             .replace("{{DOUBLE_NEWLINE}}", "\n\n")
             .replace("  ", " ");
 
-        let text_loader = TextLoader::new(256, 0.0);
+        let text_loader = TextLoader::new(1000, 0.0);
         let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence);
 
         for chunk in chunks.unwrap() {

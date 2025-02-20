@@ -17,13 +17,13 @@ exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/
 
 [workspace.dependencies]
 pdf-extract = "0.7.7"
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
-candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
-candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
+candle-nn = { version = "0.8.3" }
+candle-transformers = { version = "0.8.3" }
+candle-core = { version = "0.8.3" }
+candle-flash-attn = { version = "0.8.3" }
 
-strum = "0.26.1"
-strum_macros = "0.26"
+strum = "0.27.0"
+strum_macros = "0.27.0"
 
 [patch.crates-io]
 pdf-extract = { git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs/pull/91/head" }

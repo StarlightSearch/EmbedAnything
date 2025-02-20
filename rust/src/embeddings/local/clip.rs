@@ -102,7 +102,7 @@ impl ClipEmbedder {
 
     pub fn tokenize_sequences(
         &self,
-        sequences: Option<Vec<String>>,
+        sequences: Option<&[&str]>,
         tokenizer: &Tokenizer,
     ) -> anyhow::Result<(Tensor, Vec<String>)> {
         let pad_id = *tokenizer
@@ -110,19 +110,16 @@ impl ClipEmbedder {
             .get("<|endoftext|>")
             .ok_or(E::msg("No pad token"))?;
 
-        let vec_seq = match sequences {
-            Some(seq) => seq,
-            None => vec![
-                "a cycling race".to_string(),
-                "a photo of two cats".to_string(),
-                "a robot holding a candle".to_string(),
-            ],
-        };
+        let vec_seq = sequences.unwrap_or(&[
+            "a cycling race",
+            "a photo of two cats",
+            "a robot holding a candle",
+        ]);
 
         let mut tokens = vec![];
 
-        for seq in vec_seq.clone() {
-            let encoding = tokenizer.encode(seq, true).map_err(E::msg)?;
+        for seq in vec_seq {
+            let encoding = tokenizer.encode(*seq, true).map_err(E::msg)?;
             tokens.push(encoding.get_ids().to_vec());
         }
 
@@ -138,7 +135,7 @@ impl ClipEmbedder {
 
         let input_ids = Tensor::new(tokens, &self.device)?;
 
-        Ok((input_ids, vec_seq))
+        Ok((input_ids, vec_seq.iter().map(|s| s.to_string()).collect()))
     }
 
     fn load_image<T: AsRef<std::path::Path>>(
@@ -184,7 +181,7 @@ impl ClipEmbedder {
 
     pub fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let mut encodings = Vec::new();
@@ -193,7 +190,7 @@ impl ClipEmbedder {
 
         for mini_text_batch in text_batch.chunks(batch_size) {
             let (input_ids, _vec_seq) = self
-                .tokenize_sequences(Some(mini_text_batch.to_vec()), &self.tokenizer)
+                .tokenize_sequences(Some(mini_text_batch), &self.tokenizer)
                 .unwrap();
 
             let batch_encodings = self
@@ -292,12 +289,12 @@ mod tests {
     #[test]
     fn test_tokenize_sequences() {
         let clip_embedder = ClipEmbedder::default();
-        let sequences = Some(vec![
-            "Hey there how are you?".to_string(),
-            "EmbedAnything is the best!".to_string(),
-        ]);
+        let sequences = &[
+            "Hey there how are you?",
+            "EmbedAnything is the best!",
+        ];
         let (input_ids, vec_seq) = clip_embedder
-            .tokenize_sequences(sequences, &clip_embedder.tokenizer)
+            .tokenize_sequences(Some(sequences), &clip_embedder.tokenizer)
             .unwrap();
         assert_eq!(
             vec_seq,

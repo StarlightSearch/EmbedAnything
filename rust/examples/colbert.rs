@@ -1,6 +1,5 @@
-use embed_anything::config::TextEmbedConfig;
+use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
 use embed_anything::embeddings::embed::{EmbedData, Embedder};
-use embed_anything::text_loader::SplittingStrategy;
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
 use std::sync::Arc;
@@ -22,9 +21,9 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     let config = TextEmbedConfig::default()
-        .with_chunk_size(256, Some(0.3))
+        .with_chunk_size(1000, Some(0.3))
         .with_batch_size(32)
-        .with_buffer_size(256)
+        .with_buffer_size(1000)
         .with_splitting_strategy(SplittingStrategy::Sentence);
 
     // get files in bench
@@ -37,7 +36,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let futures = files
         .par_iter()
-        .map(|file| embed_file(file, &model, Some(&config), None::<fn(Vec<EmbedData>)>))
+        .map(|file| embed_file(file, &model, Some(&config), None))
         .collect::<Vec<_>>();
 
     let _data = futures.into_iter().next().unwrap().await?.unwrap();
@@ -54,12 +53,10 @@ async fn main() -> Result<(), anyhow::Error> {
         "Der Hund sitzt im Park", // German for "The dog is sitting in the park"
         "pizza is the best",
         "मैं पिज्जा पसंद करता हूं", // Hindi for "I like pizza"
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect::<Vec<_>>();
+    ];
 
-    let _doc_embeddings = embed_query(sentences.clone(), &model, Some(&config))
+
+    let _doc_embeddings = embed_query(&sentences, &model, Some(&config))
         .await
         .unwrap();
 

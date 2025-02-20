@@ -73,3 +73,7 @@ docs/_build/
 
 
 site
+
+*.ipynb
+
+tmp/

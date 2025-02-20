@@ -1,8 +1,5 @@
 use crate::{
-    embeddings::{
-        normalize_l2,
-        utils::{get_attention_mask, tokenize_batch},
-    },
+    embeddings::{normalize_l2, utils::tokenize_batch},
     models::modernbert::{Config, ModernBert},
     Dtype,
 };
@@ -16,7 +13,7 @@ use crate::embeddings::{embed::EmbeddingResult, select_device};
 
 use super::{
     bert::BertEmbed,
-    pooling::{ModelOutput, Pooling},
+    pooling::{ModelOutput, PooledOutputType, Pooling},
 };
 pub struct ModernBertEmbedder {
     pub model: ModernBert,
@@ -27,7 +24,13 @@ pub struct ModernBertEmbedder {
 
 impl Default for ModernBertEmbedder {
     fn default() -> Self {
-        Self::new("answerdotai/ModernBERT-base".to_string(), None, None, None).unwrap()
+        Self::new(
+            "nomic-ai/modernbert-embed-base".to_string(),
+            None,
+            None,
+            None,
+        )
+        .unwrap()
     }
 }
 impl ModernBertEmbedder {
@@ -113,31 +116,32 @@ impl ModernBertEmbedder {
 impl BertEmbed for ModernBertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
-            let token_ids = tokenize_batch(&self.tokenizer, mini_text_batch, &self.device).unwrap();
-            let attention_mask =
-                get_attention_mask(&self.tokenizer, mini_text_batch, &self.device).unwrap();
+            let (token_ids, attention_mask) =
+                tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
+
             let embeddings: Tensor = self
                 .model
-                .forward(&token_ids, &attention_mask)
-                .unwrap()
+                .forward(&token_ids, &attention_mask)?
                 .to_dtype(DType::F32)
                 .unwrap();
-            let pooled_output = self
-                .pooling
-                .pool(&ModelOutput::Tensor(embeddings.clone()))
-                .unwrap()
-                .to_tensor()
-                .unwrap();
 
-            let embeddings = normalize_l2(&pooled_output).unwrap();
-            let batch_encodings = embeddings.to_vec2::<f32>().unwrap();
+            let attention_mask = PooledOutputType::from(attention_mask);
+            let attention_mask = Some(&attention_mask);
+            let model_output = ModelOutput::Tensor(embeddings.clone());
+            let pooled_output = match self.pooling {
+                Pooling::Cls => self.pooling.pool(&model_output, None)?,
+                Pooling::Mean => self.pooling.pool(&model_output, attention_mask)?,
+            };
+            let pooled_output = pooled_output.to_tensor()?;
+            let embeddings = normalize_l2(pooled_output)?;
+            let batch_encodings = embeddings.to_vec2::<f32>()?;
 
             encodings.extend(
                 batch_encodings

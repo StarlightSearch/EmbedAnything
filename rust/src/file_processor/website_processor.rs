@@ -120,10 +120,10 @@ impl WebPage {
             });
 
             let metadata_hashmap: HashMap<String, String> = serde_json::from_value(metadata)?;
-
-            let encodings = embedder.embed(&chunks, batch_size).await?;
+            let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
+            let encodings = embedder.embed(&chunk_refs, batch_size).await?;
             let embeddings =
-                get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata_hashmap))?;
+                get_text_metadata(&Rc::new(encodings), &chunk_refs, &Some(metadata_hashmap))?;
             embed_data.extend(embeddings);
         }
 

@@ -1,3 +1,4 @@
+use crate::config::{ImageEmbedConfig, TextEmbedConfig};
 use crate::file_processor::audio::audio_processor::Segment;
 use crate::Dtype;
 
@@ -11,9 +12,12 @@ use super::local::jina::{JinaEmbed, JinaEmbedder};
 use super::local::modernbert::ModernBertEmbedder;
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
+use anyhow::Result;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
+
 #[cfg(feature = "ort")]
 use {
     super::local::colbert::OrtColbertEmbedder,
@@ -106,7 +110,7 @@ pub enum TextEmbedder {
 impl TextEmbedder {
     pub async fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
@@ -480,7 +484,7 @@ pub enum Embedder {
 impl Embedder {
     pub async fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
@@ -590,6 +594,110 @@ impl Embedder {
             path_in_repo,
         )?))
     }
+
+    pub async fn embed_directory_stream(
+        self: &Arc<Self>,
+        directory: PathBuf,
+        extensions: Option<Vec<String>>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_directory_stream(directory, self, extensions, config, adapter).await
+    }
+
+    pub async fn embed_image_directory(
+        self: &Arc<Self>,
+        directory: PathBuf,
+        config: Option<&ImageEmbedConfig>,
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_image_directory(directory, self, config, adapter).await
+    }
+
+    pub async fn embed_file<T: AsRef<std::path::Path>>(
+        &self,
+        file_path: T,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>>
+    {
+        crate::embed_file(file_path, self, config, adapter).await
+    }
+
+    /// Embeds a list of files. 
+    /// 
+    /// # Arguments
+    /// 
+    /// * `files` - A vector of `PathBuf` objects representing the files to embed.
+    /// * `embedder` - A reference to the embedding model to use.
+    /// * `config` - An optional `TextEmbedConfig` object specifying the configuration for the embedding model.
+    /// * `adapter` - An optional callback function to handle the embeddings.
+    /// 
+    /// # Returns
+    /// An `Option` containing a vector of `EmbedData` objects representing the embeddings of the files, or `None` if an adapter is used.
+    /// 
+    /// # Errors
+    /// Returns a `Result` with an error if the embedding process fails.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust
+    /// use embed_anything::embed_files_batch;
+    /// use std::path::PathBuf;
+    /// use std::sync::Arc;
+    /// use embed_anything::config::TextEmbedConfig;
+    /// use embed_anything::embeddings::embed::EmbedderBuilder;
+    /// use embed_anything::embeddings::embed::EmbedData;
+    /// 
+    /// async fn generate_embeddings() {
+    ///     let files = vec![PathBuf::from("test_files/test.txt"), PathBuf::from("test_files/test.pdf")];
+    ///     let embedder = Arc::new(EmbedderBuilder::new()
+    ///         .model_architecture("bert")
+    ///         .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+    ///         .from_pretrained_hf()
+    ///         .unwrap());
+    ///     let config = TextEmbedConfig::default();
+    ///     let embeddings = embedder.embed_files_batch(files, Some(&config), None::<fn(Vec<EmbedData>)>).await.unwrap();
+    /// }
+    /// ```
+    /// This will output the embeddings of the files in the specified directory using the specified embedding model.
+    pub async fn embed_files_batch(
+        self: &Arc<Self>,
+        file_paths: impl IntoIterator<Item = impl AsRef<std::path::Path>>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_files_batch(file_paths, self, config, adapter).await
+    }
+
+    pub async fn embed_query(
+        self: &Arc<Self>,
+        query: &[&str],
+        config: Option<&TextEmbedConfig>,
+    ) -> Result<Vec<EmbedData>>
+    {
+        crate::embed_query(query, self, config).await
+    }
+
+    pub async fn embed_webpage(
+        &self,
+        url: String,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>>
+    {
+        crate::embed_webpage(url, self, config, adapter).await
+    }
+
+    pub async fn embed_html(
+        &self,
+        file_name: impl AsRef<std::path::Path>,
+        origin: Option<impl Into<String>>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_html(file_name, self, origin, config, adapter).await
+    }
 }
 
 impl EmbedImage for Embedder {
@@ -618,7 +726,7 @@ impl EmbedImage for Embedder {
 pub trait TextEmbed {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
@@ -626,7 +734,7 @@ pub trait TextEmbed {
 impl TextEmbed for VisionEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {

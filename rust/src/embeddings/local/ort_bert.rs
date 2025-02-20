@@ -1,10 +1,10 @@
 use super::bert::{BertEmbed, TokenizerConfig};
-use super::pooling::{ModelOutput, Pooling};
+use super::pooling::{ModelOutput, PooledOutputType, Pooling};
 use super::text_embedding::ONNXModel;
 use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::local::text_embedding::models_map;
 use crate::embeddings::utils::{
-    get_attention_mask_ndarray, get_type_ids_ndarray, tokenize_batch_ndarray,
+ get_type_ids_ndarray, tokenize_batch_ndarray,
 };
 
 use crate::Dtype;
@@ -15,7 +15,6 @@ use ndarray::prelude::*;
 use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider};
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
-use ort::value::Value;
 use rayon::prelude::*;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
@@ -140,14 +139,22 @@ impl OrtBertEmbedder {
             println!("Session is using CUDAExecutionProvider");
         }
 
-        let threads = std::thread::available_parallelism().unwrap().get();
+        // Get physical core count (excluding hyperthreading)
+        let threads = std::thread::available_parallelism()
+            .map(|p| p.get())
+            .unwrap_or(1);
+        // For CPU-bound workloads like ONNX inference, it's often better to use
+        // physical cores rather than logical cores to avoid context switching overhead
+        let optimal_threads = std::cmp::max(1, threads / 2);
+
         let model = Session::builder()?
             .with_execution_providers([
                 CUDAExecutionProvider::default().build(),
                 CoreMLExecutionProvider::default().build(),
             ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(threads)?
+            .with_intra_threads(optimal_threads)?  // Use optimal thread count
+            .with_inter_threads(1)?  // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
         Ok(OrtBertEmbedder {
@@ -161,55 +168,68 @@ impl OrtBertEmbedder {
 impl BertEmbed for OrtBertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);
+        
+        // Pre-compute input names once
+        let input_names: Vec<_> = self.model.inputs.iter().map(|input| input.name.as_str()).collect();
+        let output_name = self.model.outputs.first().unwrap().name.as_str();
+        let needs_token_type = input_names.iter().any(|&x| x == "token_type_ids");
+
         let encodings = text_batch
             .par_chunks(batch_size)
             .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
-                let input_ids: Array2<i64> =
-                    tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
-                let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-                let attention_mask: Array2<i64> = Array2::ones(input_ids.raw_dim());
+                // Tokenize and prepare inputs
+                let (input_ids, attention_mask) = tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
+                
+                // Build inputs more efficiently
+                let inputs = if needs_token_type {
+                    let token_type_ids = Array2::<i64>::zeros(input_ids.raw_dim());
+                    ort::inputs![
+                        "input_ids" => input_ids,
+                        "attention_mask" => attention_mask.clone(),
+                        "token_type_ids" => token_type_ids
+                    ]?
+                } else {
+                    ort::inputs![
+                        "input_ids" => input_ids,
+                        "attention_mask" => attention_mask.clone()
+                    ]?
+                };
 
-                let input_names = self
-                    .model
-                    .inputs
-                    .iter()
-                    .map(|input| input.name.as_str())
-                    .collect::<Vec<_>>();
-
-                let mut inputs =
-                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask]?;
-                if input_names.iter().any(|&x| x == "token_type_ids") {
-                    inputs.push((
-                        "token_type_ids".into(),
-                        Value::from_array(token_type_ids.clone())?.into(),
-                    ));
-                }
+                // Run model and extract embeddings
                 let outputs = self.model.run(inputs)?;
-                let embeddings: Array3<f32> = outputs
-                    [self.model.outputs.first().unwrap().name.as_str()]
-                .try_extract_tensor::<f32>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix3>()?;
-                let (_, _, _) = embeddings.dim();
-                let embeddings = self
-                    .pooling
-                    .pool(&ModelOutput::Array(embeddings))?
-                    .to_array()?;
-                let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
-                let embeddings = &embeddings / &norms.insert_axis(Axis(1));
+                let embeddings: Array3<f32> = outputs[output_name]
+                    .try_extract_tensor()?
+                    .to_owned()
+                    .into_dimensionality()?;
 
-                Ok(embeddings.outer_iter().map(|row| row.to_vec()).collect())
+                // Prepare attention mask for pooling
+                let attention_mask = if matches!(self.pooling, Pooling::Mean) {
+                    Some(PooledOutputType::from(attention_mask.mapv(|x| x as f32)))
+                } else {
+                    None
+                };
+
+                // Pool and normalize embeddings
+                let model_output = ModelOutput::Array(embeddings);
+                let pooled = self.pooling.pool(&model_output, attention_mask.as_ref())?;
+                let embeddings = pooled.to_array()?;
+
+                // Normalize in one step
+                let norms = embeddings.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
+                let normalized = embeddings / &norms.insert_axis(Axis(1));
+
+                Ok(normalized.outer_iter().map(|row| row.to_vec()).collect())
             })
             .flatten()
             .collect::<Vec<_>>();
 
         Ok(encodings
-            .iter()
-            .map(|x| EmbeddingResult::DenseVector(x.to_vec()))
+            .into_iter() // Use into_iter since we don't need the original vector
+            .map(EmbeddingResult::DenseVector)
             .collect())
     }
 }
@@ -276,7 +296,7 @@ impl OrtSparseBertEmbedder {
             (Some(max_len), Some(model_max_len)) => std::cmp::min(max_len, model_max_len),
             (Some(max_len), None) => max_len,
             (None, Some(model_max_len)) => model_max_len,
-            (None, None) => 128,
+            (None, None) => 256,
         };
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
         let pp = PaddingParams {
@@ -300,14 +320,22 @@ impl OrtSparseBertEmbedder {
             println!("Session is using CUDAExecutionProvider");
         }
 
-        let threads = std::thread::available_parallelism().unwrap().get();
+        // Get physical core count (excluding hyperthreading)
+        let threads = std::thread::available_parallelism()
+            .map(|p| p.get())
+            .unwrap_or(1);
+        // For CPU-bound workloads like ONNX inference, it's often better to use
+        // physical cores rather than logical cores to avoid context switching overhead
+        let optimal_threads = std::cmp::max(1, threads / 2);
+
         let model = Session::builder()?
             .with_execution_providers([
                 CUDAExecutionProvider::default().build(),
                 CoreMLExecutionProvider::default().build(),
             ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(threads)?
+            .with_intra_threads(optimal_threads)?  // Use optimal thread count
+            .with_inter_threads(1)?  // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
         Ok(OrtSparseBertEmbedder { tokenizer, model })
@@ -317,14 +345,13 @@ impl OrtSparseBertEmbedder {
 impl BertEmbed for OrtSparseBertEmbedder {
     fn embed(
         &self,
-        text_batch: &[String],
+        text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
         let encodings = text_batch.par_chunks(batch_size).flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
-            let token_ids: Array2<i64> = tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
+            let (token_ids, attention_mask): (Array2<i64>, Array2<i64>) = tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
             let token_type_ids: Array2<i64> = get_type_ids_ndarray(&self.tokenizer, mini_text_batch)?;
-            let attention_mask = get_attention_mask_ndarray(&self.tokenizer, mini_text_batch)?;
             let outputs = self.model.run(ort::inputs!["input_ids" => token_ids, "input_mask" => attention_mask.clone(), "segment_ids" => token_type_ids]?).unwrap();
             let embeddings: Array3<f32> = outputs["output"]
                 .try_extract_tensor::<f32>()?
@@ -342,5 +369,42 @@ impl BertEmbed for OrtSparseBertEmbedder {
             .iter()
             .map(|x| EmbeddingResult::DenseVector(x.to_vec()))
             .collect())
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_ort_bert_embed() {
+        let embedder = OrtBertEmbedder::new(
+            None,
+            Some("sentence-transformers/all-MiniLM-L6-v2"),
+            None,
+            None,
+            Some("onnx/model.onnx"),
+        )
+        .unwrap();
+        let embeddings = embedder
+            .embed(&["Hello, world!", "I am a rust programmer"], Some(32))
+            .unwrap();
+        println!("embeddings: {:?}", embeddings);
+
+        let test_embeddings: Vec<f32> = vec![
+            -3.81771736e-02,
+            3.29111032e-02,
+            -5.45938499e-03,
+            1.43699143e-02,
+        ];
+        let embeddings = embeddings[0].to_dense().unwrap()[0..4].to_vec();
+        assert!(
+            (embeddings
+                .iter()
+                .zip(test_embeddings.iter())
+                .all(|(a, b)| a.abs() - b.abs() < 1e-5))
+        );
     }
 }
