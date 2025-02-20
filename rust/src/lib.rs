@@ -87,6 +87,8 @@ use rayon::prelude::*;
 use text_loader::TextLoader;
 use tokio::sync::mpsc; // Add this at the top of your file
 
+use crate::file_processor::markdown_processor::MarkdownProcessor;
+
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
 
@@ -170,18 +172,18 @@ pub async fn embed_query(
 /// use embed_anything::embeddings::local::bert::BertEmbedder;
 ///
 /// let file_name = "path/to/file.pdf";
-/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap()));
+/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None, None).unwrap()));
 /// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
 /// ```
-pub async fn embed_file<T: AsRef<std::path::Path>>(
-    file_name: T,
+pub async fn embed_file(
+    file_name: impl AsRef<std::path::Path>,
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
-        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
+        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder)?])),
     }
 }
 
@@ -307,9 +309,57 @@ pub async fn embed_html(
     }
 }
 
+/// Embeds a Markdown document using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `file_name` - The path of the HTML document to embed.
+/// * `embedder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
+///
+/// # Returns
+///
+/// The embeddings of the Markdown document.
+///
+/// # Errors
+///
+/// Returns an error if the specified embedding model is invalid.
+///
+/// # Example
+///
+/// ```
+/// use embed_anything::embed_markdown;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+///
+/// async fn get_embeddings() {
+///     let embeddings = embed_markdown(
+///         "# This is some Markdown content",
+///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
+///         None,
+///     ).await.unwrap();
+/// }
+/// ```
+pub async fn embed_markdown(
+    markdown: impl Into<String>,
+    embedder: &Embedder,
+    config: Option<&TextEmbedConfig>,
+) -> Result<Vec<EmbedData>> {
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
+
+    let md_processor = MarkdownProcessor::new();
+    let md = md_processor.process_markdown(markdown.into())?;
+
+    md.embed_markdown(
+        &embedder,
+        config.chunk_size.unwrap_or(256),
+        config.batch_size,
+    ).await
+}
+
 #[allow(clippy::too_many_arguments)]
-async fn emb_text<T: AsRef<std::path::Path>>(
-    file: T,
+async fn emb_text(
+    file: impl AsRef<std::path::Path>,
     embedding_model: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
@@ -440,8 +490,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     embedding_model: &Arc<T>,
     config: Option<&ImageEmbedConfig>,
     adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
-) -> Result<Option<Vec<EmbedData>>>
-{
+) -> Result<Option<Vec<EmbedData>>> {
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
 
