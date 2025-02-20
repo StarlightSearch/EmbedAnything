@@ -185,7 +185,7 @@ pub async fn embed_file(
 ) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
-        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
+        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder)?])),
     }
 }
 
@@ -362,15 +362,13 @@ pub async fn embed_markdown(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn emb_text<T: AsRef<std::path::Path>, F>(
-    file: T,
+async fn emb_text(
+    file: impl AsRef<std::path::Path>,
     embedding_model: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>),
-{
+    // Callback function
+    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>)>>,
+) -> Result<Option<Vec<EmbedData>>> {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(256);
