@@ -173,18 +173,16 @@ pub async fn embed_query(
 /// use embed_anything::embeddings::local::bert::BertEmbedder;
 ///
 /// let file_name = "path/to/file.pdf";
-/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap()));
+/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None, None).unwrap()));
 /// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
 /// ```
-pub async fn embed_file<T: AsRef<std::path::Path>, F>(
-    file_name: T,
+pub async fn embed_file(
+    file_name: impl AsRef<std::path::Path>,
     embedder: &Embedder,
     config: Option<&TextEmbedConfig>,
-    adapter: Option<F>,
-) -> Result<Option<Vec<EmbedData>>>
-where
-    F: Fn(Vec<EmbedData>), // Add Send trait bound here
-{
+    // Callback function
+    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>)>>,
+) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
         Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
