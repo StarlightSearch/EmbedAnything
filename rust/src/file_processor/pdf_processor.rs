@@ -1,98 +1,75 @@
+use std::path::Path;
 use crate::tesseract::input::{Args, Image};
 use anyhow::Error;
 use image::DynamicImage;
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
+use crate::config::SplittingStrategy;
+use crate::file_processor::processor::{DocumentProcessor, FileProcessor};
+use crate::file_processor::txt_processor::{TxtDocument, TxtProcessor};
 
 /// A struct for processing PDF files.
-pub struct PdfProcessor;
+pub struct PdfProcessor {
+    txt_processor: TxtProcessor,
+    use_ocr: bool,
+    tesseract_path: Option<String>,
+}
 
 impl PdfProcessor {
-    /// Extracts text from a PDF file.
-    ///
-    /// # Arguments
-    ///
-    /// * `file_path` - The path to the PDF file.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing the extracted text as a `String` if successful,
-    /// or an `Error` if an error occurred during the extraction process.
-    pub fn extract_text<T: AsRef<std::path::Path>>(
-        file_path: T,
+    pub fn new(
+        chunk_size: usize,
+        overlap_ratio: f32,
+        splitting_strategy: SplittingStrategy,
         use_ocr: bool,
-        tesseract_path: Option<&str>,
+        tesseract_path: Option<impl Into<String>>,
+    ) -> PdfProcessor {
+        PdfProcessor {
+            txt_processor: TxtProcessor::new(chunk_size, overlap_ratio, splitting_strategy),
+            use_ocr,
+            tesseract_path
+        }
+    }
+
+    fn get_images_from_pdf<T: AsRef<Path>>(
+        file_path: &T,
+    ) -> Result<Vec<DynamicImage>, Error> {
+        let pdf = PDF::from_file(file_path)?;
+        let page_count = pdf.page_count();
+        let pages = pdf.render(
+            Pages::Range(1..=page_count),
+            RenderOptionsBuilder::default().build()?,
+        )?;
+        Ok(pages)
+    }
+
+    fn extract_text_from_image(image: &DynamicImage, args: &Args) -> Result<String, Error> {
+        let image = Image::from_dynamic_image(image)?;
+        let text = crate::tesseract::command::image_to_string(&image, args)?;
+        Ok(text)
+    }
+
+    fn extract_text_with_ocr<T: AsRef<Path>>(
+        file_path: &T,
+        tesseract_path: Option<String>,
     ) -> Result<String, Error> {
-        if use_ocr {
-            extract_text_with_ocr(&file_path, tesseract_path)
+        let images = Self::get_images_from_pdf(file_path)?;
+        let texts: Result<Vec<String>, Error> = images
+            .iter()
+            .map(|image| Self::extract_text_from_image(image, &Args::default().with_path(tesseract_path)))
+            .collect();
+        Ok(texts?.join("\n"))
+    }
+
+}
+
+impl FileProcessor for PdfProcessor {
+    type DocumentType = TxtDocument;
+
+    fn process_file(&self, path: impl AsRef<Path>) -> anyhow::Result<Self::DocumentType> {
+        let text = if self.use_ocr {
+            Self::extract_text_with_ocr(&path, self.tesseract_path.clone())?
         } else {
-            pdf_extract::extract_text(file_path).map_err(|e| anyhow::anyhow!(e))
-        }
-    }
-}
-
-fn get_images_from_pdf<T: AsRef<std::path::Path>>(
-    file_path: &T,
-) -> Result<Vec<DynamicImage>, Error> {
-    let pdf = PDF::from_file(file_path)?;
-    let page_count = pdf.page_count();
-    let pages = pdf.render(
-        Pages::Range(1..=page_count),
-        RenderOptionsBuilder::default().build()?,
-    )?;
-    Ok(pages)
-}
-
-fn extract_text_from_image(image: &DynamicImage, args: &Args) -> Result<String, Error> {
-    let image = Image::from_dynamic_image(image).unwrap();
-    let text = crate::tesseract::command::image_to_string(&image, args).unwrap();
-    Ok(text)
-}
-
-fn extract_text_with_ocr<T: AsRef<std::path::Path>>(
-    file_path: &T,
-    tesseract_path: Option<&str>,
-) -> Result<String, Error> {
-    let images = get_images_from_pdf(file_path)?;
-    let texts: Result<Vec<String>, Error> = images
-        .iter()
-        .map(|image| extract_text_from_image(image, &Args::default().with_path(tesseract_path)))
-        .collect();
-    Ok(texts.unwrap().join("\n"))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs::File;
-    use tempdir::TempDir;
-
-    #[test]
-    fn test_extract_text() {
-        let temp_dir = TempDir::new("example").unwrap();
-        let pdf_file = temp_dir.path().join("test.pdf");
-
-        File::create(pdf_file).unwrap();
-
-        let pdf_file = "test_files/test.pdf";
-        let text = PdfProcessor::extract_text(pdf_file, false, None).unwrap();
-        assert_eq!(text.len(), 4271);
-    }
-
-    #[test]
-    fn test_extract_text_with_ocr() {
-        let pdf_file = "../test_files/test.pdf";
-        let path = std::path::Path::new(pdf_file);
-
-        // Check if the path exists
-        if !path.exists() {
-            panic!("File does not exist: {}", path.display());
-        }
-
-        // Print the absolute path
-        println!("Absolute path: {}", path.canonicalize().unwrap().display());
-
-        let text = extract_text_with_ocr(&pdf_file, None).unwrap();
-
-        println!("Text: {}", text);
+            pdf_extract::extract_text(path).map_err(|e| anyhow::anyhow!(e))?
+        };
+        Ok(self.txt_processor.process_document(&text))
     }
 }

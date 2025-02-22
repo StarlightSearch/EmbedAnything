@@ -17,3 +17,5 @@ pub mod html_processor;
 pub mod docx_processor;
 
 pub mod audio;
+
+pub mod processor;

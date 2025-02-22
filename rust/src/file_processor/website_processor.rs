@@ -15,6 +15,8 @@ use crate::{
     text_loader::TextLoader,
 };
 use crate::config::SplittingStrategy;
+use crate::file_processor::markdown_processor::MarkdownDocument;
+use crate::file_processor::processor::DocumentProcessor;
 
 #[derive(Debug)]
 pub struct WebPage {
@@ -143,25 +145,18 @@ impl Default for WebPage {
         }
     }
 }
-
-impl Default for WebsiteProcessor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 pub struct WebsiteProcessor {
     html_processor: HtmlProcessor,
 }
 
 impl WebsiteProcessor {
-    pub fn new() -> Self {
+    pub fn new(chunk_size: usize) -> Self {
         Self {
-            html_processor: HtmlProcessor::new(),
+            html_processor: HtmlProcessor::new(chunk_size),
         }
     }
 
-    pub fn process_website(&self, website: &str) -> Result<WebPage> {
+    pub fn process_website(&self, website: &str) -> Result<MarkdownDocument> {
         // check if https is in the website. If not, add it.
         let website = if website.starts_with("http") {
             website
@@ -170,18 +165,9 @@ impl WebsiteProcessor {
         };
 
         let response = reqwest::blocking::get(website)?.text()?;
-        let html_document = self.html_processor.process_html(response, Some(website))?;
+        let result_md = self.html_processor.process_document(&response);
 
-        let web_page = WebPage {
-            url: website.to_string(),
-            title: html_document.title,
-            headers: html_document.headers,
-            paragraphs: html_document.paragraphs,
-            codes: html_document.codes,
-            links: html_document.links,
-        };
-
-        Ok(web_page)
+        Ok(result_md)
     }
 }
 
@@ -191,7 +177,7 @@ mod tests {
 
     #[test]
     fn test_process_website() {
-        let website_processor = WebsiteProcessor::new();
+        let website_processor = WebsiteProcessor::new(512);
         let website = "https://www.scrapingbee.com/blog/web-scraping-rust/";
         let result = website_processor.process_website(website);
         assert!(result.is_ok());

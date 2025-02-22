@@ -47,9 +47,8 @@ anyhow = "1.0.89"
 # Asynchronous Programming
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 
-
-# Markdown Processing
-markdown_to_text = "1.0.0"
+# HTML Processing
+htmd = "0.1.6"
 
 # Web Scraping
 scraper = "0.20.0"

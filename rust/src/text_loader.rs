@@ -5,18 +5,13 @@ use std::{
     ,
 };
 
-use crate::{
-    chunkers::statistical::StatisticalChunker
-    ,
-    file_processor::docx_processor::DocxProcessor,
-};
-use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
+use crate::chunkers::statistical::StatisticalChunker;
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
-use super::file_processor::pdf_processor::PdfProcessor;
 use crate::config::SplittingStrategy;
+use crate::file_processor::processor::Document;
 use rayon::prelude::*;
 
 impl Default for TextLoader {
@@ -107,39 +102,10 @@ impl TextLoader {
         Some(chunks.iter().map(|s| s.to_string()).collect())
     }
 
-    pub fn extract_text<T: AsRef<std::path::Path>>(
-        file: &T,
-        use_ocr: bool,
-        tesseract_path: Option<&str>,
-    ) -> Result<String, Error> {
-        if !file.as_ref().exists() {
-            return Err(FileLoadingError::FileNotFound(
-                file.as_ref().to_str().unwrap().to_string(),
-            )
-            .into());
-        }
-        let file_extension = file.as_ref().extension().unwrap();
-        match file_extension.to_str().unwrap() {
-            "pdf" => PdfProcessor::extract_text(file, use_ocr, tesseract_path),
-            "md" => MarkdownProcessor::extract_text(file),
-            "txt" => TxtProcessor::extract_text(file),
-            "docx" => DocxProcessor::extract_text(file),
-            _ => Err(FileLoadingError::UnsupportedFileType(
-                file.as_ref()
-                    .extension()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string(),
-            )
-            .into()),
-        }
-    }
-
     pub fn get_metadata<T: AsRef<std::path::Path>>(
         file: T,
     ) -> Result<HashMap<String, String>, Error> {
-        let metadata = fs::metadata(&file).unwrap();
+        let metadata = fs::metadata(&file)?;
         let mut metadata_map = HashMap::new();
         metadata_map.insert(
             "created".to_string(),
@@ -163,27 +129,6 @@ mod tests {
     use super::*;
     use crate::embeddings::{embed::EmbedImage, local::clip::ClipEmbedder};
     use std::path::PathBuf;
-
-    #[test]
-    fn test_text_loader() {
-        let file_path = PathBuf::from("../test_files/test.pdf");
-        let text = TextLoader::extract_text(&file_path, false, None)
-            .unwrap()
-            .replace("\n\n", "{{DOUBLE_NEWLINE}}")
-            .replace("\n", " ")
-            .replace("{{DOUBLE_NEWLINE}}", "\n\n")
-            .replace("  ", " ");
-
-        let text_loader = TextLoader::new(1000, 0.0);
-        let chunks = text_loader.split_into_chunks(&text, SplittingStrategy::Sentence);
-
-        for chunk in chunks.unwrap() {
-            println!("-----------------------------------");
-            println!("{}", chunk);
-        }
-
-        assert!(!text.is_empty());
-    }
 
     #[test]
     fn test_metadata() {
