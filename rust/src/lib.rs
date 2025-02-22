@@ -72,8 +72,6 @@ pub mod reranker;
 pub mod tesseract;
 pub mod text_loader;
 
-use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
-use std::ffi::OsStr;
 use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
@@ -84,6 +82,9 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::AudioDecoderModel;
 use itertools::Itertools;
 use rayon::prelude::*;
+use std::ffi::OsStr;
+use std::path::Path;
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 use text_loader::TextLoader;
 use tokio::sync::mpsc;
 // Add this at the top of your file
@@ -92,7 +93,6 @@ use crate::file_processor::markdown_processor::MarkdownProcessor;
 
 use crate::file_processor::docx_processor::DocxProcessor;
 use crate::file_processor::html_processor::HtmlProcessor;
-use crate::file_processor::pdf_processor::PdfProcessor;
 use crate::file_processor::processor::{Document, DocumentProcessor};
 use crate::file_processor::txt_processor::TxtProcessor;
 use crate::text_loader::FileLoadingError;
@@ -361,7 +361,7 @@ pub async fn embed_markdown(
     );
     let md = md_processor.process_document(markdown);
 
-    embed_document(md, None, embedder, config.batch_size)
+    embed_document(md, None, embedder, config.batch_size).await
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -736,7 +736,9 @@ pub async fn embed_directory_stream(
     });
 
     files.into_iter().for_each(|file| {
-        let file_extension = file.as_ref().extension().unwrap();
+        let file_extension = Path::new(&file)
+            .extension()
+            .unwrap();
         let processor = get_processor(file_extension.into(), Some(config.clone())).unwrap();
 
         let bytes = fs::read(&file).unwrap();
@@ -964,7 +966,7 @@ pub async fn process_chunks(
 fn get_processor(
     file_extension: &OsStr,
     config: Option<TextEmbedConfig>
-) -> Result<impl DocumentProcessor> {
+) -> Result<Box<dyn DocumentProcessor>> {
     let config = config.unwrap_or(TextEmbedConfig::default());
     let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
@@ -972,21 +974,16 @@ fn get_processor(
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.clone();
 
-    match file_extension.to_str().unwrap() {
+    let processor: Box<dyn DocumentProcessor> = match file_extension.to_str().unwrap() {
         //"pdf" => PdfProcessor::new(chunk_size, overlap_ratio, splitting_strategy, use_ocr, tesseract_path),
-        "md" => {
-            Ok(MarkdownProcessor::new(chunk_size))
-        },
-        "txt" => {
-            Ok(TxtProcessor::new(chunk_size, overlap_ratio, splitting_strategy))
-        },
-        "docx" => {
-            Ok(DocxProcessor::new(chunk_size))
-        },
+        "md" => Box::new(MarkdownProcessor::new(chunk_size)),
+        "txt" => Box::new(TxtProcessor::new(chunk_size, overlap_ratio, splitting_strategy)),
+        "docx" => Box::new(DocxProcessor::new(chunk_size)),
         _ => {
-            Err(FileLoadingError::UnsupportedFileType(file_extension.to_str().unwrap().to_string()).into())
+            return Err(FileLoadingError::UnsupportedFileType(file_extension.to_str().unwrap().to_string()).into())
         },
-    }
+    };
+    Ok(processor)
 }
 
 async fn embed_document(document: Document, metadata: Option<HashMap<String, String>>, embedder: &TextEmbedder, batch_size: Option<usize>) -> Result<Vec<EmbedData>> {
