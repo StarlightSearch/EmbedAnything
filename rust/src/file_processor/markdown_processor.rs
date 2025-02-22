@@ -1,9 +1,6 @@
-use std::rc::Rc;
 use anyhow::Error;
 use anyhow::Result;
 use text_splitter::{ChunkConfig, MarkdownSplitter};
-use crate::embeddings::embed::{EmbedData, Embedder};
-use crate::embeddings::get_text_metadata;
 
 /// A struct that provides functionality to process Markdown files.
 pub struct MarkdownProcessor;
@@ -25,8 +22,16 @@ impl MarkdownProcessor {
     pub fn process_markdown(
         &self,
         markdown: impl Into<String>,
+        chunk_size: usize,
     ) -> Result<MarkdownDocument> {
-        Ok(MarkdownDocument{ content: markdown.into() })
+        let splitter_config = ChunkConfig::new(chunk_size);
+        let splitter = MarkdownSplitter::new(splitter_config);
+        let segments = splitter.chunks(markdown).into_iter()
+            .map(|x| x.to_string())
+            .collect();
+        Ok(MarkdownDocument {
+            segments,
+        })
     }
 
     /// Extracts the contents of a Markdown file.
@@ -42,10 +47,11 @@ impl MarkdownProcessor {
     pub fn process_markdown_file(
         &self,
         file_path: impl AsRef<std::path::Path>,
+        chunk_size: usize,
     ) -> Result<MarkdownDocument> {
         let bytes = std::fs::read(file_path)?;
         let out = String::from_utf8_lossy(&bytes);
-        self.process_markdown(out)
+        self.process_markdown(out, chunk_size)
     }
 
     /// Extracts the text content from a Markdown file.
@@ -67,30 +73,7 @@ impl MarkdownProcessor {
 }
 
 pub struct MarkdownDocument {
-    content: String,
-}
-
-impl MarkdownDocument {
-    pub async fn embed_markdown(
-        &self,
-        embedder: &Embedder,
-        chunk_size: usize,
-        batch_size: Option<usize>,
-    ) -> Result<Vec<EmbedData>> {
-        let splitter_config = ChunkConfig::new(chunk_size);
-        let splitter = MarkdownSplitter::new(splitter_config);
-        
-        let mut embed_data = Vec::new();
-        
-        for part in splitter.chunks(&self.content) {
-            let chunks = vec![part.to_string()];
-            let encodings = embedder.embed(&chunks, batch_size).await?;
-            let mut data = get_text_metadata(&Rc::new(encodings), &chunks, &None)?;
-            embed_data.append(&mut data)
-        }
-
-        Ok(embed_data)
-    }
+    pub segments: Vec<String>,
 }
 
 #[cfg(test)]
