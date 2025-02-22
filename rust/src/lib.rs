@@ -28,7 +28,7 @@
 //! use embed_anything::embeddings::embed::Embedder;
 //!
 //! // Create a local CLIP embedder from a Hugging Face model
-//! let clip_embedder = Embedder::from_pretrained_hf("CLIP", "jina-clip-v2", None);
+//! let clip_embedder = Embedder::from_pretrained_hf("CLIP", "jina-clip-v2", None, None, None);
 //!
 //! // Create a cloud OpenAI embedder
 //! let openai_embedder = Embedder::from_pretrained_cloud("OpenAI", "gpt-3.5-turbo", Some("my-api-key".to_string()));
@@ -72,10 +72,8 @@ pub mod reranker;
 pub mod tesseract;
 pub mod text_loader;
 
-use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
-
 use anyhow::Result;
-use config::{ImageEmbedConfig, SplittingStrategy, TextEmbedConfig};
+use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
     get_text_metadata,
@@ -84,9 +82,20 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::AudioDecoderModel;
 use itertools::Itertools;
 use rayon::prelude::*;
+use std::ffi::OsStr;
+use std::path::Path;
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 use text_loader::TextLoader;
-use tokio::sync::mpsc; // Add this at the top of your file
+use tokio::sync::mpsc;
+// Add this at the top of your file
 
+use crate::file_processor::markdown_processor::MarkdownProcessor;
+
+use crate::file_processor::docx_processor::DocxProcessor;
+use crate::file_processor::html_processor::HtmlProcessor;
+use crate::file_processor::processor::{Document, DocumentProcessor};
+use crate::file_processor::txt_processor::TxtProcessor;
+use crate::text_loader::FileLoadingError;
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
 
@@ -125,9 +134,9 @@ pub enum Dtype {
 /// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
 /// use embed_anything::embeddings::local::jina::JinaEmbedder;
 ///
-/// let query = vec!["Hello".to_string(), "World".to_string()];
+/// let query = ["Hello", "World"];
 /// let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
-/// let embeddings = embed_query(query, &embedder, None).unwrap();
+/// let embeddings = embed_query(&query, &embedder, None).unwrap();
 /// println!("{:?}", embeddings);
 /// ```
 pub async fn embed_query(
@@ -170,18 +179,18 @@ pub async fn embed_query(
 /// use embed_anything::embeddings::local::bert::BertEmbedder;
 ///
 /// let file_name = "path/to/file.pdf";
-/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap()));
+/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None, None).unwrap()));
 /// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
 /// ```
-pub async fn embed_file<T: AsRef<std::path::Path>>(
-    file_name: T,
+pub async fn embed_file(
+    file_name: impl AsRef<std::path::Path>,
     embedder: &Embedder,
-    config: Option<&TextEmbedConfig>,
+    config: Option<TextEmbedConfig>,
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
-        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
+        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder)?])),
     }
 }
 
@@ -218,28 +227,32 @@ pub async fn embed_webpage(
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>>
 {
-    let website_processor = file_processor::website_processor::WebsiteProcessor::new();
-    let webpage = website_processor.process_website(url.as_ref())?;
-
-    // if let Embedder::Clip(_) = embedder {
-    //     return Err(anyhow!("Clip model does not support webpage embedding"));
-    // }
-
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(1000);
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
+
+    let website_processor = file_processor::website_processor::WebsiteProcessor::new(chunk_size);
+    let document = website_processor.process_website(url.as_ref())?;
+
     let batch_size = config.batch_size;
 
-    let embeddings = webpage
-        .embed_webpage(embedder, chunk_size, overlap_ratio, batch_size)
-        .await?;
+    // Convert Vec<String> to Vec<&str> for embedding
+    let chunks = document.chunks;
+    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_ref()).collect();
 
-    // Send embeddings to vector database
     if let Some(adapter) = adapter {
+        let encodings = embedder
+            .embed(&chunk_refs, batch_size)
+            .await?;
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &None)?;
         adapter(embeddings);
         Ok(None)
     } else {
+        let encodings = embedder
+            .embed(&chunk_refs, batch_size)
+            .await?;
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &None)?;
+
         Ok(Some(embeddings))
     }
 }
@@ -270,8 +283,7 @@ pub async fn embed_webpage(
 /// async fn get_embeddings() {
 ///     let embeddings = embed_html(
 ///         "test_files/test.html",
-///         Some("https://example.com/"),
-///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
+///         &TextEmbedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
 ///         None,
 ///         None,
 ///     ).await.unwrap();
@@ -279,24 +291,23 @@ pub async fn embed_webpage(
 /// ```
 pub async fn embed_html(
     file_name: impl AsRef<std::path::Path>,
-    embedder: &Embedder,
-    origin: Option<impl Into<String>>,
+    embedder: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
-    let html_processor = file_processor::html_processor::HtmlProcessor::new();
-    let html = html_processor.process_html_file(file_name.as_ref(), origin)?;
-
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(1000);
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
+
+    let html_processor = HtmlProcessor::new(config.chunk_size.unwrap_or(1000));
+
+    let bytes = fs::read(&file_name)?;
+    let out = String::from_utf8_lossy(&bytes);
+    let html = html_processor.process_document(&out);
+
     let batch_size = config.batch_size;
 
-    let embeddings = html
-        .embed_webpage(embedder, chunk_size, overlap_ratio, batch_size)
-        .await?;
+    let embeddings = embed_document(html, None, embedder, batch_size).await?;
 
     // Send embeddings to vector database
     if let Some(adapter) = adapter {
@@ -307,48 +318,84 @@ pub async fn embed_html(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-async fn emb_text<T: AsRef<std::path::Path>>(
-    file: T,
-    embedding_model: &TextEmbedder,
+/// Embeds a Markdown document using the specified embedding model.
+///
+/// # Arguments
+///
+/// * `file_name` - The path of the HTML document to embed.
+/// * `embedder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
+///
+/// # Returns
+///
+/// The embeddings of the Markdown document.
+///
+/// # Errors
+///
+/// Returns an error if the specified embedding model is invalid.
+///
+/// # Example
+///
+/// ```
+/// use embed_anything::embed_markdown;
+/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
+/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+///
+/// async fn get_embeddings() {
+///     let embeddings = embed_markdown(
+///         "# This is some Markdown content",
+///         &TextEmbedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
+///         None,
+///     ).await.unwrap();
+/// }
+/// ```
+pub async fn embed_markdown(
+    markdown: &str,
+    embedder: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
+) -> Result<Vec<EmbedData>> {
+    let binding = TextEmbedConfig::default();
+    let config = config.unwrap_or(&binding);
+
+    let md_processor = MarkdownProcessor::new(
+        config.chunk_size.unwrap_or(1000)
+    );
+    let md = md_processor.process_document(markdown);
+
+    embed_document(md, None, embedder, config.batch_size).await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn emb_text(
+    file: impl AsRef<std::path::Path>,
+    embedding_model: &TextEmbedder,
+    config: Option<TextEmbedConfig>,
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>>
 {
-    let binding = TextEmbedConfig::default();
-    let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(1000);
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
-    let batch_size = config.batch_size;
-    let splitting_strategy = config.splitting_strategy.clone();
-    let use_ocr = config.use_ocr.unwrap_or(false);
-    let tesseract_path = config.tesseract_path.clone();
-    let text = TextLoader::extract_text(&file, use_ocr, tesseract_path.as_deref())?;
-    let textloader = TextLoader::new(chunk_size, overlap_ratio);
-    let chunks = textloader
-        .split_into_chunks(&text, splitting_strategy)
-        .unwrap_or_default();
+    if !file.as_ref().exists() {
+        return Err(FileLoadingError::FileNotFound(
+            file.as_ref().to_str().unwrap().to_string(),
+        )
+            .into());
+    }
+    
+    let file_extension = file.as_ref().extension().unwrap();
+    let processor = get_processor(file_extension, config.clone())?;
+
+    let bytes = fs::read(&file)?;
+    let out = String::from_utf8_lossy(&bytes);
+    let document = processor.process_document(out.as_ref());
 
     let metadata = TextLoader::get_metadata(file).ok();
 
-    // Convert Vec<String> to Vec<&str> for embedding
-    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
+    let batch_size = config.map(|x| x.batch_size).flatten();
+
+    let embeddings = embed_document(document, metadata, embedding_model, batch_size).await?;
 
     if let Some(adapter) = adapter {
-        let encodings = embedding_model
-            .embed(&chunk_refs, batch_size)
-            .await
-            .unwrap();
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
         adapter(embeddings);
         Ok(None)
     } else {
-        let encodings = embedding_model
-            .embed(&chunk_refs, batch_size)
-            .await
-            .unwrap();
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
-
         Ok(Some(embeddings))
     }
 }
@@ -363,8 +410,7 @@ fn emb_image<T: AsRef<std::path::Path>>(
         fs::canonicalize(&image_path)?.to_str().unwrap().to_string(),
     );
     let embedding = embedding_model
-        .embed_image(&image_path, Some(metadata))
-        .unwrap();
+        .embed_image(&image_path, Some(metadata))?;
 
     Ok(embedding.clone())
 }
@@ -378,7 +424,7 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 ) -> Result<Option<Vec<EmbedData>>> {
     use file_processor::audio::audio_processor;
 
-    let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file).unwrap();
+    let segments: Vec<audio_processor::Segment> = audio_decoder.process_audio(&audio_file)?;
     let embeddings = embed_audio(
         embedder,
         segments,
@@ -429,7 +475,7 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 ///
 /// async fn embed_images() {
 ///     let directory = PathBuf::from("/path/to/directory");
-///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None, None, None).unwrap());
 ///     let embeddings = embed_image_directory(directory, &embedder, None, None).await.unwrap();
 /// }
 /// ```
@@ -440,10 +486,9 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     embedding_model: &Arc<T>,
     config: Option<&ImageEmbedConfig>,
     adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
-) -> Result<Option<Vec<EmbedData>>>
-{
+) -> Result<Option<Vec<EmbedData>>> {
     let mut file_parser = FileParser::new();
-    file_parser.get_image_paths(&directory).unwrap();
+    file_parser.get_image_paths(&directory)?;
 
     let buffer_size = config
         .unwrap_or(&ImageEmbedConfig::default())
@@ -459,8 +504,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     pb.set_style(
         indicatif::ProgressStyle::with_template(
             "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )
-        .unwrap(),
+        )?,
     );
 
     let processing_task = tokio::spawn({
@@ -545,7 +589,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     }
 
     // Wait for the spawned task to complete
-    processing_task.await.unwrap();
+    processing_task.await?;
 
     if adapter.is_some() {
         Ok(None)
@@ -589,7 +633,7 @@ async fn process_images<E: EmbedImage>(
 ///
 /// async fn generate_embeddings() {
 ///     let directory = PathBuf::from("/path/to/directory");
-///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None, None, None).unwrap());
 ///     let config = Some(&TextEmbedConfig::default());
 ///     let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
 ///     let embeddings = embed_directory_stream(directory, &embedder, extensions, config, None).await.unwrap();
@@ -607,12 +651,8 @@ pub async fn embed_directory_stream(
 
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
-    let use_ocr = config.use_ocr.unwrap_or(false);
-    let tesseract_path = config.tesseract_path.as_deref();
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
     let files = file_parser.files.clone();
@@ -625,8 +665,7 @@ pub async fn embed_directory_stream(
     pb.set_style(
         indicatif::ProgressStyle::with_template(
             "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )
-        .unwrap(),
+        )?,
     );
 
     let processing_task = tokio::spawn({
@@ -696,20 +735,18 @@ pub async fn embed_directory_stream(
         }
     });
 
-    let textloader = TextLoader::new(chunk_size, overlap_ratio);
-
     files.into_iter().for_each(|file| {
-        let text = match TextLoader::extract_text(&file, use_ocr, tesseract_path) {
-            Ok(text) => text,
-            Err(_) => {
-                return;
-            }
-        };
+        let file_extension = Path::new(&file)
+            .extension()
+            .unwrap();
+        let processor = get_processor(file_extension.into(), Some(config.clone())).unwrap();
+
+        let bytes = fs::read(&file).unwrap();
+        let out = String::from_utf8_lossy(&bytes);
+        let document = processor.process_document(out.as_ref());
+
         let metadata = TextLoader::get_metadata(file).unwrap();
-        let chunks = textloader
-            .split_into_chunks(&text, SplittingStrategy::Sentence)
-            .unwrap_or_else(|| vec![text.clone()])
-            .into_iter()
+        let chunks = document.chunks.into_iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
 
@@ -732,7 +769,7 @@ pub async fn embed_directory_stream(
         }
     }
     // Wait for the spawned task to complete
-    processing_task.await.unwrap();
+    processing_task.await?;
 
     if adapter.is_some() {
         Ok(None)
@@ -767,7 +804,7 @@ pub async fn embed_directory_stream(
 ///
 /// async fn generate_embeddings() {
 ///     let files = vec![PathBuf::from("test_files/test.txt"), PathBuf::from("test_files/test.pdf")];
-///     let embedder = Arc::new(Embedder::from_pretrained_hf("bert", "jinaai/jina-embeddings-v2-small-en", None).unwrap());
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("bert", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap());
 ///     let config = Some(&TextEmbedConfig::default());
 ///     let embeddings = embed_files_batch(files, &embedder, config, None).await.unwrap();
 /// }
@@ -782,12 +819,8 @@ pub async fn embed_files_batch(
 {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
-    let use_ocr = config.use_ocr.unwrap_or(false);
-    let tesseract_path = config.tesseract_path.as_deref();
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
@@ -798,8 +831,7 @@ pub async fn embed_files_batch(
     pb.set_style(
         indicatif::ProgressStyle::with_template(
             "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )
-        .unwrap(),
+        )?,
     );
 
     let processing_task = tokio::spawn({
@@ -869,20 +901,16 @@ pub async fn embed_files_batch(
         }
     });
 
-    let textloader = TextLoader::new(chunk_size, overlap_ratio);
-
     files.into_iter().for_each(|file| {
-        let text = match TextLoader::extract_text(&file, use_ocr, tesseract_path) {
-            Ok(text) => text,
-            Err(_) => {
-                return;
-            }
-        };
+        let file_extension = file.as_ref().extension().unwrap();
+        let processor = get_processor(file_extension.into(), Some(config.clone())).unwrap();
+
+        let bytes = fs::read(&file).unwrap();
+        let out = String::from_utf8_lossy(&bytes);
+        let document = processor.process_document(out.as_ref());
+
         let metadata = TextLoader::get_metadata(file).unwrap();
-        let chunks = textloader
-            .split_into_chunks(&text, SplittingStrategy::Sentence)
-            .unwrap_or_else(|| vec![text.clone()])
-            .into_iter()
+        let chunks = document.chunks.into_iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
 
@@ -905,7 +933,7 @@ pub async fn embed_files_batch(
         }
     }
     // Wait for the spawned task to complete
-    processing_task.await.unwrap();
+    processing_task.await?;
 
     if adapter.is_some() {
         Ok(None)
@@ -933,4 +961,38 @@ pub async fn process_chunks(
         })
         .collect::<Vec<_>>();
     Ok(Arc::new(embeddings))
+}
+
+fn get_processor(
+    file_extension: &OsStr,
+    config: Option<TextEmbedConfig>
+) -> Result<Box<dyn DocumentProcessor>> {
+    let config = config.unwrap_or(TextEmbedConfig::default());
+    let chunk_size = config.chunk_size.unwrap_or(1000);
+    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
+    let splitting_strategy = config.splitting_strategy.clone();
+    let use_ocr = config.use_ocr.unwrap_or(false);
+    let tesseract_path = config.tesseract_path.clone();
+
+    let processor: Box<dyn DocumentProcessor> = match file_extension.to_str().unwrap() {
+        //"pdf" => PdfProcessor::new(chunk_size, overlap_ratio, splitting_strategy, use_ocr, tesseract_path),
+        "md" => Box::new(MarkdownProcessor::new(chunk_size)),
+        "txt" => Box::new(TxtProcessor::new(chunk_size, overlap_ratio, splitting_strategy)),
+        "docx" => Box::new(DocxProcessor::new(chunk_size)),
+        _ => {
+            return Err(FileLoadingError::UnsupportedFileType(file_extension.to_str().unwrap().to_string()).into())
+        },
+    };
+    Ok(processor)
+}
+
+async fn embed_document(document: Document, metadata: Option<HashMap<String, String>>, embedder: &TextEmbedder, batch_size: Option<usize>) -> Result<Vec<EmbedData>> {
+    let chunks = document.chunks;
+    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_ref()).collect();
+
+    let encodings = embedder
+        .embed(&chunk_refs, batch_size)
+        .await?;
+
+    get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata)
 }

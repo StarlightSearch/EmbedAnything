@@ -31,8 +31,8 @@ impl Default for Args {
 }
 
 impl Args {
-    pub fn with_path(mut self, path: Option<&str>) -> Self {
-        self.path = path.map(|p| p.to_string());
+    pub fn with_path(mut self, path: Option<String>) -> Self {
+        self.path = path;
         self
     }
 
