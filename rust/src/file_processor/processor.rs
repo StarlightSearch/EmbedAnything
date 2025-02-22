@@ -1,15 +1,13 @@
 pub trait DocumentProcessor {
-    type DocumentType: Document;
 
-    fn process_document(&self, content: &str) -> Self::DocumentType;
+    fn process_document(&self, content: &str) -> Document;
 }
 
 pub trait FileProcessor {
-    type DocumentType: Document;
 
-    fn process_file(&self, path: impl AsRef<std::path::Path>) -> anyhow::Result<Self::DocumentType>;
+    fn process_file(&self, path: impl AsRef<std::path::Path>) -> anyhow::Result<Document>;
 }
 
-pub trait Document {
-    fn chunks(&self) -> impl Iterator<Item = String>;
+pub struct Document {
+    pub chunks: Vec<String>
 }

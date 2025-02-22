@@ -1,4 +1,3 @@
-use rayon::iter::ParallelBridge;
 use text_splitter::{Characters, ChunkConfig, TextSplitter};
 use crate::chunkers::statistical::StatisticalChunker;
 use crate::config::SplittingStrategy;
@@ -26,19 +25,17 @@ impl TxtProcessor {
 }
 
 impl DocumentProcessor for TxtProcessor {
-    type DocumentType = TxtDocument;
 
-    fn process_document(&self, content: &str) -> Self::DocumentType {
+    fn process_document(&self, content: &str) -> Document {
         // Remove single newlines but keep double newlines
         let cleaned_text = content
             .replace("\n\n", "{{DOUBLE_NEWLINE}}")
             .replace("\n", " ")
             .replace("{{DOUBLE_NEWLINE}}", "\n\n");
-        let chunks: dyn Iterator<Item = String> = match &self.splitting_strategy {
+        let chunks: Vec<String> = match self.splitting_strategy.clone() {
             SplittingStrategy::Sentence => self
                 .splitter
                 .chunks(&cleaned_text)
-                .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic { semantic_encoder } => {
@@ -55,18 +52,8 @@ impl DocumentProcessor for TxtProcessor {
             }
         };
 
-        TxtDocument {
-            segment_iterator: chunks,
+        Document {
+            chunks
         }
-    }
-}
-
-pub struct TxtDocument {
-    segment_iterator: Box<dyn Iterator<Item = String>>,
-}
-
-impl Document for TxtDocument {
-    fn chunks(&self) -> impl Iterator<Item=String> {
-        &self.segment_iterator
     }
 }

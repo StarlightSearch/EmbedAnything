@@ -11,7 +11,6 @@ use chrono::{DateTime, Local};
 use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
 use crate::config::SplittingStrategy;
-use crate::file_processor::processor::Document;
 use rayon::prelude::*;
 
 impl Default for TextLoader {

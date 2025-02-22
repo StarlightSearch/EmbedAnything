@@ -15,8 +15,7 @@ use crate::{
     text_loader::TextLoader,
 };
 use crate::config::SplittingStrategy;
-use crate::file_processor::markdown_processor::MarkdownDocument;
-use crate::file_processor::processor::DocumentProcessor;
+use crate::file_processor::processor::{Document, DocumentProcessor};
 
 #[derive(Debug)]
 pub struct WebPage {
@@ -156,7 +155,7 @@ impl WebsiteProcessor {
         }
     }
 
-    pub fn process_website(&self, website: &str) -> Result<MarkdownDocument> {
+    pub fn process_website(&self, website: &str) -> Result<Document> {
         // check if https is in the website. If not, add it.
         let website = if website.starts_with("http") {
             website

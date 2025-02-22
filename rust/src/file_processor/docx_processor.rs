@@ -1,5 +1,5 @@
-use crate::file_processor::markdown_processor::{MarkdownDocument, MarkdownProcessor};
-use crate::file_processor::processor::DocumentProcessor;
+use crate::file_processor::markdown_processor::MarkdownProcessor;
+use crate::file_processor::processor::{Document, DocumentProcessor};
 
 /// A struct for processing PDF files.
 pub struct DocxProcessor {
@@ -15,9 +15,8 @@ impl DocxProcessor {
 }
 
 impl DocumentProcessor for DocxProcessor {
-    type DocumentType = MarkdownDocument;
 
-    fn process_document(&self, content: &str) -> Self::DocumentType {
+    fn process_document(&self, content: &str) -> Document {
         self.markdown_processor.process_document(content)
     }
 }

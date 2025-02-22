@@ -73,7 +73,7 @@ pub mod tesseract;
 pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
-
+use std::ffi::OsStr;
 use anyhow::Result;
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
@@ -237,7 +237,8 @@ pub async fn embed_webpage(
     let batch_size = config.batch_size;
 
     // Convert Vec<String> to Vec<&str> for embedding
-    let chunk_refs: Vec<&str> = document.chunks().map(|s| s.as_str()).collect();
+    let chunks = document.chunks;
+    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_ref()).collect();
 
     if let Some(adapter) = adapter {
         let encodings = embedder
@@ -282,7 +283,7 @@ pub async fn embed_webpage(
 /// async fn get_embeddings() {
 ///     let embeddings = embed_html(
 ///         "test_files/test.html",
-///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
+///         &TextEmbedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
 ///         None,
 ///         None,
 ///     ).await.unwrap();
@@ -290,7 +291,7 @@ pub async fn embed_webpage(
 /// ```
 pub async fn embed_html(
     file_name: impl AsRef<std::path::Path>,
-    embedder: &Embedder,
+    embedder: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
@@ -302,17 +303,11 @@ pub async fn embed_html(
 
     let bytes = fs::read(&file_name)?;
     let out = String::from_utf8_lossy(&bytes);
-    let html = html_processor.process_document(&out)?;
+    let html = html_processor.process_document(&out);
 
-    let binding = TextEmbedConfig::default();
-    let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(1000);
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
 
-    let embeddings = html
-        .embed_webpage(embedder, chunk_size, overlap_ratio, batch_size)
-        .await?;
+    let embeddings = embed_document(html, None, embedder, batch_size).await?;
 
     // Send embeddings to vector database
     if let Some(adapter) = adapter {
@@ -348,14 +343,14 @@ pub async fn embed_html(
 /// async fn get_embeddings() {
 ///     let embeddings = embed_markdown(
 ///         "# This is some Markdown content",
-///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
+///         &TextEmbedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap(),
 ///         None,
 ///     ).await.unwrap();
 /// }
 /// ```
 pub async fn embed_markdown(
-    markdown: impl Into<String>,
-    embedder: &Embedder,
+    markdown: &str,
+    embedder: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
 ) -> Result<Vec<EmbedData>> {
     let binding = TextEmbedConfig::default();
@@ -364,13 +359,9 @@ pub async fn embed_markdown(
     let md_processor = MarkdownProcessor::new(
         config.chunk_size.unwrap_or(1000)
     );
-    let md = md_processor.process_document(markdown)?;
+    let md = md_processor.process_document(markdown);
 
-    md.embed_markdown(
-        &embedder,
-        config.chunk_size.unwrap_or(256),
-        config.batch_size,
-    ).await
+    embed_document(md, None, embedder, config.batch_size)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -389,7 +380,7 @@ async fn emb_text(
     }
     
     let file_extension = file.as_ref().extension().unwrap();
-    let processor = get_processor(file_extension.into(), config.clone());
+    let processor = get_processor(file_extension, config.clone())?;
 
     let bytes = fs::read(&file)?;
     let out = String::from_utf8_lossy(&bytes);
@@ -399,22 +390,12 @@ async fn emb_text(
 
     let batch_size = config.map(|x| x.batch_size).flatten();
 
-    // Convert Vec<String> to Vec<&str> for embedding
-    let chunk_refs: Vec<&str> = document.chunks().map(|s| s.as_str()).collect();
+    let embeddings = embed_document(document, metadata, embedding_model, batch_size).await?;
 
     if let Some(adapter) = adapter {
-        let encodings = embedding_model
-            .embed(&chunk_refs, batch_size)
-            .await?;
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata)?;
         adapter(embeddings);
         Ok(None)
     } else {
-        let encodings = embedding_model
-            .embed(&chunk_refs, batch_size)
-            .await?;
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata)?;
-
         Ok(Some(embeddings))
     }
 }
@@ -756,14 +737,14 @@ pub async fn embed_directory_stream(
 
     files.into_iter().for_each(|file| {
         let file_extension = file.as_ref().extension().unwrap();
-        let processor = get_processor(file_extension.into(), config.clone());
+        let processor = get_processor(file_extension.into(), Some(config.clone())).unwrap();
 
-        let bytes = fs::read(&file)?;
+        let bytes = fs::read(&file).unwrap();
         let out = String::from_utf8_lossy(&bytes);
         let document = processor.process_document(out.as_ref());
 
         let metadata = TextLoader::get_metadata(file).unwrap();
-        let chunks = document.chunks()
+        let chunks = document.chunks.into_iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
 
@@ -920,14 +901,14 @@ pub async fn embed_files_batch(
 
     files.into_iter().for_each(|file| {
         let file_extension = file.as_ref().extension().unwrap();
-        let processor = get_processor(file_extension.into(), Some(config.clone()));
+        let processor = get_processor(file_extension.into(), Some(config.clone())).unwrap();
 
         let bytes = fs::read(&file).unwrap();
         let out = String::from_utf8_lossy(&bytes);
         let document = processor.process_document(out.as_ref());
 
         let metadata = TextLoader::get_metadata(file).unwrap();
-        let chunks = document.chunks()
+        let chunks = document.chunks.into_iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
 
@@ -981,9 +962,9 @@ pub async fn process_chunks(
 }
 
 fn get_processor(
-    file_extension: &str,
+    file_extension: &OsStr,
     config: Option<TextEmbedConfig>
-) -> impl DocumentProcessor {
+) -> Result<impl DocumentProcessor> {
     let config = config.unwrap_or(TextEmbedConfig::default());
     let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
@@ -992,10 +973,29 @@ fn get_processor(
     let tesseract_path = config.tesseract_path.clone();
 
     match file_extension.to_str().unwrap() {
-        "pdf" => PdfProcessor::new(chunk_size, overlap_ratio, splitting_strategy, use_ocr, tesseract_path),
-        "md" => MarkdownProcessor::new(chunk_size),
-        "txt" => TxtProcessor::new(chunk_size, overlap_ratio, splitting_strategy),
-        "docx" => DocxProcessor::new(chunk_size),
-        _ => Err(FileLoadingError::UnsupportedFileType(file_extension.to_string()).into()),
-    };
+        //"pdf" => PdfProcessor::new(chunk_size, overlap_ratio, splitting_strategy, use_ocr, tesseract_path),
+        "md" => {
+            Ok(MarkdownProcessor::new(chunk_size))
+        },
+        "txt" => {
+            Ok(TxtProcessor::new(chunk_size, overlap_ratio, splitting_strategy))
+        },
+        "docx" => {
+            Ok(DocxProcessor::new(chunk_size))
+        },
+        _ => {
+            Err(FileLoadingError::UnsupportedFileType(file_extension.to_str().unwrap().to_string()).into())
+        },
+    }
+}
+
+async fn embed_document(document: Document, metadata: Option<HashMap<String, String>>, embedder: &TextEmbedder, batch_size: Option<usize>) -> Result<Vec<EmbedData>> {
+    let chunks = document.chunks;
+    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_ref()).collect();
+
+    let encodings = embedder
+        .embed(&chunk_refs, batch_size)
+        .await?;
+
+    get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata)
 }

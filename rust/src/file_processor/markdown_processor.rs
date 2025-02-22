@@ -17,23 +17,13 @@ impl MarkdownProcessor {
 }
 
 impl DocumentProcessor for MarkdownProcessor {
-    type DocumentType = MarkdownDocument;
 
-    fn process_document(&self, content: &str) -> Self::DocumentType {
-        let iterator = self.splitter.chunks(content).into_iter()
-            .map(|x| x.to_string());
-        MarkdownDocument {
-            segment_iterator: iterator.collect(),
+    fn process_document(&self, content: &str) -> Document {
+        let chunks = self.splitter.chunks(content).into_iter()
+            .map(|x| x.to_string())
+            .collect();
+        Document {
+            chunks
         }
-    }
-}
-
-pub struct MarkdownDocument {
-    segment_iterator: Box<dyn Iterator<Item = String>>
-}
-
-impl Document for MarkdownDocument {
-    fn chunks(&self) -> impl Iterator<Item=String> {
-        &self.segment_iterator
     }
 }

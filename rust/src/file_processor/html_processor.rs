@@ -1,5 +1,5 @@
-use crate::file_processor::markdown_processor::{MarkdownDocument, MarkdownProcessor};
-use crate::file_processor::processor::DocumentProcessor;
+use crate::file_processor::markdown_processor::MarkdownProcessor;
+use crate::file_processor::processor::{Document, DocumentProcessor};
 use htmd::{HtmlToMarkdown, HtmlToMarkdownBuilder};
 
 /// A Struct for processing HTML files.
@@ -20,9 +20,8 @@ impl HtmlProcessor {
 }
 
 impl DocumentProcessor for HtmlProcessor {
-    type DocumentType = MarkdownDocument;
 
-    fn process_document(&self, content: &str) -> Self::DocumentType {
+    fn process_document(&self, content: &str) -> Document {
         let md = self.converter.convert(content).unwrap();
         self.markdown_processor.process_document(&md)
     }

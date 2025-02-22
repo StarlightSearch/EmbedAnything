@@ -4,8 +4,8 @@ use anyhow::Error;
 use image::DynamicImage;
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
 use crate::config::SplittingStrategy;
-use crate::file_processor::processor::{DocumentProcessor, FileProcessor};
-use crate::file_processor::txt_processor::{TxtDocument, TxtProcessor};
+use crate::file_processor::processor::{Document, DocumentProcessor, FileProcessor};
+use crate::file_processor::txt_processor::TxtProcessor;
 
 /// A struct for processing PDF files.
 pub struct PdfProcessor {
@@ -25,7 +25,7 @@ impl PdfProcessor {
         PdfProcessor {
             txt_processor: TxtProcessor::new(chunk_size, overlap_ratio, splitting_strategy),
             use_ocr,
-            tesseract_path
+            tesseract_path: tesseract_path.map(Into::into),
         }
     }
 
@@ -54,7 +54,7 @@ impl PdfProcessor {
         let images = Self::get_images_from_pdf(file_path)?;
         let texts: Result<Vec<String>, Error> = images
             .iter()
-            .map(|image| Self::extract_text_from_image(image, &Args::default().with_path(tesseract_path)))
+            .map(|image| Self::extract_text_from_image(image, &Args::default().with_path(tesseract_path.clone())))
             .collect();
         Ok(texts?.join("\n"))
     }
@@ -62,9 +62,8 @@ impl PdfProcessor {
 }
 
 impl FileProcessor for PdfProcessor {
-    type DocumentType = TxtDocument;
 
-    fn process_file(&self, path: impl AsRef<Path>) -> anyhow::Result<Self::DocumentType> {
+    fn process_file(&self, path: impl AsRef<Path>) -> anyhow::Result<Document> {
         let text = if self.use_ocr {
             Self::extract_text_with_ocr(&path, self.tesseract_path.clone())?
         } else {
