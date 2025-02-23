@@ -30,13 +30,13 @@ image = "0.25.1"
 
 # Natural Language Processing
 tokenizers = {version="0.21.0", features=["http"]}
-text-splitter = {version="0.23.0", features=["tokenizers"]}
+text-splitter = {version="0.24.0", features=["tokenizers"]}
 
 tracing = "0.1.37"
 
 
 # Hugging Face Libraries
-hf-hub = "0.3.2"
+hf-hub = "0.4.1"
 candle-nn = { workspace = true }
 candle-transformers = { workspace = true }
 candle-core = { workspace = true }
@@ -52,13 +52,13 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 markdown_to_text = "1.0.0"
 
 # Web Scraping
-scraper = "0.20.0"
+scraper = "0.22.0"
 
 # Text Processing
 url = "2.5.0"
 chrono = "0.4.38"
-rand = "0.8.5"
-itertools = "0.13.0"
+rand = "0.9.0"
+itertools = "0.14.0"
 
 # Audio Processing
 symphonia = { version = "0.5.3", optional = true, features = ["all"] }
@@ -82,7 +82,7 @@ indicatif = "0.17.8"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
-thiserror = "1.0.40"
+thiserror = "2.0.11"
 tempfile = "3.4.0"
 
 [dev-dependencies]

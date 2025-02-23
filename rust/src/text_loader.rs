@@ -77,16 +77,10 @@ impl TextLoader {
         if text.is_empty() {
             return None;
         }
-
-        // Remove single newlines but keep double newlines
-        let cleaned_text = text
-            .replace("\n\n", "{{DOUBLE_NEWLINE}}")
-            .replace("\n", " ")
-            .replace("{{DOUBLE_NEWLINE}}", "\n\n");
         let chunks: Vec<String> = match splitting_strategy {
             SplittingStrategy::Sentence => self
                 .splitter
-                .chunks(&cleaned_text)
+                .chunks(&text)
                 .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
@@ -99,7 +93,7 @@ impl TextLoader {
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Runtime::new()
                         .unwrap()
-                        .block_on(async { chunker.chunk(&cleaned_text, 64).await })
+                        .block_on(async { chunker.chunk(&text, 64).await })
                 })
             }
         };
