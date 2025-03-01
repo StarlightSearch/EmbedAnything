@@ -27,11 +27,11 @@
     <br />
     <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/"><strong>Rust docs »</strong></a>
     <br />
-    <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
     ·
-    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benches</strong></a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing">Blogs</a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Adapters</a>
     .
     <a href="https://huggingface.co/spaces/akshayballal/search_in_audio">Search in Audio Space</a>
     
@@ -87,7 +87,7 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC.
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC. Find our [blog](https://starlight-search.com/blog/2024/03/31/vector-streaming/).
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -403,6 +403,7 @@ We currently support a wide range of vector databases for streaming embeddings, 
 - Weaviate<br/>
 - Pinecone<br/>
 
+How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-development-guide.md
 
 But we're not stopping there! We're actively working to expand this list.
 
