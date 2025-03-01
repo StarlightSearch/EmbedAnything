@@ -186,7 +186,7 @@ model = EmbeddingModel.from_pretrained_hf(
 
 # Embed a PDF file
 data = embed_anything.embed_file(
-    "/home/sonamAI/projects/EmbedAnything/test_files/attention.pdf",
+    "test-file",
     embedder=model,
     adapter=pinecone_adapter,
 )
@@ -200,25 +200,6 @@ data = embed_anything.embed_image_directory(
 
 print(data)
 ```
-
-## Best Practices for Creating Adapters
-
-When creating your own adapters for EmbedAnything, consider the following best practices:
-
-1. **Comprehensive Documentation**: Include detailed docstrings for all methods, as shown in the example above.
-2. **Error Handling**: Implement robust error handling to catch and handle potential issues.
-3. **Configuration Flexibility**: Allow users to customize the adapter behavior through parameters.
-4. **Metadata Management**: Preserve and enhance metadata when converting embeddings.
-5. **Efficient Conversion**: Optimize the conversion process for large datasets.
-
-## Creating Adapters for Other Services
-
-The same principles can be applied to create adapters for other services:
-
-1. **MongoDB Adapter**: For storing embeddings in a MongoDB database
-2. **Elasticsearch Adapter**: For integrating with Elasticsearch's vector search capabilities
-3. **Redis Adapter**: For high-performance vector storage and search
-4. **Custom File System Adapter**: For storing embeddings in a specific file format
 
 ## Conclusion
 
