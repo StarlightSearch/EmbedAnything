@@ -21,19 +21,19 @@
 <div align="center">
 
   <p align="center">
-    <b> Inference, Ingestion, and Indexing – supercharged by Rust 🦀</b>
+    <b> Inference, Ingestion, and Indexing in Rust 🦀</b>
     <br />
-    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Python docs »</strong></a>
+    <a href="https://starlightsearch.github.io/EmbedAnything/references/">Python docs »</a>
     <br />
-    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/"><strong>Rust docs »</strong></a>
+    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/">Rust docs »</a>
     <br />
     <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
     ·
-    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing">Blogs</a>
+    <a href="https://starlight-search.com/blog/"><strong>Blogs</strong></a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Adapters</a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
     .
-    <a href="https://huggingface.co/spaces/akshayballal/search_in_audio">Search in Audio Space</a>
+    <a href="https://huggingface.co/spaces/akshayballal/search_in_audio"><strong>Search in Audio Space</strong></a>
     
   </p>
 </div>
@@ -71,13 +71,8 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 ## 🚀 Key Features
 
-- **Local Embedding** : Works with local embedding models like BERT and JINA
-- **ONNX Models**: Works with ONNX models for BERT and ColPali
-- **ColPali** : Support for ColPali in GPU version both on ONNX and Candle
-- **Splade** : Support for sparse embeddings for hybrid
-- **ReRankers** : Support for ReRanking Models for better RAG.
-- **ColBERT** : Support for ColBert on ONNX
-- **ModernBERT**: Increase your token length to 8K
+- **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT
+- **ONNX Backend**: Supports BERT, Jina, ColPali, Splade, Reranker, ModernBERT
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
@@ -311,7 +306,12 @@ model = EmbeddingModel.from_pretrained_onnx(
 ```
 To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
 
+## Our Past Collaborations:
 
+We have collaborated with reputed enterprise like
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), Weaviate, [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0.)
+
+You can get in touch with us for further collaborations.
 
 
 ## 🚧 Contributing to EmbedAnything
@@ -409,3 +409,9 @@ But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
 If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly starlight-search@proton.me. Let's build something amazing together! 💡
+
+## A big Thank you to all our StarGazers
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=StarlightSearch/EmbedAnything&type=Date)](https://star-history.com/#StarlightSearch/EmbedAnything&Date)
