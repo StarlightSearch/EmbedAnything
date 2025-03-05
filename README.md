@@ -12,7 +12,7 @@
 [![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
 [![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
-[![roadmap](https://img.shields.io/badge/Roadmap-1D9BF0?style=flat&logo=twitter&logoColor=white)](https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap)
+[![MkDocs](https://img.shields.io/badge/Blogs-F38020?.svg?logoColor=fff)](https://starlight-search.com/blog/)
 
 </div>
 
