@@ -11,7 +11,6 @@
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
 [![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![package]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
 [![roadmap](https://img.shields.io/badge/Roadmap-1D9BF0?style=flat&logo=twitter&logoColor=white)](https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap)
 
@@ -32,8 +31,7 @@
     <a href="https://starlight-search.com/blog/"><strong>Blogs</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
-    .
-    <a href="https://huggingface.co/spaces/akshayballal/search_in_audio"><strong>Search in Audio Space</strong></a>
+
     
   </p>
 </div>
