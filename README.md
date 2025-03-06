@@ -31,6 +31,9 @@
     <a href="https://starlight-search.com/blog/"><strong>Blogs</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
+    .
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#our-past-collaborations"><strong>Collaborations</strong></a>
+
 
     
   </p>
@@ -94,6 +97,12 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Decrease the memory usage of EmbedAnything. <br/>
 ➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
 
+## 🍅 Our Past Collaborations:
+
+We have collaborated with reputed enterprise like
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), Weaviate, [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0.)
+
+You can get in touch with us for further collaborations.
 
 
 # ⭐ Supported Models
@@ -304,12 +313,6 @@ model = EmbeddingModel.from_pretrained_onnx(
 ```
 To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
 
-## Our Past Collaborations:
-
-We have collaborated with reputed enterprise like
-[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), Weaviate, [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0.)
-
-You can get in touch with us for further collaborations.
 
 
 ## 🚧 Contributing to EmbedAnything
