@@ -168,7 +168,6 @@ impl BertEmbed for BertEmbedder {
                 Pooling::Mean => self.pooling.pool(&model_output, attention_mask)?,
             };
             let pooled_output = pooled_output.to_tensor()?;
-
             let embeddings = normalize_l2(pooled_output)?;
             let batch_encodings = embeddings.to_vec2::<f32>()?;
 
@@ -314,17 +313,20 @@ mod tests {
             .embed(&["Hello, world!", "I am a rust programmer"], Some(32))
             .unwrap();
         let test_embeddings: Vec<f32> = vec![
-            -3.81771736e-02,
-            3.29111032e-02,
-            -5.45938499e-03,
-            1.43699143e-02,
+            -3.81771438e-02,
+            3.29110473e-02,
+            -5.45941433e-03,
+            1.43699292e-02,
+            -4.02910188e-02,
+            -1.16532497e-01,
         ];
-        let embeddings = embeddings[0].to_dense().unwrap()[0..4].to_vec();
+        let embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
+        println!("{:?}", embeddings);
         assert!(
             (embeddings
                 .iter()
                 .zip(test_embeddings.iter())
-                .all(|(a, b)| a.abs() - b.abs() < 1e-5))
+                .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
         );
     }
 }

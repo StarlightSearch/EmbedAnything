@@ -81,16 +81,13 @@ impl Pooling {
                 } else {
                     &tensor.ones_like()?
                 };
-                
+
                 let expanded_mask = attention_mask
                     .unsqueeze(2)?
                     .expand(&[tensor.dim(0)?, tensor.dim(1)?, tensor.dim(2)?])?
                     .to_dtype(tensor.dtype())?;
-                
-                let mask_sum = expanded_mask.sum_all()?;
-                if mask_sum.to_vec0::<f32>()? < 1e-10 {
-                    return Err(anyhow::anyhow!("Attention mask sum too close to zero"));
-                }
+
+                let mask_sum = expanded_mask.sum_all()?.clamp(1e-10, f32::MAX)?;
 
                 let result = tensor
                     .mul(&expanded_mask)?
@@ -101,13 +98,14 @@ impl Pooling {
             }
             ModelOutput::Array(output) => {
                 let attention_mask = attention_mask
-                    .ok_or_else(|| anyhow::anyhow!("Attention mask required for Mean pooling output"))?
+                    .ok_or_else(|| {
+                        anyhow::anyhow!("Attention mask required for Mean pooling output")
+                    })?
                     .to_array()?;
 
                 let mask_3d = attention_mask.view().insert_axis(Axis(2));
-                
+
                 let mask_sum = mask_3d.iter().sum::<f32>();
-     
 
                 let result = output
                     .view()
