@@ -11,9 +11,8 @@
 [![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
 [![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![package]( https://img.shields.io/badge/Package-PYPI-blue.svg)](https://pypi.org/project/embed-anything/)
 [![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
-[![roadmap](https://img.shields.io/badge/Roadmap-1D9BF0?style=flat&logo=twitter&logoColor=white)](https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap)
+[![MkDocs](https://img.shields.io/badge/Blogs-F38020?.svg?logoColor=fff)](https://starlight-search.com/blog/)
 
 </div>
 
@@ -21,19 +20,21 @@
 <div align="center">
 
   <p align="center">
-    <b> Inference, Ingestion, and Indexing – supercharged by Rust 🦀</b>
+    <b> Inference, Ingestion, and Indexing in Rust 🦀</b>
     <br />
-    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Python docs »</strong></a>
+    <a href="https://starlightsearch.github.io/EmbedAnything/references/">Python docs »</a>
     <br />
-    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/"><strong>Rust docs »</strong></a>
+    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/">Rust docs »</a>
     <br />
-    <a href=https://youtu.be/HLXIuznnXcI>View Demo</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
     ·
-    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benches</strong></a>
+    <a href="https://starlight-search.com/blog/"><strong>Blogs</strong></a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters">Vector Streaming Adapters</a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
     .
-    <a href="https://huggingface.co/spaces/akshayballal/search_in_audio">Search in Audio Space</a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#our-past-collaborations"><strong>Collaborations</strong></a>
+
+
     
   </p>
 </div>
@@ -71,13 +72,8 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 ## 🚀 Key Features
 
-- **Local Embedding** : Works with local embedding models like BERT and JINA
-- **ONNX Models**: Works with ONNX models for BERT and ColPali
-- **ColPali** : Support for ColPali in GPU version both on ONNX and Candle
-- **Splade** : Support for sparse embeddings for hybrid
-- **ReRankers** : Support for ReRanking Models for better RAG.
-- **ColBERT** : Support for ColBert on ONNX
-- **ModernBERT**: Increase your token length to 8K
+- **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT
+- **ONNX Backend**: Supports BERT, Jina, ColPali, Splade, Reranker, ModernBERT
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
@@ -87,7 +83,7 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC.
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC. Find our [blog](https://starlight-search.com/blog/2024/03/31/vector-streaming/).
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -101,6 +97,12 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Decrease the memory usage of EmbedAnything. <br/>
 ➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
 
+## 🍅 Our Past Collaborations:
+
+We have collaborated with reputed enterprise like
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), Weaviate, [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0.)
+
+You can get in touch with us for further collaborations.
 
 
 # ⭐ Supported Models
@@ -313,7 +315,6 @@ To see all the ONNX models supported with model_name, see [here](../guides/onnx_
 
 
 
-
 ## 🚧 Contributing to EmbedAnything
 
 
@@ -403,8 +404,15 @@ We currently support a wide range of vector databases for streaming embeddings, 
 - Weaviate<br/>
 - Pinecone<br/>
 
+How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-development-guide.md
 
 But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
 If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly starlight-search@proton.me. Let's build something amazing together! 💡
+
+## A big Thank you to all our StarGazers
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=StarlightSearch/EmbedAnything&type=Date)](https://star-history.com/#StarlightSearch/EmbedAnything&Date)
