@@ -80,7 +80,7 @@ impl TextLoader {
         let chunks: Vec<String> = match splitting_strategy {
             SplittingStrategy::Sentence => self
                 .splitter
-                .chunks(&text)
+                .chunks(text)
                 .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
@@ -93,7 +93,7 @@ impl TextLoader {
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Runtime::new()
                         .unwrap()
-                        .block_on(async { chunker.chunk(&text, 64).await })
+                        .block_on(async { chunker.chunk(text, 64).await })
                 })
             }
         };
