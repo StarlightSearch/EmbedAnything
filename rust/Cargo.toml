@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.5.3"
+version = "0.5.4"
 edition.workspace = true
 license.workspace = true
 description.workspace = true
@@ -14,7 +14,7 @@ serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.112"
 
 # HTTP Client
-reqwest = { version = "0.12.2", features = ["json", "blocking"] }
+reqwest = { version = "0.12.2", default-features = false, features = ["json", "blocking"] }
 
 # Filesystem
 walkdir = "2.4.0"
@@ -29,14 +29,14 @@ rayon = "1.8.1"
 image = "0.25.1"
 
 # Natural Language Processing
-tokenizers = {version="0.21.0", features=["http"]}
+tokenizers = {version="0.21.1", default-features = false, features=["http"]}
 text-splitter = {version="0.24.0", features=["tokenizers"]}
 
 tracing = "0.1.37"
 
 
 # Hugging Face Libraries
-hf-hub = "0.4.1"
+hf-hub = { version = "0.4.1", default-features = false }
 candle-nn = { workspace = true }
 candle-transformers = { workspace = true }
 candle-core = { workspace = true }
@@ -107,3 +107,8 @@ flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]
 metal = ["candle-core/metal", "candle-nn/metal"]
 audio = ["dep:symphonia"]
 ort = ["dep:ort"]
+rustls-tls = [
+    "reqwest/rustls-tls",
+    "hf-hub/rustls-tls",
+    "tokenizers/rustls-tls"
+]
