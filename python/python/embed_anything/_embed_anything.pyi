@@ -265,7 +265,7 @@ def embed_audio_file(
     audio_decoder: AudioDecoderModel,
     embedder: EmbeddingModel,
     text_embed_config: TextEmbedConfig | None = TextEmbedConfig(
-        chunk_size=200, batch_size=32
+        chunk_size=1000, batch_size=32
     ),
 ) -> list[EmbedData]:
     """
@@ -294,7 +294,7 @@ def embed_audio_file(
         revision="main",
     )
 
-    config = embed_anything.TextEmbedConfig(chunk_size=200, batch_size=32)
+    config = embed_anything.TextEmbedConfig(chunk_size=1000, batch_size=32)
     data = embed_anything.embed_audio_file(
         "test_files/audio/samples_hp0.wav",
         audio_decoder=audio_decoder,
