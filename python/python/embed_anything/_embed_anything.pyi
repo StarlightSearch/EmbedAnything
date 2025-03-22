@@ -497,6 +497,8 @@ class TextEmbedConfig:
     Attributes:
         chunk_size: The chunk size for the Text Embedding model. Default is 1000 Characters.
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
+        buffer_size: The buffer size for the Text Embedding model. Default is 100.
+        late_chunking: A flag indicating whether to use late chunking for the Text Embedding model. Use late chunking to increase the context that is taken into account for each chunk.  Default is False.
         splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence". If semantic splitting is used, semantic_encoder is required.
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
         use_ocr: A flag indicating whether to use OCR for the Text Embedding model. Default is False.
@@ -508,6 +510,7 @@ class TextEmbedConfig:
         chunk_size: int | None = 1000,
         overlap_ratio: float | None = 0.0,
         batch_size: int | None = 32,
+        late_chunking: bool | None = False,
         buffer_size: int | None = 100,
         splitting_strategy: str | None = "sentence",
         semantic_encoder: EmbeddingModel | None = None,
@@ -517,6 +520,7 @@ class TextEmbedConfig:
         self.chunk_size = chunk_size
         self.overlap_ratio = overlap_ratio
         self.batch_size = batch_size
+        self.late_chunking = late_chunking
         self.buffer_size = buffer_size
         self.splitting_strategy = splitting_strategy
         self.semantic_encoder = semantic_encoder
@@ -525,6 +529,7 @@ class TextEmbedConfig:
     chunk_size: int | None
     overlap_ratio: float | None
     batch_size: int | None
+    late_chunking: bool | None
     buffer_size: int | None
     splitting_strategy: str | None
     semantic_encoder: EmbeddingModel | None
