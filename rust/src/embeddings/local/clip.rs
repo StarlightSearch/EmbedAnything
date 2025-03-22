@@ -289,10 +289,7 @@ mod tests {
     #[test]
     fn test_tokenize_sequences() {
         let clip_embedder = ClipEmbedder::default();
-        let sequences = &[
-            "Hey there how are you?",
-            "EmbedAnything is the best!",
-        ];
+        let sequences = &["Hey there how are you?", "EmbedAnything is the best!"];
         let (input_ids, vec_seq) = clip_embedder
             .tokenize_sequences(Some(sequences), &clip_embedder.tokenizer)
             .unwrap();

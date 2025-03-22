@@ -1,6 +1,6 @@
-use pyo3::prelude::*;
-use embed_anything::config::SplittingStrategy;
 use crate::EmbeddingModel;
+use embed_anything::config::SplittingStrategy;
+use pyo3::prelude::*;
 
 #[pyclass]
 #[derive(Default)]
@@ -25,18 +25,20 @@ impl TextEmbedConfig {
         tesseract_path: Option<&str>,
     ) -> Self {
         let strategy = match splitting_strategy {
-            Some(strategy) => match strategy {
-                "sentence" => SplittingStrategy::Sentence,
-                "semantic" => {
-                    if semantic_encoder.is_none() {
-                        panic!("Semantic encoder is required when using Semantic splitting strategy");
+            Some(strategy) => {
+                match strategy {
+                    "sentence" => SplittingStrategy::Sentence,
+                    "semantic" => {
+                        if semantic_encoder.is_none() {
+                            panic!("Semantic encoder is required when using Semantic splitting strategy");
+                        }
+                        SplittingStrategy::Semantic {
+                            semantic_encoder: semantic_encoder.unwrap().inner.clone(),
+                        }
                     }
-                    SplittingStrategy::Semantic {
-                        semantic_encoder: semantic_encoder.unwrap().inner.clone()
-                    }
-                },
-                _ => panic!("Unknown strategy provided!"),
-            },
+                    _ => panic!("Unknown strategy provided!"),
+                }
+            }
             None => SplittingStrategy::Sentence,
         };
 

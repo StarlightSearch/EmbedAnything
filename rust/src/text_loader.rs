@@ -1,16 +1,13 @@
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    fs
-    ,
+    fs,
 };
 
-use crate::{
-    chunkers::statistical::StatisticalChunker
-    ,
-    file_processor::docx_processor::DocxProcessor,
-};
 use crate::file_processor::{markdown_processor::MarkdownProcessor, txt_processor::TxtProcessor};
+use crate::{
+    chunkers::statistical::StatisticalChunker, file_processor::docx_processor::DocxProcessor,
+};
 use anyhow::Error;
 use chrono::{DateTime, Local};
 use text_splitter::{Characters, ChunkConfig, TextSplitter};
@@ -64,7 +61,7 @@ impl TextLoader {
             splitter: TextSplitter::new(
                 ChunkConfig::new(chunk_size)
                     .with_overlap(chunk_size * overlap_ratio as usize)
-                    .unwrap()
+                    .unwrap(),
             ),
         }
     }
@@ -79,7 +76,7 @@ impl TextLoader {
         let chunks: Vec<String> = match splitting_strategy {
             SplittingStrategy::Sentence => self
                 .splitter
-                .chunks(&text)
+                .chunks(text)
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic { semantic_encoder } => {
@@ -91,7 +88,7 @@ impl TextLoader {
                 tokio::task::block_in_place(|| {
                     tokio::runtime::Runtime::new()
                         .unwrap()
-                        .block_on(async { chunker.chunk(&text, 64).await })
+                        .block_on(async { chunker.chunk(text, 64).await })
                 })
             }
         };

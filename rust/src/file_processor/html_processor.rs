@@ -1,3 +1,4 @@
+use crate::config::SplittingStrategy;
 use crate::embeddings::embed::{EmbedData, Embedder};
 use crate::embeddings::get_text_metadata;
 use crate::text_loader::TextLoader;
@@ -7,7 +8,6 @@ use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use url::Url;
-use crate::config::SplittingStrategy;
 
 #[derive(Debug)]
 pub struct HtmlDocument {
@@ -87,11 +87,10 @@ impl HtmlDocument {
 
         for content in tag_content {
             let textloader = TextLoader::new(chunk_size, overlap_ratio);
-            let chunks =
-                match textloader.split_into_chunks(content, SplittingStrategy::Sentence) {
-                    Some(chunks) => chunks,
-                    None => continue,
-                };
+            let chunks = match textloader.split_into_chunks(content, SplittingStrategy::Sentence) {
+                Some(chunks) => chunks,
+                None => continue,
+            };
 
             if chunks.is_empty() {
                 continue;

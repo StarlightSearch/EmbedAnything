@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use embed_anything::{
-    config::TextEmbedConfig,
-    embeddings::embed::EmbedderBuilder,
-};
+use embed_anything::{config::TextEmbedConfig, embeddings::embed::EmbedderBuilder};
 
 #[tokio::main]
 async fn main() {

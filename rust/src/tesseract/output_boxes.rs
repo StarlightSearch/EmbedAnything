@@ -60,10 +60,7 @@ pub fn image_to_boxes(image: &Image, args: &Args) -> TessResult<BoxOutput> {
 }
 
 fn string_to_boxes(output: &str) -> TessResult<Vec<Box>> {
-    output
-        .lines()
-        .map(Box::parse)
-        .collect::<_>()
+    output.lines().map(Box::parse).collect::<_>()
 }
 
 #[cfg(test)]

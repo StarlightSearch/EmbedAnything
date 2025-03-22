@@ -152,7 +152,6 @@ impl JinaEmbedder {
         text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
-        println!("Using late chunking");
         let batch_size = batch_size.unwrap_or(32);
         let mut results = Vec::new();
         for mini_text_batch in text_batch.chunks(batch_size) {
@@ -186,7 +185,7 @@ impl JinaEmbedder {
                     Some(*acc)
                 })
                 .collect();
-            
+
             // merge the token ids and attention mask into a single sequence
             let token_ids_merged = token_ids.concat();
             let attention_mask_merged = attention_mask.concat();
@@ -200,10 +199,8 @@ impl JinaEmbedder {
 
             // Run the model
             let embeddings = self.model.forward(&token_ids_tensor)?;
-            println!("embeddings: {:?}", embeddings.shape());
             // Apply attention mask for pooling
             let attention_mask_tensor = PooledOutputType::from(attention_mask_tensor);
-
 
             for (i, &end_idx) in cumulative_seq_lengths.iter().enumerate() {
                 let start_idx = if i == 0 {

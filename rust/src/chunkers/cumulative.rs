@@ -78,7 +78,11 @@ impl<Sizer: ChunkSizer> CumulativeChunker<Sizer> {
                     .to_dense()
                     .unwrap();
 
-                let next_doc_embed = self.encoder.embed(&[&next_doc], Some(32), None).await.unwrap();
+                let next_doc_embed = self
+                    .encoder
+                    .embed(&[&next_doc], Some(32), None)
+                    .await
+                    .unwrap();
 
                 let next_doc_embed = next_doc_embed
                     .into_iter()

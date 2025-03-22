@@ -27,15 +27,10 @@ async fn main() {
         .with_buffer_size(100)
         .with_splitting_strategy(SplittingStrategy::Sentence);
 
-    let embed_data = embed_webpage(
-        url,
-        &embedder,
-        Some(&embed_config),
-        None,
-    )
-    .await
-    .unwrap()
-    .unwrap();
+    let embed_data = embed_webpage(url, &embedder, Some(&embed_config), None)
+        .await
+        .unwrap()
+        .unwrap();
     let embeddings = embed_data
         .iter()
         .map(|data| data.embedding.to_dense().unwrap())

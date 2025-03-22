@@ -51,10 +51,7 @@ impl OpenAIEmbedder {
         }
     }
 
-    pub async fn embed(
-        &self,
-        text_batch: &[&str],
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+    pub async fn embed(&self, text_batch: &[&str]) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let response = self
             .client
             .post(&self.url)

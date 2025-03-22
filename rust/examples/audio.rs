@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use embed_anything::{
-    config::{SplittingStrategy, TextEmbedConfig}, emb_audio, embeddings::embed::EmbedderBuilder,
+    config::{SplittingStrategy, TextEmbedConfig},
+    emb_audio,
+    embeddings::embed::EmbedderBuilder,
     file_processor::audio::audio_processor::AudioDecoderModel,
 };
 
@@ -25,7 +27,6 @@ async fn main() {
             .from_pretrained_hf()
             .unwrap(),
     );
-
 
     let text_embed_config = TextEmbedConfig::default()
         .with_chunk_size(1000, Some(0.3))

@@ -301,6 +301,7 @@ impl JinaEmbed for OrtJinaEmbedder {
             self.embed_late_chunking(text_batch, batch_size)
         } else {
             let batch_size: usize = batch_size.unwrap_or(32);
+            let output_name = self.session.outputs.first().unwrap().name.as_str();
 
             let encodings = text_batch
                 .par_chunks(batch_size)
@@ -315,7 +316,7 @@ impl JinaEmbed for OrtJinaEmbedder {
                             "attention_mask" => attention_mask.clone(),
                             "task_id" => Array1::<i64>::from_vec(vec![4])
                         }?)?;
-                        outputs["text_embeds"]
+                        outputs[output_name]
                             .try_extract_tensor::<f32>()?
                             .to_owned()
                             .into_dimensionality::<ndarray::Ix3>()?
@@ -325,7 +326,7 @@ impl JinaEmbed for OrtJinaEmbedder {
                             "token_type_ids" => token_type_ids,
                             "attention_mask" => attention_mask.clone()
                         }?)?;
-                        outputs["last_hidden_state"]
+                        outputs[output_name]
                             .try_extract_tensor::<f32>()?
                             .to_owned()
                             .into_dimensionality::<ndarray::Ix3>()?

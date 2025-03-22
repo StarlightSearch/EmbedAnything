@@ -29,17 +29,15 @@ async fn main() {
     let now = Instant::now();
 
     // Embed files batch
-    let _out_2 = model.embed_files_batch(
-        vec![
-            "test_files/test.pdf",
-            "test_files/test.txt",
-        ],
-        Some(&config),
-        None,
-    )
-    .await
-    .unwrap()
-    .unwrap();
+    let _out_2 = model
+        .embed_files_batch(
+            vec!["test_files/test.pdf", "test_files/test.txt"],
+            Some(&config),
+            None,
+        )
+        .await
+        .unwrap()
+        .unwrap();
 
     // Embed file
     let _out = model

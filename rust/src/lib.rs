@@ -139,7 +139,9 @@ pub async fn embed_query(
     let config = config.unwrap_or(&binding);
     let batch_size = config.batch_size;
 
-    let encodings = embedder.embed(query, batch_size, config.late_chunking).await?;
+    let encodings = embedder
+        .embed(query, batch_size, config.late_chunking)
+        .await?;
     let embeddings = get_text_metadata(&Rc::new(encodings), query, &None)?;
 
     Ok(embeddings)
@@ -216,8 +218,7 @@ pub async fn embed_webpage(
     config: Option<&TextEmbedConfig>,
     // Callback function
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
-) -> Result<Option<Vec<EmbedData>>>
-{
+) -> Result<Option<Vec<EmbedData>>> {
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
 
@@ -313,8 +314,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     embedding_model: &TextEmbedder,
     config: Option<&TextEmbedConfig>,
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
-) -> Result<Option<Vec<EmbedData>>>
-{
+) -> Result<Option<Vec<EmbedData>>> {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(1000);
@@ -441,8 +441,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     embedding_model: &Arc<T>,
     config: Option<&ImageEmbedConfig>,
     adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
-) -> Result<Option<Vec<EmbedData>>>
-{
+) -> Result<Option<Vec<EmbedData>>> {
     let mut file_parser = FileParser::new();
     file_parser.get_image_paths(&directory).unwrap();
 
@@ -643,8 +642,14 @@ pub async fn embed_directory_stream(
                 metadata_buffer.push(metadata);
 
                 if chunk_buffer.len() == buffer_size {
-                    match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking)
-                        .await
+                    match process_chunks(
+                        &chunk_buffer,
+                        &metadata_buffer,
+                        &embedder,
+                        batch_size,
+                        late_chunking,
+                    )
+                    .await
                     {
                         Ok(embeddings) => {
                             let files = embeddings
@@ -674,7 +679,15 @@ pub async fn embed_directory_stream(
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking).await {
+                match process_chunks(
+                    &chunk_buffer,
+                    &metadata_buffer,
+                    &embedder,
+                    batch_size,
+                    late_chunking,
+                )
+                .await
+                {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -780,8 +793,7 @@ pub async fn embed_files_batch(
     embedder: &Arc<Embedder>,
     config: Option<&TextEmbedConfig>,
     adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
-) -> Result<Option<Vec<EmbedData>>>
-{
+) -> Result<Option<Vec<EmbedData>>> {
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
@@ -817,8 +829,14 @@ pub async fn embed_files_batch(
                 metadata_buffer.push(metadata);
 
                 if chunk_buffer.len() == buffer_size {
-                    match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking)
-                        .await
+                    match process_chunks(
+                        &chunk_buffer,
+                        &metadata_buffer,
+                        &embedder,
+                        batch_size,
+                        late_chunking,
+                    )
+                    .await
                     {
                         Ok(embeddings) => {
                             let files = embeddings
@@ -848,7 +866,15 @@ pub async fn embed_files_batch(
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking).await {
+                match process_chunks(
+                    &chunk_buffer,
+                    &metadata_buffer,
+                    &embedder,
+                    batch_size,
+                    late_chunking,
+                )
+                .await
+                {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -925,7 +951,9 @@ pub async fn process_chunks(
     late_chunking: Option<bool>,
 ) -> Result<Arc<Vec<EmbedData>>> {
     let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
-    let encodings = embedding_model.embed(&chunk_refs, batch_size, late_chunking).await?;
+    let encodings = embedding_model
+        .embed(&chunk_refs, batch_size, late_chunking)
+        .await?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings

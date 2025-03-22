@@ -444,7 +444,6 @@ impl EmbeddingModel {
         embed_audio_file(audio_file, audio_decoder, self, config)
     }
 
-
     #[pyo3(signature = (file_name, origin=None, config=None, adapter=None))]
     pub fn embed_html(
         &self,
@@ -551,9 +550,20 @@ pub fn embed_file(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_file(file_name, embedding_model, config, adapter.map(|f| {
-                Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
-            })).await
+            embed_anything::embed_file(
+                file_name,
+                embedding_model,
+                config,
+                adapter.map(|f| {
+                    Box::new(f)
+                        as Box<
+                            dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>)
+                                + Send
+                                + Sync,
+                        >
+                }),
+            )
+            .await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -605,9 +615,20 @@ pub fn embed_files_batch(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_files_batch(files, embedding_model, config, adapter.map(|f| {
-                Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
-            })).await
+            embed_anything::embed_files_batch(
+                files,
+                embedding_model,
+                config,
+                adapter.map(|f| {
+                    Box::new(f)
+                        as Box<
+                            dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>)
+                                + Send
+                                + Sync,
+                        >
+                }),
+            )
+            .await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -693,7 +714,10 @@ pub fn embed_directory(
             extensions,
             config,
             adapter.map(|f| {
-                Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+                Box::new(f)
+                    as Box<
+                        dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
+                    >
             }),
         )
         .await
@@ -742,17 +766,25 @@ pub fn embed_image_directory(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_image_directory(directory, embedding_model, config, adapter.map(|f| {
-            Box::new(f) as Box<dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
-        }))
-            .await
-            .map_err(|e| PyValueError::new_err(e.to_string()))
-            .unwrap()
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<_>>()
-            })
+        embed_anything::embed_image_directory(
+            directory,
+            embedding_model,
+            config,
+            adapter.map(|f| {
+                Box::new(f)
+                    as Box<
+                        dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
+                    >
+            }),
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        })
     });
     Ok(data)
 }
@@ -789,17 +821,25 @@ pub fn embed_webpage(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_webpage(url, embedding_model, config, adapter.map(|f| {
-            Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
-        }))
-            .await
-            .map_err(|e| PyValueError::new_err(e.to_string()))
-            .unwrap()
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<_>>()
-            })
+        embed_anything::embed_webpage(
+            url,
+            embedding_model,
+            config,
+            adapter.map(|f| {
+                Box::new(f)
+                    as Box<
+                        dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
+                    >
+            }),
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        })
     });
     Ok(data)
 }
@@ -838,12 +878,15 @@ pub fn embed_html(
 
     let data = rt.block_on(async {
         embed_anything::embed_html(
-            file_name, 
-            embedding_model, 
-            origin, 
+            file_name,
+            embedding_model,
+            origin,
             config,
             adapter.map(|f| {
-                Box::new(f) as Box<dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync>
+                Box::new(f)
+                    as Box<
+                        dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
+                    >
             }),
         )
         .await

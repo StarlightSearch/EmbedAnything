@@ -55,7 +55,6 @@ async fn main() -> Result<(), anyhow::Error> {
         "मैं पिज्जा पसंद करता हूं", // Hindi for "I like pizza"
     ];
 
-
     let _doc_embeddings = embed_query(&sentences, &model, Some(&config))
         .await
         .unwrap();

@@ -250,8 +250,9 @@ impl OrtBertEmbedder {
             .iter()
             .map(|input| input.name.as_str())
             .collect();
-        let output_name = self.model.outputs.first().unwrap().name.as_str();
         let needs_token_type = input_names.iter().any(|&x| x == "token_type_ids");
+        let output_name = self.model.outputs.first().unwrap().name.as_str();
+
         for mini_text_batch in text_batch.chunks(batch_size) {
             let tokens = self
                 .tokenizer
@@ -322,7 +323,7 @@ impl OrtBertEmbedder {
                 ]?
             };
             let embeddings = self.model.run(inputs)?;
-            let embeddings: Array3<f32> = embeddings["last_hidden_state"]
+            let embeddings: Array3<f32> = embeddings[output_name]
                 .try_extract_tensor::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix3>()?;

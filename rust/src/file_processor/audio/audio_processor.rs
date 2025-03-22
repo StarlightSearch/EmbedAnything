@@ -10,7 +10,10 @@ use anyhow::{Error as E, Result};
 use candle_core::{Device, IndexOp, Tensor};
 use candle_nn::{ops::softmax, VarBuilder};
 use hf_hub::{api::sync::Api, Repo, RepoType};
-use rand::{distr::{weighted::WeightedIndex, Distribution}, SeedableRng};
+use rand::{
+    distr::{weighted::WeightedIndex, Distribution},
+    SeedableRng,
+};
 use tokenizers::Tokenizer;
 
 use candle_transformers::models::whisper::{self as m, Config};

@@ -88,11 +88,7 @@ pub fn image_to_data(
 }
 
 fn string_to_data(output: &str) -> crate::tesseract::error::TessResult<Vec<Data>> {
-    output
-        .lines()
-        .skip(1)
-        .map(Data::parse)
-        .collect::<_>()
+    output.lines().skip(1).map(Data::parse).collect::<_>()
 }
 
 #[cfg(test)]

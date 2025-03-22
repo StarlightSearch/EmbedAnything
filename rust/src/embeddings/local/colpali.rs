@@ -145,7 +145,8 @@ impl ColPaliEmbed for ColPaliEmbedder {
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let mut encodings = Vec::new();
         for mini_text_batch in text_batch.chunks(batch_size.unwrap_or(32)) {
-            let input_ids = tokenize_batch(&self.tokenizer, mini_text_batch.to_vec(), &self.device)?;
+            let input_ids =
+                tokenize_batch(&self.tokenizer, mini_text_batch.to_vec(), &self.device)?;
             let batch_encodings = self
                 .model
                 .write()

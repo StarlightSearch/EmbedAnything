@@ -138,7 +138,7 @@ pub enum SplittingStrategy {
     /// may be longer, or shorter than a sentence.
     Semantic {
         /// Specifies the embedder used when the splitting semantically.
-        semantic_encoder: Arc<Embedder>
+        semantic_encoder: Arc<Embedder>,
     },
 }
 

@@ -92,8 +92,8 @@ impl OrtColPaliEmbedder {
                 CoreMLExecutionProvider::default().build(),
             ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(optimal_threads)?  // Use optimal thread count
-            .with_inter_threads(1)?  // Set inter-op parallelism to 1 when using GPU
+            .with_intra_threads(optimal_threads)? // Use optimal thread count
+            .with_inter_threads(1)? // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
         let dummy_prompt: &str = "Describe the image.\n";

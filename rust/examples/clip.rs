@@ -17,15 +17,10 @@ async fn main() {
         .from_pretrained_hf()
         .unwrap();
     let model: Arc<Embedder> = Arc::new(model);
-    let out = embed_image_directory(
-        PathBuf::from("test_files"),
-        &model,
-        None,
-        None,
-    )
-    .await
-    .unwrap()
-    .unwrap();
+    let out = embed_image_directory(PathBuf::from("test_files"), &model, None, None)
+        .await
+        .unwrap()
+        .unwrap();
 
     let query_emb_data = embed_query(&["Photo of a monkey"], &model, None)
         .await

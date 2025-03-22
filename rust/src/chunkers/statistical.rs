@@ -137,7 +137,11 @@ impl StatisticalChunker {
                     .collect::<Vec<&str>>();
             }
 
-            let encoded_splits = self.encoder.embed(&batch_splits, Some(16), None).await.unwrap();
+            let encoded_splits = self
+                .encoder
+                .embed(&batch_splits, Some(16), None)
+                .await
+                .unwrap();
             let encoded_splits = encoded_splits
                 .into_iter()
                 .map(|x| x.to_dense().unwrap())
