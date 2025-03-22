@@ -111,9 +111,7 @@ impl ModernBertEmbedder {
             pooling: Pooling::Mean,
         })
     }
-}
 
-impl BertEmbed for ModernBertEmbedder {
     fn embed(
         &self,
         text_batch: &[&str],
@@ -150,5 +148,111 @@ impl BertEmbed for ModernBertEmbedder {
             );
         }
         Ok(encodings)
+    }
+    fn embed_late_chunking(
+        &self,
+        text_batch: &[&str],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        println!("Using late chunking");
+        let batch_size = batch_size.unwrap_or(32);
+        let mut results = Vec::new();
+        for mini_text_batch in text_batch.chunks(batch_size) {
+            let tokens = self
+                .tokenizer
+                .encode_batch(mini_text_batch.to_vec(), true)
+                .map_err(E::msg)?;
+
+            let token_ids = tokens
+                .iter()
+                .map(|tokens| {
+                    let tokens = tokens.get_ids().to_vec();
+                    tokens
+                })
+                .collect::<Vec<_>>();
+
+            let attention_mask = tokens
+                .iter()
+                .map(|tokens| {
+                    let tokens = tokens.get_attention_mask().to_vec();
+                    tokens
+                })
+                .collect::<Vec<_>>();
+
+            // Keep track of original sequence lengths for later splitting
+            let sequence_lengths: Vec<usize> = token_ids.iter().map(|seq| seq.len()).collect();
+            let cumulative_seq_lengths: Vec<usize> = sequence_lengths
+                .iter()
+                .scan(0, |acc, &x| {
+                    *acc += x;
+                    Some(*acc)
+                })
+                .collect();
+            
+            // merge the token ids and attention mask into a single sequence
+            let token_ids_merged = token_ids.concat();
+            let attention_mask_merged = attention_mask.concat();
+
+            // Convert to tensors
+            let device = &self.device;
+            let token_ids_tensor =
+                Tensor::new(token_ids_merged.as_slice(), device)?.unsqueeze(0)?;
+            let attention_mask_tensor =
+                Tensor::new(attention_mask_merged.as_slice(), device)?.unsqueeze(0)?;
+            let token_type_ids = token_ids_tensor.zeros_like()?;
+            // Run the model
+            let embeddings = self.model.forward(&token_ids_tensor, &token_type_ids)?;
+            println!("embeddings: {:?}", embeddings.shape());
+            // Apply attention mask for pooling
+            let attention_mask_tensor = PooledOutputType::from(attention_mask_tensor);
+
+
+            for (i, &end_idx) in cumulative_seq_lengths.iter().enumerate() {
+                let start_idx = if i == 0 {
+                    0
+                } else {
+                    cumulative_seq_lengths[i - 1]
+                };
+
+                // Extract embeddings for this sequence
+                let seq_embeddings = embeddings.narrow(1, start_idx, end_idx - start_idx)?;
+
+                // Create attention mask for this sequence
+                let seq_attention_mask =
+                    attention_mask_tensor
+                        .to_tensor()?
+                        .narrow(1, start_idx, end_idx - start_idx)?;
+
+                // Pool and normalize the embeddings for this sequence
+                let model_output = ModelOutput::Tensor(seq_embeddings);
+                let pooled_output = Pooling::Mean.pool(
+                    &model_output,
+                    Some(&PooledOutputType::from(seq_attention_mask)),
+                )?;
+                let pooled_tensor = pooled_output.to_tensor()?;
+                let normalized = normalize_l2(pooled_tensor)?.squeeze(0)?;
+
+                // Convert to vector
+                let embedding_vec = normalized.to_vec1::<f32>().unwrap();
+                results.push(EmbeddingResult::DenseVector(embedding_vec));
+            }
+        }
+
+        Ok(results)
+    }
+}
+
+impl BertEmbed for ModernBertEmbedder {
+    fn embed(
+        &self,
+        text_batch: &[&str],
+        batch_size: Option<usize>,
+        late_chunking: Option<bool>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        if late_chunking.unwrap_or(false) {
+            self.embed_late_chunking(text_batch, batch_size)
+        } else {
+            self.embed(text_batch, batch_size)
+        }
     }
 }

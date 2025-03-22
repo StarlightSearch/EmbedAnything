@@ -139,7 +139,7 @@ pub async fn embed_query(
     let config = config.unwrap_or(&binding);
     let batch_size = config.batch_size;
 
-    let encodings = embedder.embed(query, batch_size).await?;
+    let encodings = embedder.embed(query, batch_size, config.late_chunking).await?;
     let embeddings = get_text_metadata(&Rc::new(encodings), query, &None)?;
 
     Ok(embeddings)
@@ -323,6 +323,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     let splitting_strategy = config.splitting_strategy.clone();
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.clone();
+    let late_chunking = config.late_chunking;
     let text = TextLoader::extract_text(&file, use_ocr, tesseract_path.as_deref())?;
     let textloader = TextLoader::new(chunk_size, overlap_ratio);
     let chunks = textloader
@@ -336,7 +337,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
 
     if let Some(adapter) = adapter {
         let encodings = embedding_model
-            .embed(&chunk_refs, batch_size)
+            .embed(&chunk_refs, batch_size, late_chunking)
             .await
             .unwrap();
         let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
@@ -344,7 +345,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
         Ok(None)
     } else {
         let encodings = embedding_model
-            .embed(&chunk_refs, batch_size)
+            .embed(&chunk_refs, batch_size, late_chunking)
             .await
             .unwrap();
         let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
@@ -613,6 +614,7 @@ pub async fn embed_directory_stream(
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.as_deref();
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
+    let late_chunking = config.late_chunking;
     let mut file_parser = FileParser::new();
     file_parser.get_text_files(&directory, extensions)?;
     let files = file_parser.files.clone();
@@ -641,7 +643,7 @@ pub async fn embed_directory_stream(
                 metadata_buffer.push(metadata);
 
                 if chunk_buffer.len() == buffer_size {
-                    match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size)
+                    match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking)
                         .await
                     {
                         Ok(embeddings) => {
@@ -672,7 +674,7 @@ pub async fn embed_directory_stream(
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size).await {
+                match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking).await {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -785,6 +787,7 @@ pub async fn embed_files_batch(
     let chunk_size = config.chunk_size.unwrap_or(binding.chunk_size.unwrap());
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
+    let late_chunking = config.late_chunking;
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.as_deref();
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
@@ -814,7 +817,7 @@ pub async fn embed_files_batch(
                 metadata_buffer.push(metadata);
 
                 if chunk_buffer.len() == buffer_size {
-                    match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size)
+                    match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking)
                         .await
                     {
                         Ok(embeddings) => {
@@ -845,7 +848,7 @@ pub async fn embed_files_batch(
 
             // Process any remaining chunks
             if !chunk_buffer.is_empty() {
-                match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size).await {
+                match process_chunks(&chunk_buffer, &metadata_buffer, &embedder, batch_size, late_chunking).await {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -919,9 +922,10 @@ pub async fn process_chunks(
     metadata: &[Option<HashMap<String, String>>],
     embedding_model: &Arc<Embedder>,
     batch_size: Option<usize>,
+    late_chunking: Option<bool>,
 ) -> Result<Arc<Vec<EmbedData>>> {
     let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
-    let encodings = embedding_model.embed(&chunk_refs, batch_size).await?;
+    let encodings = embedding_model.embed(&chunk_refs, batch_size, late_chunking).await?;
 
     // zip encodings with chunks and metadata
     let embeddings = encodings

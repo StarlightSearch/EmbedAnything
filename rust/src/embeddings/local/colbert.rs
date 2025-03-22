@@ -260,6 +260,7 @@ impl BertEmbed for OrtColbertEmbedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        _late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);
         let encodings = text_batch

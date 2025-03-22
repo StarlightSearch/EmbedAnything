@@ -48,6 +48,8 @@ pub struct TextEmbedConfig {
     /// extracting text from the images. Defaults to false.
     pub use_ocr: Option<bool>,
     pub tesseract_path: Option<String>,
+    /// When embedding a document, controls whether late chunking is used. Use this to take larger context into account for embedding. Defaults to false.
+    pub late_chunking: Option<bool>,
 }
 
 impl Default for TextEmbedConfig {
@@ -58,6 +60,7 @@ impl Default for TextEmbedConfig {
             batch_size: Some(32),
             buffer_size: Some(100),
             splitting_strategy: SplittingStrategy::Sentence,
+            late_chunking: None,
             use_ocr: None,
             tesseract_path: None,
         }
@@ -72,6 +75,7 @@ impl TextEmbedConfig {
         buffer_size: Option<usize>,
         overlap_ratio: Option<f32>,
         splitting_strategy: SplittingStrategy,
+        late_chunking: Option<bool>,
         use_ocr: Option<bool>,
         tesseract_path: Option<String>,
     ) -> Self {
@@ -81,6 +85,7 @@ impl TextEmbedConfig {
             .with_buffer_size(buffer_size.unwrap_or(100))
             .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref())
             .with_splitting_strategy(splitting_strategy)
+            .with_late_chunking(late_chunking.unwrap_or(false))
             .build()
     }
 
@@ -97,6 +102,11 @@ impl TextEmbedConfig {
 
     pub fn with_buffer_size(mut self, size: usize) -> Self {
         self.buffer_size = Some(size);
+        self
+    }
+
+    pub fn with_late_chunking(mut self, late_chunking: bool) -> Self {
+        self.late_chunking = Some(late_chunking);
         self
     }
 

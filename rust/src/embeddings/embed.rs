@@ -112,14 +112,19 @@ impl TextEmbedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             TextEmbedder::OpenAI(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Cohere(embedder) => embedder.embed(text_batch).await,
-            TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size),
-            TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size),
-            TextEmbedder::ColBert(embedder) => embedder.embed(text_batch, batch_size),
-            TextEmbedder::ModernBert(embedder) => embedder.embed(text_batch, batch_size),
+            TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
+            TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
+            TextEmbedder::ColBert(embedder) => {
+                embedder.embed(text_batch, batch_size, late_chunking)
+            }
+            TextEmbedder::ModernBert(embedder) => {
+                embedder.embed(text_batch, batch_size, late_chunking)
+            }
         }
     }
 
@@ -486,9 +491,10 @@ impl Embedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
-            Self::Text(embedder) => embedder.embed(text_batch, batch_size).await,
+            Self::Text(embedder) => embedder.embed(text_batch, batch_size, late_chunking).await,
             Self::Vision(embedder) => embedder.embed(text_batch, batch_size),
         }
     }
@@ -619,28 +625,27 @@ impl Embedder {
         file_path: T,
         config: Option<&TextEmbedConfig>,
         adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
-    ) -> Result<Option<Vec<EmbedData>>>
-    {
+    ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_file(file_path, self, config, adapter).await
     }
 
-    /// Embeds a list of files. 
-    /// 
+    /// Embeds a list of files.
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `files` - A vector of `PathBuf` objects representing the files to embed.
     /// * `embedder` - A reference to the embedding model to use.
     /// * `config` - An optional `TextEmbedConfig` object specifying the configuration for the embedding model.
     /// * `adapter` - An optional callback function to handle the embeddings.
-    /// 
+    ///
     /// # Returns
     /// An `Option` containing a vector of `EmbedData` objects representing the embeddings of the files, or `None` if an adapter is used.
-    /// 
+    ///
     /// # Errors
     /// Returns a `Result` with an error if the embedding process fails.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use embed_anything::embed_files_batch;
     /// use std::path::PathBuf;
@@ -648,7 +653,7 @@ impl Embedder {
     /// use embed_anything::config::TextEmbedConfig;
     /// use embed_anything::embeddings::embed::EmbedderBuilder;
     /// use embed_anything::embeddings::embed::EmbedData;
-    /// 
+    ///
     /// async fn generate_embeddings() {
     ///     let files = vec![PathBuf::from("test_files/test.txt"), PathBuf::from("test_files/test.pdf")];
     ///     let embedder = Arc::new(EmbedderBuilder::new()
@@ -674,8 +679,7 @@ impl Embedder {
         self: &Arc<Self>,
         query: &[&str],
         config: Option<&TextEmbedConfig>,
-    ) -> Result<Vec<EmbedData>>
-    {
+    ) -> Result<Vec<EmbedData>> {
         crate::embed_query(query, self, config).await
     }
 
@@ -684,8 +688,7 @@ impl Embedder {
         url: String,
         config: Option<&TextEmbedConfig>,
         adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
-    ) -> Result<Option<Vec<EmbedData>>>
-    {
+    ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_webpage(url, self, config, adapter).await
     }
 

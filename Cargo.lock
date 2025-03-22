@@ -1034,7 +1034,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything_python"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "embed_anything",
  "pyo3",

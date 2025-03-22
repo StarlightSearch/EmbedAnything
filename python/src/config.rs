@@ -12,10 +12,11 @@ pub struct TextEmbedConfig {
 #[pymethods]
 impl TextEmbedConfig {
     #[new]
-    #[pyo3(signature = (chunk_size=None, batch_size=None, buffer_size=None, overlap_ratio=None, splitting_strategy=None, semantic_encoder=None, use_ocr=None, tesseract_path=None))]
+    #[pyo3(signature = (chunk_size=None, batch_size=None, late_chunking=None, buffer_size=None, overlap_ratio=None, splitting_strategy=None, semantic_encoder=None, use_ocr=None, tesseract_path=None))]
     pub fn new(
         chunk_size: Option<usize>,
         batch_size: Option<usize>,
+        late_chunking: Option<bool>,
         buffer_size: Option<usize>,
         overlap_ratio: Option<f32>,
         splitting_strategy: Option<&str>,
@@ -45,6 +46,7 @@ impl TextEmbedConfig {
                 .with_batch_size(batch_size.unwrap_or(32))
                 .with_buffer_size(buffer_size.unwrap_or(100))
                 .with_splitting_strategy(strategy)
+                .with_late_chunking(late_chunking.unwrap_or(false))
                 .with_ocr(use_ocr.unwrap_or(false), tesseract_path),
         }
     }

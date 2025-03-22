@@ -17,7 +17,6 @@ use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use crate::config::SplittingStrategy;
-use rayon::prelude::*;
 
 impl Default for TextLoader {
     fn default() -> Self {
@@ -81,7 +80,6 @@ impl TextLoader {
             SplittingStrategy::Sentence => self
                 .splitter
                 .chunks(&text)
-                .par_bridge()
                 .map(|chunk| chunk.to_string())
                 .collect(),
             SplittingStrategy::Semantic { semantic_encoder } => {
