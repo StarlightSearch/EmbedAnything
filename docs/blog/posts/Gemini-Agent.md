@@ -1,6 +1,18 @@
+---
+draft: false 
+date: 2024-03-31 
+authors: 
+ - sonam
+slug: gemini
+title: Fusion-DeepSearch
+---
+
 # Gemini as a Research Agent: Fusion Deep Research for Intelligent Information Retrieval
 
 In today's data-saturated world, effective research isn't just about accessing information—it's about finding the *right* information efficiently. Let's explore how Gemini can function as a sophisticated research agent, using a fusion deep research approach to intelligently determine what information is necessary and when to search external sources.
+
+<!-- more -->
+
 
 Please find the repository [here](https://github.com/StarlightSearch/fusion-deepsearch).
 

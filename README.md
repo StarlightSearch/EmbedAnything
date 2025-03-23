@@ -28,7 +28,7 @@
     <br />
     <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-FAQ"><strong>FAQ</strong></a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#%EF%B8%8Ffaq"><strong>FAQ</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
     .
@@ -325,6 +325,11 @@ The answer is No. EmbedAnything provides you pyo3 bindings, so you can run any f
 
 We provide both backends, candle and onnx. On top of it we also give an end-to-end pipeline, that is you can ingest different data-types and index to any vector database, and inference any model. Fastembed is just an onnx-wrapper.
 
+### We've received quite a few questions about why we're using Candle.
+
+One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
+
+
 ## 🚧 Contributing to EmbedAnything
 
 First of all, thank you for taking the time to contribute to this project. We truly appreciate your contributions, whether it's bug reports, feature suggestions, or pull requests. Your time and effort are highly valued in this project. 🚀
@@ -383,12 +388,9 @@ Check out the latest release :  and see how these features can supercharge your 
 ## 🚀Coming Soon  <br />
 
 ### ⚙️ Performance 
-We've received quite a few questions about why we're using Candle, so here's a quick explanation:
 
-One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
 
-What’s Next?
-To address this, we’re excited to announce that we’re introducing Candle-ONNX along with our previous framework on hugging-face ,
+We now support ONNX as well
 
 ➡️ Support for GGUF models </br >
 - Significantly faster performance</br >
