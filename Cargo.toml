@@ -14,7 +14,7 @@ description = "Embed anything at lightning speed"
 repository = "https://github.com/StarlightSearch/EmbedAnything"
 authors = ["Akshay Ballal <arballal95@gmail.com>"]
 exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/*", "mkdocs.yml", "docs/*", "tests/*", ".github", "Dockerfile", "docs"]
-version = "0.5.4"
+version = "0.5.5"
 
 [workspace.dependencies]
 pdf-extract = "0.7.7"
