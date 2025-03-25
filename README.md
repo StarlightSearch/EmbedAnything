@@ -28,11 +28,11 @@
     <br />
     <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
     ·
-    <a href="https://starlight-search.com/blog/"><strong>Blogs</strong></a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#%EF%B8%8Ffaq"><strong>FAQ</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
     .
-    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#our-past-collaborations"><strong>Collaborations</strong></a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-our-past-collaborations"><strong>Collaborations</strong></a>
 
 
     
@@ -68,12 +68,10 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 </details>
 
 
-
-
 ## 🚀 Key Features
 
 - **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT
-- **ONNX Backend**: Supports BERT, Jina, ColPali, Splade, Reranker, ModernBERT
+- **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT
 - **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **Rust** : All the file processing is done in rust for speed and efficiency
@@ -83,7 +81,7 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC. Find our [blog](https://starlight-search.com/blog/2024/03/31/vector-streaming/).
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -97,13 +95,18 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ➡️Decrease the memory usage of EmbedAnything. <br/>
 ➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
 
-## 🍅 Our Past Collaborations:
+## 🍓 Our Past Collaborations:
 
 We have collaborated with reputed enterprise like
-[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), Weaviate, [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0.)
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), Weaviate, [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0)
 
 You can get in touch with us for further collaborations.
 
+## Benchmarks
+
+Only measures embedding model inference speed, on onnx-runtime. [Code](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing)
+
+<img src="https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png" width="500">
 
 # ⭐ Supported Models
 
@@ -114,7 +117,7 @@ We support any hugging-face models on Candle. And We also support ONNX runtime f
 model = EmbeddingModel.from_pretrained_hf(
     WhichModel.Bert, model_id="model link from huggingface"
 )
-config = TextEmbedConfig(chunk_size=200, batch_size=32)
+config = TextEmbedConfig(chunk_size=1000, batch_size=32)
 data = embed_anything.embed_file("file_address", embedder=model, config=config)
 ```
 
@@ -275,7 +278,7 @@ embedder = EmbeddingModel.from_pretrained_hf(
     model_id="sentence-transformers/all-MiniLM-L6-v2",
     revision="main",
 )
-config = TextEmbedConfig(chunk_size=200, batch_size=32)
+config = TextEmbedConfig(chunk_size=1000, batch_size=32)
 data = embed_anything.embed_audio_file(
     "test_files/audio/samples_hp0.wav",
     audio_decoder=audio_decoder,
@@ -313,11 +316,21 @@ model = EmbeddingModel.from_pretrained_onnx(
 ```
 To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
 
+## ⁉️FAQ
+
+### Do I need to know rust to use or contribute to embedanything?
+The answer is No. EmbedAnything provides you pyo3 bindings, so you can run any function in python without any issues. To contibute you should check out our guidelines and python folder example of adapters.
+
+### How is it different from fastembed?
+
+We provide both backends, candle and onnx. On top of it we also give an end-to-end pipeline, that is you can ingest different data-types and index to any vector database, and inference any model. Fastembed is just an onnx-wrapper.
+
+### We've received quite a few questions about why we're using Candle.
+
+One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
 
 
 ## 🚧 Contributing to EmbedAnything
-
-
 
 First of all, thank you for taking the time to contribute to this project. We truly appreciate your contributions, whether it's bug reports, feature suggestions, or pull requests. Your time and effort are highly valued in this project. 🚀
 
@@ -375,12 +388,9 @@ Check out the latest release :  and see how these features can supercharge your 
 ## 🚀Coming Soon  <br />
 
 ### ⚙️ Performance 
-We've received quite a few questions about why we're using Candle, so here's a quick explanation:
 
-One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
 
-What’s Next?
-To address this, we’re excited to announce that we’re introducing Candle-ONNX along with our previous framework on hugging-face ,
+We now support ONNX as well
 
 ➡️ Support for GGUF models </br >
 - Significantly faster performance</br >
