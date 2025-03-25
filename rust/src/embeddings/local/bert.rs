@@ -437,4 +437,17 @@ mod tests {
                 .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
         );
     }
+
+    #[test]
+    fn test_embed_late_chunking() {
+        let embedder = BertEmbedder::new(
+            "sentence-transformers/all-MiniLM-L6-v2".to_string(),
+            None,
+            None,
+        )
+        .unwrap();
+        let text_batch = vec!["Hello, world!"];
+        let embeddings = embedder.embed_late_chunking(&text_batch, Some(1)).unwrap();
+        println!("{:?}", embeddings);
+    }
 }

@@ -1,7 +1,7 @@
 use candle_core::{Device, Tensor};
 use embed_anything::{
     embed_image_directory, embed_query,
-    embeddings::embed::{EmbedData, Embedder, EmbedderBuilder},
+    embeddings::embed::{Embedder, EmbedderBuilder},
 };
 use std::{path::PathBuf, sync::Arc, time::Instant};
 

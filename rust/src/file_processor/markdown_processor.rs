@@ -27,7 +27,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_extract_text() {
-        let file_path = "test_files/test.md";
+        let file_path = "../test_files/test.md";
 
         let result = MarkdownProcessor::extract_text(&file_path).unwrap();
         assert_eq!(result, "Hello, world!\n\nHow are you\n\nI am good");

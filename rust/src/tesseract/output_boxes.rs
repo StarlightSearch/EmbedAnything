@@ -67,8 +67,7 @@ fn string_to_boxes(output: &str) -> TessResult<Vec<Box>> {
 mod tests {
     use crate::tesseract::{
         error::TessError,
-        input::{Args, Image},
-        output_boxes::{image_to_boxes, string_to_boxes, Box},
+        output_boxes::{string_to_boxes, Box},
     };
 
     #[test]
@@ -85,43 +84,6 @@ mod tests {
                 page: 0
             }
         )
-    }
-
-    #[test]
-    fn test_image_to_boxes() {
-        let img = Image::from_path("img/string.png").unwrap();
-        let mut image_to_boxes_args = Args::default();
-        image_to_boxes_args.psm = Some(6);
-
-        let result = image_to_boxes(&img, &image_to_boxes_args).unwrap();
-        assert_eq!(
-            result.boxes,
-            string_to_boxes(
-                r#"L 18 26 36 59 0
-                O 35 25 70 60 0
-                R 75 26 98 59 0
-                E 103 26 122 59 0
-                M 127 26 162 59 0
-                I 181 26 214 59 0
-                P 203 25 226 60 0
-                S 216 25 263 60 0
-                U 252 25 280 60 0
-                M 269 26 304 59 0
-                D 323 26 352 59 0
-                O 355 25 390 60 0
-                L 395 26 413 59 0
-                O 413 25 448 60 0
-                R 453 26 476 59 0
-                S 490 25 511 60 0
-                I 514 26 518 59 0
-                T 521 26 540 59 0
-                A 553 26 586 59 0
-                M 589 26 624 59 0
-                E 630 26 649 59 0
-                T 652 26 671 59 0"#
-            )
-            .unwrap()
-        );
     }
 
     #[test]

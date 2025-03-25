@@ -198,7 +198,7 @@ mod tests {
     fn test_get_audio_paths() {
         let mut file_parser = FileParser::new();
         let audio_files = file_parser
-            .get_audio_files(&PathBuf::from("test_files"))
+            .get_audio_files(&PathBuf::from("../test_files"))
             .unwrap();
 
         assert_eq!(audio_files.len(), 2);

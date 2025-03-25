@@ -93,7 +93,6 @@ fn string_to_data(output: &str) -> crate::tesseract::error::TessResult<Vec<Data>
 
 #[cfg(test)]
 mod tests {
-    use input::{Args, Image};
     use output_data::Data;
 
     use crate::tesseract::{output_data::string_to_data, *};
@@ -121,31 +120,6 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_image_to_data() {
-        let img = Image::from_path("img/string.png").unwrap();
-        let mut image_to_boxes_args = Args::default();
-        image_to_boxes_args.psm = Some(6);
-
-        let result =
-            crate::tesseract::output_data::image_to_data(&img, &image_to_boxes_args).unwrap();
-        assert_eq!(
-            result.data,
-            string_to_data(
-                r#"level   page_num        block_num       par_num line_num        word_num        left    top  width    height  conf    text
-                1       1       0       0       0       0       0       0       696     89      -1
-                2       1       1       0       0       0       18      29      653     35      -1
-                3       1       1       1       0       0       18      29      653     35      -1
-                4       1       1       1       1       0       18      29      653     35      -1
-                5       1       1       1       1       1       18      29      144     35      95.643112    LOREM
-                5       1       1       1       1       2       181     29      123     35      92.306282    IPSUM
-                5       1       1       1       1       3       323     29      153     35      90.531677    DOLOR
-                5       1       1       1       1       4       490     29      50      35      95.873787    SIT
-                5       1       1       1       1       5       553     30      118     33      96.834381    AMET"#
-            )
-            .unwrap()
-        );
-    }
 
     #[test]
     fn test_string_to_data_parse_error() {

@@ -127,7 +127,7 @@ pub enum Dtype {
 ///
 /// let query = vec!["Hello".to_string(), "World".to_string()];
 /// let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
-/// let embeddings = embed_query(query, &embedder, None).unwrap();
+/// let embeddings = embed_query(query, &embedder, None).await().unwrap();
 /// println!("{:?}", embeddings);
 /// ```
 pub async fn embed_query(

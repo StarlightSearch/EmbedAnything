@@ -31,16 +31,17 @@ mod tests {
         // let txt_file = temp_dir.path().join("test.txt");
 
         // File::create(&txt_file).unwrap();
-        let txt_file = "test_files/test.docx";
+        let txt_file = "../test_files/test.docx";
 
-        DocxProcessor::extract_text(&txt_file).unwrap_err();
+        let text = DocxProcessor::extract_text(&txt_file).unwrap();
+        assert!(text.contains("This is a docx file test"));
     }
 
     // Returns an error if the file path is invalid.
     #[test]
+    #[should_panic(expected = "Error processing file: IO(Os { code: 2, kind: NotFound, message: \"No such file or directory\" })")]
     fn test_extract_text_invalid_file_path() {
-        let invalid_file_path = "invalid.txt";
-
-        DocxProcessor::extract_text(&invalid_file_path).unwrap_err();
+        let invalid_file_path = "this_file_definitely_does_not_exist.docx";
+        DocxProcessor::extract_text(&invalid_file_path).unwrap();
     }
 }

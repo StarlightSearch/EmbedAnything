@@ -308,7 +308,7 @@ mod tests {
     fn test_load_image() {
         let clip_embedder = ClipEmbedder::default();
         let image = clip_embedder
-            .load_image("test_files/clip/cat1.jpg", 224)
+            .load_image("../test_files/clip/cat1.jpg", 224)
             .unwrap();
         assert_eq!(image.shape().clone().into_dims(), &[3, 224, 224]);
     }
@@ -319,7 +319,7 @@ mod tests {
         let clip_embedder = ClipEmbedder::default();
         let images = clip_embedder
             .load_images(
-                &["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"],
+                &["../test_files/clip/cat1.jpg", "../test_files/clip/cat2.jpeg"],
                 224,
             )
             .unwrap();
@@ -331,7 +331,7 @@ mod tests {
     fn test_embed_image_batch() {
         let clip_embedder = ClipEmbedder::default();
         let embeddings = clip_embedder
-            .embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"])
+            .embed_image_batch(&["../test_files/clip/cat1.jpg", "../test_files/clip/cat2.jpeg"])
             .unwrap();
         assert_eq!(embeddings.len(), 2);
     }

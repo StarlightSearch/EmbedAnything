@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn test_metadata() {
-        let file_path = PathBuf::from("test_files/test.pdf");
+        let file_path = PathBuf::from("../test_files/test.pdf");
         let metadata = TextLoader::get_metadata(file_path.to_str().unwrap()).unwrap();
 
         // assert the fields that are present
@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_image_embedder() {
-        let file_path = PathBuf::from("test_files/clip/cat1.jpg");
+        let file_path = PathBuf::from("../test_files/clip/cat1.jpg");
         let embedder = ClipEmbedder::default();
         let emb_data = embedder.embed_image(file_path, None).unwrap();
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);

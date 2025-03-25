@@ -120,14 +120,14 @@ mod tests {
 
     #[test]
     fn test_from_path() {
-        let input = Image::from_path("img/string.png").unwrap();
+        let input = Image::from_path("../test_files/clip/cat1.jpg").unwrap();
 
-        assert_eq!(input.get_image_path().unwrap(), "img/string.png")
+        assert_eq!(input.get_image_path().unwrap(), "../test_files/clip/cat1.jpg")
     }
 
     #[test]
     fn test_from_dynamic_image() {
-        let img = ImageReader::open("img/string.png")
+        let img = ImageReader::open("../test_files/clip/cat1.jpg")
             .unwrap()
             .decode()
             .unwrap();

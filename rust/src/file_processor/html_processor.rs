@@ -241,7 +241,7 @@ mod tests {
     #[test]
     fn test_process_html_file() {
         let html_processor = HtmlProcessor::new();
-        let html_file = "test_files/test.html";
+        let html_file = "../test_files/test.html";
         let result = html_processor.process_html_file(html_file, Some("https://example.com/"));
         assert!(result.is_ok());
     }
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn test_process_html_file_err() {
         let html_processor = HtmlProcessor::new();
-        let html_file = "test_files/some_file_that_doesnt_exist.html";
+        let html_file = "../test_files/some_file_that_doesnt_exist.html";
         let result = html_processor.process_html_file(html_file, Some("https://example.com/"));
         assert!(result.is_err());
     }
