@@ -78,6 +78,7 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 - **GPU support** : We have taken care of hardware acceleration on GPU as well.
 - **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
+- **No Dependency on Pytorch** Easy to deploy on cloud, as it comes with low memory footprint.
 
 ## 💡What is Vector Streaming
 
@@ -88,17 +89,18 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ## 🦀 Why Embed Anything 
 
 ➡️Faster execution. <br />
+➡️No Pytorch Dependency, thus low-memory footprint and easy to deploy on cloud.
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
 ➡️Running embedding models locally and efficiently <br />
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage of EmbedAnything. <br/>
+➡️Decrease the memory usage. <br/>
 ➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
 
 ## 🍓 Our Past Collaborations:
 
 We have collaborated with reputed enterprise like
-[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), Weaviate, [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0)
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), [Weaviate](), [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0)
 
 You can get in touch with us for further collaborations.
 
@@ -199,7 +201,19 @@ config = TextEmbedConfig(chunk_size=1000, batch_size=32, splitting_strategy = "s
 
 ```
 
+## For late-chunking
+```python
+config = TextEmbedConfig(
+    chunk_size=1000,
+    batch_size=8,
+    splitting_strategy="sentence",
+    late_chunking=True,
+)
 
+# Embed a single file
+data: list[EmbedData] = model.embed_file("test_files/attention.pdf", config=config)
+
+```
 
 # 🧑‍🚀 Getting Started
 
