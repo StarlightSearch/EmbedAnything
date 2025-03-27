@@ -89,7 +89,7 @@ Vector Streaming enables you to process and generate embeddings for files and st
 ## 🦀 Why Embed Anything 
 
 ➡️Faster execution. <br />
-➡️No Pytorch Dependency, thus low-memory footprint and easy to deploy on cloud.
+➡️No Pytorch Dependency, thus low-memory footprint and easy to deploy on cloud. <br />
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
 ➡️Running embedding models locally and efficiently <br />
