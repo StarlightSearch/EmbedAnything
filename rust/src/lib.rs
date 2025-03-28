@@ -183,7 +183,7 @@ pub async fn embed_file<T: AsRef<std::path::Path>>(
 ) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
-        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).unwrap()])),
+        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder)?])),
     }
 }
 
@@ -338,17 +338,15 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     if let Some(adapter) = adapter {
         let encodings = embedding_model
             .embed(&chunk_refs, batch_size, late_chunking)
-            .await
-            .unwrap();
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
+            .await?;
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata)?;
         adapter(embeddings);
         Ok(None)
     } else {
         let encodings = embedding_model
             .embed(&chunk_refs, batch_size, late_chunking)
-            .await
-            .unwrap();
-        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata).unwrap();
+            .await?;
+        let embeddings = get_text_metadata(&Rc::new(encodings), &chunk_refs, &metadata)?;
 
         Ok(Some(embeddings))
     }
@@ -364,10 +362,9 @@ fn emb_image<T: AsRef<std::path::Path>>(
         fs::canonicalize(&image_path)?.to_str().unwrap().to_string(),
     );
     let embedding = embedding_model
-        .embed_image(&image_path, Some(metadata))
-        .unwrap();
+        .embed_image(&image_path, Some(metadata))?;
 
-    Ok(embedding.clone())
+    Ok(embedding)
 }
 
 #[cfg(feature = "audio")]
@@ -443,7 +440,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
     let mut file_parser = FileParser::new();
-    file_parser.get_image_paths(&directory).unwrap();
+    file_parser.get_image_paths(&directory)?;
 
     let buffer_size = config
         .unwrap_or(&ImageEmbedConfig::default())
@@ -459,8 +456,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     pb.set_style(
         indicatif::ProgressStyle::with_template(
             "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )
-        .unwrap(),
+        )?,
     );
 
     let processing_task = tokio::spawn({
@@ -545,7 +541,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     }
 
     // Wait for the spawned task to complete
-    processing_task.await.unwrap();
+    processing_task.await?;
 
     if adapter.is_some() {
         Ok(None)
@@ -626,8 +622,7 @@ pub async fn embed_directory_stream(
     pb.set_style(
         indicatif::ProgressStyle::with_template(
             "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )
-        .unwrap(),
+        )?,
     );
 
     let processing_task = tokio::spawn({
@@ -747,7 +742,7 @@ pub async fn embed_directory_stream(
         }
     }
     // Wait for the spawned task to complete
-    processing_task.await.unwrap();
+    processing_task.await?;
 
     if adapter.is_some() {
         Ok(None)
@@ -813,8 +808,7 @@ pub async fn embed_files_batch(
     pb.set_style(
         indicatif::ProgressStyle::with_template(
             "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )
-        .unwrap(),
+        )?,
     );
 
     let processing_task = tokio::spawn({
@@ -934,7 +928,7 @@ pub async fn embed_files_batch(
         }
     }
     // Wait for the spawned task to complete
-    processing_task.await.unwrap();
+    processing_task.await?;
 
     if adapter.is_some() {
         Ok(None)
