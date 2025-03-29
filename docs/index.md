@@ -96,7 +96,7 @@ Only measures embedding model inference speed, on onnx-runtime. [Code](https://c
 
 <img src="https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png" width="500">
 
-# ⭐ Supported Models
+## ⭐ Supported Models
 
 We support any hugging-face models on Candle. And We also support ONNX runtime for BERT and ColPali.
 
@@ -201,7 +201,7 @@ data: list[EmbedData] = model.embed_file("test_files/attention.pdf", config=conf
 
 ```
 
-# 🧑‍🚀 Getting Started
+## 🧑‍🚀 Getting Started
 
 ## 💚 Installation
 

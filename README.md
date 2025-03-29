@@ -12,7 +12,7 @@
 [![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
 [![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
-[![MkDocs](https://img.shields.io/badge/Blogs-F38020?.svg?logoColor=fff)](https://starlight-search.com/blog/)
+[![MkDocs](https://img.shields.io/badge/Blogs-F38020?.svg?logoColor=fff)](https://embed-anything.com/blog/)
 
 </div>
 
@@ -22,7 +22,7 @@
   <p align="center">
     <b> Inference, Ingestion, and Indexing in Rust 🦀</b>
     <br />
-    <a href="https://starlightsearch.github.io/EmbedAnything/references/">Python docs »</a>
+    <a href="https://embed-anything.com/references/">Python docs »</a>
     <br />
     <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/">Rust docs »</a>
     <br />
