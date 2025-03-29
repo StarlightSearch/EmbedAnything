@@ -14,6 +14,7 @@ use text_splitter::{Characters, ChunkConfig, TextSplitter};
 
 use super::file_processor::pdf_processor::PdfProcessor;
 use crate::config::SplittingStrategy;
+use crate::file_processor::html_processor::HtmlProcessor;
 
 impl Default for TextLoader {
     fn default() -> Self {
@@ -113,6 +114,7 @@ impl TextLoader {
             "md" => MarkdownProcessor::extract_text(file),
             "txt" => TxtProcessor::extract_text(file),
             "docx" => DocxProcessor::extract_text(file),
+            "html" => HtmlProcessor::default().process_html_file(file, None).map(|x| x.content),
             _ => Err(FileLoadingError::UnsupportedFileType(
                 file.as_ref()
                     .extension()

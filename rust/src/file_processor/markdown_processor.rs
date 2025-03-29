@@ -17,7 +17,7 @@ impl MarkdownProcessor {
     pub fn extract_text<T: AsRef<std::path::Path>>(file_path: &T) -> Result<String, Error> {
         let bytes = std::fs::read(file_path)?;
         let out = String::from_utf8_lossy(&bytes).to_string();
-        Self::process_markdown(out)
+        Self::process_markdown(&MarkdownProcessor, out)
     }
 
     /// Processes a Markdown-formatted String into a String ready for embedding.
@@ -30,7 +30,7 @@ impl MarkdownProcessor {
     ///
     /// Returns a `Result` containing the extracted text content as a `String` if successful,
     /// or an `Error` if an error occurred while reading the file or converting the Markdown.
-    pub fn process_markdown(markdown: String) -> Result<String, Error> {
+    pub fn process_markdown(&self, markdown: String) -> Result<String, Error> {
         let content = markdown_to_text::convert(&markdown);
         Ok(content)
     }
