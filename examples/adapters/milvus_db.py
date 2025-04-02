@@ -1,5 +1,11 @@
-
-from pymilvus import connections, utility, FieldSchema, CollectionSchema, Collection, DataType
+from pymilvus import (
+    connections,
+    utility,
+    FieldSchema,
+    CollectionSchema,
+    Collection,
+    DataType,
+)
 import os
 from typing import Dict, List
 
@@ -32,64 +38,66 @@ class MilvusVectorAdapter(Adapter):
         self.milvus_collection_name = MILVUS_COLLECTION_NAME
         print("Ok - Milvus DB connection.")
         if utility.has_collection(self.milvus_collection_name):
-            utility.drop_collection(self.milvus_collection_name)
+            self.delete_index()
 
         self.schema = self.define_schema()
-        self.db = None # Milvus DB table/collect
-    
+        self.db = None  # Milvus DB table/collect
+
     def define_schema(self):
         pk_field = FieldSchema(
-            name="id",
-            dtype=DataType.INT64,
-            is_primary=True,
-            auto_id=True
+            name="id", dtype=DataType.INT64, is_primary=True, auto_id=True
         )
         embedding_field = FieldSchema(
             name="embeddings",
             dtype=DataType.FLOAT_VECTOR,
             dim=EMBEDDINGS_DIM,
-            description="vector embeddings"
+            description="vector embeddings",
         )
         text_field = FieldSchema(
             name="text",
             dtype=DataType.VARCHAR,
             max_length=1098,
-            description="text content"
+            description="text content",
         )
         file_name_field = FieldSchema(
             name="file_name",
             dtype=DataType.VARCHAR,
             max_length=255,
-            description="Name of the file"
+            description="Name of the file",
         )
         modified_field = FieldSchema(
             name="modified",
             dtype=DataType.VARCHAR,
             max_length=50,
-            description="Last modified timestamp"
+            description="Last modified timestamp",
         )
         created_field = FieldSchema(
             name="created",
             dtype=DataType.VARCHAR,
             max_length=50,
-            description="Created timestamp"
+            description="Created timestamp",
         )
-        fields = [pk_field, embedding_field, text_field, file_name_field, modified_field, created_field]
+        fields = [
+            pk_field,
+            embedding_field,
+            text_field,
+            file_name_field,
+            modified_field,
+            created_field,
+        ]
         return CollectionSchema(fields=fields)
 
-    
     def create_index(self):
         index_params = {
             "metric_type": "L2",
             # https://milvus.io/docs/ivf-flat.md
             "index_type": "IVF_FLAT",
-            "params": {"nlist": 1024}
+            "params": {"nlist": 1024},
         }
         self.db = Collection(name=self.milvus_collection_name, schema=self.schema)
         # create index on the field to do the search query on.
         self.db.create_index(field_name="embeddings", index_params=index_params)
 
-    
     def convert(self, embeddings: VectorEmbeddings) -> List[Dict]:
         ret_data = []
         for i, embedding in enumerate(embeddings):
@@ -104,9 +112,9 @@ class MilvusVectorAdapter(Adapter):
             # row wise append
             ret_data.append(dict)
         return ret_data
-    
+
     def delete_index(self):
-        pass
+        utility.drop_collection(self.milvus_collection_name)
 
     def upsert(self, data: EmbedData):
         # rust lib outputs the embeddings here during embed_anything.embed_file()
@@ -114,7 +122,6 @@ class MilvusVectorAdapter(Adapter):
         self.db.insert(data)
         self.db.flush()
         print("Ok - vector embeddings inserted.")
-
 
 
 if __name__ == "__main__":
@@ -128,8 +135,7 @@ if __name__ == "__main__":
     # 4. show example search
 
     transfomer_model = embed_anything.EmbeddingModel.from_pretrained_hf(
-        embed_anything.WhichModel.Bert, 
-        model_id=SENT_TF_MODEL_ID
+        embed_anything.WhichModel.Bert, model_id=SENT_TF_MODEL_ID
     )
 
     data = embed_anything.embed_file(
@@ -138,4 +144,19 @@ if __name__ == "__main__":
         adapter=milvusAdapter,
     )
 
-
+    query_vector = [
+        embed_anything.embed_query(["attention"], embedder=transfomer_model)[
+            0
+        ].embedding
+    ]
+    assert milvusAdapter.db is not None, "Milvus DB server connection not established!"
+    milvusAdapter.db.load()
+    result = milvusAdapter.db.search(
+        query_vector,
+        anns_field="embeddings",
+        output_fields=["id", "text", "file_name"],
+        param={"metric_type": "L2", "params": {"nprobe": 10}},
+        limit=5,
+    )
+    assert (result[0]) is not None
+    print("Search Result result[0]: ", result[0])
