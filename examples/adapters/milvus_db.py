@@ -14,6 +14,12 @@ from embed_anything.vectordb import Adapter
 from embed_anything import EmbedData
 
 
+# NOTE: Before running this script
+# install and run Milvus Vector DB server for testing purposes.
+# 1. curl -sfL https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh -o standalone_embed.sh
+# 2. bash standalone_embed.sh start
+# backup reference doc: https://milvus.io/docs/install_standalone-docker.md
+
 print("Milvus Vector DB - Adapter")
 
 # default milvus docker image address & port
@@ -26,6 +32,9 @@ EMBEDDINGS_DIM = 384
 # https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2
 SENT_TF_MODEL_ID = "sentence-transformers/all-MiniLM-L12-v2"
 EXAMPLE_FILE = "test_files/attention.pdf"
+# you may want to change it, if you encounter this issue
+# https://github.com/StarlightSearch/EmbedAnything/issues/73#issuecomment-2777183715
+TEXT_CONTENT_VARCHARS = 4098
 
 
 # typecheck
@@ -56,7 +65,7 @@ class MilvusVectorAdapter(Adapter):
         text_field = FieldSchema(
             name="text",
             dtype=DataType.VARCHAR,
-            max_length=1098,
+            max_length=TEXT_CONTENT_VARCHARS,
             description="text content",
         )
         file_name_field = FieldSchema(
