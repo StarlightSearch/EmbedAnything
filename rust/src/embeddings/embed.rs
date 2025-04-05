@@ -662,7 +662,7 @@ impl Embedder {
     ///         .from_pretrained_hf()
     ///         .unwrap());
     ///     let config = TextEmbedConfig::default();
-    ///     let embeddings = embedder.embed_files_batch(files, Some(&config), None::<fn(Vec<EmbedData>)>).await.unwrap();
+    ///     let embeddings = embedder.embed_files_batch(files, Some(&config), None).await.unwrap();
     /// }
     /// ```
     /// This will output the embeddings of the files in the specified directory using the specified embedding model.
@@ -690,16 +690,6 @@ impl Embedder {
         adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
     ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_webpage(url, self, config, adapter).await
-    }
-
-    pub async fn embed_html(
-        &self,
-        file_name: impl AsRef<std::path::Path>,
-        origin: Option<impl Into<String>>,
-        config: Option<&TextEmbedConfig>,
-        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
-    ) -> Result<Option<Vec<EmbedData>>> {
-        crate::embed_html(file_name, self, origin, config, adapter).await
     }
 }
 

@@ -443,17 +443,6 @@ impl EmbeddingModel {
     ) -> PyResult<Option<Vec<EmbedData>>> {
         embed_audio_file(audio_file, audio_decoder, self, config)
     }
-
-    #[pyo3(signature = (file_name, origin=None, config=None, adapter=None))]
-    pub fn embed_html(
-        &self,
-        file_name: &str,
-        origin: Option<&str>,
-        config: Option<&config::TextEmbedConfig>,
-        adapter: Option<PyObject>,
-    ) -> PyResult<Option<Vec<EmbedData>>> {
-        embed_html(file_name, self, origin, config, adapter)
-    }
 }
 
 #[pyclass]
@@ -824,63 +813,6 @@ pub fn embed_webpage(
         embed_anything::embed_webpage(
             url,
             embedding_model,
-            config,
-            adapter.map(|f| {
-                Box::new(f)
-                    as Box<
-                        dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
-                    >
-            }),
-        )
-        .await
-        .map_err(|e| PyValueError::new_err(e.to_string()))
-        .unwrap()
-        .map(|data| {
-            data.into_iter()
-                .map(|data| EmbedData { inner: data })
-                .collect::<Vec<_>>()
-        })
-    });
-    Ok(data)
-}
-
-#[pyfunction]
-#[pyo3(signature = (file_name,  embedder, origin=None, config=None, adapter=None))]
-pub fn embed_html(
-    file_name: &str,
-    embedder: &EmbeddingModel,
-    origin: Option<&str>,
-    config: Option<&config::TextEmbedConfig>,
-    adapter: Option<PyObject>,
-) -> PyResult<Option<Vec<EmbedData>>> {
-    let embedding_model = &embedder.inner;
-    let config = config.map(|c| &c.inner);
-    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
-    let adapter = match adapter {
-        Some(adapter) => {
-            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
-                Python::with_gil(|py| {
-                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
-                    let converted_data = data
-                        .into_iter()
-                        .map(|data| EmbedData { inner: data })
-                        .collect::<Vec<EmbedData>>();
-                    upsert_fn
-                        .call1(py, (converted_data,))
-                        .map_err(|e| PyValueError::new_err(e.to_string()))
-                        .unwrap();
-                });
-            };
-            Some(callback)
-        }
-        None => None,
-    };
-
-    let data = rt.block_on(async {
-        embed_anything::embed_html(
-            file_name,
-            embedding_model,
-            origin,
             config,
             adapter.map(|f| {
                 Box::new(f)
