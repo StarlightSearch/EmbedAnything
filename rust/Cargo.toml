@@ -51,8 +51,8 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 # Markdown Processing
 markdown_to_text = "1.0.0"
 
-# Web Scraping
-scraper = "0.22.0"
+# HTML processing
+htmd = "0.1.6"
 
 # Text Processing
 url = "2.5.0"

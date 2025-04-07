@@ -84,6 +84,7 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::AudioDecoderModel;
 use itertools::Itertools;
 use rayon::prelude::*;
+use text_splitter::{ChunkConfig, TextSplitter};
 use text_loader::TextLoader;
 use tokio::sync::mpsc; // Add this at the top of your file
 
@@ -222,82 +223,23 @@ pub async fn embed_webpage(
     let website_processor = file_processor::website_processor::WebsiteProcessor::new();
     let webpage = website_processor.process_website(url.as_ref())?;
 
-    // if let Embedder::Clip(_) = embedder {
-    //     return Err(anyhow!("Clip model does not support webpage embedding"));
-    // }
-
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
+    let late_chunking = config.late_chunking;
 
-    let embeddings = webpage
-        .embed_webpage(embedder, chunk_size, overlap_ratio, batch_size)
+    let splitter = TextSplitter::new(ChunkConfig::new(chunk_size).with_overlap(chunk_size * overlap_ratio as usize)?);
+    let chunks: Vec<&str> = splitter.chunks(&webpage.content).collect();
+
+    let encodings = embedder
+        .embed(&chunks, batch_size, late_chunking)
         .await?;
 
-    // Send embeddings to vector database
-    if let Some(adapter) = adapter {
-        adapter(embeddings);
-        Ok(None)
-    } else {
-        Ok(Some(embeddings))
-    }
-}
-
-/// Embeds an HTML document using the specified embedding model.
-///
-/// # Arguments
-///
-/// * `file_name` - The path of the HTML document to embed.
-/// * `origin` - The original URL of the document. If specified, links can be resolved and metadata points to the site.
-/// * `embedder` - The embedding model to use. Supported options are "OpenAI", "Jina", and "Bert".
-///
-/// # Returns
-///
-/// The embeddings of the HTML document.
-///
-/// # Errors
-///
-/// Returns an error if the specified embedding model is invalid.
-///
-/// # Example
-///
-/// ```
-/// use embed_anything::embed_html;
-/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
-/// use embed_anything::embeddings::local::jina::JinaEmbedder;
-///
-/// async fn get_embeddings() {
-///     let embeddings = embed_html(
-///         "test_files/test.html",
-///         Some("https://example.com/"),
-///         &Embedder::from_pretrained_hf("JINA", "jinaai/jina-embeddings-v2-small-en", None).unwrap(),
-///         None,
-///         None,
-///     ).await.unwrap();
-/// }
-/// ```
-pub async fn embed_html(
-    file_name: impl AsRef<std::path::Path>,
-    embedder: &Embedder,
-    origin: Option<impl Into<String>>,
-    config: Option<&TextEmbedConfig>,
-    // Callback function
-    adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
-) -> Result<Option<Vec<EmbedData>>> {
-    let html_processor = file_processor::html_processor::HtmlProcessor::new();
-    let html = html_processor.process_html_file(file_name.as_ref(), origin)?;
-
-    let binding = TextEmbedConfig::default();
-    let config = config.unwrap_or(&binding);
-    let chunk_size = config.chunk_size.unwrap_or(1000);
-    let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
-    let batch_size = config.batch_size;
-
-    let embeddings = html
-        .embed_webpage(embedder, chunk_size, overlap_ratio, batch_size)
-        .await?;
+    let mut metadata = HashMap::new();
+    metadata.insert("url".into(), webpage.url);
+    let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata))?;
 
     // Send embeddings to vector database
     if let Some(adapter) = adapter {
