@@ -35,3 +35,14 @@ pip install pinecone
 --8<-- "examples/adapters/pinecone_db.py"
 ```
 
+## Using Qdrant
+
+To use [Qdrant](https://qdrant.tech/), you need to install the `qdrant-client` package.
+
+```bash
+pip install qdrant-client
+```
+
+``` python
+--8<-- "examples/adapters/qdrant.py"
+```
