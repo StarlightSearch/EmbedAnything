@@ -1,171 +1,188 @@
-from pymilvus import (
-    connections,
-    utility,
-    FieldSchema,
-    CollectionSchema,
-    Collection,
-    DataType,
-)
+from pymilvus import MilvusClient, DataType
 import os
 from typing import Dict, List
 
 import embed_anything
 from embed_anything.vectordb import Adapter
-from embed_anything import EmbedData
-
-
-# NOTE: Before running this script
-# install and run Milvus Vector DB server for testing purposes.
-# 1. curl -sfL https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh -o standalone_embed.sh
-# 2. bash standalone_embed.sh start
-# backup reference doc: https://milvus.io/docs/install_standalone-docker.md
+from embed_anything import EmbedData, EmbeddingModel, WhichModel
 
 print("Milvus Vector DB - Adapter")
 
-# default milvus docker image address & port
-MILVUS_DB_HOST_ADDRESS = os.environ.get("MILVUS_DB_HOST_ADDRESS", "127.0.0.1")
-MILVUS_DB_PORT = os.environ.get("MILVUS_DB_PORT", "19530")
-MILVUS_COLLECTION_NAME = "MILVUS_EA_ADAPTER_COLLECTION"
-
+# Default embedding dimension
 EMBEDDINGS_DIM = 384
-
-# https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2
-SENT_TF_MODEL_ID = "sentence-transformers/all-MiniLM-L12-v2"
-EXAMPLE_FILE = "test_files/attention.pdf"
-# you may want to change it, if you encounter this issue
-# https://github.com/StarlightSearch/EmbedAnything/issues/73#issuecomment-2777183715
+# Maximum VARCHAR field length for text content
 TEXT_CONTENT_VARCHARS = 4098
 
-
-# typecheck
+# Type annotation for embeddings
 VectorEmbeddings = List[List[EmbedData]]
 
-
 class MilvusVectorAdapter(Adapter):
-    def __init__(self, host_address: str, host_port: int):
-        connections.connect(host=host_address, port=host_port)
-        self.milvus_collection_name = MILVUS_COLLECTION_NAME
-        print("Ok - Milvus DB connection.")
-        if utility.has_collection(self.milvus_collection_name):
+    def __init__(self, uri: str = './milvus.db', token: str = '', collection_name: str = "embed_anything_collection"):
+        """
+        Initialize the MilvusVectorAdapter.
+        
+        Args:
+            uri (str): The URI to connect to, comes in the form of
+                "https://address:port" for Milvus or Zilliz Cloud service,
+                or "path/to/local/milvus.db" for the lite local Milvus. Defaults to
+                "./milvus.db".
+            token (str): The token for log in. Defaults to "".
+            collection_name (str): Name of the collection to use. Defaults to
+                "embed_anything_collection".
+        """
+        self.collection_name = collection_name
+        self.client = MilvusClient(uri=uri, token=token)
+        print("Ok - Milvus DB connection established.")
+
+    def create_index(self, dimension: int = EMBEDDINGS_DIM):
+        """
+        Create a collection and index for embeddings.
+        
+        Args:
+            dimension: Dimension of the embedding vectors.
+            **kwargs: Additional parameters for index creation.
+        """
+        # Delete collection if it exists
+        if self.client.has_collection(self.collection_name):
             self.delete_index()
+        
+        # Create collection schema
+        schema = self.client.create_schema(auto_id=True)
+        schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
+        schema.add_field(
+            field_name="embeddings",
+            datatype=DataType.FLOAT_VECTOR,
+            dim=dimension
+        )
+        schema.add_field(
+            field_name="text",
+            datatype=DataType.VARCHAR,
+            max_length=TEXT_CONTENT_VARCHARS
+        )
+        schema.add_field(
+            field_name="file_name",
+            datatype=DataType.VARCHAR,
+            max_length=255
+        )
+        schema.add_field(
+            field_name="modified",
+            datatype=DataType.VARCHAR,
+            max_length=50
+        )
+        schema.add_field(
+            field_name="created",
+            datatype=DataType.VARCHAR,
+            max_length=50
+        )
+        
+        # Create the collection
+        self.client.create_collection(
+            collection_name=self.collection_name,
+            schema=schema
+        )
+        
+        # Create the index
+        index_params = self.client.prepare_index_params()
+        index_params.add_index(
+            field_name="embeddings",
+            index_type="IVF_FLAT",
+            metric_type="L2",
+            params={"nlist": 1024}
+        )
+        
+        # Apply the index
+        self.client.create_index(
+            collection_name=self.collection_name,
+            index_params=index_params
+        )
+        
+        # Load the collection
+        self.client.load_collection(
+            collection_name=self.collection_name
+        )
+        
+        print(f"Collection '{self.collection_name}' created with index.")
 
-        self.schema = self.define_schema()
-        self.db = None  # Milvus DB table/collect
-
-    def define_schema(self):
-        pk_field = FieldSchema(
-            name="id", dtype=DataType.INT64, is_primary=True, auto_id=True
-        )
-        embedding_field = FieldSchema(
-            name="embeddings",
-            dtype=DataType.FLOAT_VECTOR,
-            dim=EMBEDDINGS_DIM,
-            description="vector embeddings",
-        )
-        text_field = FieldSchema(
-            name="text",
-            dtype=DataType.VARCHAR,
-            max_length=TEXT_CONTENT_VARCHARS,
-            description="text content",
-        )
-        file_name_field = FieldSchema(
-            name="file_name",
-            dtype=DataType.VARCHAR,
-            max_length=255,
-            description="Name of the file",
-        )
-        modified_field = FieldSchema(
-            name="modified",
-            dtype=DataType.VARCHAR,
-            max_length=50,
-            description="Last modified timestamp",
-        )
-        created_field = FieldSchema(
-            name="created",
-            dtype=DataType.VARCHAR,
-            max_length=50,
-            description="Created timestamp",
-        )
-        fields = [
-            pk_field,
-            embedding_field,
-            text_field,
-            file_name_field,
-            modified_field,
-            created_field,
-        ]
-        return CollectionSchema(fields=fields)
-
-    def create_index(self):
-        index_params = {
-            "metric_type": "L2",
-            # https://milvus.io/docs/ivf-flat.md
-            "index_type": "IVF_FLAT",
-            "params": {"nlist": 1024},
-        }
-        self.db = Collection(name=self.milvus_collection_name, schema=self.schema)
-        # create index on the field to do the search query on.
-        self.db.create_index(field_name="embeddings", index_params=index_params)
-
-    def convert(self, embeddings: VectorEmbeddings) -> List[Dict]:
+    def convert(self, embeddings: List[EmbedData]) -> List[Dict]:
+        """
+        Convert EmbedData objects to a format compatible with Milvus.
+        
+        Args:
+            embeddings: List of EmbedData objects.
+            
+        Returns:
+            List of dictionaries with data formatted for Milvus.
+        """
         ret_data = []
         for i, embedding in enumerate(embeddings):
-            print(f"Ok - #{i} converting")
-            dict = {
+            data_dict = {
                 "embeddings": embedding.embedding,
                 "text": embedding.text,
                 "file_name": embedding.metadata["file_name"],
                 "modified": embedding.metadata["modified"],
                 "created": embedding.metadata["created"],
             }
-            # row wise append
-            ret_data.append(dict)
+            ret_data.append(data_dict)
+        
+        print(f"Converted {len(ret_data)} embeddings for insertion.")
         return ret_data
 
     def delete_index(self):
-        utility.drop_collection(self.milvus_collection_name)
+        """
+        Delete the collection and its index.
+        """
+        try:
+            self.client.drop_collection(self.collection_name)
+            print(f"Collection '{self.collection_name}' dropped.")
+        except Exception as e:
+            print(f"Failed to drop collection: {e}")
+   
 
-    def upsert(self, data: EmbedData):
-        # rust lib outputs the embeddings here during embed_anything.embed_file()
-        data = self.convert(data)
-        self.db.insert(data)
-        self.db.flush()
-        print("Ok - vector embeddings inserted.")
+    def upsert(self, data: List[EmbedData]):
+        """
+        Insert or update embeddings in the collection.
+        
+        Args:
+            data: List of EmbedData objects to insert.
+        """
+        # Convert data to Milvus format
+        formatted_data = self.convert(data)
+        
+        # Insert data
+        self.client.insert(
+            collection_name=self.collection_name,
+            data=formatted_data
+        )
+        
+        print(f"Successfully inserted {len(formatted_data)} embeddings.")
+    
+
+
 
 
 if __name__ == "__main__":
-    milvusAdapter = MilvusVectorAdapter(MILVUS_DB_HOST_ADDRESS, MILVUS_DB_PORT)
-    milvusAdapter.create_index()
+    # Initialize the MilvusVectorAdapter class
+    index_name = "embed_anything_milvus_collection"
+    milvus_adapter = MilvusVectorAdapter(uri='./milvus.db', collection_name=index_name)
 
-    # steps
-    # 1. setup model and adapter
-    # 2. create index
-    # 3. embed and store operation using embed_anything.embed_file
-    # 4. show example search
+    # Delete existing index if it exists
+    try:
+        milvus_adapter.delete_index(index_name)
+    except:
+        pass
 
-    transfomer_model = embed_anything.EmbeddingModel.from_pretrained_hf(
-        embed_anything.WhichModel.Bert, model_id=SENT_TF_MODEL_ID
+    # Create a new index
+    milvus_adapter.create_index()
+
+    # Initialize the embedding model
+    model = EmbeddingModel.from_pretrained_hf(
+        WhichModel.Bert, 
+        model_id="sentence-transformers/all-MiniLM-L12-v2"
     )
 
+    # Embed a PDF file
     data = embed_anything.embed_file(
-        EXAMPLE_FILE,
-        embedder=transfomer_model,
-        adapter=milvusAdapter,
+        "/Users/jinhonglin/Desktop/sample.pdf",
+        embedder=model,
+        adapter=milvus_adapter,
     )
-
-    query_vector = [
-        embed_anything.embed_query(["attention"], embedder=transfomer_model)[
-            0
-        ].embedding
-    ]
-    assert milvusAdapter.db is not None, "Milvus DB server connection not established!"
-    milvusAdapter.db.load()
-    result = milvusAdapter.db.search(
-        query_vector,
-        anns_field="embeddings",
-        output_fields=["id", "text", "file_name"],
-        param={"metric_type": "L2", "params": {"nprobe": 10}},
-        limit=5,
-    )
-    assert (result[0]) is not None
-    print("Search Result result[0]: ", result[0])

@@ -70,6 +70,7 @@ We currently support a wide range of vector databases for streaming embeddings, 
 - Weaviate<br/>
 - Pinecone<br/>
 - Qdrant<br/>
+- Milvus<br/>
 
 But we're not stopping there! We're actively working to expand this list.
 
