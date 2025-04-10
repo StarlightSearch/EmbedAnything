@@ -413,6 +413,7 @@ We currently support a wide range of vector databases for streaming embeddings, 
 - Elastic: thanks to amazing and active Elastic team for the contribution <br/>
 - Weaviate<br/>
 - Pinecone<br/>
+- Qdrant<br/>
 
 How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-development-guide.md
 
