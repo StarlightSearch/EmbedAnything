@@ -69,7 +69,7 @@ class QdrantAdapter(Adapter):
 
 
 def main():
-    adapter = QdrantAdapter(QdrantClient())
+    adapter = QdrantAdapter(QdrantClient(location=":memory:"))
     adapter.create_index(dimension=384)
 
     model = EmbeddingModel.from_pretrained_hf(
