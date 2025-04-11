@@ -1,14 +1,7 @@
 pub mod config;
 pub mod models;
 use embed_anything::embeddings::embed::{TextEmbedder, VisionEmbedder};
-use embed_anything::{
-    self,
-    config::TextEmbedConfig,
-    emb_audio,
-    embeddings::embed::{Embedder, EmbeddingResult},
-    file_processor::audio::audio_processor,
-    text_loader::FileLoadingError,
-};
+use embed_anything::{self, config::TextEmbedConfig, emb_audio, embeddings::embed::{Embedder, EmbeddingResult}, file_processor::audio::audio_processor, FileLoadingError};
 use models::colbert::ColbertModel;
 use models::colpali::ColpaliModel;
 use models::reranker::{DocumentRank, Dtype, Reranker, RerankerResult};
