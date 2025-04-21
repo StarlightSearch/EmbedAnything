@@ -68,7 +68,16 @@ fn extract_text_with_ocr<T: AsRef<Path>>(
         .iter()
         .map(|image| extract_text_from_image(image, &Args::default().with_path(tesseract_path)))
         .collect();
-    Ok(texts?.join("\n"))
+    
+    // Join the texts and clean up empty lines
+    let text = texts?.join("\n");
+    let cleaned_text = text
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .collect::<Vec<&str>>()
+        .join("\n");
+    
+    Ok(cleaned_text)
 }
 
 #[cfg(test)]
