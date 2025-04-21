@@ -349,20 +349,27 @@ impl StatisticalChunker {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::text_loader::TextLoader;
+    use crate::{extract_document, file_processor::pdf_processor::OcrConfig};
 
     use super::*;
 
     #[tokio::test]
     async fn test_statistical_chunker() {
-        let text =
-            TextLoader::extract_text(&PathBuf::from("../test_files/attention.pdf"), false, None)
-                .unwrap();
+        let text = extract_document(
+            &PathBuf::from("../test_files/attention.pdf"),
+            10,
+            0,
+            OcrConfig {
+                use_ocr: false,
+                tesseract_path: None,
+            },
+        )
+        .unwrap();
         let chunker = StatisticalChunker {
             verbose: true,
             ..Default::default()
         };
-        let chunks = chunker.chunk(&text, 10).await;
+        let chunks = chunker.chunk(&text.chunks.join("\n"), 10).await;
         assert!(chunks.len() > 0);
     }
 }

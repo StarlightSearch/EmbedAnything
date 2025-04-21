@@ -35,7 +35,7 @@ mod tests {
         let processor = DocxProcessor::new(128, 0).unwrap();
 
         let text = processor.process_file(&txt_file).unwrap();
-        assert!(text.chunks.contains("This is a docx file test".to_string().as_ref()));
+        assert!(text.chunks.contains(&"This is a docx file test".to_string()));
     }
 
     // Returns an error if the file path is invalid.

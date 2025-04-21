@@ -87,7 +87,7 @@ mod tests {
 
         let pdf_file = "../test_files/test.pdf";
         let text = processor.process_file(pdf_file).unwrap();
-        assert_eq!(text.len(), 4271);
+        assert_eq!(text.chunks.len(), 4271);
     }
 
     #[test]
