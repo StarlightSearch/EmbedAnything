@@ -1,36 +1,47 @@
+use std::path::Path;
 use crate::tesseract::input::{Args, Image};
 use anyhow::Error;
 use image::DynamicImage;
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
+use text_splitter::ChunkConfigError;
+use crate::file_processor::markdown_processor::MarkdownProcessor;
+use crate::file_processor::processor::{Document, DocumentProcessor, FileProcessor};
 
 /// A struct for processing PDF files.
-pub struct PdfProcessor;
+pub struct PdfProcessor {
+    markdown_processor: MarkdownProcessor,
+    ocr_config: OcrConfig,
+}
+
+pub struct OcrConfig {
+    pub use_ocr: bool,
+    pub tesseract_path: Option<String>
+}
 
 impl PdfProcessor {
-    /// Extracts text from a PDF file.
-    ///
-    /// # Arguments
-    ///
-    /// * `file_path` - The path to the PDF file.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing the extracted text as a `String` if successful,
-    /// or an `Error` if an error occurred during the extraction process.
-    pub fn extract_text<T: AsRef<std::path::Path>>(
-        file_path: T,
-        use_ocr: bool,
-        tesseract_path: Option<&str>,
-    ) -> Result<String, Error> {
-        if use_ocr {
-            extract_text_with_ocr(&file_path, tesseract_path)
-        } else {
-            pdf_extract::extract_text(file_path).map_err(|e| anyhow::anyhow!(e))
-        }
+    pub fn new(chunk_size: usize, overlap: usize, ocr_config: OcrConfig) -> Result<PdfProcessor, ChunkConfigError> {
+        let markdown_processor = MarkdownProcessor::new(chunk_size, overlap)?;
+        Ok(PdfProcessor {
+            markdown_processor,
+            ocr_config,
+        })
     }
 }
 
-fn get_images_from_pdf<T: AsRef<std::path::Path>>(
+impl FileProcessor for PdfProcessor {
+    fn process_file(&self, path: impl AsRef<Path>) -> anyhow::Result<Document> {
+        let content = if self.ocr_config.use_ocr {
+            let tesseract_path = self.ocr_config.tesseract_path.as_deref();
+            extract_text_with_ocr(&path, tesseract_path)?
+        } else {
+            pdf_extract::extract_text(path).map_err(|e| anyhow::anyhow!(e))?
+        };
+        
+        self.markdown_processor.process_document(&content)
+    }
+}
+
+fn get_images_from_pdf<T: AsRef<Path>>(
     file_path: &T,
 ) -> Result<Vec<DynamicImage>, Error> {
     let pdf = PDF::from_file(file_path)?;
@@ -48,7 +59,7 @@ fn extract_text_from_image(image: &DynamicImage, args: &Args) -> Result<String, 
     Ok(text)
 }
 
-fn extract_text_with_ocr<T: AsRef<std::path::Path>>(
+fn extract_text_with_ocr<T: AsRef<Path>>(
     file_path: &T,
     tesseract_path: Option<&str>,
 ) -> Result<String, Error> {
@@ -57,7 +68,7 @@ fn extract_text_with_ocr<T: AsRef<std::path::Path>>(
         .iter()
         .map(|image| extract_text_from_image(image, &Args::default().with_path(tesseract_path)))
         .collect();
-    Ok(texts.unwrap().join("\n"))
+    Ok(texts?.join("\n"))
 }
 
 #[cfg(test)]
@@ -70,18 +81,19 @@ mod tests {
     fn test_extract_text() {
         let temp_dir = TempDir::new("example").unwrap();
         let pdf_file = temp_dir.path().join("test.pdf");
+        let processor = PdfProcessor::new(128, 0, OcrConfig { use_ocr: false, tesseract_path: None }).unwrap();
 
         File::create(pdf_file).unwrap();
 
         let pdf_file = "../test_files/test.pdf";
-        let text = PdfProcessor::extract_text(pdf_file, false, None).unwrap();
-        assert_eq!(text.len(), 4271);
+        let text = processor.process_file(pdf_file).unwrap();
+        assert_eq!(text.chunks.len(), 4271);
     }
 
     #[test]
     fn test_extract_text_with_ocr() {
         let pdf_file = "../test_files/test.pdf";
-        let path = std::path::Path::new(pdf_file);
+        let path = Path::new(pdf_file);
 
         // Check if the path exists
         if !path.exists() {

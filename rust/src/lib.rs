@@ -73,9 +73,9 @@ pub mod tesseract;
 pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
-
-use anyhow::Result;
-use config::{ImageEmbedConfig, SplittingStrategy, TextEmbedConfig};
+use std::fmt::Display;
+use anyhow::{Error, Result};
+use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
     get_text_metadata,
@@ -84,12 +84,17 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::AudioDecoderModel;
 use itertools::Itertools;
 use rayon::prelude::*;
-use text_splitter::{ChunkConfig, TextSplitter};
 use text_loader::TextLoader;
 use tokio::sync::mpsc; // Add this at the top of your file
 
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
+use crate::file_processor::docx_processor::DocxProcessor;
+use crate::file_processor::html_processor::HtmlProcessor;
+use crate::file_processor::markdown_processor::MarkdownProcessor;
+use crate::file_processor::pdf_processor::{OcrConfig, PdfProcessor};
+use crate::file_processor::processor::{Document, FileProcessor, UrlProcessor};
+use crate::file_processor::txt_processor::TxtProcessor;
 
 pub enum Dtype {
     F16,
@@ -173,7 +178,7 @@ pub async fn embed_query(
 /// use embed_anything::embeddings::local::bert::BertEmbedder;
 ///
 /// let file_name = "path/to/file.pdf";
-/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None).unwrap()));
+/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None, None).unwrap()));
 /// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
 /// ```
 pub async fn embed_file<T: AsRef<std::path::Path>>(
@@ -220,25 +225,23 @@ pub async fn embed_webpage(
     // Callback function
     adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
-    let website_processor = file_processor::website_processor::WebsiteProcessor::new();
-    let webpage = website_processor.process_website(url.as_ref())?;
-
     let binding = TextEmbedConfig::default();
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
+    let website_processor = HtmlProcessor::new(chunk_size, (chunk_size as f32 * overlap_ratio) as usize);
+
     let batch_size = config.batch_size;
     let late_chunking = config.late_chunking;
-
-    let splitter = TextSplitter::new(ChunkConfig::new(chunk_size).with_overlap(chunk_size * overlap_ratio as usize)?);
-    let chunks: Vec<&str> = splitter.chunks(&webpage.content).collect();
+    let document = website_processor?.process_url(&url)?;
+    let chunks: Vec<&str> = document.chunks.iter().map(String::as_ref).collect();
 
     let encodings = embedder
         .embed(&chunks, batch_size, late_chunking)
         .await?;
 
     let mut metadata = HashMap::new();
-    metadata.insert("url".into(), webpage.url);
+    metadata.insert("url".into(), url);
     let embeddings = get_text_metadata(&Rc::new(encodings), &chunks, &Some(metadata))?;
 
     // Send embeddings to vector database
@@ -262,20 +265,15 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let batch_size = config.batch_size;
-    let splitting_strategy = config.splitting_strategy.clone();
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.clone();
     let late_chunking = config.late_chunking;
-    let text = TextLoader::extract_text(&file, use_ocr, tesseract_path.as_deref())?;
-    let textloader = TextLoader::new(chunk_size, overlap_ratio);
-    let chunks = textloader
-        .split_into_chunks(&text, splitting_strategy)
-        .unwrap_or_default();
+    let text = extract_document(&file, chunk_size, (chunk_size as f32 * overlap_ratio) as usize, OcrConfig { use_ocr, tesseract_path })?;
 
     let metadata = TextLoader::get_metadata(file).ok();
 
     // Convert Vec<String> to Vec<&str> for embedding
-    let chunk_refs: Vec<&str> = chunks.iter().map(|s| s.as_str()).collect();
+    let chunk_refs: Vec<&str> = text.chunks.iter().map(|s| s.as_str()).collect();
 
     if let Some(adapter) = adapter {
         let encodings = embedding_model
@@ -369,7 +367,7 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 ///
 /// async fn embed_images() {
 ///     let directory = PathBuf::from("/path/to/directory");
-///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None, None, None).unwrap());
 ///     let embeddings = embed_image_directory(directory, &embedder, None, None).await.unwrap();
 /// }
 /// ```
@@ -527,7 +525,7 @@ async fn process_images<E: EmbedImage>(
 ///
 /// async fn generate_embeddings() {
 ///     let directory = PathBuf::from("/path/to/directory");
-///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None).unwrap());
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("clip", "openai/clip-vit-base-patch16", None, None, None).unwrap());
 ///     let config = Some(&TextEmbedConfig::default());
 ///     let extensions = Some(vec!["txt".to_string(), "pdf".to_string()]);
 ///     let embeddings = embed_directory_stream(directory, &embedder, extensions, config, None).await.unwrap();
@@ -549,7 +547,7 @@ pub async fn embed_directory_stream(
     let buffer_size = config.buffer_size.unwrap_or(binding.buffer_size.unwrap());
     let batch_size = config.batch_size;
     let use_ocr = config.use_ocr.unwrap_or(false);
-    let tesseract_path = config.tesseract_path.as_deref();
+    let tesseract_path = config.tesseract_path.clone();
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
     let late_chunking = config.late_chunking;
     let mut file_parser = FileParser::new();
@@ -648,24 +646,16 @@ pub async fn embed_directory_stream(
         }
     });
 
-    let textloader = TextLoader::new(chunk_size, overlap_ratio);
-
     files.into_iter().for_each(|file| {
-        let text = match TextLoader::extract_text(&file, use_ocr, tesseract_path) {
+        let text = match extract_document(&file, chunk_size, (chunk_size as f32 * overlap_ratio) as usize, OcrConfig { use_ocr, tesseract_path: tesseract_path.clone() }) {
             Ok(text) => text,
             Err(_) => {
                 return;
             }
         };
         let metadata = TextLoader::get_metadata(file).unwrap();
-        let chunks = textloader
-            .split_into_chunks(&text, SplittingStrategy::Sentence)
-            .unwrap_or_else(|| vec![text.clone()])
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>();
 
-        for chunk in chunks {
+        for chunk in text.chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
                 eprintln!("Error sending chunk: {:?}", e);
             }
@@ -719,7 +709,7 @@ pub async fn embed_directory_stream(
 ///
 /// async fn generate_embeddings() {
 ///     let files = vec![PathBuf::from("test_files/test.txt"), PathBuf::from("test_files/test.pdf")];
-///     let embedder = Arc::new(Embedder::from_pretrained_hf("bert", "jinaai/jina-embeddings-v2-small-en", None).unwrap());
+///     let embedder = Arc::new(Embedder::from_pretrained_hf("bert", "jinaai/jina-embeddings-v2-small-en", None, None, None).unwrap());
 ///     let config = Some(&TextEmbedConfig::default());
 ///     let embeddings = embed_files_batch(files, &embedder, config, None).await.unwrap();
 /// }
@@ -738,7 +728,7 @@ pub async fn embed_files_batch(
     let batch_size = config.batch_size;
     let late_chunking = config.late_chunking;
     let use_ocr = config.use_ocr.unwrap_or(false);
-    let tesseract_path = config.tesseract_path.as_deref();
+    let tesseract_path = config.tesseract_path.clone();
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
 
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -834,24 +824,16 @@ pub async fn embed_files_batch(
         }
     });
 
-    let textloader = TextLoader::new(chunk_size, overlap_ratio);
-
     files.into_iter().for_each(|file| {
-        let text = match TextLoader::extract_text(&file, use_ocr, tesseract_path) {
+        let text = match extract_document(&file, chunk_size, (chunk_size as f32 * overlap_ratio) as usize, OcrConfig { use_ocr, tesseract_path: tesseract_path.clone() }) {
             Ok(text) => text,
             Err(_) => {
                 return;
             }
         };
         let metadata = TextLoader::get_metadata(file).unwrap();
-        let chunks = textloader
-            .split_into_chunks(&text, SplittingStrategy::Sentence)
-            .unwrap_or_else(|| vec![text.clone()])
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>();
 
-        for chunk in chunks {
+        for chunk in text.chunks {
             if let Err(e) = tx.send((chunk, Some(metadata.clone()))) {
                 eprintln!("Error sending chunk: {:?}", e);
             }
@@ -901,4 +883,65 @@ pub async fn process_chunks(
         })
         .collect::<Vec<_>>();
     Ok(Arc::new(embeddings))
+}
+
+fn extract_document(
+    file: impl AsRef<std::path::Path>,
+    chunk_size: usize,
+    overlap: usize,
+    ocr_config: OcrConfig,
+) -> Result<Document> {
+    if !file.as_ref().exists() {
+        return Err(FileLoadingError::FileNotFound(
+            file.as_ref().to_str().unwrap().to_string(),
+        )
+            .into());
+    }
+    let file_extension = file.as_ref().extension().unwrap();
+    match file_extension.to_str().unwrap() {
+        "pdf" => PdfProcessor::new(chunk_size, overlap, ocr_config)?.process_file(file),
+        "md" => MarkdownProcessor::new(chunk_size, overlap)?.process_file(file),
+        "txt" => TxtProcessor::new(chunk_size, overlap)?.process_file(file),
+        "docx" => DocxProcessor::new(chunk_size, overlap)?.process_file(file),
+        "html" => HtmlProcessor::new(chunk_size, overlap)?.process_file(file),
+        _ => Err(FileLoadingError::UnsupportedFileType(
+            file.as_ref()
+                .extension()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
+        )
+            .into()),
+    }
+}
+
+#[derive(Debug)]
+pub enum FileLoadingError {
+    FileNotFound(String),
+    UnsupportedFileType(String),
+}
+impl Display for FileLoadingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileLoadingError::FileNotFound(file) => write!(f, "File not found: {}", file),
+            FileLoadingError::UnsupportedFileType(file) => {
+                write!(f, "Unsupported file type: {}", file)
+            }
+        }
+    }
+}
+
+impl From<FileLoadingError> for Error {
+    fn from(error: FileLoadingError) -> Self {
+        match error {
+            FileLoadingError::FileNotFound(file) => {
+                Error::msg(format!("File not found: {:?}", file))
+            }
+            FileLoadingError::UnsupportedFileType(file) => Error::msg(format!(
+                "Unsupported file type: {:?}. Currently supported file types are: pdf, md, txt, docx",
+                file
+            )),
+        }
+    }
 }

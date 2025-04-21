@@ -984,6 +984,7 @@ dependencies = [
  "tokenizers",
  "tokio",
  "tracing",
+ "tracing-subscriber",
  "url",
  "walkdir",
 ]
@@ -2413,7 +2414,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dd3e978a3e6c89d951afc457219773398da38449602162939a8cb0d351d2941"
 dependencies = [
- "pulldown-cmark",
+ "pulldown-cmark 0.7.2",
 ]
 
 [[package]]
@@ -3218,6 +3219,17 @@ checksum = "ca36dea94d187597e104a5c8e4b07576a8a45aa5db48a65e12940d3eb7461f55"
 dependencies = [
  "bitflags 1.3.2",
  "getopts",
+ "memchr",
+ "unicase",
+]
+
+[[package]]
+name = "pulldown-cmark"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e8bbe1a966bd2f362681a44f6edce3c2310ac21e4d5067a6e7ec396297a6ea0"
+dependencies = [
+ "bitflags 2.9.0",
  "memchr",
  "unicase",
 ]
@@ -4552,9 +4564,9 @@ dependencies = [
 
 [[package]]
 name = "text-splitter"
-version = "0.24.2"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2ccb8f11d97bd7f4fe5478338937de98fbb104837afe33f28c16bf3dc2be562"
+checksum = "d8130aecc3b7938ce3ea387d7615eca92bd4f702a5adc0548ba930a9c039dda4"
 dependencies = [
  "ahash",
  "auto_enums",
@@ -4562,7 +4574,8 @@ dependencies = [
  "icu_provider",
  "icu_segmenter",
  "itertools 0.14.0",
- "regex",
+ "memchr",
+ "pulldown-cmark 0.13.0",
  "strum 0.27.1",
  "thiserror 2.0.12",
  "tokenizers",

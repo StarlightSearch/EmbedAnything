@@ -629,6 +629,15 @@ impl Embedder {
         crate::embed_file(file_path, self, config, adapter).await
     }
 
+    pub async fn embed_webpage(
+        &self,
+        url: String,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_webpage(url, self, config, adapter).await
+    }
+
     /// Embeds a list of files.
     ///
     /// # Arguments
@@ -681,15 +690,6 @@ impl Embedder {
         config: Option<&TextEmbedConfig>,
     ) -> Result<Vec<EmbedData>> {
         crate::embed_query(query, self, config).await
-    }
-
-    pub async fn embed_webpage(
-        &self,
-        url: String,
-        config: Option<&TextEmbedConfig>,
-        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
-    ) -> Result<Option<Vec<EmbedData>>> {
-        crate::embed_webpage(url, self, config, adapter).await
     }
 }
 

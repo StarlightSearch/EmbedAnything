@@ -1,24 +1,28 @@
-use anyhow::Error;
+use std::path::Path;
 use docx_parser::MarkdownDocument;
+use text_splitter::ChunkConfigError;
+use crate::file_processor::markdown_processor::MarkdownProcessor;
+use crate::file_processor::processor::{Document, DocumentProcessor, FileProcessor};
+
 /// A struct for processing PDF files.
-pub struct DocxProcessor;
+pub struct DocxProcessor {
+    markdown_processor: MarkdownProcessor,
+}
 
 impl DocxProcessor {
-    /// Extracts text from a PDF file.
-    ///
-    /// # Arguments
-    ///
-    /// * `file_path` - The path to the PDF file.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing the extracted text as a `String` if successful,
-    /// or an `Error` if an error occurred during the extraction process.
-    pub fn extract_text<T: AsRef<std::path::Path>>(file_path: &T) -> Result<String, Error> {
-        let docs = MarkdownDocument::from_file(file_path);
+    pub fn new(chunk_size: usize, overlap: usize) -> Result<DocxProcessor, ChunkConfigError> {
+        let markdown_processor = MarkdownProcessor::new(chunk_size, overlap)?;
+        Ok(DocxProcessor {
+            markdown_processor,
+        })
+    }
+}
+
+impl FileProcessor for DocxProcessor {
+    fn process_file(&self, path: impl AsRef<Path>) -> anyhow::Result<Document> {
+        let docs = MarkdownDocument::from_file(path);
         let markdown = docs.to_markdown(false);
-        let content = markdown_to_text::convert(&markdown);
-        Ok(content)
+        self.markdown_processor.process_document(&markdown)
     }
 }
 
@@ -27,14 +31,11 @@ mod tests {
     use super::*;
     #[test]
     fn test_extract_text() {
-        // let temp_dir = TempDir::new("example").unwrap();
-        // let txt_file = temp_dir.path().join("test.txt");
-
-        // File::create(&txt_file).unwrap();
         let txt_file = "../test_files/test.docx";
+        let processor = DocxProcessor::new(128, 0).unwrap();
 
-        let text = DocxProcessor::extract_text(&txt_file).unwrap();
-        assert!(text.contains("This is a docx file test"));
+        let text = processor.process_file(&txt_file).unwrap();
+        assert!(text.chunks.contains(&"This is a docx file test".to_string()));
     }
 
     // Returns an error if the file path is invalid.
@@ -42,6 +43,7 @@ mod tests {
     #[should_panic(expected = "Error processing file: IO(Os { code: 2, kind: NotFound, message: \"No such file or directory\" })")]
     fn test_extract_text_invalid_file_path() {
         let invalid_file_path = "this_file_definitely_does_not_exist.docx";
-        DocxProcessor::extract_text(&invalid_file_path).unwrap();
+        let processor = DocxProcessor::new(128, 0).unwrap();
+        processor.process_file(&invalid_file_path).unwrap();
     }
 }
