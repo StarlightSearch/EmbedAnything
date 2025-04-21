@@ -44,7 +44,7 @@ async fn main() {
     )
     .unwrap();
 
-    let query = ["Rust for web scraping"];
+    let query = ["Installation on Windows"];
     let query_embedding: Vec<f32> = embed_query(&query, &embedder, Some(&embed_config))
         .await
         .unwrap()
@@ -74,8 +74,8 @@ async fn main() {
         .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
         .unwrap()
         .0;
-    let data = &embed_data[max_similarity_index].metadata;
+    let data = &embed_data[max_similarity_index].text.as_ref().unwrap();
 
-    println!("{:?}", data);
+    println!("{}", data);
     println!("Time taken: {:?}", start_time.elapsed());
 }

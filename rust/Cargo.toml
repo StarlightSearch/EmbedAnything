@@ -70,7 +70,6 @@ pdf-extract = {workspace = true}
 docx-parser = "0.1.1"
 docx-rust = "=0.1.8"
 ndarray = "0.16.1"
-ndarray-linalg = {version = "0.17.0"}
 pdf2image = "0.1.2"
 strum = {workspace = true}
 strum_macros = {workspace = true}
