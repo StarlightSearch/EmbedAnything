@@ -22,7 +22,8 @@ async fn main() {
         .unwrap()
         .unwrap();
 
-    let query_emb_data = embed_query(&["Photo of a monkey"], &model, None)
+    
+    let query_emb_data = embed_query(&["Photo of a monkey?"], &model, None)
         .await
         .unwrap();
     let n_vectors = out.len();
@@ -68,18 +69,18 @@ async fn main() {
         .unwrap()
         .to_vec1::<f32>()
         .unwrap();
+
     let mut indices: Vec<usize> = (0..similarities.len()).collect();
     indices.sort_by(|a, b| similarities[*b].partial_cmp(&similarities[*a]).unwrap());
+    
+    println!("Descending order of similarity: ");
+    for idx in &indices {
+        println!("{}", image_paths[*idx]);
+    }
 
-    let top_3_indices = indices[0..3].to_vec();
-    let top_3_image_paths = top_3_indices
-        .iter()
-        .map(|i| image_paths[*i].clone())
-        .collect::<Vec<String>>();
+    println!("\n ----------- \n");
 
-    let similar_image = top_3_image_paths[0].clone();
-
-    println!("{:?}", similar_image);
+    println!("Most similar image: {}", image_paths[indices[0]]);
 
     let elapsed_time = now.elapsed();
     println!("Elapsed Time: {}", elapsed_time.as_secs_f32());

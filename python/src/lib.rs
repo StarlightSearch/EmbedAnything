@@ -668,7 +668,6 @@ pub fn embed_directory(
     let embedding_model = &embedder.inner;
 
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
-    println!("Runtime created");
     let adapter = match adapter {
         Some(adapter) => {
             let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -725,8 +724,6 @@ pub fn embed_image_directory(
     let embedding_model = &embedder.inner;
     let config = config.map(|c| &c.inner);
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
-    println!("Runtime created");
-
     let adapter = match adapter {
         Some(adapter) => {
             let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
