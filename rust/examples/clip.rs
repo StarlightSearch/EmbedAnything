@@ -11,7 +11,7 @@ async fn main() {
 
     let model = EmbedderBuilder::new()
         .model_architecture("clip")
-        .model_id(Some("openai/clip-vit-base-patch32"))
+        .model_id(Some("google/siglip-base-patch16-224"))
         .revision(None)
         .token(None)
         .from_pretrained_hf()
@@ -78,7 +78,7 @@ async fn main() {
         println!("{}", image_paths[*idx]);
     }
 
-    println!("\n ----------- \n");
+    println!("-----------");
 
     println!("Most similar image: {}", image_paths[indices[0]]);
 
