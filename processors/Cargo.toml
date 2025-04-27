@@ -10,62 +10,27 @@ readme = "README.md"
 
 [dependencies]
 # HTTP Client
-reqwest = { version = "0.12.2", default-features = false, features = ["json", "blocking"] }
-
-# Image Processing
-image = "0.25.1"
+reqwest = { version = "0.12.15", default-features = false, features = ["json", "blocking"] }
 
 # Natural Language Processing
-tokenizers = {version="0.21.1", default-features = false, features=["http"]}
-text-splitter = {version= "0.25.1", features=["tokenizers", "markdown"]}
-
-# Hugging Face Libraries
-hf-hub = { version = "0.4.1", default-features = false }
-candle-nn = { workspace = true }
-candle-transformers = { workspace = true }
-candle-core = { workspace = true }
+text-splitter = { version= "0.25.1", features=["tokenizers", "markdown"] }
 
 # Error Handling
-anyhow = "1.0.89"
+anyhow = "1.0.98"
 
 # HTML processing
 htmd = "0.1.6"
 
-# Audio Processing
-symphonia = { version = "0.5.3", optional = true, features = ["all"] }
-
+# PDF processing
 pdf-extract = {workspace = true}
 docx-parser = "0.1.1"
-pdf2image = "0.1.2"
-# Optional Dependency
-intel-mkl-src = { version = "0.8.1", optional = true }
-accelerate-src = { version = "0.3.2", optional = true }
-candle-flash-attn = { workspace = true, optional = true }
-thiserror = "2.0.11"
-tempfile = "3.4.0"
+pdf2image = "0.1.3"
+image = "0.25.6"
+thiserror = "2.0.12"
+tempfile = "3.19.1"
 
 [dev-dependencies]
 tempdir = "0.3.7"
 
-[target.'cfg(not(target_os = "macos"))'.dependencies]
-ort = {version = "=2.0.0-rc.9", features = ["load-dynamic"], optional = true}
-
-[target.'cfg(target_os = "macos")'.dependencies]
-ort = {version = "=2.0.0-rc.9", optional = true}
-
-
 [features]
 default = []
-mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]
-accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
-cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda", "ort/cuda"]
-cudnn = ["candle-core/cudnn"]
-flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]
-metal = ["candle-core/metal", "candle-nn/metal"]
-audio = ["dep:symphonia"]
-ort = ["dep:ort"]
-rustls-tls = [
-    "reqwest/rustls-tls",
-    "hf-hub/rustls-tls",
-    "tokenizers/rustls-tls"
-]

@@ -127,9 +127,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.97"
+version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
+checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 dependencies = [
  "backtrace",
 ]
@@ -941,9 +941,7 @@ dependencies = [
  "strum 0.27.1",
  "symphonia",
  "tempdir",
- "tempfile",
  "text-splitter",
- "thiserror 2.0.12",
  "tokenizers",
  "tokio",
  "tracing",
@@ -3058,27 +3056,17 @@ dependencies = [
 name = "processors"
 version = "0.5.5"
 dependencies = [
- "accelerate-src",
  "anyhow",
- "candle-core",
- "candle-flash-attn",
- "candle-nn",
- "candle-transformers",
  "docx-parser",
- "hf-hub",
  "htmd",
  "image",
- "intel-mkl-src",
- "ort",
  "pdf-extract",
  "pdf2image",
  "reqwest",
- "symphonia",
  "tempdir",
  "tempfile",
  "text-splitter",
  "thiserror 2.0.12",
- "tokenizers",
 ]
 
 [[package]]
