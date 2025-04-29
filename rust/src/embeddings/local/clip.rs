@@ -212,7 +212,7 @@ impl ClipEmbedder {
 }
 
 impl EmbedImage for ClipEmbedder {
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
+    async fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
     ) -> anyhow::Result<Vec<EmbedData>> {
@@ -256,7 +256,7 @@ impl EmbedImage for ClipEmbedder {
         Ok(embeddings)
     }
 
-    fn embed_image<T: AsRef<std::path::Path>>(
+    async fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
@@ -327,11 +327,12 @@ mod tests {
     }
 
     // Tests the embed_image_batch method.
-    #[test]
-    fn test_embed_image_batch() {
+    #[tokio::test]
+    async fn test_embed_image_batch() {
         let clip_embedder = ClipEmbedder::default();
         let embeddings = clip_embedder
             .embed_image_batch(&["../test_files/clip/cat1.jpg", "../test_files/clip/cat2.jpeg"])
+            .await
             .unwrap();
         assert_eq!(embeddings.len(), 2);
     }

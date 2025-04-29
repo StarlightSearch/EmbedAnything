@@ -1,8 +1,11 @@
+use std::{collections::HashMap, fs};
+
+use base64::Engine;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::embeddings::embed::EmbeddingResult;
+use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 
 /// Represents the response from the Cohere embedding API.
 #[derive(Deserialize, Debug, Default)]
@@ -54,6 +57,16 @@ impl CohereEmbedder {
         }
     }
 
+    fn load_image<T: AsRef<std::path::Path>>(&self, path: T) -> Result<String, anyhow::Error> {
+        let img = image::ImageReader::open(path)?.decode()?;
+        let img = img.to_rgb8();
+        let mut buffer = Vec::new();
+        img.write_to(&mut std::io::Cursor::new(&mut buffer), image::ImageFormat::Png)?;
+        let engine = base64::engine::general_purpose::STANDARD;
+        let img = engine.encode(buffer);
+        Ok(format!("data:image/png;base64,{}", img))
+    }
+
     pub async fn embed(&self, text_batch: &[&str]) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let response = self
             .client
@@ -78,6 +91,65 @@ impl CohereEmbedder {
             .collect::<Vec<_>>();
 
         Ok(encodings)
+    }
+
+    pub async fn embed_image(
+        &self,
+        image_path: impl AsRef<std::path::Path>,
+        metadata: Option<HashMap<String, String>>,
+    ) -> Result<EmbedData, anyhow::Error> {
+        let img = self.load_image(image_path)?;
+
+        let response = self
+            .client
+            .post(&self.url)
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&json!({
+                "images": vec![img],
+                "model": self.model,
+                "input_type": "image"
+            }))
+            .send()
+            .await?;
+
+        let data = response.json::<CohereEmbedResponse>().await?;
+        let encodings = data.embeddings;
+        let embedding = encodings
+            .iter()
+            .map(|embedding| EmbeddingResult::DenseVector(embedding.clone()))
+            .collect::<Vec<_>>();
+        Ok(EmbedData::new(embedding[0].clone(), None, metadata))
+    }
+
+    pub async fn embed_image_batch(&self, image_paths: &[impl AsRef<std::path::Path>]) -> Result<Vec<EmbedData>, anyhow::Error> {
+        let mut embeddings = Vec::new();
+        for image_path in image_paths {
+            let embedding = self.embed_image(image_path, None).await?;
+            embeddings.push(embedding);
+        }
+        let embeddings = embeddings
+        .iter()
+        .zip(image_paths)
+        .map(|(data, path)| {
+            let mut metadata = HashMap::new();
+            metadata.insert(
+                "file_name".to_string(),
+                fs::canonicalize(path)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            );
+
+            let mut data = data.clone();
+            data.text = Some(path.as_ref().to_str().unwrap().to_string());
+            data.metadata = Some(metadata);
+            data
+        })
+        .collect::<Vec<_>>();
+        Ok(embeddings)
     }
 }
 

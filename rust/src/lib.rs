@@ -189,7 +189,7 @@ pub async fn embed_file<T: AsRef<std::path::Path>>(
 ) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
-        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder)?])),
+        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder).await?])),
     }
 }
 
@@ -292,7 +292,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     }
 }
 
-fn emb_image<T: AsRef<std::path::Path>>(
+async fn emb_image<T: AsRef<std::path::Path>>(
     image_path: T,
     embedding_model: &VisionEmbedder,
 ) -> Result<EmbedData> {
@@ -302,7 +302,8 @@ fn emb_image<T: AsRef<std::path::Path>>(
         fs::canonicalize(&image_path)?.to_str().unwrap().to_string(),
     );
     let embedding = embedding_model
-        .embed_image(&image_path, Some(metadata))?;
+        .embed_image(&image_path, Some(metadata))
+        .await?;
 
     Ok(embedding)
 }
@@ -373,9 +374,9 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
 ///
-pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
+pub async fn embed_image_directory(
     directory: PathBuf,
-    embedding_model: &Arc<T>,
+    embedding_model: &Arc<Embedder>,
     config: Option<&ImageEmbedConfig>,
     adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
@@ -490,11 +491,11 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     }
 }
 
-async fn process_images<E: EmbedImage>(
+async fn process_images<E: EmbedImage + Send + Sync + 'static>(
     image_buffer: &[String],
     embedder: Arc<E>,
 ) -> Result<Arc<Vec<EmbedData>>> {
-    let embeddings = embedder.embed_image_batch(image_buffer)?;
+    let embeddings = embedder.embed_image_batch(image_buffer).await?;
     Ok(Arc::new(embeddings))
 }
 
