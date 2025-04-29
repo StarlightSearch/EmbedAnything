@@ -283,14 +283,15 @@ impl ClipEmbedder {
 }
 
 impl EmbedImage for ClipEmbedder {
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
+    async fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+        batch_size: Option<usize>,
     ) -> anyhow::Result<Vec<EmbedData>> {
         let config = clip::ClipConfig::vit_base_patch32();
 
         let mut encodings = Vec::new();
-        for image_batch in image_paths.chunks(32) {
+        for image_batch in image_paths.chunks(batch_size.unwrap_or(32)) {
             let images = self
                 .load_images(image_batch, config.vision_config.image_size)
                 .unwrap();
@@ -325,7 +326,7 @@ impl EmbedImage for ClipEmbedder {
         Ok(embeddings)
     }
 
-    fn embed_image<T: AsRef<std::path::Path>>(
+    async fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
@@ -345,6 +346,14 @@ impl EmbedImage for ClipEmbedder {
             None,
             metadata.clone(),
         ))
+    }
+
+    async fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        _pdf_path: T,
+        _batch_size: Option<usize>,
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        Err(anyhow::anyhow!("PDF embedding not supported for Clip model"))
     }
 }
 
@@ -398,14 +407,12 @@ mod tests {
     }
 
     // Tests the embed_image_batch method.
-    #[test]
-    fn test_embed_image_batch() {
+    #[tokio::test]
+    async fn test_embed_image_batch() {
         let clip_embedder = ClipEmbedder::default();
         let embeddings = clip_embedder
-            .embed_image_batch(&[
-                "../test_files/clip/cat1.jpg",
-                "../test_files/clip/cat2.jpeg",
-            ])
+            .embed_image_batch(&["../test_files/clip/cat1.jpg", "../test_files/clip/cat2.jpeg"], Some(2))
+            .await
             .unwrap();
         assert_eq!(embeddings.len(), 2);
     }
