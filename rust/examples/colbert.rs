@@ -1,5 +1,5 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
-use embed_anything::embeddings::embed::Embedder;
+use embed_anything::embeddings::embed::{Embedder, EmbeddingResult};
 use embed_anything::{embed_file, embed_query};
 use rayon::prelude::*;
 use std::sync::Arc;
@@ -12,8 +12,8 @@ async fn main() -> Result<(), anyhow::Error> {
             "colbert",
             // Some(ONNXModel::ModernBERTBase),
             None,
-            Some("answerdotai/answerai-colbert-small-v1"),
             None,
+            Some("answerdotai/answerai-colbert-small-v1"),
             None,
             Some("onnx/model_fp16.onnx"),
         )
@@ -55,9 +55,17 @@ async fn main() -> Result<(), anyhow::Error> {
         "मैं पिज्जा पसंद करता हूं", // Hindi for "I like pizza"
     ];
 
-    let _doc_embeddings = embed_query(&sentences, &model, Some(&config))
+    let doc_embeddings = embed_query(&sentences, &model, Some(&config))
         .await
         .unwrap();
+
+    // print out the embeddings for the first sentence
+    let EmbeddingResult::MultiVector(vec) = doc_embeddings[0].embedding.clone() else {
+        panic!("output should be a multi vector");
+    };
+    for (i, v) in vec.iter().enumerate() {
+        println!("{}: {:?}", i, v);
+    }
 
     Ok(())
 }
