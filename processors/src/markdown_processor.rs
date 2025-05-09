@@ -1,5 +1,5 @@
 use text_splitter::{Characters, ChunkConfig, ChunkConfigError, MarkdownSplitter};
-use crate::file_processor::processor::{Document, DocumentProcessor};
+use crate::processor::{Document, DocumentProcessor};
 
 /// A struct that provides functionality to process Markdown files.
 pub struct MarkdownProcessor {

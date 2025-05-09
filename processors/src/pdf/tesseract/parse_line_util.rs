@@ -1,4 +1,4 @@
-use crate::tesseract::error::{TessError, TessResult};
+use crate::pdf::tesseract::error::{TessError, TessResult};
 
 pub(crate) fn parse_next<T: std::str::FromStr>(
     iter: &mut std::str::SplitWhitespace<'_>,

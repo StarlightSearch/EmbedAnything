@@ -1,8 +1,8 @@
-use crate::file_processor::markdown_processor::MarkdownProcessor;
 use anyhow::Result;
 use htmd::{HtmlToMarkdown, HtmlToMarkdownBuilder};
 use text_splitter::ChunkConfigError;
-use crate::file_processor::processor::{Document, DocumentProcessor};
+use crate::markdown_processor::MarkdownProcessor;
+use crate::processor::{Document, DocumentProcessor};
 
 pub struct HtmlDocument {
     pub content: String,
@@ -36,7 +36,7 @@ impl DocumentProcessor for HtmlProcessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::file_processor::processor::FileProcessor;
+    use crate::processor::FileProcessor;
     use super::*;
 
     #[test]

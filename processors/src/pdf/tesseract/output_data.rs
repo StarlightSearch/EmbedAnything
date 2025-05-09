@@ -76,26 +76,24 @@ impl FromLine for Data {
 pub fn image_to_data(
     image: &Image,
     args: &Args,
-) -> crate::tesseract::error::TessResult<DataOutput> {
-    let mut command = crate::tesseract::command::create_tesseract_command(image, args)?;
+) -> error::TessResult<DataOutput> {
+    let mut command = command::create_tesseract_command(image, args)?;
     command.arg("tsv");
 
-    let output = crate::tesseract::command::run_tesseract_command(&mut command)?;
+    let output = command::run_tesseract_command(&mut command)?;
 
     let data = string_to_data(&output)?;
 
     Ok(DataOutput { output, data })
 }
 
-fn string_to_data(output: &str) -> crate::tesseract::error::TessResult<Vec<Data>> {
+fn string_to_data(output: &str) -> error::TessResult<Vec<Data>> {
     output.lines().skip(1).map(Data::parse).collect::<_>()
 }
 
 #[cfg(test)]
 mod tests {
-    use output_data::Data;
-
-    use crate::tesseract::{output_data::string_to_data, *};
+    use crate::pdf::tesseract::output_data::{string_to_data, Data};
 
     #[test]
     fn test_string_to_data() {
@@ -127,7 +125,7 @@ mod tests {
         Test");
         assert_eq!(
             result,
-            Err(crate::tesseract::error::TessError::ParseError(
+            Err(crate::pdf::tesseract::error::TessError::ParseError(
                 "invalid line 'Test'".into()
             ))
         )

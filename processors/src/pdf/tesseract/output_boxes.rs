@@ -1,7 +1,7 @@
-use crate::tesseract::error::TessResult;
-use crate::tesseract::input::{Args, Image};
-use crate::tesseract::parse_line_util::{parse_next, FromLine};
 use core::fmt;
+use crate::pdf::tesseract::error::TessResult;
+use crate::pdf::tesseract::input::{Args, Image};
+use crate::pdf::tesseract::parse_line_util::{parse_next, FromLine};
 
 #[derive(Debug, PartialEq)]
 pub struct BoxOutput {
@@ -51,10 +51,10 @@ impl FromLine for Box {
 }
 
 pub fn image_to_boxes(image: &Image, args: &Args) -> TessResult<BoxOutput> {
-    let mut command = crate::tesseract::command::create_tesseract_command(image, args)?;
+    let mut command = crate::pdf::tesseract::command::create_tesseract_command(image, args)?;
     command.arg("makebox");
 
-    let output = crate::tesseract::command::run_tesseract_command(&mut command)?;
+    let output = crate::pdf::tesseract::command::run_tesseract_command(&mut command)?;
     let boxes = string_to_boxes(&output)?;
     Ok(BoxOutput { output, boxes })
 }
@@ -65,7 +65,7 @@ fn string_to_boxes(output: &str) -> TessResult<Vec<Box>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::tesseract::{
+    use crate::pdf::tesseract::{
         error::TessError,
         output_boxes::{string_to_boxes, Box},
     };

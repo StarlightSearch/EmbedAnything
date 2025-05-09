@@ -69,7 +69,6 @@ pub mod file_processor;
 pub mod models;
 #[cfg(feature = "ort")]
 pub mod reranker;
-pub mod tesseract;
 pub mod text_loader;
 
 use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
@@ -89,12 +88,12 @@ use tokio::sync::mpsc; // Add this at the top of your file
 
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
-use crate::file_processor::docx_processor::DocxProcessor;
-use crate::file_processor::html_processor::HtmlProcessor;
-use crate::file_processor::markdown_processor::MarkdownProcessor;
-use crate::file_processor::pdf_processor::{OcrConfig, PdfProcessor};
-use crate::file_processor::processor::{Document, FileProcessor, UrlProcessor};
-use crate::file_processor::txt_processor::TxtProcessor;
+use processors::docx_processor::DocxProcessor;
+use processors::html_processor::HtmlProcessor;
+use processors::markdown_processor::MarkdownProcessor;
+use processors::pdf::pdf_processor::{OcrConfig, PdfProcessor};
+use processors::processor::{Document, FileProcessor, UrlProcessor};
+use processors::txt_processor::TxtProcessor;
 
 pub enum Dtype {
     F16,
