@@ -82,6 +82,7 @@ impl EmbedData {
 pub enum WhichModel {
     OpenAI,
     Cohere,
+    CohereVision,
     Bert,
     SparseBert,
     ColBert,
@@ -266,6 +267,18 @@ impl EmbeddingModel {
             WhichModel::Cohere => {
                 let model_id = model_id.unwrap_or("embed-english-v3.0");
                 let model = Embedder::Text(TextEmbedder::Cohere(
+                    embed_anything::embeddings::cloud::cohere::CohereEmbedder::new(
+                        model_id.to_string(),
+                        api_key,
+                    ),
+                ));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::CohereVision => {
+                let model_id = model_id.unwrap_or("embed-v4.0");
+                let model = Embedder::Vision(VisionEmbedder::Cohere(
                     embed_anything::embeddings::cloud::cohere::CohereEmbedder::new(
                         model_id.to_string(),
                         api_key,
@@ -668,7 +681,6 @@ pub fn embed_directory(
     let embedding_model = &embedder.inner;
 
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
-    println!("Runtime created");
     let adapter = match adapter {
         Some(adapter) => {
             let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -725,8 +737,6 @@ pub fn embed_image_directory(
     let embedding_model = &embedder.inner;
     let config = config.map(|c| &c.inner);
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
-    println!("Runtime created");
-
     let adapter = match adapter {
         Some(adapter) => {
             let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {

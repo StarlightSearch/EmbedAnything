@@ -930,6 +930,7 @@ dependencies = [
  "intel-mkl-src",
  "itertools 0.14.0",
  "lazy_static",
+ "log",
  "markdown_to_text",
  "ndarray",
  "ort",

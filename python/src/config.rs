@@ -73,15 +73,20 @@ pub struct ImageEmbedConfig {
 #[pymethods]
 impl ImageEmbedConfig {
     #[new]
-    #[pyo3(signature = (buffer_size=None))]
-    pub fn new(buffer_size: Option<usize>) -> Self {
+    #[pyo3(signature = (buffer_size=None, batch_size=None))]
+    pub fn new(buffer_size: Option<usize>, batch_size: Option<usize>) -> Self {
         Self {
-            inner: embed_anything::config::ImageEmbedConfig::new(buffer_size),
+            inner: embed_anything::config::ImageEmbedConfig::new(buffer_size, batch_size),
         }
     }
 
     #[getter]
     pub fn buffer_size(&self) -> Option<usize> {
         self.inner.buffer_size
+    }
+
+    #[getter]
+    pub fn batch_size(&self) -> Option<usize> {
+        self.inner.batch_size
     }
 }

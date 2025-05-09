@@ -72,8 +72,6 @@ pub mod reranker;
 pub mod tesseract;
 pub mod text_loader;
 
-use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
-use std::fmt::Display;
 use anyhow::{Error, Result};
 use config::{ImageEmbedConfig, TextEmbedConfig};
 use embeddings::{
@@ -84,17 +82,19 @@ use file_loader::FileParser;
 use file_processor::audio::audio_processor::AudioDecoderModel;
 use itertools::Itertools;
 use rayon::prelude::*;
+use std::fmt::Display;
+use std::{collections::HashMap, fs, path::PathBuf, rc::Rc, sync::Arc};
 use text_loader::TextLoader;
 use tokio::sync::mpsc; // Add this at the top of your file
 
-#[cfg(feature = "audio")]
-use embeddings::embed_audio;
 use crate::file_processor::docx_processor::DocxProcessor;
 use crate::file_processor::html_processor::HtmlProcessor;
 use crate::file_processor::markdown_processor::MarkdownProcessor;
 use crate::file_processor::pdf_processor::{OcrConfig, PdfProcessor};
 use crate::file_processor::processor::{Document, FileProcessor, UrlProcessor};
 use crate::file_processor::txt_processor::TxtProcessor;
+#[cfg(feature = "audio")]
+use embeddings::embed_audio;
 
 pub enum Dtype {
     F16,
@@ -189,7 +189,16 @@ pub async fn embed_file<T: AsRef<std::path::Path>>(
 ) -> Result<Option<Vec<EmbedData>>> {
     match embedder {
         Embedder::Text(embedder) => emb_text(file_name, embedder, config, adapter).await,
-        Embedder::Vision(embedder) => Ok(Some(vec![emb_image(file_name, embedder)?])),
+        Embedder::Vision(embedder) => match file_name.as_ref().extension() {
+            Some(extension) if extension == "pdf" => {
+                let binding = TextEmbedConfig::default();
+                let config = config.unwrap_or(&binding);
+                let batch_size = config.batch_size.unwrap_or(32);
+                println!("Embedding PDF file: {:?}", file_name.as_ref().to_str().unwrap());
+                Ok(Some(embedder.embed_pdf(file_name, Some(batch_size)).await?))
+            }
+            _ => Ok(Some(vec![emb_image(file_name, embedder).await?])),
+        },
     }
 }
 
@@ -229,16 +238,15 @@ pub async fn embed_webpage(
     let config = config.unwrap_or(&binding);
     let chunk_size = config.chunk_size.unwrap_or(1000);
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
-    let website_processor = HtmlProcessor::new(chunk_size, (chunk_size as f32 * overlap_ratio) as usize);
+    let website_processor =
+        HtmlProcessor::new(chunk_size, (chunk_size as f32 * overlap_ratio) as usize);
 
     let batch_size = config.batch_size;
     let late_chunking = config.late_chunking;
     let document = website_processor?.process_url(&url)?;
     let chunks: Vec<&str> = document.chunks.iter().map(String::as_ref).collect();
 
-    let encodings = embedder
-        .embed(&chunks, batch_size, late_chunking)
-        .await?;
+    let encodings = embedder.embed(&chunks, batch_size, late_chunking).await?;
 
     let mut metadata = HashMap::new();
     metadata.insert("url".into(), url);
@@ -268,7 +276,15 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.clone();
     let late_chunking = config.late_chunking;
-    let text = extract_document(&file, chunk_size, (chunk_size as f32 * overlap_ratio) as usize, OcrConfig { use_ocr, tesseract_path })?;
+    let text = extract_document(
+        &file,
+        chunk_size,
+        (chunk_size as f32 * overlap_ratio) as usize,
+        OcrConfig {
+            use_ocr,
+            tesseract_path,
+        },
+    )?;
 
     let metadata = TextLoader::get_metadata(file).ok();
 
@@ -292,7 +308,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     }
 }
 
-fn emb_image<T: AsRef<std::path::Path>>(
+async fn emb_image<T: AsRef<std::path::Path>>(
     image_path: T,
     embedding_model: &VisionEmbedder,
 ) -> Result<EmbedData> {
@@ -302,7 +318,8 @@ fn emb_image<T: AsRef<std::path::Path>>(
         fs::canonicalize(&image_path)?.to_str().unwrap().to_string(),
     );
     let embedding = embedding_model
-        .embed_image(&image_path, Some(metadata))?;
+        .embed_image(&image_path, Some(metadata))
+        .await?;
 
     Ok(embedding)
 }
@@ -373,9 +390,9 @@ pub async fn emb_audio<T: AsRef<std::path::Path>>(
 /// ```
 /// This will output the embeddings of the images in the specified directory using the specified embedding model.
 ///
-pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
+pub async fn embed_image_directory(
     directory: PathBuf,
-    embedding_model: &Arc<T>,
+    embedding_model: &Arc<Embedder>,
     config: Option<&ImageEmbedConfig>,
     adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
 ) -> Result<Option<Vec<EmbedData>>> {
@@ -387,17 +404,20 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
         .buffer_size
         .unwrap_or(100);
 
+    let batch_size = config
+        .unwrap_or(&ImageEmbedConfig::default())
+        .batch_size
+        .unwrap_or(32);
+
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
 
     let embedder = embedding_model.clone();
 
     let pb = indicatif::ProgressBar::new(file_parser.files.len() as u64);
-    pb.set_style(
-        indicatif::ProgressStyle::with_template(
-            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )?,
-    );
+    pb.set_style(indicatif::ProgressStyle::with_template(
+        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+    )?);
 
     let processing_task = tokio::spawn({
         async move {
@@ -410,7 +430,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
 
                 if image_buffer.len() == buffer_size {
                     // Ensure embedder is mutable and not wrapped in Arc
-                    match process_images(&image_buffer, embedder.clone()).await {
+                    match process_images(&image_buffer, embedder.clone(), Some(batch_size)).await {
                         Ok(embeddings) => {
                             let files = embeddings
                                 .iter()
@@ -438,7 +458,7 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
 
             // Process any remaining images
             if !image_buffer.is_empty() {
-                match process_images(&image_buffer, embedder).await {
+                match process_images(&image_buffer, embedder, Some(batch_size)).await {
                     Ok(embeddings) => {
                         let files = embeddings
                             .iter()
@@ -490,11 +510,12 @@ pub async fn embed_image_directory<T: EmbedImage + Send + Sync + 'static>(
     }
 }
 
-async fn process_images<E: EmbedImage>(
+async fn process_images<E: EmbedImage + Send + Sync + 'static>(
     image_buffer: &[String],
     embedder: Arc<E>,
+    batch_size: Option<usize>,
 ) -> Result<Arc<Vec<EmbedData>>> {
-    let embeddings = embedder.embed_image_batch(image_buffer)?;
+    let embeddings = embedder.embed_image_batch(image_buffer, batch_size).await?;
     Ok(Arc::new(embeddings))
 }
 
@@ -559,11 +580,9 @@ pub async fn embed_directory_stream(
     let embedder = embedder.clone();
     let files: Vec<_> = files.into_iter().collect();
     let pb = indicatif::ProgressBar::new(files.len() as u64);
-    pb.set_style(
-        indicatif::ProgressStyle::with_template(
-            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )?,
-    );
+    pb.set_style(indicatif::ProgressStyle::with_template(
+        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+    )?);
 
     let processing_task = tokio::spawn({
         async move {
@@ -647,7 +666,15 @@ pub async fn embed_directory_stream(
     });
 
     files.into_iter().for_each(|file| {
-        let text = match extract_document(&file, chunk_size, (chunk_size as f32 * overlap_ratio) as usize, OcrConfig { use_ocr, tesseract_path: tesseract_path.clone() }) {
+        let text = match extract_document(
+            &file,
+            chunk_size,
+            (chunk_size as f32 * overlap_ratio) as usize,
+            OcrConfig {
+                use_ocr,
+                tesseract_path: tesseract_path.clone(),
+            },
+        ) {
             Ok(text) => text,
             Err(_) => {
                 return;
@@ -737,11 +764,9 @@ pub async fn embed_files_batch(
     let embedder = embedder.clone();
     let files: Vec<_> = files.into_iter().collect();
     let pb = indicatif::ProgressBar::new(files.len() as u64);
-    pb.set_style(
-        indicatif::ProgressStyle::with_template(
-            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
-        )?,
-    );
+    pb.set_style(indicatif::ProgressStyle::with_template(
+        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+    )?);
 
     let processing_task = tokio::spawn({
         async move {
@@ -825,7 +850,15 @@ pub async fn embed_files_batch(
     });
 
     files.into_iter().for_each(|file| {
-        let text = match extract_document(&file, chunk_size, (chunk_size as f32 * overlap_ratio) as usize, OcrConfig { use_ocr, tesseract_path: tesseract_path.clone() }) {
+        let text = match extract_document(
+            &file,
+            chunk_size,
+            (chunk_size as f32 * overlap_ratio) as usize,
+            OcrConfig {
+                use_ocr,
+                tesseract_path: tesseract_path.clone(),
+            },
+        ) {
             Ok(text) => text,
             Err(_) => {
                 return;
@@ -892,10 +925,9 @@ fn extract_document(
     ocr_config: OcrConfig,
 ) -> Result<Document> {
     if !file.as_ref().exists() {
-        return Err(FileLoadingError::FileNotFound(
-            file.as_ref().to_str().unwrap().to_string(),
-        )
-            .into());
+        return Err(
+            FileLoadingError::FileNotFound(file.as_ref().to_str().unwrap().to_string()).into(),
+        );
     }
     let file_extension = file.as_ref().extension().unwrap();
     match file_extension.to_str().unwrap() {
@@ -912,7 +944,7 @@ fn extract_document(
                 .unwrap()
                 .to_string(),
         )
-            .into()),
+        .into()),
     }
 }
 

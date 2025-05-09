@@ -68,11 +68,11 @@ mod tests {
         assert!(metadata.contains_key("file_name"));
     }
 
-    #[test]
-    fn test_image_embedder() {
+    #[tokio::test]
+    async fn test_image_embedder() {
         let file_path = PathBuf::from("../test_files/clip/cat1.jpg");
         let embedder = ClipEmbedder::default();
-        let emb_data = embedder.embed_image(file_path, None).unwrap();
+        let emb_data = embedder.embed_image(file_path, None).await.unwrap();
         assert_eq!(emb_data.embedding.to_dense().unwrap().len(), 512);
     }
 }

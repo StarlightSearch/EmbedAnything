@@ -239,7 +239,7 @@ def embed_html(
         file_name: The path to the HTML file to embed.
         embedder: The embedding model to use.
         origin: The origin of the HTML file.
-        config: The configuration for the embedding model.  
+        config: The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings.
 
     Returns:
@@ -258,7 +258,6 @@ def embed_html(
     )
     ```
     """
-
 
 def embed_audio_file(
     file_path: str,
@@ -554,7 +553,11 @@ class EmbeddingModel:
     """
 
     def from_pretrained_hf(
-        model: WhichModel, model_id: str, revision: str | None = None, token: str | None = None, dtype: Dtype | None = None
+        model: WhichModel,
+        model_id: str,
+        revision: str | None = None,
+        token: str | None = None,
+        dtype: Dtype | None = None,
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
@@ -680,6 +683,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_files_batch(
         self,
         files: list[str],
@@ -697,6 +701,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_audio_file(
         self,
         audio_file: str,
@@ -714,6 +719,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_query(
         self,
         query: list[str],
@@ -747,6 +753,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_directory(
         self,
         directory: str,
@@ -764,6 +771,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_directory_stream(
         self,
         directory: str,
@@ -781,6 +789,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_webpage(
         self,
         url: str,
@@ -798,6 +807,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
 class AudioDecoderModel:
     """
     Represents an audio decoder model.
@@ -835,6 +845,7 @@ class AudioDecoderModel:
 class WhichModel(Enum):
     OpenAI = ("OpenAI",)
     Cohere = ("Cohere",)
+    CohereVision = ("CohereVision",)
     Bert = ("Bert",)
     Jina = ("Jina",)
     Clip = ("Clip",)
@@ -842,6 +853,7 @@ class WhichModel(Enum):
     ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
     ModernBert = ("ModernBert",)
+
 class ONNXModel(Enum):
     """
     Enum representing various ONNX models.
