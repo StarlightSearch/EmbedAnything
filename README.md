@@ -24,7 +24,7 @@
     <br />
     <a href="https://embed-anything.com/references/">Python docs »</a>
     <br />
-    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/">Rust docs »</a>
+    <a href="https://docs.rs/embed_anything/latest/embed_anything/">Rust docs »</a>
     <br />
     <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
     ·
@@ -328,7 +328,7 @@ model = EmbeddingModel.from_pretrained_onnx(
   WhichModel.Jina, hf_model_id = "jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
 )
 ```
-To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
+To see all the ONNX models supported with model_name, see [here](/docs/guides/onnx_models.md)
 
 ## ⁉️FAQ
 
