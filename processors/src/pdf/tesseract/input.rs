@@ -4,8 +4,7 @@ use std::{
     fmt::{self},
     path::{Path, PathBuf},
 };
-
-use crate::tesseract::error::{TessError, TessResult};
+use crate::pdf::tesseract::error::{TessError, TessResult};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Args {

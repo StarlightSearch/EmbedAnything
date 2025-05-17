@@ -1,8 +1,8 @@
 use std::path::Path;
 use docx_parser::MarkdownDocument;
 use text_splitter::ChunkConfigError;
-use crate::file_processor::markdown_processor::MarkdownProcessor;
-use crate::file_processor::processor::{Document, DocumentProcessor, FileProcessor};
+use crate::markdown_processor::MarkdownProcessor;
+use crate::processor::{Document, DocumentProcessor, FileProcessor};
 
 /// A struct for processing PDF files.
 pub struct DocxProcessor {
