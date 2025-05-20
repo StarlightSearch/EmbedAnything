@@ -8,6 +8,7 @@ title: Easy Observability to our agentic framework; LUMO
 ---
 
 In the rapidly evolving landscape of AI agents, particularly those employing Large Language Models (LLMs), observability and tracing have emerged as fundamental requirements rather than optional features. As agents become more complex and handle increasingly critical tasks, understanding their inner workings, debugging issues, and establishing accountability becomes paramount.
+<!-- more -->
 
 ## Understanding Observability in AI Agents
 
