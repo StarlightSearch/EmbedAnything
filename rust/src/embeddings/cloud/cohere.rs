@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs};
 
 use base64::Engine;
 use reqwest::Client;
@@ -208,9 +208,7 @@ impl CohereEmbedder {
             let encodings = data.embeddings;
             let embedding = encodings
                 .float
-                .iter()
-                .map(|embedding| embedding.clone())
-                .collect::<Vec<_>>();
+                .iter().cloned();
             embeddings.extend(embedding);
         }
         let embeddings = embeddings

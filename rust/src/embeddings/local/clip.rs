@@ -340,7 +340,7 @@ impl EmbedImage for ClipEmbedder {
         let encoding = &self
             .model
             .get_image_features(&image)?;
-        let normalized_encoding = &div_l2_norm(&encoding)?.to_vec2::<f32>()?[0];
+        let normalized_encoding = &div_l2_norm(encoding)?.to_vec2::<f32>()?[0];
         Ok(EmbedData::new(
             EmbeddingResult::DenseVector(normalized_encoding.to_vec()),
             None,
