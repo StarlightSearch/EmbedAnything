@@ -541,11 +541,14 @@ class ImageEmbedConfig:
 
     Attributes:
         buffer_size: The buffer size for the Image Embedding model. Default is 100.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
-    def __init__(self, buffer_size: int | None = None):
+    def __init__(self, buffer_size: int | None = None, batch_size: int | None = None):
         self.buffer_size = buffer_size
+        self.batch_size = batch_size
     buffer_size: int | None
+    batch_size: int | None
 
 class EmbeddingModel:
     """
@@ -589,9 +592,12 @@ class EmbeddingModel:
         Attributes:
             model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
             model_id (str): The ID of the model to use.
+
                 - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
                 - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
+                - For CohereVision, see available models at https://docs.cohere.com/docs/cohere-embed
             api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
+
                 - For OpenAI: OPENAI_API_KEY
                 - For Cohere: CO_API_KEY
 
