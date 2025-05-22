@@ -182,7 +182,7 @@ if __name__ == "__main__":
 
     # Embed a PDF file
     data = embed_anything.embed_file(
-        "/Users/jinhonglin/Desktop/sample.pdf",
+        "path/to/your/file.pdf",
         embedder=model,
         adapter=milvus_adapter,
     )

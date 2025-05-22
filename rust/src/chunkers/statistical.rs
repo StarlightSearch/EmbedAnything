@@ -348,8 +348,8 @@ impl StatisticalChunker {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
-
-    use crate::{extract_document, file_processor::pdf_processor::OcrConfig};
+    use processors::pdf::pdf_processor::OcrConfig;
+    use crate::extract_document;
 
     use super::*;
 

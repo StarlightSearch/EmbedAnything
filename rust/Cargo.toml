@@ -9,6 +9,9 @@ authors.workspace = true
 readme = "../README.md"
 
 [dependencies]
+# File preprocessing
+processors = { path = "../processors" }
+
 # Data Serialization
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.112"
@@ -25,15 +28,11 @@ regex = "1.10.3"
 # Parallelism
 rayon = "1.8.1"
 
-# Image Processing
-image = "0.25.1"
-
 # Natural Language Processing
 tokenizers = {version="0.21.1", default-features = false, features=["http"]}
 text-splitter = {version= "0.25.1", features=["tokenizers", "markdown"]}
 
 tracing = "0.1.41"
-tracing-subscriber = "0.3.19"
 
 # Hugging Face Libraries
 hf-hub = { version = "0.4.1", default-features = false }
@@ -47,32 +46,20 @@ anyhow = "1.0.89"
 # Asynchronous Programming
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 
-
-# Markdown Processing
-markdown_to_text = "1.0.0"
-
-# HTML processing
-htmd = "0.1.6"
-
-# Text Processing
-url = "2.5.0"
 chrono = "0.4.38"
 rand = "0.9.0"
 itertools = "0.14.0"
+
+# Image processing
+image = "0.25.6"
 
 # Audio Processing
 symphonia = { version = "0.5.3", optional = true, features = ["all"] }
 byteorder = "1.5.0"
 
-futures = "0.3.30"
-
-pdf-extract = {workspace = true}
-docx-parser = "0.1.1"
-docx-rust = "=0.1.8"
 ndarray = "0.16.1"
 pdf2image = "0.1.2"
 strum = {workspace = true}
-strum_macros = {workspace = true}
 base64 = "0.22.1"
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
@@ -81,8 +68,6 @@ indicatif = "0.17.8"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
-thiserror = "2.0.11"
-tempfile = "3.4.0"
 
 # Logging
 log = "0.4"

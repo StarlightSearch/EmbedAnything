@@ -1,11 +1,11 @@
 use std::path::Path;
-use crate::tesseract::input::{Args, Image};
 use anyhow::Error;
 use image::DynamicImage;
 use pdf2image::{Pages, RenderOptionsBuilder, PDF};
 use text_splitter::ChunkConfigError;
-use crate::file_processor::markdown_processor::MarkdownProcessor;
-use crate::file_processor::processor::{Document, DocumentProcessor, FileProcessor};
+use crate::markdown_processor::MarkdownProcessor;
+use crate::pdf::tesseract::input::{Args, Image};
+use crate::processor::{Document, DocumentProcessor, FileProcessor};
 
 /// A struct for processing PDF files.
 pub struct PdfProcessor {
@@ -54,8 +54,8 @@ fn get_images_from_pdf<T: AsRef<Path>>(
 }
 
 fn extract_text_from_image(image: &DynamicImage, args: &Args) -> Result<String, Error> {
-    let image = Image::from_dynamic_image(image).unwrap();
-    let text = crate::tesseract::command::image_to_string(&image, args).unwrap();
+    let image = Image::from_dynamic_image(image)?;
+    let text = crate::pdf::tesseract::command::image_to_string(&image, args)?;
     Ok(text)
 }
 

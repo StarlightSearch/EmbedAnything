@@ -1,6 +1,6 @@
 use text_splitter::ChunkConfigError;
-use crate::file_processor::markdown_processor::MarkdownProcessor;
-use crate::file_processor::processor::{Document, DocumentProcessor};
+use crate::markdown_processor::MarkdownProcessor;
+use crate::processor::{Document, DocumentProcessor};
 
 /// A struct for processing PDF files.
 pub struct TxtProcessor {
