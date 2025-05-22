@@ -239,7 +239,7 @@ def embed_html(
         file_name: The path to the HTML file to embed.
         embedder: The embedding model to use.
         origin: The origin of the HTML file.
-        config: The configuration for the embedding model.  
+        config: The configuration for the embedding model.
         adapter: The adapter to use for storing the embeddings.
 
     Returns:
@@ -258,7 +258,6 @@ def embed_html(
     )
     ```
     """
-
 
 def embed_audio_file(
     file_path: str,
@@ -542,11 +541,14 @@ class ImageEmbedConfig:
 
     Attributes:
         buffer_size: The buffer size for the Image Embedding model. Default is 100.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
-    def __init__(self, buffer_size: int | None = None):
+    def __init__(self, buffer_size: int | None = None, batch_size: int | None = None):
         self.buffer_size = buffer_size
+        self.batch_size = batch_size
     buffer_size: int | None
+    batch_size: int | None
 
 class EmbeddingModel:
     """
@@ -554,7 +556,11 @@ class EmbeddingModel:
     """
 
     def from_pretrained_hf(
-        model: WhichModel, model_id: str, revision: str | None = None, token: str | None = None, dtype: Dtype | None = None
+        model: WhichModel,
+        model_id: str,
+        revision: str | None = None,
+        token: str | None = None,
+        dtype: Dtype | None = None,
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
@@ -586,9 +592,12 @@ class EmbeddingModel:
         Attributes:
             model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
             model_id (str): The ID of the model to use.
+
                 - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
                 - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
+                - For CohereVision, see available models at https://docs.cohere.com/docs/cohere-embed
             api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
+
                 - For OpenAI: OPENAI_API_KEY
                 - For Cohere: CO_API_KEY
 
@@ -680,6 +689,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_files_batch(
         self,
         files: list[str],
@@ -697,6 +707,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_audio_file(
         self,
         audio_file: str,
@@ -714,6 +725,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_query(
         self,
         query: list[str],
@@ -747,6 +759,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_directory(
         self,
         directory: str,
@@ -764,6 +777,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_directory_stream(
         self,
         directory: str,
@@ -781,6 +795,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_webpage(
         self,
         url: str,
@@ -798,6 +813,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
 class AudioDecoderModel:
     """
     Represents an audio decoder model.
@@ -835,6 +851,7 @@ class AudioDecoderModel:
 class WhichModel(Enum):
     OpenAI = ("OpenAI",)
     Cohere = ("Cohere",)
+    CohereVision = ("CohereVision",)
     Bert = ("Bert",)
     Jina = ("Jina",)
     Clip = ("Clip",)
@@ -842,6 +859,7 @@ class WhichModel(Enum):
     ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
     ModernBert = ("ModernBert",)
+
 class ONNXModel(Enum):
     """
     Enum representing various ONNX models.

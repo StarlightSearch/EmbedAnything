@@ -20,7 +20,7 @@ impl MarkdownProcessor {
 impl DocumentProcessor for MarkdownProcessor {
 
     fn process_document(&self, content: &str) -> anyhow::Result<Document> {
-        let chunks = self.splitter.chunks(content).into_iter()
+        let chunks = self.splitter.chunks(content)
             .map(|x| x.to_string())
             .collect();
         Ok(Document {

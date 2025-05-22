@@ -927,6 +927,7 @@ dependencies = [
  "intel-mkl-src",
  "itertools 0.14.0",
  "lazy_static",
+ "log",
  "ndarray",
  "ort",
  "pdf2image",

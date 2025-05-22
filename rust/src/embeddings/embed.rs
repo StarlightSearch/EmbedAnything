@@ -15,6 +15,7 @@ use anyhow::anyhow;
 use anyhow::Result;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::future::Future;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -263,6 +264,7 @@ impl TextEmbedder {
 pub enum VisionEmbedder {
     Clip(ClipEmbedder),
     ColPali(Box<dyn ColPaliEmbed + Send + Sync>),
+    Cohere(CohereEmbedder)
 }
 
 impl From<VisionEmbedder> for Embedder {
@@ -305,6 +307,20 @@ impl VisionEmbedder {
             "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
                 model_id, revision,
             )?))),
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+
+    pub fn from_pretrained_cloud(
+        model: &str,
+        model_id: &str,
+        api_key: Option<String>,
+    ) -> Result<Self, anyhow::Error> {
+        match model {
+            "cohere-vision" | "CohereVision" => Ok(Self::Cohere(CohereEmbedder::new(
+                model_id.to_string(),
+                api_key,
+            ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -495,7 +511,7 @@ impl Embedder {
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             Self::Text(embedder) => embedder.embed(text_batch, batch_size, late_chunking).await,
-            Self::Vision(embedder) => embedder.embed(text_batch, batch_size),
+            Self::Vision(embedder) => embedder.embed(text_batch, batch_size).await,
         }
     }
 
@@ -564,6 +580,9 @@ impl Embedder {
             "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
                 model, model_id, api_key,
             )?)),
+            "cohere-vision" | "CohereVision" => Ok(Self::Vision(VisionEmbedder::from_pretrained_cloud(
+                model, model_id, api_key,
+            )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -619,6 +638,7 @@ impl Embedder {
     ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_image_directory(directory, self, config, adapter).await
     }
+    
 
     pub async fn embed_file<T: AsRef<std::path::Path>>(
         &self,
@@ -694,24 +714,36 @@ impl Embedder {
 }
 
 impl EmbedImage for Embedder {
-    fn embed_image<T: AsRef<std::path::Path>>(
+    async fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
         match self {
-            Self::Vision(embedder) => embedder.embed_image(image_path, metadata),
+            Self::Vision(embedder) => embedder.embed_image(image_path, metadata).await,
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
         }
     }
 
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
+    async fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+        batch_size: Option<usize>,
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
-            Self::Vision(embedder) => embedder.embed_image_batch(image_paths),
+            Self::Vision(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
+        }
+    }
+
+    async fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        pdf_path: T,
+        batch_size: Option<usize>,
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        match self {
+            Self::Vision(embedder) => embedder.embed_pdf(pdf_path, batch_size).await,
+            _ => Err(anyhow::anyhow!("Model not supported for PDF embedding")),
         }
     }
 }
@@ -721,11 +753,11 @@ pub trait TextEmbed {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
+    ) -> impl Future<Output = anyhow::Result<Vec<EmbeddingResult>>>;
 }
 
 impl TextEmbed for VisionEmbedder {
-    fn embed(
+    async fn embed(
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
@@ -733,6 +765,7 @@ impl TextEmbed for VisionEmbedder {
         match self {
             Self::Clip(embedder) => embedder.embed(text_batch, batch_size),
             Self::ColPali(embedder) => embedder.embed(text_batch, batch_size),
+            Self::Cohere(embedder) => embedder.embed(text_batch).await,
         }
     }
 }
@@ -742,39 +775,63 @@ pub trait EmbedImage {
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData>;
+    ) -> impl Future<Output = anyhow::Result<EmbedData>>;
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>>;
+        batch_size: Option<usize>,
+    ) -> impl Future<Output = anyhow::Result<Vec<EmbedData>>>;
+    fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        pdf_path: T,
+        batch_size: Option<usize>,
+    ) -> impl Future<Output = anyhow::Result<Vec<EmbedData>>>;
 }
 
 impl EmbedImage for VisionEmbedder {
-    fn embed_image<T: AsRef<std::path::Path>>(
+    async fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
         match self {
-            Self::Clip(embedder) => embedder.embed_image(image_path, metadata),
+            Self::Clip(embedder) => embedder.embed_image(image_path, metadata).await,
             Self::ColPali(embedder) => {
                 embedder.embed_image(PathBuf::from(image_path.as_ref()), metadata)
+            }
+            Self::Cohere(embedder) => {
+                embedder.embed_image(image_path, metadata).await
             }
         }
     }
 
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
+    async fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+        batch_size: Option<usize>,
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
-            Self::Clip(embedder) => embedder.embed_image_batch(image_paths),
+            Self::Clip(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
             Self::ColPali(embedder) => embedder.embed_image_batch(
                 &image_paths
                     .iter()
                     .map(|p| PathBuf::from(p.as_ref()))
                     .collect::<Vec<_>>(),
             ),
+            Self::Cohere(embedder) => {
+                embedder.embed_image_batch(image_paths, batch_size).await
+            }
+        }
+    }
+
+    async fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        pdf_path: T,
+        batch_size: Option<usize>,
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        match self {
+            Self::Cohere(embedder) => embedder.embed_pdf(pdf_path, batch_size).await,
+            _ => Err(anyhow::anyhow!("Model not supported for PDF embedding")),
         }
     }
 }

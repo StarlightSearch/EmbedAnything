@@ -145,18 +145,23 @@ pub enum SplittingStrategy {
 #[derive(Clone)]
 pub struct ImageEmbedConfig {
     pub buffer_size: Option<usize>, // Required for adapter. Default is 100.
+    pub batch_size: Option<usize>,
 }
 
 impl Default for ImageEmbedConfig {
     fn default() -> Self {
         Self {
             buffer_size: Some(100),
+            batch_size: Some(32),
         }
     }
 }
 
 impl ImageEmbedConfig {
-    pub fn new(buffer_size: Option<usize>) -> Self {
-        Self { buffer_size }
+    pub fn new(buffer_size: Option<usize>, batch_size: Option<usize>) -> Self {
+        Self {
+            buffer_size,
+            batch_size,
+        }
     }
 }
