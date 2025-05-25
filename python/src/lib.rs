@@ -1,7 +1,14 @@
 pub mod config;
 pub mod models;
 use embed_anything::embeddings::embed::{TextEmbedder, VisionEmbedder};
-use embed_anything::{self, config::TextEmbedConfig, emb_audio, embeddings::embed::{Embedder, EmbeddingResult}, file_processor::audio::audio_processor, FileLoadingError};
+use embed_anything::{
+    self,
+    config::TextEmbedConfig,
+    emb_audio,
+    embeddings::embed::{Embedder, EmbeddingResult},
+    file_processor::audio::audio_processor,
+    FileLoadingError,
+};
 use models::colbert::ColbertModel;
 use models::colpali::ColpaliModel;
 use models::reranker::{DocumentRank, Dtype, Reranker, RerankerResult};
@@ -84,6 +91,7 @@ pub enum WhichModel {
     Cohere,
     CohereVision,
     Bert,
+    Model2Vec,
     SparseBert,
     ColBert,
     Clip,
@@ -221,8 +229,22 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::jina::JinaEmbedder::new(
                         model_id, revision, token,
                     )
-                    .unwrap(),
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::Model2Vec => {
+                let model_id = model_id.unwrap_or("minishlab/potion-base-8M");
+                let model = Embedder::Text(TextEmbedder::Model2Vec(
+                    embed_anything::embeddings::local::model2vec::Model2VecEmbedder::new(
+                        model_id,
+                        token,
+                        None,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })

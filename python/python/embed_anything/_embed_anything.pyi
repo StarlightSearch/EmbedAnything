@@ -853,6 +853,7 @@ class WhichModel(Enum):
     Cohere = ("Cohere",)
     CohereVision = ("CohereVision",)
     Bert = ("Bert",)
+    Model2Vec = ("Model2Vec",)
     Jina = ("Jina",)
     Clip = ("Clip",)
     Colpali = ("Colpali",)

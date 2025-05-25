@@ -68,6 +68,7 @@ indicatif = "0.17.8"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
+model2vec-rs = "0.1.0"
 
 # Logging
 log = "0.4"
