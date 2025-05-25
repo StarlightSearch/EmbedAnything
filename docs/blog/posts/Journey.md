@@ -2,7 +2,6 @@
 draft: false 
 date: 2024-12-15
 authors: 
- - akshay
  - sonam
 slug: embed-anything
 title: The path ahead of EmbedAnything
