@@ -88,22 +88,7 @@ impl CohereEmbedder {
     }
 
     pub async fn embed(&self, text_batch: &[&str]) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
-        // let response = self
-        //     .client
-        //     .post(&self.url)
-        //     .header("Accept", "application/json")
-        //     .header("Content-Type", "application/json")
-        //     .header("Authorization", format!("Bearer {}", self.api_key))
-        //     .json(&json!({
-        //         "texts": text_batch,
-        //         "model": self.model,
-        //         "input_type": "search_document",
-        //         "embedding_types": ["float"]
-        //     }))
-        //     .send()
-        //     .await?;
 
-        // println!("🔍 Response: {:?}", response.text().await?);
         let response = self
             .client
             .post(&self.url)
