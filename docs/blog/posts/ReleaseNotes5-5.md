@@ -1,10 +1,9 @@
-
 ---
 draft: false 
 date: 2025-05-25
 authors: 
  - sonam
-slug: cohere, weaviate, jina
+slug: release-notes-56
 title: Release Notes 5.6
 ---
 
