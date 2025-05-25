@@ -2,7 +2,6 @@
 draft: false 
 date: 2025-04-01
 authors: 
- - akshay
  - sonam
 slug: embed-anything
 title: PyCon Germany
