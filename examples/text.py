@@ -13,7 +13,7 @@ model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
 def embed_directory_example():
     # Configure the embedding process
     config = TextEmbedConfig(
-        chunk_size=1000, batch_size=32, buffer_size=64, splitting_strategy="sentence"
+        chunk_size=1000, batch_size=32, buffer_size=64, splitting_strategy="sentence", pdf_backend="lopdf"
     )
 
     # Start timing
@@ -73,7 +73,7 @@ def embed_file_example():
 # Example 4: Embed files in a batch
 def embed_files_batch_example():
     
-    config = TextEmbedConfig(chunk_size = 1000, batch_size = 32, buffer_size = 64)
+    config = TextEmbedConfig(chunk_size = 1000, batch_size = 32, buffer_size = 64, pdf_backend="mupdf")
 
     data = model.embed_files_batch(["test_files/bank.txt", "test_files/test.pdf"])
 

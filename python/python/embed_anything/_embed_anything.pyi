@@ -502,6 +502,7 @@ class TextEmbedConfig:
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
         use_ocr: A flag indicating whether to use OCR for the Text Embedding model. Default is False.
         tesseract_path: The path to the Tesseract OCR executable. Default is None and uses the system path.
+        pdf_backend: The backend to use for PDF text extraction. Options are `mupdf` and `lopdf`. Default is `lopdf`.
     """
 
     def __init__(
@@ -515,6 +516,7 @@ class TextEmbedConfig:
         semantic_encoder: EmbeddingModel | None = None,
         use_ocr: bool | None = False,
         tesseract_path: str | None = None,
+        pdf_backend: str | None = "lopdf",
     ):
         self.chunk_size = chunk_size
         self.overlap_ratio = overlap_ratio
@@ -525,6 +527,7 @@ class TextEmbedConfig:
         self.semantic_encoder = semantic_encoder
         self.use_ocr = use_ocr
         self.tesseract_path = tesseract_path
+        self.pdf_backend = pdf_backend
     chunk_size: int | None
     overlap_ratio: float | None
     batch_size: int | None
@@ -534,6 +537,7 @@ class TextEmbedConfig:
     semantic_encoder: EmbeddingModel | None
     use_ocr: bool | None
     tesseract_path: str | None
+    pdf_backend: str | None
 
 class ImageEmbedConfig:
     """

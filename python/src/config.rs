@@ -1,6 +1,7 @@
 use crate::EmbeddingModel;
 use embed_anything::config::SplittingStrategy;
 use pyo3::prelude::*;
+use processors::pdf::pdf_processor::PdfBackend;
 
 #[pyclass]
 #[derive(Default)]
@@ -12,7 +13,7 @@ pub struct TextEmbedConfig {
 #[pymethods]
 impl TextEmbedConfig {
     #[new]
-    #[pyo3(signature = (chunk_size=None, batch_size=None, late_chunking=None, buffer_size=None, overlap_ratio=None, splitting_strategy=None, semantic_encoder=None, use_ocr=None, tesseract_path=None))]
+    #[pyo3(signature = (chunk_size=None, batch_size=None, late_chunking=None, buffer_size=None, overlap_ratio=None, splitting_strategy=None, semantic_encoder=None, use_ocr=None, tesseract_path=None, pdf_backend=None))]
     pub fn new(
         chunk_size: Option<usize>,
         batch_size: Option<usize>,
@@ -23,7 +24,19 @@ impl TextEmbedConfig {
         semantic_encoder: Option<&EmbeddingModel>,
         use_ocr: Option<bool>,
         tesseract_path: Option<&str>,
+        pdf_backend: Option<&str>,
     ) -> Self {
+        let pdf_backend = match pdf_backend {
+            Some(backend) => {
+                match backend {
+                    "mupdf" => PdfBackend::MuPdf,
+                    "lopdf" => PdfBackend::LoPdf,
+                    _ => panic!("Unknown PDF backend provided!"),
+                }
+            }
+            None => PdfBackend::LoPdf,
+        };
+
         let strategy = match splitting_strategy {
             Some(strategy) => {
                 match strategy {
@@ -49,7 +62,8 @@ impl TextEmbedConfig {
                 .with_buffer_size(buffer_size.unwrap_or(100))
                 .with_splitting_strategy(strategy)
                 .with_late_chunking(late_chunking.unwrap_or(false))
-                .with_ocr(use_ocr.unwrap_or(false), tesseract_path),
+                .with_ocr(use_ocr.unwrap_or(false), tesseract_path)
+                .with_pdf_backend(pdf_backend),
         }
     }
 

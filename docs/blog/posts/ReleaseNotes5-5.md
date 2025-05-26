@@ -11,7 +11,7 @@ Super Excited to share the latest development in our library, which essentially 
 
 <!-- more -->
 
-## Support for late chunking.
+## Late Chunking
 
 The new 0.5.6 version adds Late Chunking to EmbedAnything, a technique introduced by Jina AI and Weaviate. 
 Here's how we've implemented Late Chunking in EA:
@@ -46,7 +46,7 @@ data: list[EmbedData] = model.embed_file("test_files/attention.pdf", config=conf
 ```
 
 
-## 𝘊𝘰𝘩𝘦𝘳𝘦 𝘌𝘮𝘣𝘦𝘥 4:
+## Cohere Embed 4:
 
 🧊 Single embedding per document, even for multimodal inputs
 📚 Handles up to 128K tokens – perfect for long-form business documents
@@ -77,11 +77,7 @@ model = embed_anything.EmbeddingModel.from_pretrained_hf(
 
 ## Processor Crate:
 
-This crate contains various "processors" that accept files/folders/bytes and produced a chunked, metadata-rich document description. This is especially helpful for retrieval-augmented generation!
-
-
-
-
+This crate contains various "processors" that accepts files and produces a chunked, metadata-rich document description. This is especially helpful for retrieval-augmented generation! This also supports PDF text extraction via two different backends at the moment: MuPDF and LoPDF. You can choose between the two by either passing `pdf_backend` as `mupdf` or `lopdf` in  `TextEmbedConfig` 
 
 We have also received some additional cool feature requests on GitHub, which we would like to implement. If you want to help out please check out EmbedAnything on GitHub. We would love to have a contribution. 🚀
 
