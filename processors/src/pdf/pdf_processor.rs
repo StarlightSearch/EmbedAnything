@@ -47,42 +47,7 @@ impl FileProcessor for PdfProcessor {
             let tesseract_path = self.ocr_config.tesseract_path.as_deref();
             extract_text_with_ocr(&path, tesseract_path)?
         } else {
-            match self.backend {
-                PdfBackend::MuPdf => {
-                    let mut page_texts = Vec::new();
-                    {
-                        let document = mupdf::document::Document::open(path.as_ref())?;
-                        let pages = document.pages()?;
-
-                        for (page_number, page_result) in pages.enumerate() {
-                            let page = page_result?;
-                            let text_page =
-                                page.to_text_page(mupdf::text_page::TextPageOptions::empty())?;
-
-                            let mut page_text = String::new();
-                            for block in text_page.blocks() {
-                                for line in block.lines() {
-                                    let chars: String =
-                                        line.chars().map(|c| c.char().unwrap_or(' ')).collect();
-                                    page_text.push_str(&chars);
-                                    page_text.push('\n');
-                                }
-                                page_text.push('\n');
-                            }
-
-                            page_texts.push((page_number, page_text));
-                        }
-                    }
-                    page_texts
-                        .into_iter()
-                        .map(|(_, text)| text)
-                        .collect::<Vec<String>>()
-                        .join("\n")
-                }
-                PdfBackend::LoPdf => {
-                    pdf_extract::extract_text(path.as_ref()).map_err(|e| anyhow::anyhow!(e))?
-                }
-            }
+            pdf_extract::extract_text(path.as_ref()).map_err(|e| anyhow::anyhow!(e))?
         };
 
         self.markdown_processor.process_document(&content)
