@@ -9,6 +9,7 @@ use super::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder};
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::{JinaEmbed, JinaEmbedder};
+use super::local::model2vec::Model2VecEmbedder;
 use super::local::modernbert::ModernBertEmbedder;
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
@@ -103,6 +104,7 @@ pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
     Jina(Box<dyn JinaEmbed + Send + Sync>),
+    Model2Vec(Box<Model2VecEmbedder>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
     ColBert(Box<dyn BertEmbed + Send + Sync>),
     ModernBert(Box<dyn BertEmbed + Send + Sync>),
@@ -118,6 +120,7 @@ impl TextEmbedder {
         match self {
             TextEmbedder::OpenAI(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Cohere(embedder) => embedder.embed(text_batch).await,
+            TextEmbedder::Model2Vec(embedder) => embedder.embed(text_batch, batch_size),
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::ColBert(embedder) => {
@@ -153,6 +156,10 @@ impl TextEmbedder {
                     token,
                 )?)))
             }
+            "model2vec" | "Model2Vec" | "MODEL2VEC" => Ok(Self::Model2Vec(Box::new(Model2VecEmbedder::new(
+                model_id, token, None,
+            )?))),
+
             "modernbert" | "ModernBert" | "MODERNBERT" => {
                 Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
                     model_id.to_string(),
@@ -264,7 +271,7 @@ impl TextEmbedder {
 pub enum VisionEmbedder {
     Clip(ClipEmbedder),
     ColPali(Box<dyn ColPaliEmbed + Send + Sync>),
-    Cohere(CohereEmbedder)
+    Cohere(CohereEmbedder),
 }
 
 impl From<VisionEmbedder> for Embedder {
@@ -546,6 +553,13 @@ impl Embedder {
                 token,
                 dtype,
             )?)),
+            "model2vec" | "Model2Vec" | "MODEL2VEC" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                model_architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
             "sparse-bert" | "SparseBert" | "SPARSE-BERT" => {
                 Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                     model_architecture,
@@ -580,9 +594,9 @@ impl Embedder {
             "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
                 model, model_id, api_key,
             )?)),
-            "cohere-vision" | "CohereVision" => Ok(Self::Vision(VisionEmbedder::from_pretrained_cloud(
-                model, model_id, api_key,
-            )?)),
+            "cohere-vision" | "CohereVision" => Ok(Self::Vision(
+                VisionEmbedder::from_pretrained_cloud(model, model_id, api_key)?,
+            )),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -638,7 +652,6 @@ impl Embedder {
     ) -> Result<Option<Vec<EmbedData>>> {
         crate::embed_image_directory(directory, self, config, adapter).await
     }
-    
 
     pub async fn embed_file<T: AsRef<std::path::Path>>(
         &self,
@@ -799,9 +812,7 @@ impl EmbedImage for VisionEmbedder {
             Self::ColPali(embedder) => {
                 embedder.embed_image(PathBuf::from(image_path.as_ref()), metadata)
             }
-            Self::Cohere(embedder) => {
-                embedder.embed_image(image_path, metadata).await
-            }
+            Self::Cohere(embedder) => embedder.embed_image(image_path, metadata).await,
         }
     }
 
@@ -818,9 +829,7 @@ impl EmbedImage for VisionEmbedder {
                     .map(|p| PathBuf::from(p.as_ref()))
                     .collect::<Vec<_>>(),
             ),
-            Self::Cohere(embedder) => {
-                embedder.embed_image_batch(image_paths, batch_size).await
-            }
+            Self::Cohere(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
         }
     }
 

@@ -14,3 +14,4 @@ pub mod ort_bert;
 pub mod ort_jina;
 pub mod pooling;
 pub mod text_embedding;
+pub mod model2vec;

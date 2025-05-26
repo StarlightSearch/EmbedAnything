@@ -348,7 +348,7 @@ impl StatisticalChunker {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
-    use processors::pdf::pdf_processor::OcrConfig;
+    use processors::pdf::pdf_processor::{OcrConfig, PdfBackend};
     use crate::extract_document;
 
     use super::*;
@@ -363,6 +363,7 @@ mod tests {
                 use_ocr: false,
                 tesseract_path: None,
             },
+            Some(PdfBackend::LoPdf),
         )
         .unwrap();
         let chunker = StatisticalChunker {
