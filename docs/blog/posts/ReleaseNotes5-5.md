@@ -3,7 +3,7 @@ draft: false
 date: 2025-05-25
 authors: 
  - sonam
-slug: release-notes-56
+slug: release-notes-6
 title: Release Notes 5.6
 ---
 
@@ -77,7 +77,7 @@ model = embed_anything.EmbeddingModel.from_pretrained_hf(
 
 ## Processor Crate:
 
-This crate contains various "processors" that accepts files and produces a chunked, metadata-rich document description. This is especially helpful for retrieval-augmented generation! This also supports PDF text extraction via two different backends at the moment: MuPDF and LoPDF. You can choose between the two by either passing `pdf_backend` as `mupdf` or `lopdf` in  `TextEmbedConfig` 
+This crate contains various "processors" that accepts files and produces a chunked, metadata-rich document description. This is especially helpful for retrieval-augmented generation! 
 
 We have also received some additional cool feature requests on GitHub, which we would like to implement. If you want to help out please check out EmbedAnything on GitHub. We would love to have a contribution. 🚀
 
