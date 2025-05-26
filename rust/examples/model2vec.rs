@@ -1,5 +1,6 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
 use embed_anything::embeddings::embed::EmbedderBuilder;
+use processors::pdf::pdf_processor::PdfBackend;
 use embed_anything::Dtype;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -24,7 +25,8 @@ async fn main() {
         .with_buffer_size(32)
         .with_splitting_strategy(SplittingStrategy::Semantic {
             semantic_encoder: model.clone(),
-        });
+        })
+        .with_pdf_backend(PdfBackend::MuPdf);
 
     let now = Instant::now();
 

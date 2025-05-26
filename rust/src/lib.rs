@@ -88,12 +88,12 @@ use tokio::sync::mpsc; // Add this at the top of your file
 
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
-use processors::docx_processor::DocxProcessor;
 use processors::html_processor::HtmlProcessor;
 use processors::markdown_processor::MarkdownProcessor;
 use processors::pdf::pdf_processor::{OcrConfig, PdfProcessor};
 use processors::processor::{Document, FileProcessor, UrlProcessor};
 use processors::txt_processor::TxtProcessor;
+use processors::{docx_processor::DocxProcessor, pdf::pdf_processor::PdfBackend};
 
 pub enum Dtype {
     F16,
@@ -193,7 +193,10 @@ pub async fn embed_file<T: AsRef<std::path::Path>>(
                 let binding = TextEmbedConfig::default();
                 let config = config.unwrap_or(&binding);
                 let batch_size = config.batch_size.unwrap_or(32);
-                println!("Embedding PDF file: {:?}", file_name.as_ref().to_str().unwrap());
+                println!(
+                    "Embedding PDF file: {:?}",
+                    file_name.as_ref().to_str().unwrap()
+                );
                 Ok(Some(embedder.embed_pdf(file_name, Some(batch_size)).await?))
             }
             _ => Ok(Some(vec![emb_image(file_name, embedder).await?])),
@@ -275,6 +278,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.clone();
     let late_chunking = config.late_chunking;
+    let backend = config.pdf_backend;
     let text = extract_document(
         &file,
         chunk_size,
@@ -283,6 +287,7 @@ async fn emb_text<T: AsRef<std::path::Path>>(
             use_ocr,
             tesseract_path,
         },
+        Some(backend),
     )?;
 
     let metadata = TextLoader::get_metadata(file).ok();
@@ -673,6 +678,7 @@ pub async fn embed_directory_stream(
                 use_ocr,
                 tesseract_path: tesseract_path.clone(),
             },
+            Some(config.pdf_backend),
         ) {
             Ok(text) => text,
             Err(_) => {
@@ -756,6 +762,7 @@ pub async fn embed_files_batch(
     let use_ocr = config.use_ocr.unwrap_or(false);
     let tesseract_path = config.tesseract_path.clone();
     let overlap_ratio = config.overlap_ratio.unwrap_or(0.0);
+    let backend = config.pdf_backend;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (collector_tx, mut collector_rx) = mpsc::unbounded_channel();
@@ -857,6 +864,7 @@ pub async fn embed_files_batch(
                 use_ocr,
                 tesseract_path: tesseract_path.clone(),
             },
+            Some(backend),
         ) {
             Ok(text) => text,
             Err(_) => {
@@ -922,6 +930,7 @@ fn extract_document(
     chunk_size: usize,
     overlap: usize,
     ocr_config: OcrConfig,
+    backend: Option<PdfBackend>,
 ) -> Result<Document> {
     if !file.as_ref().exists() {
         return Err(
@@ -930,7 +939,13 @@ fn extract_document(
     }
     let file_extension = file.as_ref().extension().unwrap();
     match file_extension.to_str().unwrap() {
-        "pdf" => PdfProcessor::new(chunk_size, overlap, ocr_config)?.process_file(file),
+        "pdf" => PdfProcessor::new(
+            chunk_size,
+            overlap,
+            ocr_config,
+            backend.unwrap_or(PdfBackend::LoPdf),
+        )?
+        .process_file(file),
         "md" => MarkdownProcessor::new(chunk_size, overlap)?.process_file(file),
         "txt" => TxtProcessor::new(chunk_size, overlap)?.process_file(file),
         "docx" => DocxProcessor::new(chunk_size, overlap)?.process_file(file),

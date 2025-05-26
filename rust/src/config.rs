@@ -1,3 +1,5 @@
+use processors::pdf::pdf_processor::PdfBackend;
+
 use crate::embeddings::embed::Embedder;
 use std::sync::Arc;
 
@@ -50,6 +52,8 @@ pub struct TextEmbedConfig {
     pub tesseract_path: Option<String>,
     /// When embedding a document, controls whether late chunking is used. Use this to take larger context into account for embedding. Defaults to false.
     pub late_chunking: Option<bool>,
+    /// When embedding a PDF, controls which backend is used to extract text. Defaults to [PdfBackend::LoPdf]
+    pub pdf_backend: PdfBackend,
 }
 
 impl Default for TextEmbedConfig {
@@ -63,6 +67,7 @@ impl Default for TextEmbedConfig {
             late_chunking: None,
             use_ocr: None,
             tesseract_path: None,
+            pdf_backend: PdfBackend::LoPdf,
         }
     }
 }
@@ -84,6 +89,7 @@ impl TextEmbedConfig {
             .with_batch_size(batch_size.unwrap_or(32))
             .with_buffer_size(buffer_size.unwrap_or(100))
             .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref())
+            .with_pdf_backend(PdfBackend::LoPdf)
             .with_splitting_strategy(splitting_strategy)
             .with_late_chunking(late_chunking.unwrap_or(false))
             .build()
@@ -122,6 +128,11 @@ impl TextEmbedConfig {
     pub fn with_ocr(mut self, use_ocr: bool, tesseract_path: Option<&str>) -> Self {
         self.use_ocr = Some(use_ocr);
         self.tesseract_path = tesseract_path.map(|p| p.to_string());
+        self
+    }
+
+    pub fn with_pdf_backend(mut self, backend: PdfBackend) -> Self {
+        self.pdf_backend = backend;
         self
     }
 
