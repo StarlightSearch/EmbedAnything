@@ -237,14 +237,13 @@ impl EmbeddingModel {
             }
             WhichModel::Model2Vec => {
                 let model_id = model_id.unwrap_or("minishlab/potion-base-8M");
-                let model = Embedder::Text(TextEmbedder::Model2Vec(
+                let model = Embedder::Text(TextEmbedder::Model2Vec(Box::new(
                     embed_anything::embeddings::local::model2vec::Model2VecEmbedder::new(
-                        model_id,
-                        token,
-                        None,
+                        model_id, token, None,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                ));
+                )));
+
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })

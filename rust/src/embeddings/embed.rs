@@ -104,7 +104,7 @@ pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
     Jina(Box<dyn JinaEmbed + Send + Sync>),
-    Model2Vec(Model2VecEmbedder),
+    Model2Vec(Box<Model2VecEmbedder>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
     ColBert(Box<dyn BertEmbed + Send + Sync>),
     ModernBert(Box<dyn BertEmbed + Send + Sync>),
@@ -156,9 +156,9 @@ impl TextEmbedder {
                     token,
                 )?)))
             }
-            "model2vec" | "Model2Vec" | "MODEL2VEC" => Ok(Self::Model2Vec(Model2VecEmbedder::new(
+            "model2vec" | "Model2Vec" | "MODEL2VEC" => Ok(Self::Model2Vec(Box::new(Model2VecEmbedder::new(
                 model_id, token, None,
-            )?)),
+            )?))),
 
             "modernbert" | "ModernBert" | "MODERNBERT" => {
                 Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
