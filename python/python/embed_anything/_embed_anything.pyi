@@ -502,7 +502,7 @@ class TextEmbedConfig:
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
         use_ocr: A flag indicating whether to use OCR for the Text Embedding model. Default is False.
         tesseract_path: The path to the Tesseract OCR executable. Default is None and uses the system path.
-        pdf_backend: The backend to use for PDF text extraction. Options are `mupdf` and `lopdf`. Default is `lopdf`.
+        pdf_backend: The backend to use for PDF text extraction. Currently only `lopdf` is supported. Default is `lopdf`.
     """
 
     def __init__(

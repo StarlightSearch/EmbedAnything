@@ -29,7 +29,6 @@ impl TextEmbedConfig {
         let pdf_backend = match pdf_backend {
             Some(backend) => {
                 match backend {
-                    "mupdf" => PdfBackend::MuPdf,
                     "lopdf" => PdfBackend::LoPdf,
                     _ => panic!("Unknown PDF backend provided!"),
                 }

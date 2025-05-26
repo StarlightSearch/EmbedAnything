@@ -26,7 +26,7 @@ async fn main() {
         .with_splitting_strategy(SplittingStrategy::Semantic {
             semantic_encoder: model.clone(),
         })
-        .with_pdf_backend(PdfBackend::MuPdf);
+        .with_pdf_backend(PdfBackend::LoPdf);
 
     let now = Instant::now();
 

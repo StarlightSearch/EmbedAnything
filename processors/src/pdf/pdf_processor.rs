@@ -10,7 +10,6 @@ use text_splitter::ChunkConfigError;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PdfBackend {
     LoPdf,
-    MuPdf,
 }
 
 /// A struct for processing PDF files.
@@ -47,7 +46,11 @@ impl FileProcessor for PdfProcessor {
             let tesseract_path = self.ocr_config.tesseract_path.as_deref();
             extract_text_with_ocr(&path, tesseract_path)?
         } else {
-            pdf_extract::extract_text(path.as_ref()).map_err(|e| anyhow::anyhow!(e))?
+            match self.backend {
+                PdfBackend::LoPdf => {
+                    pdf_extract::extract_text(path.as_ref()).map_err(|e| anyhow::anyhow!(e))?
+                }
+            }
         };
 
         self.markdown_processor.process_document(&content)
@@ -108,7 +111,7 @@ mod tests {
                 use_ocr: false,
                 tesseract_path: None,
             },
-            PdfBackend::MuPdf,
+            PdfBackend::LoPdf,
         )
         .unwrap();
 
