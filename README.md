@@ -136,6 +136,7 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
+| Model2Vec | model2vec, minishlab/potion-base-8M |
 
 
 ## Splade Models:
