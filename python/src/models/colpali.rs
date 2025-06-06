@@ -34,9 +34,13 @@ impl ColpaliModel {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (model_id, revision=None))]
-    pub fn from_pretrained_onnx(model_id: &str, revision: Option<&str>) -> PyResult<Self> {
-        let model = OrtColPaliEmbedder::new(model_id, revision)
+    #[pyo3(signature = (model_id, revision=None, path_in_repo=None))]
+    pub fn from_pretrained_onnx(
+        model_id: &str,
+        revision: Option<&str>,
+        path_in_repo: Option<&str>,
+    ) -> PyResult<Self> {
+        let model = OrtColPaliEmbedder::new(model_id, revision, path_in_repo)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self {
             model: Box::new(model),

@@ -348,7 +348,7 @@ impl StatisticalChunker {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
-    use processors::pdf::pdf_processor::{OcrConfig, PdfBackend};
+    use processors_rs::pdf::pdf_processor::{OcrConfig, PdfBackend};
     use crate::extract_document;
 
     use super::*;

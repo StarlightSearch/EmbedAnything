@@ -1,4 +1,4 @@
-use processors::pdf::pdf_processor::PdfBackend;
+use processors_rs::pdf::pdf_processor::PdfBackend;
 
 use crate::embeddings::embed::Embedder;
 use std::sync::Arc;

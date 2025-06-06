@@ -1,7 +1,7 @@
 use crate::EmbeddingModel;
 use embed_anything::config::SplittingStrategy;
 use pyo3::prelude::*;
-use processors::pdf::pdf_processor::PdfBackend;
+use processors_rs::pdf::pdf_processor::PdfBackend;
 
 #[pyclass]
 #[derive(Default)]

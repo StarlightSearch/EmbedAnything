@@ -347,6 +347,7 @@ impl OrtBertEmbedder {
                 let pooled_output = match self.pooling {
                     Pooling::Cls => self.pooling.pool(&model_output, None)?,
                     Pooling::Mean => self.pooling.pool(&model_output, attention_mask)?,
+                    Pooling::LastToken => self.pooling.pool(&model_output, attention_mask)?,
                 };
                 let embedding = pooled_output.to_array()?;
                 let norms = embedding.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);

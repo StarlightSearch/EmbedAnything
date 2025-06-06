@@ -92,6 +92,7 @@ pub enum WhichModel {
     CohereVision,
     Bert,
     Model2Vec,
+    Qwen3,
     SparseBert,
     ColBert,
     Clip,
@@ -244,6 +245,20 @@ impl EmbeddingModel {
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
 
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::Qwen3 => {
+                let model_id = model_id.unwrap_or("Qwen/Qwen3-Embedding-0.6B");
+                let model = Embedder::Text(TextEmbedder::Qwen3(Box::new(
+                    embed_anything::embeddings::local::qwen3::Qwen3Embedder::new(
+                        model_id,
+                        revision.map(|s| s.to_string()),
+                        token,
+                    )
+                    .unwrap(),
+                )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })

@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 embed_anything = {path = "../rust", features = ["ort"]}
-processors = {path = "../processors"}
+processors-rs = {path = "../processors"}
 pyo3 = { version = "0.23.2"}
 tokio = { version = "1.39.0", features = ["rt-multi-thread"]}
 strum =  {workspace = true}

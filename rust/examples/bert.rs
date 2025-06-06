@@ -9,8 +9,8 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("jina")
-            .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+            .model_architecture("qwen3")
+            .model_id(Some("Qwen/Qwen3-Embedding-0.6B"))
             .revision(None)
             .token(None)
             .dtype(Some(Dtype::F16))
@@ -20,7 +20,7 @@ async fn main() {
 
     let config = TextEmbedConfig::default()
         .with_chunk_size(1000, Some(0.3))
-        .with_batch_size(32)
+        .with_batch_size(1)
         .with_buffer_size(32)
         .with_splitting_strategy(SplittingStrategy::Semantic {
             semantic_encoder: model.clone(),

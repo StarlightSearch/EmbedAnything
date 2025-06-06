@@ -7,3 +7,4 @@ pub mod modernbert;
 pub mod paligemma;
 pub mod siglip;
 pub mod with_tracing;
+pub mod qwen3;
