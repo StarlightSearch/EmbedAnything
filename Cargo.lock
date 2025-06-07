@@ -387,12 +387,10 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 [[package]]
 name = "candle-core"
 version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9f51e2ecf6efe9737af8f993433c839f956d2b6ed4fd2dd4a7c6d8b0fa667ff"
 dependencies = [
  "accelerate-src",
  "byteorder",
- "candle-kernels",
+ "candle-kernels 0.9.1",
  "candle-metal-kernels",
  "cudarc",
  "gemm 0.17.1",
@@ -416,6 +414,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "candle-core"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9f51e2ecf6efe9737af8f993433c839f956d2b6ed4fd2dd4a7c6d8b0fa667ff"
+dependencies = [
+ "byteorder",
+ "candle-kernels 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cudarc",
+ "gemm 0.17.1",
+ "half",
+ "memmap2",
+ "num-traits",
+ "num_cpus",
+ "rand 0.9.0",
+ "rand_distr",
+ "rayon",
+ "safetensors 0.4.5",
+ "thiserror 1.0.69",
+ "ug",
+ "ug-cuda",
+ "yoke",
+ "zip",
+]
+
+[[package]]
+name = "candle-flash-attn"
+version = "0.9.1"
+dependencies = [
+ "anyhow",
+ "bindgen_cuda",
+ "candle-core 0.9.1",
+ "half",
+]
+
+[[package]]
 name = "candle-flash-attn"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -423,8 +456,15 @@ checksum = "fb38a5bfae09c4ae73fd00039e5eaf97a7d6d9400cc35ee8e603fc4a5f9cb0a3"
 dependencies = [
  "anyhow",
  "bindgen_cuda",
- "candle-core",
+ "candle-core 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "half",
+]
+
+[[package]]
+name = "candle-kernels"
+version = "0.9.1"
+dependencies = [
+ "bindgen_cuda",
 ]
 
 [[package]]
@@ -439,8 +479,6 @@ dependencies = [
 [[package]]
 name = "candle-metal-kernels"
 version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a323ee9c813707f73b6e59300661b354a70410f31fe4135170c4eda8a061534"
 dependencies = [
  "half",
  "metal 0.27.0",
@@ -452,11 +490,9 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1980d53280c8f9e2c6cbe1785855d7ff8010208b46e21252b978badf13ad69d"
 dependencies = [
  "accelerate-src",
- "candle-core",
+ "candle-core 0.9.1",
  "candle-metal-kernels",
  "half",
  "intel-mkl-src",
@@ -471,13 +507,11 @@ dependencies = [
 [[package]]
 name = "candle-transformers"
 version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "186cb80045dbe47e0b387ea6d3e906f02fb3056297080d9922984c90e90a72b0"
 dependencies = [
  "accelerate-src",
  "byteorder",
- "candle-core",
- "candle-flash-attn",
+ "candle-core 0.9.1",
+ "candle-flash-attn 0.9.1",
  "candle-nn",
  "fancy-regex",
  "intel-mkl-src",
@@ -966,8 +1000,8 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "byteorder",
- "candle-core",
- "candle-flash-attn",
+ "candle-core 0.9.1",
+ "candle-flash-attn 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "candle-nn",
  "candle-transformers",
  "chrono",
@@ -1006,7 +1040,6 @@ dependencies = [
 name = "embed_anything_python"
 version = "0.6.1"
 dependencies = [
- "cudarc",
  "embed_anything",
  "processors-rs",
  "pyo3",
