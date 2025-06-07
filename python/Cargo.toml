@@ -9,6 +9,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 embed_anything = {path = "../rust", features = ["ort"]}
+cudarc = { version = "0.16.3", features = ["std", "cublas", "cublaslt", "curand", "driver", "nvrtc", "f16", "cuda-version-from-build-system", "dynamic-loading"], default-features=false , optional=true}
+
 processors-rs = {path = "../processors"}
 pyo3 = { version = "0.23.2"}
 tokio = { version = "1.39.0", features = ["rt-multi-thread"]}
@@ -19,7 +21,7 @@ strum_macros =  {workspace = true}
 extension-module = ["pyo3/extension-module"]
 mkl = ["embed_anything/mkl"]
 accelerate = ["embed_anything/accelerate"]
-cuda = ["embed_anything/cuda"]
+cuda = ["embed_anything/cuda", "dep:cudarc"]
 cudnn = ["embed_anything/cudnn"]
 metal = ["embed_anything/metal"]
 ort = ["embed_anything/ort"]
