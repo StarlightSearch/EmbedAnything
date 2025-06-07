@@ -30,7 +30,7 @@ async fn main() {
         "test_files/test.pdf",
         &model,
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()
@@ -40,7 +40,7 @@ async fn main() {
         vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
         &model,
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()
@@ -58,7 +58,7 @@ async fn main() {
         None,
         // Some(vec!["txt".to_string()]),
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()
