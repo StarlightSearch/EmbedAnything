@@ -260,7 +260,7 @@ model = embed_anything.EmbeddingModel.from_pretrained_local(
     model_id="openai/clip-vit-base-patch16",
     # revision="refs/pr/15",
 )
-data: list[EmbedData] = embed_anything.embed_directory("test_files", embedder=model)
+data: list[EmbedData] = embed_anything.embed_image_directory("test_files", embedder=model)
 embeddings = np.array([data.embedding for data in data])
 query = ["Photo of a monkey?"]
 query_embedding = np.array(
