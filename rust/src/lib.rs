@@ -88,12 +88,14 @@ use tokio::sync::mpsc; // Add this at the top of your file
 
 #[cfg(feature = "audio")]
 use embeddings::embed_audio;
-use processors::html_processor::HtmlProcessor;
-use processors::markdown_processor::MarkdownProcessor;
-use processors::pdf::pdf_processor::{OcrConfig, PdfProcessor};
-use processors::processor::{Document, FileProcessor, UrlProcessor};
-use processors::txt_processor::TxtProcessor;
-use processors::{docx_processor::DocxProcessor, pdf::pdf_processor::PdfBackend};
+use processors_rs::{
+    docx_processor::DocxProcessor,
+    html_processor::HtmlProcessor,
+    markdown_processor::MarkdownProcessor,
+    pdf::pdf_processor::{OcrConfig, PdfBackend, PdfProcessor},
+    processor::{Document, FileProcessor, UrlProcessor},
+    txt_processor::TxtProcessor,
+};
 
 pub enum Dtype {
     F16,
@@ -104,6 +106,7 @@ pub enum Dtype {
     F32,
     Q4F16,
     QUANTIZED,
+    BF16,
 }
 
 /// Embeds a list of queries using the specified embedding model.

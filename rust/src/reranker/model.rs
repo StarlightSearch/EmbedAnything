@@ -56,6 +56,7 @@ impl Reranker {
                 Dtype::UINT8 => api.get("onnx/model_uint8.onnx")?,
                 Dtype::BNB4 => api.get("onnx/model_bnb4.onnx")?,
                 Dtype::F32 => api.get("onnx/model.onnx")?,
+                Dtype::BF16 => api.get("onnx/model_bf16.onnx")?,
                 Dtype::QUANTIZED => api.get("onnx/model_quantized.onnx")?,
             };
             (config, tokenizer, weights, tokenizer_config)

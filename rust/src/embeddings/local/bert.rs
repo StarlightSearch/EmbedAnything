@@ -258,6 +258,7 @@ impl BertEmbedder {
             let pooled_output = match self.pooling {
                 Pooling::Cls => self.pooling.pool(&model_output, None)?,
                 Pooling::Mean => self.pooling.pool(&model_output, attention_mask)?,
+                Pooling::LastToken => self.pooling.pool(&model_output, attention_mask)?,
             };
             let pooled_output = pooled_output.to_tensor()?;
             let embeddings = normalize_l2(pooled_output)?;

@@ -10,7 +10,7 @@ readme = "../README.md"
 
 [dependencies]
 # File preprocessing
-processors = { path = "../processors" }
+processors-rs = { workspace = true }
 
 # Data Serialization
 serde = { version = "1.0.196", features = ["derive"] }

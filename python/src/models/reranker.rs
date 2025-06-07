@@ -18,6 +18,7 @@ pub enum Dtype {
     BNB4,
     Q4F16,
     F32,
+    BF16,
 }
 
 #[pyclass]

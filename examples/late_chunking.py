@@ -5,14 +5,14 @@ from embed_anything import Dtype, ONNXModel
 import numpy as np
 
 
-model:EmbeddingModel = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Jina, hf_model_id="jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
+model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B"
 )
 config = TextEmbedConfig(
     chunk_size=1000,
     batch_size=8,
     splitting_strategy="sentence",
-    late_chunking=True,
+    late_chunking=False,
 )
 
 # Embed a single file

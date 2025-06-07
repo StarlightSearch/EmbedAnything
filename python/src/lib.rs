@@ -92,6 +92,7 @@ pub enum WhichModel {
     CohereVision,
     Bert,
     Model2Vec,
+    Qwen3,
     SparseBert,
     ColBert,
     Clip,
@@ -248,6 +249,27 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
+            WhichModel::Qwen3 => {
+                let model_id = model_id.unwrap_or("Qwen/Qwen3-Embedding-0.6B");
+                let dtype = match dtype {
+                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+                    Some(Dtype::BF16) => Some(embed_anything::Dtype::BF16),
+                    _ => None,
+                };
+                let model = Embedder::Text(TextEmbedder::Qwen3(Box::new(
+                    embed_anything::embeddings::local::qwen3::Qwen3Embedder::new(
+                        model_id,
+                        revision.map(|s| s.to_string()),
+                        token,
+                        dtype,
+                    )
+                    .unwrap(),
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
             WhichModel::Colpali => {
                 let model_id = model_id.unwrap_or("vidore/colpali-v1.2-merged");
                 let model = Embedder::Vision(VisionEmbedder::ColPali(Box::new(
@@ -331,6 +353,7 @@ impl EmbeddingModel {
             Some(Dtype::UINT8) => Some(embed_anything::Dtype::UINT8),
             Some(Dtype::BNB4) => Some(embed_anything::Dtype::BNB4),
             Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+            Some(Dtype::BF16) => Some(embed_anything::Dtype::BF16),
             None => None,
         };
         let model_name = model_name.map(|model_name| {
