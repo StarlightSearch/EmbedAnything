@@ -10,7 +10,10 @@ use anyhow::{Error as E, Result};
 use candle_core::{Device, IndexOp, Tensor};
 use candle_nn::{ops::softmax, VarBuilder};
 use hf_hub::{api::sync::Api, Repo, RepoType};
-use rand::{distributions::Distribution, SeedableRng};
+use rand::{
+    distr::{weighted::WeightedIndex, Distribution},
+    SeedableRng,
+};
 use tokenizers::Tokenizer;
 
 use candle_transformers::models::whisper::{self as m, Config};
@@ -214,7 +217,7 @@ impl<'a> Decoder<'a> {
             let next_token = if t > 0f64 {
                 let prs = softmax(&(&logits / t)?, 0)?;
                 let logits_v: Vec<f32> = prs.to_vec1()?;
-                let distr = rand::distributions::WeightedIndex::new(&logits_v)?;
+                let distr = WeightedIndex::new(&logits_v)?;
                 distr.sample(&mut self.rng) as u32
             } else {
                 let logits_v: Vec<f32> = logits.to_vec1()?;

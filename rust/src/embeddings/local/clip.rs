@@ -10,19 +10,46 @@ use anyhow::Error as E;
 
 use crate::{
     embeddings::{embed::EmbeddingResult, select_device},
-    models::clip::{self, ClipConfig},
+    models::{
+        clip::div_l2_norm,
+        clip::{self, ClipConfig},
+        siglip::{self, Config},
+    },
 };
 use candle_core::{DType, Device, Tensor};
 
 use candle_nn::VarBuilder;
-use tokenizers::Tokenizer;
+use tokenizers::{PaddingParams, Tokenizer};
 
 use crate::embeddings::embed::{EmbedData, EmbedImage};
 
+pub enum VisionModel {
+    Clip(clip::ClipModel),
+    Siglip(siglip::Model),
+}
+
+impl VisionModel {
+    pub fn get_image_features(&self, image: &Tensor) -> Result<Tensor, candle_core::Error> {
+        match self {
+            VisionModel::Clip(model) => model.get_image_features(image),
+            VisionModel::Siglip(model) => model.get_image_features(image),
+        }
+    }
+
+    pub fn get_text_features(&self, text: &Tensor) -> Result<Tensor, candle_core::Error> {
+        match self {
+            VisionModel::Clip(model) => model.get_text_features(text),
+            VisionModel::Siglip(model) => model.get_text_features(text),
+        }
+    }
+}
+
 pub struct ClipEmbedder {
-    pub model: clip::ClipModel,
+    pub model: VisionModel,
     pub tokenizer: Tokenizer,
     pub device: Device,
+    pub max_len: usize,
+    pub pad_id: u32,
 }
 impl Default for ClipEmbedder {
     fn default() -> Self {
@@ -70,28 +97,78 @@ impl ClipEmbedder {
             },
         };
         let config_filename = api.get("config.json")?;
+        let config_str = std::fs::read_to_string(config_filename)?;
+        let config_json: serde_json::Value = serde_json::from_str(&config_str)?;
 
-        let config: String = std::fs::read_to_string(config_filename)?;
-        let config: ClipConfig = serde_json::from_str(&config)?;
-        let model = clip::ClipModel::new(vb, &config)?;
+        let mut tokenizer = Self::get_tokenizer(None, model_id, revision)?;
+        let pp = PaddingParams {
+            strategy: tokenizers::PaddingStrategy::BatchLongest,
+            ..Default::default()
+        };
 
-        let tokenizer = Self::get_tokenizer(None)?;
+        tokenizer.with_padding(Some(pp));
+
+        let (model, max_len, pad_id) = if let Some(architectures) = config_json.get("architectures")
+        {
+            if let Some(arch) = architectures.get(0) {
+                match arch.as_str() {
+                    Some("CLIPModel") => {
+                        let config: ClipConfig = serde_json::from_str(&config_str)?;
+                        let vocab = tokenizer.get_vocab(true);
+                        let pad_id = *vocab.get("<|endoftext|>").ok_or(E::msg("No pad token"))?;
+                        (
+                            VisionModel::Clip(clip::ClipModel::new(vb, &config)?),
+                            config.text_config.max_position_embeddings,
+                            pad_id,
+                        )
+                    }
+                    Some("SiglipModel") => {
+                        let config: Config = serde_json::from_str(&config_str)?;
+                        (
+                            VisionModel::Siglip(siglip::Model::new(&config, vb)?),
+                            config.text_config.max_position_embeddings,
+                            config.text_config.pad_token_id as u32,
+                        )
+                    }
+                    _ => return Err(anyhow::Error::msg("Unsupported model architecture")),
+                }
+            } else {
+                return Err(anyhow::Error::msg("No architecture specified in config"));
+            }
+        } else {
+            let config: Config = serde_json::from_str(&config_str)?;
+            (
+                VisionModel::Siglip(siglip::Model::new(&config, vb)?),
+                    config.text_config.max_position_embeddings,
+                config.text_config.pad_token_id as u32,
+            )
+        };
+
         Ok(ClipEmbedder {
             model,
             tokenizer,
             device,
+            max_len,
+            pad_id,
         })
     }
 
-    pub fn get_tokenizer(tokenizer: Option<String>) -> anyhow::Result<Tokenizer> {
+    pub fn get_tokenizer(
+        tokenizer: Option<String>,
+        model_id: String,
+        revision: Option<&str>,
+    ) -> anyhow::Result<Tokenizer> {
         let tokenizer = match tokenizer {
             None => {
                 let api = hf_hub::api::sync::Api::new()?;
-                let api = api.repo(hf_hub::Repo::with_revision(
-                    "openai/clip-vit-base-patch32".to_string(),
-                    hf_hub::RepoType::Model,
-                    "refs/pr/15".to_string(),
-                ));
+                let api = match revision {
+                    Some(rev) => api.repo(hf_hub::Repo::with_revision(
+                        model_id,
+                        hf_hub::RepoType::Model,
+                        rev.to_string(),
+                    )),
+                    None => api.repo(hf_hub::Repo::new(model_id, hf_hub::RepoType::Model)),
+                };
                 api.get("tokenizer.json")?
             }
             Some(file) => file.into(),
@@ -105,10 +182,7 @@ impl ClipEmbedder {
         sequences: Option<&[&str]>,
         tokenizer: &Tokenizer,
     ) -> anyhow::Result<(Tensor, Vec<String>)> {
-        let pad_id = *tokenizer
-            .get_vocab(true)
-            .get("<|endoftext|>")
-            .ok_or(E::msg("No pad token"))?;
+        let pad_id = self.pad_id;
 
         let vec_seq = sequences.unwrap_or(&[
             "a cycling race",
@@ -123,7 +197,7 @@ impl ClipEmbedder {
             tokens.push(encoding.get_ids().to_vec());
         }
 
-        let max_len = tokens.iter().map(|v| v.len()).max().unwrap_or(0);
+        let max_len = self.max_len;
 
         // Pad the sequences to have the same length
         for token_vec in tokens.iter_mut() {
@@ -195,13 +269,10 @@ impl ClipEmbedder {
 
             let batch_encodings = self
                 .model
-                .get_text_features(&input_ids)
-                .unwrap()
-                .to_vec2::<f32>()
-                .unwrap();
-
+                .get_text_features(&input_ids)?;
+            let normalized_encodings = div_l2_norm(&batch_encodings)?.to_vec2::<f32>()?;
             encodings.extend(
-                batch_encodings
+                normalized_encodings
                     .iter()
                     .map(|embedding| EmbeddingResult::DenseVector(embedding.to_vec())),
             );
@@ -212,24 +283,23 @@ impl ClipEmbedder {
 }
 
 impl EmbedImage for ClipEmbedder {
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
+    async fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+        batch_size: Option<usize>,
     ) -> anyhow::Result<Vec<EmbedData>> {
         let config = clip::ClipConfig::vit_base_patch32();
 
         let mut encodings = Vec::new();
-        for image_batch in image_paths.chunks(32) {
+        for image_batch in image_paths.chunks(batch_size.unwrap_or(32)) {
             let images = self
                 .load_images(image_batch, config.vision_config.image_size)
                 .unwrap();
             let batch_encodings = self
                 .model
-                .get_image_features(&images)
-                .unwrap()
-                .to_vec2::<f32>()
-                .unwrap();
-            encodings.extend(batch_encodings);
+                .get_image_features(&images)?;
+            let normalized_encodings = div_l2_norm(&batch_encodings)?.to_vec2::<f32>()?;
+            encodings.extend(normalized_encodings);
         }
 
         let embeddings = encodings
@@ -256,7 +326,7 @@ impl EmbedImage for ClipEmbedder {
         Ok(embeddings)
     }
 
-    fn embed_image<T: AsRef<std::path::Path>>(
+    async fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
@@ -269,17 +339,24 @@ impl EmbedImage for ClipEmbedder {
             .unwrap();
         let encoding = &self
             .model
-            .get_image_features(&image)
-            .unwrap()
-            .to_vec2::<f32>()
-            .unwrap()[0];
+            .get_image_features(&image)?;
+        let normalized_encoding = &div_l2_norm(encoding)?.to_vec2::<f32>()?[0];
         Ok(EmbedData::new(
-            EmbeddingResult::DenseVector(encoding.to_vec()),
+            EmbeddingResult::DenseVector(normalized_encoding.to_vec()),
             None,
             metadata.clone(),
         ))
     }
+
+    async fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        _pdf_path: T,
+        _batch_size: Option<usize>,
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        Err(anyhow::anyhow!("PDF embedding not supported for Clip model"))
+    }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -289,10 +366,7 @@ mod tests {
     #[test]
     fn test_tokenize_sequences() {
         let clip_embedder = ClipEmbedder::default();
-        let sequences = &[
-            "Hey there how are you?",
-            "EmbedAnything is the best!",
-        ];
+        let sequences = &["Hey there how are you?", "EmbedAnything is the best!"];
         let (input_ids, vec_seq) = clip_embedder
             .tokenize_sequences(Some(sequences), &clip_embedder.tokenizer)
             .unwrap();
@@ -311,7 +385,7 @@ mod tests {
     fn test_load_image() {
         let clip_embedder = ClipEmbedder::default();
         let image = clip_embedder
-            .load_image("test_files/clip/cat1.jpg", 224)
+            .load_image("../test_files/clip/cat1.jpg", 224)
             .unwrap();
         assert_eq!(image.shape().clone().into_dims(), &[3, 224, 224]);
     }
@@ -322,7 +396,10 @@ mod tests {
         let clip_embedder = ClipEmbedder::default();
         let images = clip_embedder
             .load_images(
-                &["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"],
+                &[
+                    "../test_files/clip/cat1.jpg",
+                    "../test_files/clip/cat2.jpeg",
+                ],
                 224,
             )
             .unwrap();
@@ -330,11 +407,12 @@ mod tests {
     }
 
     // Tests the embed_image_batch method.
-    #[test]
-    fn test_embed_image_batch() {
+    #[tokio::test]
+    async fn test_embed_image_batch() {
         let clip_embedder = ClipEmbedder::default();
         let embeddings = clip_embedder
-            .embed_image_batch(&["test_files/clip/cat1.jpg", "test_files/clip/cat2.jpeg"])
+            .embed_image_batch(&["../test_files/clip/cat1.jpg", "../test_files/clip/cat2.jpeg"], Some(2))
+            .await
             .unwrap();
         assert_eq!(embeddings.len(), 2);
     }

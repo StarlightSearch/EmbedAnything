@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything"
-version = "0.5.1"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 description.workspace = true
@@ -9,12 +9,15 @@ authors.workspace = true
 readme = "../README.md"
 
 [dependencies]
+# File preprocessing
+processors-rs = { workspace = true }
+
 # Data Serialization
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.112"
 
 # HTTP Client
-reqwest = { version = "0.12.2", features = ["json", "blocking"] }
+reqwest = { version = "0.12.2", default-features = false, features = ["json", "blocking"] }
 
 # Filesystem
 walkdir = "2.4.0"
@@ -25,18 +28,14 @@ regex = "1.10.3"
 # Parallelism
 rayon = "1.8.1"
 
-# Image Processing
-image = "0.25.1"
-
 # Natural Language Processing
-tokenizers = {version="0.21.0", features=["http"]}
-text-splitter = {version="0.23.0", features=["tokenizers"]}
+tokenizers = {version="0.21.1", default-features = false, features=["http"]}
+text-splitter = {version= "0.25.1", features=["tokenizers", "markdown"]}
 
-tracing = "0.1.37"
-
+tracing = "0.1.41"
 
 # Hugging Face Libraries
-hf-hub = "0.3.2"
+hf-hub = { version = "0.4.1", default-features = false }
 candle-nn = { workspace = true }
 candle-transformers = { workspace = true }
 candle-core = { workspace = true }
@@ -47,34 +46,20 @@ anyhow = "1.0.89"
 # Asynchronous Programming
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 
-
-# Markdown Processing
-markdown_to_text = "1.0.0"
-
-# Web Scraping
-scraper = "0.20.0"
-
-# Text Processing
-url = "2.5.0"
 chrono = "0.4.38"
-rand = "0.8.5"
-itertools = "0.13.0"
+rand = "0.9.0"
+itertools = "0.14.0"
+
+# Image processing
+image = "0.25.6"
 
 # Audio Processing
 symphonia = { version = "0.5.3", optional = true, features = ["all"] }
 byteorder = "1.5.0"
 
-futures = "0.3.30"
-
-pdf-extract = {workspace = true}
-docx-parser = "0.1.1"
-docx-rust = "=0.1.8"
-ort = {version = "=2.0.0-rc.9", features = ["cuda", "load-dynamic"], optional = true}
 ndarray = "0.16.1"
-ndarray-linalg = {version = "0.16.0"}
 pdf2image = "0.1.2"
 strum = {workspace = true}
-strum_macros = {workspace = true}
 base64 = "0.22.1"
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
@@ -83,22 +68,35 @@ indicatif = "0.17.8"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
-thiserror = "1.0.40"
-tempfile = "3.4.0"
+model2vec-rs = "0.1.1"
+
+# Logging
+log = "0.4"
 
 [dev-dependencies]
 tempdir = "0.3.7"
 lazy_static = "1.4.0"
 clap = { version = "4.5.20", features = ["derive"] }
 
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+ort = {version = "=2.0.0-rc.9", features = ["load-dynamic"], optional = true}
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ort = {version = "=2.0.0-rc.9", optional = true}
+
 
 [features]
-default = []
+default = ['rustls-tls']
 mkl = ["dep:intel-mkl-src", "candle-nn/mkl", "candle-transformers/mkl", "candle-core/mkl"]
 accelerate = ["dep:accelerate-src", "candle-core/accelerate", "candle-nn/accelerate", "candle-transformers/accelerate"]
-cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
+cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda", "ort/cuda"]
 cudnn = ["candle-core/cudnn"]
 flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]
 metal = ["candle-core/metal", "candle-nn/metal"]
 audio = ["dep:symphonia"]
 ort = ["dep:ort"]
+rustls-tls = [
+    "reqwest/rustls-tls",
+    "hf-hub/rustls-tls",
+    "tokenizers/rustls-tls"
+]

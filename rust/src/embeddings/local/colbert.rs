@@ -17,10 +17,7 @@ use ort::{
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use crate::embeddings::{
-    embed::EmbeddingResult,
-    utils::tokenize_batch_ndarray,
-};
+use crate::embeddings::{embed::EmbeddingResult, utils::tokenize_batch_ndarray};
 
 use super::bert::{BertEmbed, TokenizerConfig};
 
@@ -260,6 +257,7 @@ impl BertEmbed for OrtColbertEmbedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        _late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);
         let encodings = text_batch
@@ -267,9 +265,7 @@ impl BertEmbed for OrtColbertEmbedder {
             .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
                 let (input_ids, attention_mask): (Array2<i64>, Array2<i64>) =
                         tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
-
                 let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-                    
                 let input_names = self
                     .model
                     .inputs

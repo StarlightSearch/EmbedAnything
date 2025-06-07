@@ -14,3 +14,7 @@ pub mod ort_bert;
 pub mod ort_jina;
 pub mod pooling;
 pub mod text_embedding;
+pub mod model2vec;
+pub mod qwen3;
+#[cfg(feature = "ort")]
+pub mod ort_qwen3;

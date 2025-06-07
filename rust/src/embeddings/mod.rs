@@ -70,7 +70,7 @@ pub async fn embed_audio<T: AsRef<std::path::Path>>(
     batch_size: Option<usize>,
 ) -> Result<Vec<EmbedData>, anyhow::Error> {
     let text_batch = text_batch_from_audio(&segments);
-    let encodings = embedder.embed(&text_batch, batch_size).await?;
+    let encodings = embedder.embed(&text_batch, batch_size, None).await?;
     get_audio_metadata(encodings, segments, audio_file)
 }
 

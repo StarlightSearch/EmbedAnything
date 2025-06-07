@@ -102,9 +102,11 @@ Here, since we are embedding images, we can use the clip model
 ```python
 import embed_anything import WhichModel
 
-model = embed_anything.EmbeddingModel.from_pretrained_cloud(
-        embed_anything.WhichModel.Clip,     
-        model_id="openai/clip-vit-base-patch16")
+model = embed_anything.EmbeddingModel.from_pretrained_hf(
+    embed_anything.WhichModel.Clip,
+    model_id="openai/clip-vit-base-patch16",
+    # revision="refs/pr/15",
+)
 
 ```
 
@@ -112,11 +114,8 @@ model = embed_anything.EmbeddingModel.from_pretrained_cloud(
 
 ```python
 
-data = embed_anything.embed_image_directory(
-    "\image_directory",
-    embedder=model,
-    adapter=weaviate_adapter,
-    config=embed_anything.ImageEmbedConfig(buffer_size=100),
+data= embed_anything.embed_image_directory(
+    "/content/EmbedAnything/test_files/clip", embedder=model, adapter=weaviate_adapter
 )
 
 ```

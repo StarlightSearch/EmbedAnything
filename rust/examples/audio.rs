@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use embed_anything::{
-    config::{SplittingStrategy, TextEmbedConfig}, emb_audio, embeddings::embed::EmbedderBuilder,
+    config::{SplittingStrategy, TextEmbedConfig},
+    emb_audio,
+    embeddings::embed::EmbedderBuilder,
     file_processor::audio::audio_processor::AudioDecoderModel,
 };
 
@@ -26,17 +28,8 @@ async fn main() {
             .unwrap(),
     );
 
-    let semantic_encoder = Arc::new(
-        EmbedderBuilder::new()
-            .model_architecture("jina")
-            .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
-            .revision(None)
-            .token(None)
-            .from_pretrained_hf()
-            .unwrap(),
-    );
     let text_embed_config = TextEmbedConfig::default()
-        .with_chunk_size(256, Some(0.3))
+        .with_chunk_size(1000, Some(0.3))
         .with_batch_size(32)
         .with_splitting_strategy(SplittingStrategy::Sentence);
 

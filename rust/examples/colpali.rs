@@ -26,8 +26,9 @@ fn main() -> Result<(), anyhow::Error> {
             #[cfg(feature = "ort")]
             {
                 Box::new(OrtColPaliEmbedder::new(
-                    "akshayballal/colpali-v1.2-merged-onnx",
+                    "onnx-community/colSmol-256M-ONNX",
                     None,
+                    Some("onnx"),
                 )?) as Box<dyn ColPaliEmbed>
             }
             #[cfg(not(feature = "ort"))]
@@ -39,7 +40,7 @@ fn main() -> Result<(), anyhow::Error> {
             as Box<dyn ColPaliEmbed>,
     };
     // ... rest of the code ...
-    let file_path = "test_files/attention.pdf";
+    let file_path = "test_files/colpali.pdf";
     let batch_size = 4;
     let embed_data = colpali_model.embed_file(file_path.into(), batch_size)?;
     println!("{:?}", embed_data.len());

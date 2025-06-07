@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "processors",
     "rust",
     "python",
     ]
@@ -14,19 +15,20 @@ description = "Embed anything at lightning speed"
 repository = "https://github.com/StarlightSearch/EmbedAnything"
 authors = ["Akshay Ballal <arballal95@gmail.com>"]
 exclude = ["test_files/*", "python", "*.py", "pyproject.toml", "examples/images/*", "mkdocs.yml", "docs/*", "tests/*", ".github", "Dockerfile", "docs"]
+version = "0.6.1"
 
 [workspace.dependencies]
-pdf-extract = "0.7.7"
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
-candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
-candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.8.1" }
+pdf-extract = "0.9.0"
+candle-nn = { version = "0.9.1" }
+candle-transformers = { version = "0.9.1" }
+candle-core = { version = "0.9.1" }
+candle-flash-attn = { version = "0.9.1" }
+processors-rs = { path = "processors", version = "=0.6.1" }
 
 strum = "0.27.0"
 strum_macros = "0.27.0"
 
-[patch.crates-io]
-pdf-extract = { git = "https://github.com/jrmuizel/pdf-extract.git", rev = "refs/pull/91/head" }
+
 
 [profile.dev]
 rpath = true

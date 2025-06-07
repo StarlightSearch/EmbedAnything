@@ -15,7 +15,7 @@ import itertools
 
 # Global test parameters
 MODEL_FIXTURES = ["bert_model", "onnx_model"]
-CONFIGS = [None, TextEmbedConfig(batch_size=32, chunk_size=256)]
+CONFIGS = [None, TextEmbedConfig(batch_size=32, chunk_size=1000)]
 ALL_COMBINATIONS = list(itertools.product(MODEL_FIXTURES, CONFIGS))
 
 # Define common parametrize decorator

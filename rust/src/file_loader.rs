@@ -29,20 +29,19 @@ impl FileParser {
             None => Regex::new(r"\.(pdf|md|txt|docx)$").unwrap(),
         };
 
-        let entries = std::fs::read_dir(directory_path)?;
-        let mut files = Vec::new();
-
-        for entry in entries {
-            let entry = entry?;
-            if entry.file_type()?.is_file() {
-                let file_name = entry.file_name();
-                if extension_regex.is_match(file_name.to_str().unwrap_or("")) {
-                    let absolute_path =
-                        std::fs::canonicalize(entry.path()).unwrap_or_else(|_| entry.path());
-                    files.push(absolute_path.to_string_lossy().to_string());
-                }
-            }
-        }
+        let files: Vec<String> = WalkDir::new(directory_path)
+            .into_iter()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_file())
+            .filter(|entry| extension_regex.is_match(entry.file_name().to_str().unwrap_or("")))
+            .map(|entry| {
+                let absolute_path = entry
+                    .path()
+                    .canonicalize()
+                    .unwrap_or_else(|_| entry.path().to_path_buf());
+                absolute_path.to_string_lossy().to_string()
+            })
+            .collect();
 
         self.files = files;
         Ok(self.files.clone())
@@ -199,7 +198,7 @@ mod tests {
     fn test_get_audio_paths() {
         let mut file_parser = FileParser::new();
         let audio_files = file_parser
-            .get_audio_files(&PathBuf::from("test_files"))
+            .get_audio_files(&PathBuf::from("../test_files"))
             .unwrap();
 
         assert_eq!(audio_files.len(), 2);

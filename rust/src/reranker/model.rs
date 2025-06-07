@@ -56,6 +56,7 @@ impl Reranker {
                 Dtype::UINT8 => api.get("onnx/model_uint8.onnx")?,
                 Dtype::BNB4 => api.get("onnx/model_bnb4.onnx")?,
                 Dtype::F32 => api.get("onnx/model.onnx")?,
+                Dtype::BF16 => api.get("onnx/model_bf16.onnx")?,
                 Dtype::QUANTIZED => api.get("onnx/model_quantized.onnx")?,
             };
             (config, tokenizer, weights, tokenizer_config)
@@ -97,14 +98,22 @@ impl Reranker {
             println!("Session is using CUDAExecutionProvider");
         }
 
-        let threads = std::thread::available_parallelism().unwrap().get();
+        // Get physical core count (excluding hyperthreading)
+        let threads = std::thread::available_parallelism()
+            .map(|p| p.get())
+            .unwrap_or(1);
+        // For CPU-bound workloads like ONNX inference, it's often better to use
+        // physical cores rather than logical cores to avoid context switching overhead
+        let optimal_threads = std::cmp::max(1, threads / 2);
+
         let model = Session::builder()?
             .with_execution_providers([
                 CUDAExecutionProvider::default().build(),
                 CoreMLExecutionProvider::default().build(),
             ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(threads)?
+            .with_intra_threads(optimal_threads)? // Use optimal thread count
+            .with_inter_threads(1)? // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
         Ok(Reranker { model, tokenizer })

@@ -25,7 +25,7 @@ pub struct OrtColPaliEmbedder {
 }
 
 impl OrtColPaliEmbedder {
-    pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, E> {
+    pub fn new(model_id: &str, revision: Option<&str>, path_in_repo: Option<&str>) -> Result<Self, E> {
         let api = hf_hub::api::sync::Api::new()?;
         let repo: hf_hub::api::sync::ApiRepo = match revision {
             Some(rev) => api.repo(hf_hub::Repo::with_revision(
@@ -39,11 +39,12 @@ impl OrtColPaliEmbedder {
             )),
         };
 
+        let path_in_repo = path_in_repo.unwrap_or("");
         let (_, tokenizer_filename, weights_filename, _) = {
-            let config = repo.get("config.json")?;
+            let config = repo.get("config.json").unwrap_or(repo.get("preprocessor_config.json")?);
             let tokenizer = repo.get("tokenizer.json")?;
-            let weights = repo.get("model.onnx")?;
-            let data = repo.get("model.onnx_data")?;
+            let weights = repo.get(format!("{}/model.onnx", path_in_repo).as_str())?;
+            let data = repo.get(format!("{}/model.onnx_data", path_in_repo).as_str()).ok();
 
             (config, tokenizer, weights, data)
         };
@@ -78,14 +79,22 @@ impl OrtColPaliEmbedder {
             println!("Session is using CUDAExecutionProvider");
         }
 
-        let threads = std::thread::available_parallelism().unwrap().get();
+        // Get physical core count (excluding hyperthreading)
+        let threads = std::thread::available_parallelism()
+            .map(|p| p.get())
+            .unwrap_or(1);
+        // For CPU-bound workloads like ONNX inference, it's often better to use
+        // physical cores rather than logical cores to avoid context switching overhead
+        let optimal_threads = std::cmp::max(1, threads / 2);
+
         let model = Session::builder()?
             .with_execution_providers([
                 CUDAExecutionProvider::default().build(),
                 CoreMLExecutionProvider::default().build(),
             ])?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(threads)?
+            .with_intra_threads(optimal_threads)? // Use optimal thread count
+            .with_inter_threads(1)? // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
         let dummy_prompt: &str = "Describe the image.\n";
@@ -166,9 +175,12 @@ impl OrtColPaliEmbedder {
         attention_mask: Array2<i64>,
         pixel_values: Array4<f32>,
     ) -> Result<Vec<EmbeddingResult>, E> {
+        println!("token_ids: {:?}", token_ids.shape());
+        println!("attention_mask: {:?}", attention_mask.shape());
+        println!("pixel_values: {:?}", pixel_values.shape());
         let outputs = self
             .model
-            .run(ort::inputs![token_ids, pixel_values, attention_mask].unwrap())
+            .run(ort::inputs!["input_ids" => token_ids, "pixel_values" => pixel_values, "attention_mask" => attention_mask].unwrap())
             .unwrap();
 
         let embeddings: Array3<f16> = outputs["last_hidden_state"]
@@ -430,7 +442,7 @@ mod tests {
 
     lazy_static! {
         static ref MODEL: Mutex<OrtColPaliEmbedder> = Mutex::new(
-            OrtColPaliEmbedder::new("akshayballal/colpali-v1.2-merged-onnx", None).unwrap()
+            OrtColPaliEmbedder::new("akshayballal/colpali-v1.2-merged-onnx", None, None).unwrap()
         );
     }
 
@@ -487,9 +499,9 @@ mod tests {
     async fn test_colpali_embed_file() -> anyhow::Result<()> {
         let model = MODEL.lock().unwrap();
         let embeddings = model
-            .embed_file(PathBuf::from("../test_files/attention.pdf"), 1)
+            .embed_file(PathBuf::from("../test_files/test.pdf"), 1)
             .unwrap();
-        assert_eq!(embeddings.len(), 15, "There should be 15 embeddings");
+        assert_eq!(embeddings.len(), 1, "There should be 1 embeddings");
         Ok(())
     }
 

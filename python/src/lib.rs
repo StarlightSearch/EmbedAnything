@@ -7,7 +7,7 @@ use embed_anything::{
     emb_audio,
     embeddings::embed::{Embedder, EmbeddingResult},
     file_processor::audio::audio_processor,
-    text_loader::FileLoadingError,
+    FileLoadingError,
 };
 use models::colbert::ColbertModel;
 use models::colpali::ColpaliModel;
@@ -89,7 +89,10 @@ impl EmbedData {
 pub enum WhichModel {
     OpenAI,
     Cohere,
+    CohereVision,
     Bert,
+    Model2Vec,
+    Qwen3,
     SparseBert,
     ColBert,
     Clip,
@@ -227,6 +230,40 @@ impl EmbeddingModel {
                     embed_anything::embeddings::local::jina::JinaEmbedder::new(
                         model_id, revision, token,
                     )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::Model2Vec => {
+                let model_id = model_id.unwrap_or("minishlab/potion-base-8M");
+                let model = Embedder::Text(TextEmbedder::Model2Vec(Box::new(
+                    embed_anything::embeddings::local::model2vec::Model2VecEmbedder::new(
+                        model_id, token, None,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::Qwen3 => {
+                let model_id = model_id.unwrap_or("Qwen/Qwen3-Embedding-0.6B");
+                let dtype = match dtype {
+                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+                    Some(Dtype::BF16) => Some(embed_anything::Dtype::BF16),
+                    _ => None,
+                };
+                let model = Embedder::Text(TextEmbedder::Qwen3(Box::new(
+                    embed_anything::embeddings::local::qwen3::Qwen3Embedder::new(
+                        model_id,
+                        revision.map(|s| s.to_string()),
+                        token,
+                        dtype,
+                    )
                     .unwrap(),
                 )));
                 Ok(EmbeddingModel {
@@ -282,6 +319,18 @@ impl EmbeddingModel {
                     inner: Arc::new(model),
                 })
             }
+            WhichModel::CohereVision => {
+                let model_id = model_id.unwrap_or("embed-v4.0");
+                let model = Embedder::Vision(VisionEmbedder::Cohere(
+                    embed_anything::embeddings::cloud::cohere::CohereEmbedder::new(
+                        model_id.to_string(),
+                        api_key,
+                    ),
+                ));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
             _ => panic!("Invalid model"),
         }
     }
@@ -304,6 +353,7 @@ impl EmbeddingModel {
             Some(Dtype::UINT8) => Some(embed_anything::Dtype::UINT8),
             Some(Dtype::BNB4) => Some(embed_anything::Dtype::BNB4),
             Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+            Some(Dtype::BF16) => Some(embed_anything::Dtype::BF16),
             None => None,
         };
         let model_name = model_name.map(|model_name| {
@@ -393,7 +443,7 @@ impl EmbeddingModel {
     ) -> PyResult<Option<Vec<EmbedData>>> {
         embed_files_batch(files, self, config, adapter)
     }
-    
+
     #[pyo3(signature = (url, config=None, adapter=None))]
     pub fn embed_webpage(
         &self,
@@ -539,7 +589,20 @@ pub fn embed_file(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_file(file_name, embedding_model, config, adapter).await
+            embed_anything::embed_file(
+                file_name,
+                embedding_model,
+                config,
+                adapter.map(|f| {
+                    Box::new(f)
+                        as Box<
+                            dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>)
+                                + Send
+                                + Sync,
+                        >
+                }),
+            )
+            .await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -591,7 +654,20 @@ pub fn embed_files_batch(
 
     let embeddings = rt
         .block_on(async {
-            embed_anything::embed_files_batch(files, embedding_model, config, adapter).await
+            embed_anything::embed_files_batch(
+                files,
+                embedding_model,
+                config,
+                adapter.map(|f| {
+                    Box::new(f)
+                        as Box<
+                            dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>)
+                                + Send
+                                + Sync,
+                        >
+                }),
+            )
+            .await
         })
         .map_err(|e| match e.downcast_ref::<FileLoadingError>() {
             Some(FileLoadingError::FileNotFound(file)) => {
@@ -649,7 +725,6 @@ pub fn embed_directory(
     let embedding_model = &embedder.inner;
 
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
-    println!("Runtime created");
     let adapter = match adapter {
         Some(adapter) => {
             let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -676,7 +751,12 @@ pub fn embed_directory(
             embedding_model,
             extensions,
             config,
-            adapter,
+            adapter.map(|f| {
+                Box::new(f)
+                    as Box<
+                        dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
+                    >
+            }),
         )
         .await
         .map_err(|e| PyValueError::new_err(e.to_string()))
@@ -701,8 +781,6 @@ pub fn embed_image_directory(
     let embedding_model = &embedder.inner;
     let config = config.map(|c| &c.inner);
     let rt = Builder::new_multi_thread().enable_all().build().unwrap();
-    println!("Runtime created");
-
     let adapter = match adapter {
         Some(adapter) => {
             let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
@@ -724,15 +802,25 @@ pub fn embed_image_directory(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_image_directory(directory, embedding_model, config, adapter)
-            .await
-            .map_err(|e| PyValueError::new_err(e.to_string()))
-            .unwrap()
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<_>>()
-            })
+        embed_anything::embed_image_directory(
+            directory,
+            embedding_model,
+            config,
+            adapter.map(|f| {
+                Box::new(f)
+                    as Box<
+                        dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
+                    >
+            }),
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        })
     });
     Ok(data)
 }
@@ -769,15 +857,25 @@ pub fn embed_webpage(
     };
 
     let data = rt.block_on(async {
-        embed_anything::embed_webpage(url, embedding_model, config, adapter)
-            .await
-            .map_err(|e| PyValueError::new_err(e.to_string()))
-            .unwrap()
-            .map(|data| {
-                data.into_iter()
-                    .map(|data| EmbedData { inner: data })
-                    .collect::<Vec<_>>()
-            })
+        embed_anything::embed_webpage(
+            url,
+            embedding_model,
+            config,
+            adapter.map(|f| {
+                Box::new(f)
+                    as Box<
+                        dyn FnOnce(Vec<embed_anything::embeddings::embed::EmbedData>) + Send + Sync,
+                    >
+            }),
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        })
     });
     Ok(data)
 }
