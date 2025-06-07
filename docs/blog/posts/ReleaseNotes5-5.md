@@ -4,7 +4,7 @@ date: 2025-05-25
 authors: 
  - sonam
 slug: release-notes-6
-title: Release Notes 5.6
+title: Release Notes 6.0
 ---
 
 Super Excited to share the latest development in our library, which essentially giving you more embedding choices -- Cohere and siglip, new chunking method-- late chunking and more crates that facilitates amazing modality and maintainability for our rust codebase, --processor crate. so let's dive in.

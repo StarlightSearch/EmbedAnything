@@ -40,7 +40,7 @@
 </div>
 
 
-EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX and late-interaction embeddings, offering flexibility for a wide range of use cases.
+EmbedAnything is a minimalist, yet highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -82,7 +82,9 @@ EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, m
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. 
+
+The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -134,6 +136,7 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
+| Model2Vec | model2vec, minishlab/potion-base-8M |
 
 
 ## Splade Models:
@@ -187,6 +190,17 @@ reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dt
 
 results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
 ```
+
+### Embed 4
+
+```python
+# Initialize the model once
+model: EmbeddingModel = EmbeddingModel.from_pretrained_cloud(
+    WhichModel.CohereVision, model_id="embed-v4.0"
+)
+
+```
+
 
 ## For Semantic Chunking
 
@@ -384,40 +398,22 @@ We’re excited to share that we've expanded our platform to support multiple mo
 
 This gives you the flexibility to work with various data types all in one place! 🌐 <br />
 
-### 💜 Product
-We’ve rolled out some major updates in version 0.3 to improve both functionality and performance. Here’s what’s new:
 
-- Semantic Chunking: Optimized chunking strategy for better Retrieval-Augmented Generation (RAG) workflows.
-
-- Streaming for Efficient Indexing: We’ve introduced streaming for memory-efficient indexing in vector databases. Want to know more? Check out our article on this feature here: https://www.analyticsvidhya.com/blog/2024/09/vector-streaming/
-
-- Zero-Shot Applications: Explore our zero-shot application demos to see the power of these updates in action.
-
-- Intuitive Functions: Version 0.3 includes a complete refactor for more intuitive functions, making the platform easier to use.
-
-- Chunkwise Streaming: Instead of file-by-file streaming, we now support chunkwise streaming, allowing for more flexible and efficient data processing.
-
-Check out the latest release :  and see how these features can supercharge your GenerativeAI pipeline! ✨
-
-## 🚀Coming Soon  <br />
 
 ### ⚙️ Performance 
 
 
-We now support ONNX as well
-
+We now support both candle and Onnx backend<br/>
 ➡️ Support for GGUF models </br >
-- Significantly faster performance</br >
-- Stay tuned for these exciting updates! 🚀</br >
 
 
 ### 🫐Embeddings:
 
 We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
 
-☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-☑️Video Embedding <br/>
-☑️ Yolo Clip <br/>
+➡️ Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
+➡️ Video Embedding <br/>
+➡️ Yolo Clip <br/>
 
 
 ### 🌊Expansion to other Vector Adapters
@@ -429,8 +425,19 @@ We currently support a wide range of vector databases for streaming embeddings, 
 - Pinecone <br/>
 - Qdrant <br/>
 - Milvus<br/>
+- Chroma <br/>
 
 How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-development-guide.md
+
+### 💥 Create WASM demos to integrate embedanything directly to the browser. <br/>
+
+### 💜 Add support for ingestion from remote sources
+➡️ Support for S3 bucket </br >
+➡️ Support for azure storage </br >
+➡️ Support for google drive/dropbox</br >
+
+
+
 
 But we're not stopping there! We're actively working to expand this list.
 
