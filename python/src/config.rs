@@ -26,15 +26,6 @@ impl TextEmbedConfig {
         tesseract_path: Option<&str>,
         pdf_backend: Option<&str>,
     ) -> Self {
-        let pdf_backend = match pdf_backend {
-            Some(backend) => {
-                match backend {
-                    "lopdf" => PdfBackend::LoPdf,
-                    _ => panic!("Unknown PDF backend provided!"),
-                }
-            }
-            None => PdfBackend::LoPdf,
-        };
 
         let strategy = match splitting_strategy {
             Some(strategy) => {
@@ -62,7 +53,7 @@ impl TextEmbedConfig {
                 .with_splitting_strategy(strategy)
                 .with_late_chunking(late_chunking.unwrap_or(false))
                 .with_ocr(use_ocr.unwrap_or(false), tesseract_path)
-                .with_pdf_backend(pdf_backend),
+                .with_pdf_backend(pdf_backend.unwrap_or("lopdf")),
         }
     }
 

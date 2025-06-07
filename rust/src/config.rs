@@ -89,7 +89,7 @@ impl TextEmbedConfig {
             .with_batch_size(batch_size.unwrap_or(32))
             .with_buffer_size(buffer_size.unwrap_or(100))
             .with_ocr(use_ocr.unwrap_or(false), tesseract_path.as_deref())
-            .with_pdf_backend(PdfBackend::LoPdf)
+            .with_pdf_backend("lopdf")
             .with_splitting_strategy(splitting_strategy)
             .with_late_chunking(late_chunking.unwrap_or(false))
             .build()
@@ -131,8 +131,12 @@ impl TextEmbedConfig {
         self
     }
 
-    pub fn with_pdf_backend(mut self, backend: PdfBackend) -> Self {
-        self.pdf_backend = backend;
+    /// Set the PDF backend to use. Defaults to "lopdf". Other backends will be supported in the future.
+    pub fn with_pdf_backend(mut self, backend: &str) -> Self {
+        self.pdf_backend = match backend {
+            "lopdf" => PdfBackend::LoPdf,
+            _ => PdfBackend::LoPdf,
+        };
         self
     }
 
