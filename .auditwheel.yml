@@ -1,0 +1,8 @@
+exclude:
+  - libcuda.so*
+  - libnvrtc.so*
+  - libcublas.so*
+  - libcurand.so*
+  - libcublasLt.so*
+  - libcrypto.so*
+  - libssl.so*

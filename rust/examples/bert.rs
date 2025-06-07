@@ -1,6 +1,6 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
-use embed_anything::embeddings::embed::EmbedderBuilder;
-use embed_anything::Dtype;
+use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
+use embed_anything::{embed_directory_stream, embed_file, embed_files_batch, Dtype};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
@@ -9,8 +9,8 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("jina")
-            .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+            .model_architecture("bert")
+            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
             .revision(None)
             .token(None)
             .dtype(Some(Dtype::F16))
@@ -20,33 +20,31 @@ async fn main() {
 
     let config = TextEmbedConfig::default()
         .with_chunk_size(1000, Some(0.3))
-        .with_batch_size(16)
+        .with_batch_size(32)
         .with_buffer_size(32)
-        .with_splitting_strategy(SplittingStrategy::Semantic {
-            semantic_encoder: model.clone(),
-        });
+        .with_splitting_strategy(SplittingStrategy::Sentence);
 
     let now = Instant::now();
 
-    // Embed files batch
-    println!("Embedding files batch");
-    let _out_2 = model
-        .embed_files_batch(
-            vec!["test_files/test.pdf", "test_files/test.txt"],
-            Some(&config),
-            None,
-        )
-        .await
-        .unwrap()
-        .unwrap();
+    let _out = embed_file(
+        "test_files/test.pdf",
+        &model,
+        Some(&config),
+        None::<fn(Vec<EmbedData>)>,
+    )
+    .await
+    .unwrap()
+    .unwrap();
 
-    // Embed file
-    println!("Embedding file");
-    let _out = model
-        .embed_file("test_files/test.pdf", Some(&config), None)
-        .await
-        .unwrap()
-        .unwrap();
+    let _out_2 = embed_files_batch(
+        vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
+        &model,
+        Some(&config),
+        None::<fn(Vec<EmbedData>)>,
+    )
+    .await
+    .unwrap()
+    .unwrap();
 
     let elapsed_time: std::time::Duration = now.elapsed();
 
@@ -54,30 +52,17 @@ async fn main() {
 
     let now = Instant::now();
 
-    // Embed a directory
-    println!("Embedding directory");
-    let _out = model
-        .embed_directory_stream(
-            PathBuf::from("test_files"),
-            Some(vec!["pdf".to_string(), "txt".to_string()]),
-            Some(&config),
-            None,
-        )
-        .await
-        .unwrap()
-        .unwrap();
-
-    // Embed an html file
-    println!("Embedding webpage");
-    let _out2 = model
-        .embed_webpage(
-            "https://www.google.com".to_string(),
-            Some(&config),
-            None,
-        )
-        .await
-        .unwrap()
-        .unwrap();
+    let _out = embed_directory_stream(
+        PathBuf::from("test_files"),
+        &model,
+        None,
+        // Some(vec!["txt".to_string()]),
+        Some(&config),
+        None::<fn(Vec<EmbedData>)>,
+    )
+    .await
+    .unwrap()
+    .unwrap();
 
     let embedded_files = _out
         .iter()
