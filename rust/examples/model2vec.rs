@@ -1,6 +1,5 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
 use embed_anything::embeddings::embed::EmbedderBuilder;
-use processors_rs::pdf::pdf_processor::PdfBackend;
 use embed_anything::Dtype;
 use std::collections::HashSet;
 use std::sync::Arc;
