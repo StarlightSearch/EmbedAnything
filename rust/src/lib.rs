@@ -106,6 +106,7 @@ pub enum Dtype {
     F32,
     Q4F16,
     QUANTIZED,
+    BF16,
 }
 
 /// Embeds a list of queries using the specified embedding model.

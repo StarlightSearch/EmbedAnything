@@ -20,7 +20,7 @@ async fn main() {
 
     let config = TextEmbedConfig::default()
         .with_chunk_size(1000, Some(0.3))
-        .with_batch_size(1)
+        .with_batch_size(16)
         .with_buffer_size(32)
         .with_splitting_strategy(SplittingStrategy::Semantic {
             semantic_encoder: model.clone(),
@@ -29,6 +29,7 @@ async fn main() {
     let now = Instant::now();
 
     // Embed files batch
+    println!("Embedding files batch");
     let _out_2 = model
         .embed_files_batch(
             vec!["test_files/test.pdf", "test_files/test.txt"],
@@ -40,6 +41,7 @@ async fn main() {
         .unwrap();
 
     // Embed file
+    println!("Embedding file");
     let _out = model
         .embed_file("test_files/test.pdf", Some(&config), None)
         .await
@@ -53,6 +55,7 @@ async fn main() {
     let now = Instant::now();
 
     // Embed a directory
+    println!("Embedding directory");
     let _out = model
         .embed_directory_stream(
             PathBuf::from("test_files"),
@@ -65,6 +68,7 @@ async fn main() {
         .unwrap();
 
     // Embed an html file
+    println!("Embedding webpage");
     let _out2 = model
         .embed_webpage(
             "https://www.google.com".to_string(),

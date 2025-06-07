@@ -462,6 +462,7 @@ class Dtype(Enum):
     UINT8 = "UINT8"
     BNB4 = "BNB4"
     Q4F16 = "Q4F16"
+    BF16 = "BF16"
 
 class RerankerResult:
     """
@@ -864,6 +865,7 @@ class WhichModel(Enum):
     ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
     ModernBert = ("ModernBert",)
+    Qwen3 = ("Qwen3",)
 
 class ONNXModel(Enum):
     """

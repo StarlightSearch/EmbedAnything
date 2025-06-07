@@ -86,6 +86,7 @@ impl OrtBertEmbedder {
                 Some(Dtype::BNB4) => format!("{base_path}/model_bnb4.onnx"),
                 Some(Dtype::F32) => format!("{base_path}/model.onnx"),
                 Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
+                Some(Dtype::BF16) => format!("{base_path}/model_bf16.onnx"),
                 None => path.to_string(),
             };
             let weights = api.get(model_path.as_str());

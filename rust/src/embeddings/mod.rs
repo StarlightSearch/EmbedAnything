@@ -64,7 +64,7 @@ pub fn text_batch_from_audio(segments: &[Segment]) -> Vec<&str> {
 }
 
 pub async fn embed_audio<T: AsRef<std::path::Path>>(
-    embedder: &mut Embedder,
+    embedder: &Embedder,
     segments: Vec<Segment>,
     audio_file: T,
     batch_size: Option<usize>,

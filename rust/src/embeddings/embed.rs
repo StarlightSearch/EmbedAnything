@@ -125,7 +125,7 @@ impl TextEmbedder {
             TextEmbedder::Model2Vec(embedder) => embedder.embed(text_batch, batch_size),
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
-            TextEmbedder::Qwen3(embedder) => embedder.embed(text_batch, batch_size),
+            TextEmbedder::Qwen3(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::ColBert(embedder) => {
                 embedder.embed(text_batch, batch_size, late_chunking)
             }
@@ -175,6 +175,7 @@ impl TextEmbedder {
                 model_id,
                 revision.map(|s| s.to_string()),
                 token,
+                dtype
             )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }

@@ -93,8 +93,8 @@ impl Pooling {
                     return Ok(PooledOutputType::Tensor(
                         tensor.get_on_dim(1, tensor.dim(1)? - 1)?,
                     ));
-                } else if left_padding == 0 {
-                    let sequence_lengths = attention_mask.sum( 1)?.to_vec1::<u32>()?;
+                } else {
+                    let sequence_lengths = attention_mask.sum(1)?.to_vec1::<u32>()?;
                     let batch_size = tensor.dim(0)?;
 
                     let mut final_tensor = vec![];
@@ -105,9 +105,7 @@ impl Pooling {
                     let final_tensor = Tensor::stack(&final_tensor, 1)?;
                     return Ok(PooledOutputType::Tensor(final_tensor))
                     
-                } else {
-                    return Err(anyhow::anyhow!("Left padding is not 0 or 1"));
-                }
+                } 
             }
             ModelOutput::Array(array) => {
                 let attention_mask = attention_mask
@@ -116,18 +114,16 @@ impl Pooling {
                     })?
                     .to_array()?;
 
-                let last_mask_column = attention_mask.slice(s![.., -1]);
-                let left_padding = last_mask_column.iter().sum::<f32>();
+                let sequence_lengths = attention_mask.sum_axis(Axis(1));
+                let batch_size = array.shape()[0];
 
-                if left_padding == 0.0 {
-                    return Ok(PooledOutputType::Array(
-                        array.slice(s![.., -1, ..]).to_owned(),
-                    ));
+                let mut final_embeddings = vec![];
+                for i in 0..batch_size{
+                    let t = array.slice(s![i, .., sequence_lengths[i] as usize]);
+                    final_embeddings.push(t);
                 }
-
-                Ok(PooledOutputType::Array(
-                    array.slice(s![.., -1, ..]).to_owned(),
-                ))
+                let final_embeddings = ndarray::stack(Axis(1), &final_embeddings)?;
+                return Ok(PooledOutputType::Array(final_embeddings))
             }
         }
     }

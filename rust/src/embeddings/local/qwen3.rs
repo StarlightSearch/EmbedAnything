@@ -18,6 +18,7 @@ pub trait Qwen3Embed {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
 
@@ -32,6 +33,7 @@ impl Qwen3Embedder {
         model_id: &str,
         revision: Option<String>,
         token: Option<&str>,
+        dtype: Option<crate::Dtype>,
     ) -> Result<Self, anyhow::Error> {
         let api = ApiBuilder::new()
             .with_token(token.map(|s| s.to_string()))
@@ -67,7 +69,7 @@ impl Qwen3Embedder {
         };
         let trunc = TruncationParams {
             strategy: tokenizers::TruncationStrategy::LongestFirst,
-            max_length: config.max_position_embeddings as usize,
+            max_length: 1024,
             ..Default::default()
         };
 
@@ -78,13 +80,20 @@ impl Qwen3Embedder {
 
         let device = select_device();
 
+        let dtype = match dtype {
+            Some(crate::Dtype::F16) => DType::F16,
+            Some(crate::Dtype::F32) => DType::F32,
+            Some(crate::Dtype::BF16) => DType::BF16,
+            _ => DType::F32,
+        };
+
         let vb = match weights_filename {
             Ok(weights) => unsafe {
-                VarBuilder::from_mmaped_safetensors(&[weights], DType::BF16, &device)?
+                VarBuilder::from_mmaped_safetensors(&[weights], dtype, &device)?
             },
             Err(_) => {
                 let weights = hub_load_safetensors(&repo, "model.safetensors.index.json")?;
-                unsafe { VarBuilder::from_mmaped_safetensors(&weights, DType::BF16, &device)? }
+                unsafe { VarBuilder::from_mmaped_safetensors(&weights, dtype, &device)? }
             }
         };
 
@@ -103,6 +112,7 @@ impl Qwen3Embed for Qwen3Embedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        _late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
@@ -142,25 +152,26 @@ mod tests {
 
     #[test]
     fn test_qwen3_embed() {
-        let mut embedder = Qwen3Embedder::new("Qwen/Qwen3-Embedding-0.6B", None, None).unwrap();
+        let embedder = Qwen3Embedder::new("Qwen/Qwen3-Embedding-0.6B", None, None, Some(crate::Dtype::F16)).unwrap();
         let embeddings = embedder
-            .embed(&["Hello, world!", "I am a rust programmer now"], Some(1))
+            .embed(&["Hello, world!", "I am a rust programmer now"], Some(2), None)
             .unwrap();
-        // let test_embeddings: Vec<f32> = vec![
-        //     -3.81771438e-02,
-        //     3.29110473e-02,
-        //     -5.45941433e-03,
-        //     1.43699292e-02,
-        //     -4.02910188e-02,
-        //     -1.16532497e-01,
-        // ];
-        // let embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
-        // println!("{:?}", embeddings);
-        // assert!(
-        //     (embeddings
-        //         .iter()
-        //         .zip(test_embeddings.iter())
-        //         .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
-        // );
+ 
+        let test_embeddings: Vec<f32> = vec![
+            -3.81771438e-02,
+            3.29110473e-02,
+            -5.45941433e-03,
+            1.43699292e-02,
+            -4.02910188e-02,
+            -1.16532497e-01,
+        ];
+        let embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
+        println!("{:?}", embeddings);
+        assert!(
+            (embeddings
+                .iter()
+                .zip(test_embeddings.iter())
+                .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
+        );
     }
 }

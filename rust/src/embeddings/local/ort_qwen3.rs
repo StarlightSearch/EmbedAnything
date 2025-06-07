@@ -1,8 +1,8 @@
 use super::bert::TokenizerConfig;
-use super::jina::JinaEmbed;
 use super::pooling::{ModelOutput, PooledOutputType, Pooling};
 use super::text_embedding::{models_map, ONNXModel};
 use crate::embeddings::embed::EmbeddingResult;
+use crate::embeddings::local::qwen3::Qwen3Embed;
 use crate::embeddings::utils::tokenize_batch_ndarray;
 use crate::Dtype;
 use anyhow::Error as E;
@@ -11,21 +11,20 @@ use hf_hub::Repo;
 use ndarray::prelude::*;
 use rayon::prelude::*;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
-
 use {
     ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider},
     ort::session::builder::GraphOptimizationLevel,
     ort::session::Session,
 };
-#[derive(Debug)]
-pub struct OrtJinaEmbedder {
+pub struct OrtQwen3Embedder {
     pub session: Session,
     pub version: String,
     pub tokenizer: Tokenizer,
     pub pooling: Pooling,
 }
 
-impl OrtJinaEmbedder {
+
+impl OrtQwen3Embedder {
     pub fn new(
         model_name: Option<ONNXModel>,
         model_id: Option<&str>,
@@ -87,8 +86,8 @@ impl OrtJinaEmbedder {
                 Some(Dtype::UINT8) => format!("{base_path}/model_uint8.onnx"),
                 Some(Dtype::BNB4) => format!("{base_path}/model_bnb4.onnx"),
                 Some(Dtype::F32) => format!("{base_path}/model.onnx"),
-                Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
                 Some(Dtype::BF16) => format!("{base_path}/model_bf16.onnx"),
+                Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
                 None => path.to_string(),
             };
             let weights = api.get(model_path.as_str());
@@ -166,7 +165,7 @@ impl OrtJinaEmbedder {
             _ => "v2",
         };
 
-        Ok(OrtJinaEmbedder {
+        Ok(OrtQwen3Embedder {
             session: model,
             version: version.to_string(),
             tokenizer,
@@ -237,25 +236,12 @@ impl OrtJinaEmbedder {
             )
             .unwrap();
 
-            let token_type_ids: Array2<i64> = Array2::zeros(token_ids_ndarray.raw_dim());
-
-            let embeddings = if self.version == "v3" {
+            let embeddings = {
                 let outputs = self.session.run(ort::inputs! {
                     "input_ids" => token_ids_ndarray,
                     "attention_mask" => attention_mask_ndarray.clone(),
-                    "task_id" => Array1::<i64>::from_vec(vec![4])
-                }?)?;
+                }?).unwrap();
                 outputs["text_embeds"]
-                    .try_extract_tensor::<f32>()?
-                    .to_owned()
-                    .into_dimensionality::<ndarray::Ix3>()?
-            } else {
-                let outputs = self.session.run(ort::inputs! {
-                    "input_ids" => token_ids_ndarray,
-                    "token_type_ids" => token_type_ids,
-                    "attention_mask" => attention_mask_ndarray.clone()
-                }?)?;
-                outputs["last_hidden_state"]
                     .try_extract_tensor::<f32>()?
                     .to_owned()
                     .into_dimensionality::<ndarray::Ix3>()?
@@ -290,9 +276,12 @@ impl OrtJinaEmbedder {
         }
         Ok(results)
     }
+
 }
 
-impl JinaEmbed for OrtJinaEmbedder {
+
+
+impl Qwen3Embed for OrtQwen3Embedder {
     fn embed(
         &self,
         text_batch: &[&str],
@@ -304,30 +293,17 @@ impl JinaEmbed for OrtJinaEmbedder {
         } else {
             let batch_size: usize = batch_size.unwrap_or(32);
             let output_name = self.session.outputs.first().unwrap().name.as_str();
-
             let encodings = text_batch
                 .par_chunks(batch_size)
                 .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
                     let (token_ids, attention_mask): (Array2<i64>, Array2<i64>) =
                         tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
-                    let token_type_ids: Array2<i64> = Array2::zeros(token_ids.raw_dim());
 
-                    let embeddings = if self.version == "v3" {
+                    let embeddings = {
                         let outputs = self.session.run(ort::inputs! {
                             "input_ids" => token_ids,
                             "attention_mask" => attention_mask.clone(),
-                            "task_id" => Array1::<i64>::from_vec(vec![4])
-                        }?)?;
-                        outputs[output_name]
-                            .try_extract_tensor::<f32>()?
-                            .to_owned()
-                            .into_dimensionality::<ndarray::Ix3>()?
-                    } else {
-                        let outputs = self.session.run(ort::inputs! {
-                            "input_ids" => token_ids,
-                            "token_type_ids" => token_type_ids,
-                            "attention_mask" => attention_mask.clone()
-                        }?)?;
+                        }?).unwrap();
                         outputs[output_name]
                             .try_extract_tensor::<f32>()?
                             .to_owned()
@@ -359,5 +335,42 @@ impl JinaEmbed for OrtJinaEmbedder {
                 .map(|x| EmbeddingResult::DenseVector(x.to_vec()))
                 .collect())
         }
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_ort_bert_embed() {
+        let embedder = OrtQwen3Embedder::new(
+            None,
+            Some("onnx-community/Qwen3-Embedding-0.6B-ONNX"),
+            None,
+            None,
+            Some("onnx/model.onnx"),
+        )
+        .unwrap();
+        let embeddings = embedder
+            .embed(&["Hello, world!", "I am a rust programmer"], Some(32), None)
+            .unwrap();
+        println!("embeddings: {:?}", embeddings);
+
+        let test_embeddings: Vec<f32> = vec![
+            -3.81771736e-02,
+            3.29111032e-02,
+            -5.45938499e-03,
+            1.43699143e-02,
+        ];
+        let embeddings = embeddings[0].to_dense().unwrap()[0..4].to_vec();
+        assert!(
+            (embeddings
+                .iter()
+                .zip(test_embeddings.iter())
+                .all(|(a, b)| a.abs() - b.abs() < 1e-5))
+        );
     }
 }
