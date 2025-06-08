@@ -1,5 +1,5 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
-use embed_anything::embeddings::embed::EmbedderBuilder;
+use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
 use embed_anything::{embed_directory_stream, embed_file, embed_files_batch, Dtype};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -9,8 +9,8 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("qwen3")
-            .model_id(Some("Qwen/Qwen3-Embedding-0.6B"))
+            .model_architecture("bert")
+            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
             .revision(None)
             .token(None)
             .dtype(Some(Dtype::F16))
