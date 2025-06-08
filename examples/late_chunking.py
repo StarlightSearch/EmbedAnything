@@ -6,8 +6,9 @@ import numpy as np
 
 
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B"
+    WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
+
 config = TextEmbedConfig(
     chunk_size=1000,
     batch_size=8,
@@ -23,7 +24,7 @@ data: list[EmbedData] = model.embed_file("test_files/attention.pdf", config=conf
 #     print(d.text)
 #     print("---" * 20)
 
-query = "What are positional encodings?"
+query = "Which gpu is used for training?"
 
 query_embedding = np.array(model.embed_query([query])[0].embedding)
 

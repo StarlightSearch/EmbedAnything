@@ -65,6 +65,7 @@ impl Qwen3Embedder {
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(Error::msg)?;
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
+            direction: tokenizers::PaddingDirection::Left,
             ..Default::default()
         };
         let trunc = TruncationParams {
@@ -120,11 +121,14 @@ impl Qwen3Embed for Qwen3Embedder {
         for mini_text_batch in text_batch.chunks(batch_size) {
             let (token_ids, attention_mask) =
                 tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
-            let embeddings: Tensor = self.model.write().unwrap()
-                .forward(&token_ids, 0)
+            let embeddings: Tensor = self
+                .model
+                .write()
+                .unwrap()
+                .forward(&token_ids, &attention_mask, 0)
                 .unwrap()
                 .to_dtype(DType::F32)?;
-
+            
             self.model.write().unwrap().clear_kv_cache();
             let attention_mask = PooledOutputType::from(attention_mask);
             let attention_mask = Some(&attention_mask);
@@ -152,23 +156,49 @@ mod tests {
 
     #[test]
     fn test_qwen3_embed() {
-        let embedder = Qwen3Embedder::new("Qwen/Qwen3-Embedding-0.6B", None, None, Some(crate::Dtype::F16)).unwrap();
+        let embedder = Qwen3Embedder::new(
+            "Qwen/Qwen3-Embedding-0.6B",
+            None,
+            None,
+            Some(crate::Dtype::F32),
+        )
+        .unwrap();
         let embeddings = embedder
-            .embed(&["Hello, world!", "I am a rust programmer now"], Some(2), None)
+            .embed(
+                &["Hello, world!", "I am a rust programmer now"],
+                Some(2),
+                None,
+            )
             .unwrap();
- 
         let test_embeddings: Vec<f32> = vec![
-            -3.81771438e-02,
-            3.29110473e-02,
-            -5.45941433e-03,
-            1.43699292e-02,
-            -4.02910188e-02,
-            -1.16532497e-01,
+            0.00555867,
+            0.00928946,
+            -0.00985782,
+            -0.06393453,
+            0.00829317,
+            0.00708855,
         ];
-        let embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
-        println!("{:?}", embeddings);
+        let first_embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
+        println!("{:?}", first_embeddings);
         assert!(
-            (embeddings
+            (first_embeddings
+                .iter()
+                .zip(test_embeddings.iter())
+                .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
+        );
+        let test_embeddings: Vec<f32> = vec![
+            0.03579775,
+            -0.04019123,
+            -0.01412615,
+            -0.05743032,
+            0.04517555,
+            -0.0193235,
+        ];
+
+        let second_embeddings = embeddings[1].to_dense().unwrap()[0..6].to_vec();
+        println!("{:?}", second_embeddings);
+        assert!(
+            (second_embeddings
                 .iter()
                 .zip(test_embeddings.iter())
                 .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
