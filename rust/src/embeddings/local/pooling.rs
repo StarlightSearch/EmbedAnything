@@ -88,8 +88,8 @@ impl Pooling {
                     .get_on_dim(1, attention_mask.dim(1)? - 1)?
                     .sum_all()?
                     .to_scalar::<u32>()?;
-
-                if left_padding == 1 {
+    
+                if left_padding == attention_mask.dim(0)? as u32 {
                     return Ok(PooledOutputType::Tensor(
                         tensor.get_on_dim(1, tensor.dim(1)? - 1)?,
                     ));
@@ -99,10 +99,10 @@ impl Pooling {
 
                     let mut final_tensor = vec![];
                     for i in 0..batch_size{
-                        let t = tensor.get(i)?.get(sequence_lengths[i] as usize)?;
+                        let t = tensor.get(i)?.get((sequence_lengths[i]-1) as usize)?;
                         final_tensor.push(t);
                     }
-                    let final_tensor = Tensor::stack(&final_tensor, 1)?;
+                    let final_tensor: Tensor = Tensor::stack(&final_tensor, 0)?;
                     return Ok(PooledOutputType::Tensor(final_tensor))
                     
                 } 
@@ -119,7 +119,7 @@ impl Pooling {
 
                 let mut final_embeddings = vec![];
                 for i in 0..batch_size{
-                    let t = array.slice(s![i, .., sequence_lengths[i] as usize]);
+                    let t = array.slice(s![i, .., (sequence_lengths[i]-1.0) as usize]);
                     final_embeddings.push(t);
                 }
                 let final_embeddings = ndarray::stack(Axis(1), &final_embeddings)?;

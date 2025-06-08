@@ -329,6 +329,7 @@ impl Model {
         tgt: usize,
         offset: usize,
         sw: Option<usize>,
+        attn_mask: Option<&Tensor>,
     ) -> Result<Tensor> {
         let minf = f32::NEG_INFINITY;
         let mask: Vec<_> = (0..tgt)
@@ -347,17 +348,28 @@ impl Model {
                 })
             })
             .collect();
-        Tensor::from_slice(&mask, (b, 1, tgt, tgt + offset), &self.device)?.to_dtype(self.dtype)
+        let extended_mask =
+            prepare_4d_attention_mask(attn_mask.unwrap(), DType::F32, Some(tgt + offset))?;
+        let mask = Tensor::from_slice(&mask, (1, 1, tgt, tgt + offset), &self.device)?
+            .expand((b, 1, tgt, tgt + offset))?
+            .to_dtype(self.dtype)?;
+        let mask = mask.broadcast_add(&extended_mask)?;
+        Ok(mask)
     }
 
-    pub fn forward(&mut self, input: &Tensor, offset: usize) -> Result<Tensor> {
+    pub fn forward(
+        &mut self,
+        input: &Tensor,
+        attention_mask: &Tensor,
+        offset: usize,
+    ) -> Result<Tensor> {
         let (b, l) = input.dims2()?;
         let mut h = self.embed_tokens.forward(input)?;
 
         let causal = if l == 1 {
             None
         } else {
-            Some(self.causal_mask(b, l, offset, None)?)
+            Some(self.causal_mask(b, l, offset, None, Some(attention_mask))?)
         };
 
         for layer in &mut self.layers {
@@ -367,32 +379,22 @@ impl Model {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ModelForCausalLM {
-    base: Model,
-    lm_head: Linear,
-}
+fn prepare_4d_attention_mask(
+    mask: &Tensor,
+    dtype: DType,
+    tgt_len: Option<usize>,
+) -> Result<Tensor> {
+    let bsz = mask.dim(0)?;
+    let src_len = mask.dim(1)?;
+    let tgt_len = tgt_len.unwrap_or(src_len);
 
-impl ModelForCausalLM {
-    pub fn new(cfg: &Config, vb: VarBuilder) -> Result<Self> {
-        let base = Model::new(cfg, vb.clone())?;
-        let lm_head = if cfg.tie_word_embeddings {
-            Linear::from_weights(base.embed_tokens.embeddings().clone(), None)
-        } else {
-            linear_no_bias(cfg.hidden_size, cfg.vocab_size, vb.pp("lm_head"))?
-        };
-        Ok(Self { base, lm_head })
-    }
+    let expanded_mask = mask
+        .unsqueeze(1)?
+        .unsqueeze(2)?
+        .expand((bsz, 1, tgt_len, src_len))?
+        .to_dtype(dtype)?;
 
-    pub fn forward(&mut self, input: &Tensor, offset: usize) -> Result<Tensor> {
-        let (_, l) = input.dims2()?;
-        self.base
-            .forward(input, offset)?
-            .narrow(1, l - 1, 1)?
-            .apply(&self.lm_head)
-    }
+    let inverted_mask = (1.0 - expanded_mask)?;
 
-    pub fn clear_kv_cache(&mut self) {
-        self.base.clear_kv_cache();
-    }
+    (inverted_mask * f32::MIN as f64)?.to_dtype(dtype)
 }

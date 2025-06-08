@@ -1006,7 +1006,6 @@ dependencies = [
 name = "embed_anything_python"
 version = "0.6.2"
 dependencies = [
- "cudarc",
  "embed_anything",
  "processors-rs",
  "pyo3",
