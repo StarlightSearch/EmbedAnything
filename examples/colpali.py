@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Load ONNX Model
 model: ColpaliModel = ColpaliModel.from_pretrained_onnx(
-    "akshayballal/colpali-v1.2-merged-onnx", None
+    "starlight-ai/colpali-v1.2-merged-onnx", None
 )
 
 # Get all PDF files in the directory
@@ -43,7 +43,7 @@ scores = (
 )
 
 # Get top pages
-top_pages = np.argsort(scores)[-5:][::-1]
+top_pages = np.argsort(scores)[::-1][:5]
 
 # Extract file names and page numbers
 table = [

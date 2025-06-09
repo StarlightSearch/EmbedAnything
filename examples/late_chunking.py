@@ -6,7 +6,7 @@ import numpy as np
 
 
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B"
+    WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
 )
 config = TextEmbedConfig(
     chunk_size=1000,

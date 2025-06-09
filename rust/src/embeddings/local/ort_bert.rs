@@ -306,8 +306,8 @@ impl OrtBertEmbedder {
                     .flatten()
                     .map(|x| x as i64)
                     .collect::<Vec<i64>>(),
-            )
-            .unwrap();
+            )?;
+
             let attention_mask_ndarray = Array2::from_shape_vec(
                 (attention_mask_merged.len(), attention_mask_merged[0].len()),
                 attention_mask_merged
@@ -315,8 +315,7 @@ impl OrtBertEmbedder {
                     .flatten()
                     .map(|x| x as i64)
                     .collect::<Vec<i64>>(),
-            )
-            .unwrap();
+            )?;
 
             let token_type_ids: Array2<i64> = Array2::zeros(token_ids_ndarray.raw_dim());
             let input_ids_tensor = ort::value::TensorRef::from_array_view(&token_ids_ndarray)?;

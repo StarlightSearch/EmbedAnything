@@ -5,7 +5,7 @@ from embed_anything import Dtype, ONNXModel
 import numpy as np
 
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B"
+    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.F16
 )
 
 config = TextEmbedConfig(
@@ -16,7 +16,7 @@ config = TextEmbedConfig(
 )
 
 # Embed a single file
-data: list[EmbedData] = model.embed_file("EmbedAnything/test_files/attention.pdf", config=config)
+data: list[EmbedData] = model.embed_file("test_files/attention.pdf", config=config)
 
 
 query = "Which GPU is used for training"
