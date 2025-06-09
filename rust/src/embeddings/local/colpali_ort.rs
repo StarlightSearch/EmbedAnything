@@ -43,8 +43,8 @@ impl OrtColPaliEmbedder {
         let (_, tokenizer_filename, weights_filename, _) = {
             let config = repo.get("config.json").unwrap_or(repo.get("preprocessor_config.json")?);
             let tokenizer = repo.get("tokenizer.json")?;
-            let weights = repo.get(format!("{}/model.onnx", path_in_repo).as_str())?;
-            let data = repo.get(format!("{}/model.onnx_data", path_in_repo).as_str()).ok();
+            let weights = repo.get(format!("{}model.onnx", path_in_repo).as_str())?;
+            let data = repo.get(format!("{}model.onnx_data", path_in_repo).as_str()).ok();
 
             (config, tokenizer, weights, data)
         };
