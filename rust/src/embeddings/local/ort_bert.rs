@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use super::bert::{BertEmbed, TokenizerConfig};
 use super::pooling::{ModelOutput, PooledOutputType, Pooling};
 use super::text_embedding::ONNXModel;
@@ -13,13 +15,12 @@ use ndarray::prelude::*;
 use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider};
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
-use rayon::prelude::*;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 #[derive(Debug)]
 pub struct OrtBertEmbedder {
     pub tokenizer: Tokenizer,
-    pub model: Session,
+    pub model: RwLock<Session>,
     pub pooling: Pooling,
 }
 
@@ -76,7 +77,10 @@ impl OrtBertEmbedder {
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let base_path = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+            let mut base_path = path.rsplit_once('/').map(|(p, _)| p.to_string()).unwrap_or_default();
+            if !base_path.is_empty() {
+                base_path.push('/');
+            }
             let model_path = match dtype {
                 Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
                 Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
@@ -158,7 +162,7 @@ impl OrtBertEmbedder {
 
         Ok(OrtBertEmbedder {
             tokenizer,
-            model,
+            model: RwLock::new(model),
             pooling,
         })
     }
@@ -171,43 +175,46 @@ impl OrtBertEmbedder {
         let batch_size = batch_size.unwrap_or(32);
 
         // Pre-compute input names once
-        let input_names: Vec<_> = self
-            .model
+        let mut model_guard = self.model.write().unwrap();
+        let input_names: Vec<_> = model_guard
             .inputs
             .iter()
             .map(|input| input.name.as_str())
             .collect();
-        let output_name = self.model.outputs.first().unwrap().name.as_str();
+        let output_name = model_guard.outputs.first().unwrap().name.to_string();
         let needs_token_type = input_names.iter().any(|&x| x == "token_type_ids");
 
+        // Run model and extract embeddings
         let encodings = text_batch
-            .par_chunks(batch_size)
+            .chunks(batch_size)
             .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
                 // Tokenize and prepare inputs
                 let (input_ids, attention_mask) =
                     tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
 
                 // Build inputs more efficiently
+                let input_ids_tensor = ort::value::TensorRef::from_array_view(&input_ids)?;
+                let attention_mask_tensor =
+                    ort::value::TensorRef::from_array_view(&attention_mask)?;
+                let token_type_ids = Array2::<i64>::zeros(input_ids.raw_dim());
+
+                let token_type_id_tensor = ort::value::TensorRef::from_array_view(&token_type_ids)?;
                 let inputs = if needs_token_type {
-                    let token_type_ids = Array2::<i64>::zeros(input_ids.raw_dim());
                     ort::inputs![
-                        "input_ids" => input_ids,
-                        "attention_mask" => attention_mask.clone(),
-                        "token_type_ids" => token_type_ids
-                    ]?
+                        "input_ids" => input_ids_tensor,
+                        "attention_mask" => attention_mask_tensor,
+                        "token_type_ids" => token_type_id_tensor
+                    ]
                 } else {
                     ort::inputs![
-                        "input_ids" => input_ids,
-                        "attention_mask" => attention_mask.clone()
-                    ]?
+                        "input_ids" => input_ids_tensor,
+                        "attention_mask" => attention_mask_tensor
+                    ]
                 };
 
-                // Run model and extract embeddings
-                let outputs = self.model.run(inputs)?;
-                let embeddings: Array3<f32> = outputs[output_name]
-                    .try_extract_tensor()?
-                    .to_owned()
-                    .into_dimensionality()?;
+                let embeddings = model_guard.run(inputs)?;
+                let embeddings: ndarray::ArrayViewD<f32> =
+                    embeddings[output_name.as_str()].try_extract_array()?;
 
                 // Prepare attention mask for pooling
                 let attention_mask = if matches!(self.pooling, Pooling::Mean) {
@@ -217,6 +224,7 @@ impl OrtBertEmbedder {
                 };
 
                 // Pool and normalize embeddings
+                let embeddings = embeddings.into_dimensionality::<Ix3>()?.to_owned();
                 let model_output = ModelOutput::Array(embeddings);
                 let pooled = self.pooling.pool(&model_output, attention_mask.as_ref())?;
                 let embeddings = pooled.to_array()?;
@@ -245,14 +253,14 @@ impl OrtBertEmbedder {
         let mut results = Vec::new();
 
         // Pre-compute input names once
-        let input_names: Vec<_> = self
-            .model
+        let mut model_guard = self.model.write().unwrap();
+        let input_names: Vec<_> = model_guard
             .inputs
             .iter()
             .map(|input| input.name.as_str())
             .collect();
         let needs_token_type = input_names.iter().any(|&x| x == "token_type_ids");
-        let output_name = self.model.outputs.first().unwrap().name.as_str();
+        let output_name = model_guard.outputs.first().unwrap().name.to_string();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
             let tokens = self
@@ -311,25 +319,26 @@ impl OrtBertEmbedder {
             .unwrap();
 
             let token_type_ids: Array2<i64> = Array2::zeros(token_ids_ndarray.raw_dim());
+            let input_ids_tensor = ort::value::TensorRef::from_array_view(&token_ids_ndarray)?;
+            let attention_mask_tensor =
+                ort::value::TensorRef::from_array_view(&attention_mask_ndarray)?;
             let inputs = if needs_token_type {
+                let token_type_tensor = ort::value::TensorRef::from_array_view(&token_type_ids)?;
                 ort::inputs![
-                    "input_ids" => token_ids_ndarray,
-                    "attention_mask" => attention_mask_ndarray.clone(),
-                    "token_type_ids" => token_type_ids
-                ]?
+                    "input_ids" => input_ids_tensor,
+                    "attention_mask" => attention_mask_tensor,
+                    "token_type_ids" => token_type_tensor
+                ]
             } else {
                 ort::inputs![
-                    "input_ids" => token_ids_ndarray,
-                    "attention_mask" => attention_mask_ndarray.clone()
-                ]?
+                    "input_ids" => input_ids_tensor,
+                    "attention_mask" => attention_mask_tensor
+                ]
             };
-            let embeddings = self.model.run(inputs)?;
-            let embeddings: Array3<f32> = embeddings[output_name]
-                .try_extract_tensor::<f32>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix3>()?;
+            let embeddings = model_guard.run(inputs)?;
+            let embeddings: ndarray::ArrayViewD<f32> =
+                embeddings[output_name.as_str()].try_extract_array()?;
 
-            let (_, _, _) = embeddings.dim();
             let attention_mask = attention_mask_ndarray.mapv(|x| x as f32);
 
             for (i, &end_idx) in cumulative_seq_lengths.iter().enumerate() {
@@ -376,7 +385,7 @@ impl BertEmbed for OrtBertEmbedder {
 }
 pub struct OrtSparseBertEmbedder {
     pub tokenizer: Tokenizer,
-    pub model: Session,
+    pub model: RwLock<Session>,
 }
 
 impl OrtSparseBertEmbedder {
@@ -478,7 +487,10 @@ impl OrtSparseBertEmbedder {
             .with_inter_threads(1)? // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
-        Ok(OrtSparseBertEmbedder { tokenizer, model })
+        Ok(OrtSparseBertEmbedder {
+            tokenizer,
+            model: RwLock::new(model),
+        })
     }
 }
 
@@ -490,21 +502,43 @@ impl BertEmbed for OrtSparseBertEmbedder {
         _late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
-        let encodings = text_batch.par_chunks(batch_size).flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
-            let (token_ids, attention_mask): (Array2<i64>, Array2<i64>) = tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
-            let token_type_ids: Array2<i64> = get_type_ids_ndarray(&self.tokenizer, mini_text_batch)?;
-            let outputs = self.model.run(ort::inputs!["input_ids" => token_ids, "input_mask" => attention_mask.clone(), "segment_ids" => token_type_ids]?).unwrap();
-            let embeddings: Array3<f32> = outputs["output"]
-                .try_extract_tensor::<f32>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix3>()?;
-            let relu_log: ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 3]>> = embeddings.mapv(|x| (1.0 + x.max(0.0)).ln());
-            let weighted_log = relu_log * attention_mask.clone().mapv(|x| x as f32).insert_axis(Axis(2));
-            let scores = weighted_log.fold_axis(Axis(1), f32::NEG_INFINITY, |r, &v| r.max(v));
-            let norms = scores.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
-            let embeddings = &scores / &norms.insert_axis(Axis(1));
-            Ok(embeddings.outer_iter().map(|row| row.to_vec()).collect())
-        }).flatten().collect::<Vec<_>>();
+        let mut model_guard = self.model.write().unwrap();
+
+        let encodings = text_batch
+            .chunks(batch_size)
+            .flat_map(|mini_text_batch| -> Result<Vec<Vec<f32>>, E> {
+                let (token_ids, attention_mask): (Array2<i64>, Array2<i64>) =
+                    tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
+                let token_type_ids: Array2<i64> =
+                    get_type_ids_ndarray(&self.tokenizer, mini_text_batch)?;
+                let token_ids_tensor = ort::value::TensorRef::from_array_view(&token_ids)?;
+                let attention_mask_tensor =
+                    ort::value::TensorRef::from_array_view(&attention_mask)?;
+                let token_type_tensor = ort::value::TensorRef::from_array_view(&token_type_ids)?;
+                let outputs = model_guard.run(ort::inputs![
+                    "input_ids" => token_ids_tensor,
+                    "input_mask" => attention_mask_tensor,
+                    "segment_ids" => token_type_tensor
+                ])?;
+                let (shape, data) = outputs["output"].try_extract_tensor::<f32>()?;
+                let embeddings = Array3::from_shape_vec(
+                    (shape[0] as usize, shape[1] as usize, shape[2] as usize),
+                    data.to_vec(),
+                )?;
+                let relu_log: ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 3]>> =
+                    embeddings.mapv(|x| (1.0 + x.max(0.0)).ln());
+                let weighted_log = relu_log
+                    * attention_mask
+                        .clone()
+                        .mapv(|x| x as f32)
+                        .insert_axis(Axis(2));
+                let scores = weighted_log.fold_axis(Axis(1), f32::NEG_INFINITY, |r, &v| r.max(v));
+                let norms = scores.mapv(|x| x * x).sum_axis(Axis(1)).mapv(f32::sqrt);
+                let embeddings = &scores / &norms.insert_axis(Axis(1));
+                Ok(embeddings.outer_iter().map(|row| row.to_vec()).collect())
+            })
+            .flatten()
+            .collect::<Vec<_>>();
 
         Ok(encodings
             .iter()
