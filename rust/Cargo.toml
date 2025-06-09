@@ -79,9 +79,9 @@ lazy_static = "1.4.0"
 clap = { version = "4.5.20", features = ["derive"] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
-ort = {version = "=2.0.0-rc.10", features = ["load-dynamic"], optional = true}
+ort = {version = "=2.0.0-rc.10", features = ["load-dynamic", "half"], optional = true}
 [target.'cfg(target_os = "macos")'.dependencies]
-ort = {version = "=2.0.0-rc.10", optional = true}
+ort = {version = "=2.0.0-rc.10", features = ["half"], optional = true}
 
 
 [features]

@@ -187,21 +187,20 @@ impl OrtColPaliEmbedder {
         attention_mask: Array2<i64>,
         pixel_values: Array4<f32>,
     ) -> Result<Vec<EmbeddingResult>, E> {
-        println!("token_ids: {:?}", token_ids.shape());
-        println!("attention_mask: {:?}", attention_mask.shape());
-        println!("pixel_values: {:?}", pixel_values.shape());
+
         let mut model_guard = self.model.write().unwrap();
         let output_name = model_guard.outputs.first().unwrap().name.to_string();
 
-        let token_ids_tensor = ort::value::TensorRef::from_array_view(&token_ids)?;
-        let pixel_values_tensor = ort::value::TensorRef::from_array_view(&pixel_values)?;
-        let attention_mask_tensor = ort::value::TensorRef::from_array_view(&attention_mask)?;
+        let token_ids_tensor = ort::value::Value::from_array(token_ids)?;
+        let pixel_values_tensor = ort::value::Value::from_array(pixel_values)?;
+        let attention_mask_tensor = ort::value::Value::from_array(attention_mask)?;
         let outputs = model_guard.run(ort::inputs!["input_ids" => token_ids_tensor, "pixel_values" => pixel_values_tensor, "attention_mask" => attention_mask_tensor])?;
 
         let embeddings = outputs[output_name]
-            .try_extract_array::<f32>()?
+            .try_extract_array::<f16>()?
             .to_owned()
             .into_dimensionality::<ndarray::Ix3>()?;
+
 
         let e = embeddings
             .outer_iter()
@@ -209,7 +208,7 @@ impl OrtColPaliEmbedder {
                 EmbeddingResult::MultiVector(
                     row.outer_iter()
                         .map(|x| x.to_vec())
-                        .map(|y| y.into_iter().map(|z| z as f32).collect::<Vec<f32>>())
+                        .map(|y| y.into_iter().map(|z| z.to_f32()).collect::<Vec<f32>>())
                         .collect(),
                 )
             })
