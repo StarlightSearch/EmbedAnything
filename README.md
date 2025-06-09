@@ -102,7 +102,8 @@ The embedding process happens separetly from the main process, so as to maintain
 ## 🍓 Our Past Collaborations:
 
 We have collaborated with reputed enterprise like
-[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), [Weaviate](), [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0)
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), [Weaviate](), [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) [Milvus](https://milvus.io/docs/build_RAG_with_milvus_and_embedAnything.md) 
+and [Analytics Vidya Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0)
 
 You can get in touch with us for further collaborations.
 
@@ -137,6 +138,7 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 | Model2Vec | model2vec, minishlab/potion-base-8M |
+| Qwen3-Embedding | Qwen/Qwen3-Embedding-0.6B |
 
 
 ## Splade Models:
@@ -201,6 +203,15 @@ model: EmbeddingModel = EmbeddingModel.from_pretrained_cloud(
 
 ```
 
+### Qwen 3 - Embedding
+
+```python
+# Initialize the model once
+model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B"
+)
+```
+
 
 ## For Semantic Chunking
 
@@ -243,7 +254,11 @@ For GPUs and using special models like ColPali <br/>
 pip install embed-anything-gpu
 `
 
+🚧❌ If it shows cuda error while running on windowns, run the following command:
 
+```
+os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin")
+```
 
 # Usage
 
@@ -283,38 +298,6 @@ query_embedding = np.array(
 similarities = np.dot(embeddings, query_embedding)
 max_index = np.argmax(similarities)
 Image.open(data[max_index].text).show()
-```
-
-## Audio Embedding using Whisper
-### requirements:  Audio .wav files.
-
-
-```python
-import embed_anything
-from embed_anything import (
-    AudioDecoderModel,
-    EmbeddingModel,
-    embed_audio_file,
-    TextEmbedConfig,
-)
-# choose any whisper or distilwhisper model from https://huggingface.co/distil-whisper or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
-audio_decoder = AudioDecoderModel.from_pretrained_hf(
-    "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
-)
-embedder = EmbeddingModel.from_pretrained_hf(
-    embed_anything.WhichModel.Bert,
-    model_id="sentence-transformers/all-MiniLM-L6-v2",
-    revision="main",
-)
-config = TextEmbedConfig(chunk_size=1000, batch_size=32)
-data = embed_anything.embed_audio_file(
-    "test_files/audio/samples_hp0.wav",
-    audio_decoder=audio_decoder,
-    embedder=embedder,
-    text_embed_config=config,
-)
-print(data[0].metadata)
-
 ```
 
 ### Using ONNX Models
