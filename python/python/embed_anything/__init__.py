@@ -119,7 +119,6 @@ Supported Embedding Models:
     - "Whisper"
 """
 
-from .vectordb import *
 import platform
 import os
 
@@ -127,16 +126,16 @@ import os
 if platform.system() == "Windows":
     # Common CUDA installation paths
     cuda_paths = [
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\bin",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.2/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.8/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.6/bin",
     ]
     
     # Try to find and add CUDA path
@@ -151,6 +150,7 @@ if platform.system() == "Windows":
         print("Warning: CUDA DLL directory not found. If you encounter DLL loading issues, "
               "please ensure CUDA is installed and add its bin directory to the system path.")
 
+from .vectordb import *
 from ._embed_anything import *
 import onnxruntime
 import glob
