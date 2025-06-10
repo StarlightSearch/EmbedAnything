@@ -26,9 +26,9 @@ fn main() -> Result<(), anyhow::Error> {
             #[cfg(feature = "ort")]
             {
                 Box::new(OrtColPaliEmbedder::new(
-                    "onnx-community/colSmol-256M-ONNX",
+                    "akshayballal/colpali-v1.2-merged-onnx",
                     None,
-                    Some("onnx"),
+                    None,
                 )?) as Box<dyn ColPaliEmbed>
             }
             #[cfg(not(feature = "ort"))]

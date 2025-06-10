@@ -350,10 +350,13 @@ impl Model {
             .collect();
         let extended_mask =
             prepare_4d_attention_mask(attn_mask.unwrap(), DType::F32, Some(tgt + offset))?;
-        let mask = Tensor::from_slice(&mask, (1, 1, tgt, tgt + offset), &self.device)?
-            .expand((b, 1, tgt, tgt + offset))?
-            .to_dtype(self.dtype)?;
-        let mask = mask.broadcast_add(&extended_mask)?;
+        let mask = Tensor::from_slice(&mask, (1, 1, tgt, tgt + offset), &self.device)?.expand((
+            b,
+            1,
+            tgt,
+            tgt + offset,
+        ))?;
+        let mask = mask.broadcast_add(&extended_mask)?.to_dtype(self.dtype)?;
         Ok(mask)
     }
 

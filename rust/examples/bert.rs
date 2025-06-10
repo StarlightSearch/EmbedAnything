@@ -9,8 +9,8 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("bert")
-            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
+            .model_architecture("qwen3")
+            .model_id(Some("Qwen/Qwen3-Embedding-4B"))
             .revision(None)
             .token(None)
             .dtype(Some(Dtype::F16))

@@ -2,7 +2,7 @@ use candle_core::{Device, Tensor};
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
 use embed_anything::embeddings::embed::EmbedderBuilder;
 use embed_anything::embeddings::local::text_embedding::ONNXModel;
-use embed_anything::{embed_file, embed_query};
+use embed_anything::{embed_file, embed_query, Dtype};
 use rayon::prelude::*;
 use std::sync::Arc;
 use std::time::Instant;
@@ -13,6 +13,7 @@ async fn main() -> Result<(), anyhow::Error> {
         EmbedderBuilder::new()
             .model_architecture("bert")
             .onnx_model_id(Some(ONNXModel::ModernBERTBase))
+            .dtype(Some(Dtype::F16))
             .from_pretrained_onnx()
             .unwrap(),
     );
