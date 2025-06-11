@@ -98,7 +98,6 @@ async fn main() -> anyhow::Result<()> {
             similarities.push((cosine_similarity, i, j))
         }
     }
-    println!("similarities: {:?}", similarities);
     similarities.sort_by(|u, v| v.0.total_cmp(&u.0));
     for &(score, i, j) in similarities[..5].iter() {
         println!("score: {score:.2} '{}' '{}'", sentences[i], sentences[j])

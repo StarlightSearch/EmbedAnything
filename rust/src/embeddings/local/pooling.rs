@@ -97,14 +97,13 @@ impl Pooling {
                     let sequence_lengths = attention_mask.sum(1)?.to_vec1::<u32>()?;
                     let batch_size = tensor.dim(0)?;
 
-                    let mut final_tensor = vec![];
-                    for i in 0..batch_size{
-                        let t = tensor.get(i)?.get((sequence_lengths[i]-1) as usize)?;
-                        final_tensor.push(t);
-                    }
-                    let final_tensor: Tensor = Tensor::stack(&final_tensor, 0)?;
-                    return Ok(PooledOutputType::Tensor(final_tensor))
+                    // Create a tensor of indices for the last tokens
+                    let indices: Vec<u32> = sequence_lengths.iter().map(|&len| len - 1).collect();
+                    let indices = Tensor::from_vec(indices, (batch_size,), tensor.device())?;
                     
+                    // Use gather to get all last tokens at once
+                    let final_tensor = tensor.gather(&indices, 1)?;
+                    return Ok(PooledOutputType::Tensor(final_tensor))
                 } 
             }
             ModelOutput::Array(array) => {

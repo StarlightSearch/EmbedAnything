@@ -9,11 +9,10 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("qwen3")
-            .model_id(Some("Qwen/Qwen3-Embedding-4B"))
+            .model_architecture("jina")
+            .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
             .revision(None)
             .token(None)
-            .dtype(Some(Dtype::F16))
             .from_pretrained_hf()
             .unwrap(),
     );
@@ -26,18 +25,16 @@ async fn main() {
 
     let now = Instant::now();
 
-    let _out = embed_file(
-        "test_files/test.pdf",
-        &model,
-        Some(&config),
-        None,
-    )
-    .await
-    .unwrap()
-    .unwrap();
+    let _out = embed_file("test_files/test.pdf", &model, Some(&config), None)
+        .await
+        .unwrap()
+        .unwrap();
 
     let _out_2 = embed_files_batch(
-        vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
+        vec![
+            PathBuf::from("test_files/test.pdf"),
+            PathBuf::from("test_files/test.txt"),
+        ],
         &model,
         Some(&config),
         None,

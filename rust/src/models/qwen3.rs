@@ -332,6 +332,7 @@ impl Model {
         attn_mask: Option<&Tensor>,
     ) -> Result<Tensor> {
         let minf = f32::NEG_INFINITY;
+        let attn_mask = attn_mask.unwrap();
         let mask: Vec<_> = (0..tgt)
             .flat_map(|i| {
                 (0..(tgt + offset)).map(move |j| {
@@ -340,6 +341,7 @@ impl Model {
                         Some(w) => (i + offset) as i64 - j as i64 <= w as i64,
                         None => true,
                     };
+
                     if past_ok && sw_ok {
                         0.
                     } else {
@@ -348,14 +350,14 @@ impl Model {
                 })
             })
             .collect();
-        let extended_mask =
-            prepare_4d_attention_mask(attn_mask.unwrap(), DType::F32, Some(tgt + offset))?;
+
         let mask = Tensor::from_slice(&mask, (1, 1, tgt, tgt + offset), &self.device)?.expand((
             b,
             1,
             tgt,
             tgt + offset,
         ))?;
+        let extended_mask = prepare_4d_attention_mask(attn_mask, DType::F32, Some(tgt + offset))?;
         let mask = mask.broadcast_add(&extended_mask)?.to_dtype(self.dtype)?;
         Ok(mask)
     }
@@ -399,5 +401,5 @@ fn prepare_4d_attention_mask(
 
     let inverted_mask = (1.0 - expanded_mask)?;
 
-    (inverted_mask * f32::MIN as f64)?.to_dtype(dtype)
+    (inverted_mask * -1e4 as f64)?.to_dtype(dtype)
 }

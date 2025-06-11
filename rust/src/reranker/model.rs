@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use anyhow::{Error as E, Result};
 use candle_core::{Device, Tensor};
 use hf_hub::{api::sync::Api, Repo};
@@ -26,7 +28,7 @@ pub struct DocumentRank {
 }
 
 pub struct Reranker {
-    model: Session,
+    model: RwLock<Session>,
     tokenizer: Tokenizer,
 }
 
@@ -116,7 +118,7 @@ impl Reranker {
             .with_inter_threads(1)? // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
-        Ok(Reranker { model, tokenizer })
+        Ok(Reranker { model: RwLock::new(model), tokenizer })
     }
 
     pub fn compute_scores(
@@ -130,14 +132,16 @@ impl Reranker {
             .flat_map(|query| documents.iter().map(move |doc| (*query, *doc)))
             .collect::<Vec<_>>();
         let mut scores = Vec::with_capacity(pairs.len());
+        let mut model_guard = self.model.write().unwrap();
+
         for pair in pairs.chunks(batch_size) {
             let input_ids = self.tokenize_batch_ndarray(pair)?;
             let attention_mask = self.get_attention_mask_ndarray(pair)?;
-            let outputs = self
-                .model
-                .run(ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask]?)?;
-            let logits = outputs["logits"]
-                .try_extract_tensor::<f32>()?
+            let input_ids_tensor = ort::value::TensorRef::from_array_view(&input_ids)?;
+            let attention_mask_tensor = ort::value::TensorRef::from_array_view(&attention_mask)?;
+            let outputs = model_guard.run(ort::inputs!["input_ids" => input_ids_tensor, "attention_mask" => attention_mask_tensor])?;
+            let logits = outputs["logits".to_string()]
+                .try_extract_array::<f32>()?
                 .to_owned()
                 .into_dimensionality::<ndarray::Ix2>()?;
             scores.extend(
