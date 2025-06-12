@@ -14,7 +14,7 @@ processors-rs = { workspace = true }
 
 # Data Serialization
 serde = { version = "1.0.196", features = ["derive"] }
-serde_json = "1.0.112"
+serde_json = "1.0.140"
 
 # HTTP Client
 reqwest = { version = "0.12.2", default-features = false, features = ["json", "blocking"] }
@@ -30,18 +30,18 @@ rayon = "1.8.1"
 
 # Natural Language Processing
 tokenizers = {version="0.21.1", default-features = false, features=["http"]}
-text-splitter = {version= "0.25.1", features=["tokenizers", "markdown"]}
+text-splitter = {version= "0.27.0", features=["tokenizers", "markdown"]}
 
 tracing = "0.1.41"
 
 # Hugging Face Libraries
-hf-hub = { version = "0.4.1", default-features = false }
+hf-hub = { version = "0.4.2", default-features = false }
 candle-nn = { workspace = true }
 candle-transformers = { workspace = true }
 candle-core = { workspace = true }
 
 # Error Handling
-anyhow = "1.0.89"
+anyhow = "1.0.98"
 
 # Asynchronous Programming
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
@@ -64,7 +64,7 @@ base64 = "0.22.1"
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
 accelerate-src = { version = "0.3.2", optional = true }
-indicatif = "0.17.8"
+indicatif = "0.17.11"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }

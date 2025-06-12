@@ -25,8 +25,8 @@ candle-core = { version = "0.9.1" }
 candle-flash-attn = { version = "0.9.1" }
 processors-rs = { path = "processors", version = "=0.6.4" }
 
-strum = "0.27.0"
-strum_macros = "0.27.0"
+strum = "0.27.1"
+strum_macros = "0.27.1"
 
 
 
