@@ -2,7 +2,8 @@ use std::sync::RwLock;
 use std::{collections::HashMap, path::PathBuf};
 
 use crate::embeddings::embed::{EmbedData, EmbeddingResult};
-use crate::models::idefics3::processing::{Idefics3ImageProcessor, Idefics3Processor};
+use crate::embeddings::local::colpali::ColPaliEmbed;
+use crate::models::idefics3::array_processing::Idefics3Processor;
 use crate::models::paligemma;
 use anyhow::Error as E;
 use base64::Engine;
@@ -13,27 +14,10 @@ use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, E
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 use rayon::prelude::*;
-use tokenizers::{AddedVocabulary, PaddingParams, Tokenizer, TruncationParams};
+use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use super::colpali::get_images_from_pdf;
 
-pub trait ColSmolEmbed {
-    fn embed(
-        &self,
-        text_batch: &[&str],
-        batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
-
-    fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>>;
-    fn embed_file(&self, file_path: PathBuf, batch_size: usize) -> anyhow::Result<Vec<EmbedData>>;
-    fn embed_image(
-        &self,
-        image_path: PathBuf,
-        metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData>;
-
-    fn embed_image_batch(&self, image_paths: &[PathBuf]) -> anyhow::Result<Vec<EmbedData>>;
-}
 
 pub struct OrtColSmolEmbedder {
     pub model: RwLock<Session>,
@@ -242,7 +226,7 @@ impl OrtColSmolEmbedder {
     }
 }
 
-impl ColSmolEmbed for OrtColSmolEmbedder {
+impl ColPaliEmbed for OrtColSmolEmbedder {
     fn embed(
         &self,
         text_batch: &[&str],

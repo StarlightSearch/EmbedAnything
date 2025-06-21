@@ -287,6 +287,7 @@ impl Idefics3ImageProcessor {
             max_num_images = std::cmp::max(max_num_images, batch.len());
             for image in batch {
                 let (height, width, _) = image.dim();
+                println!("Image Shape: {:?}", image.shape());
                 max_height = std::cmp::max(max_height, height);
                 max_width = std::cmp::max(max_width, width);
             }
@@ -362,15 +363,33 @@ impl Idefics3ImageProcessor {
             FilterType::Lanczos3,
         );
 
+        let vision_encoder_image = DynamicImage::ImageRgb8(
+            RgbImage::from_raw(
+                vision_encoder_image.shape()[1] as u32,
+                vision_encoder_image.shape()[0] as u32,
+                vision_encoder_image.into_raw_vec_and_offset().0,
+            )
+            .ok_or_else(|| anyhow::anyhow!("Failed to convert resized image to DynamicImage"))?,
+        );
+
         // Step 3: Split image if needed
         let (frames, n_rows, n_cols) = if self.do_image_splitting {
             self.split_image(
-                &resized_dynamic_image,
+                &vision_encoder_image,
                 &self.max_image_size.clone().unwrap(),
                 FilterType::Lanczos3,
             )
         } else {
-            let frame = vision_encoder_image;
+            let frame = vision_encoder_image.to_rgb8().into_raw();
+            let frame = ndarray::Array3::from_shape_vec(
+                (
+                    vision_encoder_image.dimensions().0 as usize,
+                    vision_encoder_image.dimensions().1 as usize,
+                    3,
+                ),
+                frame,
+            )
+            .unwrap();
             (vec![frame], 0, 0)
         };
 
@@ -427,7 +446,12 @@ impl Idefics3ImageProcessor {
             None
         };
 
-        Ok((padded_images_concatenated, padded_masks_concatenated, n_rows, n_cols))
+        Ok((
+            padded_images_concatenated,
+            padded_masks_concatenated,
+            n_rows,
+            n_cols,
+        ))
     }
 
     pub fn preprocess(
@@ -497,10 +521,26 @@ impl Idefics3Processor {
         })
     }
 
-    pub fn preprocess(&self, images: &[DynamicImage]) -> anyhow::Result<(ndarray::Array2<i64>, ndarray::Array2<i64>, ndarray::Array4<f32>, Option<ndarray::Array3<i32>>)> {
-        let (preprocessed_images, preprocessed_masks, n_rows, n_cols) = self.image_processor.preprocess(images)?;
+    pub fn preprocess(
+        &self,
+        images: &[DynamicImage],
+    ) -> anyhow::Result<(
+        ndarray::Array2<i64>,
+        ndarray::Array2<i64>,
+        ndarray::Array4<f32>,
+        Option<ndarray::Array3<i32>>,
+    )> {
+        let (preprocessed_images, preprocessed_masks, n_rows, n_cols) =
+            self.image_processor.preprocess(images)?;
         println!("N rows: {:?}, N cols: {:?}", n_rows, n_cols);
-        let image_prompt = _prompt_split_image(169, n_rows, n_cols, &self.fake_image_token, &self.image_token, &self.global_image_tag);
+        let image_prompt = _prompt_split_image(
+            169,
+            n_rows,
+            n_cols,
+            &self.fake_image_token,
+            &self.image_token,
+            &self.global_image_tag,
+        );
 
         let prompt = "<|im_start|>user\n<image>Describe the image.<end_of_utterance>";
 
@@ -528,24 +568,38 @@ impl Idefics3Processor {
         // Count occurrences of token ID 49190 in the first row
         let token_count = input_ids.row(0).iter().filter(|&&x| x == 49190).count();
 
-        Ok((input_ids, attention_mask, preprocessed_images, preprocessed_masks))
+        Ok((
+            input_ids,
+            attention_mask,
+            preprocessed_images,
+            preprocessed_masks,
+        ))
     }
 }
 
-fn _prompt_split_image(image_seq_len: i32, image_rows: i32, image_cols: i32, fake_token_around_image: &AddedToken, image_token: &AddedToken, global_img_token: &AddedToken) -> String {
+fn _prompt_split_image(
+    image_seq_len: i32,
+    image_rows: i32,
+    image_cols: i32,
+    fake_token_around_image: &AddedToken,
+    image_token: &AddedToken,
+    global_img_token: &AddedToken,
+) -> String {
     let mut text_split_images = String::new();
     for n_h in 0..image_rows {
         for n_w in 0..image_cols {
-            text_split_images.push_str(&format!("{}<row_{}_col_{}>{}", 
-                fake_token_around_image.content, 
-                n_h + 1, 
-                n_w + 1, 
+            text_split_images.push_str(&format!(
+                "{}<row_{}_col_{}>{}",
+                fake_token_around_image.content,
+                n_h + 1,
+                n_w + 1,
                 image_token.content.repeat(image_seq_len as usize),
             ));
         }
         text_split_images.push_str("\n");
     }
-    text_split_images.push_str(&format!("\n{}{}{}{}", 
+    text_split_images.push_str(&format!(
+        "\n{}{}{}{}",
         fake_token_around_image.content,
         global_img_token.content,
         image_token.content.repeat(image_seq_len as usize),
@@ -681,7 +735,7 @@ mod tests {
             &processor.max_image_size.clone().unwrap()["longest_edge"],
             FilterType::Lanczos3,
         );
-        // println!("Resized Image  {}", resized_image);
+        println!("Resized Image: {:?}", resized_image.shape());
 
         let (frames, num_splits_h, num_splits_w) = processor.split_image(
             &resized_dynamic_image,

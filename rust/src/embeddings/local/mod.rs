@@ -5,8 +5,6 @@ pub mod colbert;
 pub mod colpali;
 #[cfg(feature = "ort")]
 pub mod colpali_ort;
-#[cfg(feature = "ort")]
-pub mod colsmol_ort;
 pub mod jina;
 pub mod model_info;
 pub mod modernbert;
@@ -18,3 +16,4 @@ pub mod pooling;
 pub mod text_embedding;
 pub mod model2vec;
 pub mod qwen3;
+pub mod colsmol;

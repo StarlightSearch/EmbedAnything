@@ -10,3 +10,4 @@ pub mod with_tracing;
 pub mod qwen3;
 pub mod quantized_qwen3;
 pub mod idefics3;
+pub mod llama;
