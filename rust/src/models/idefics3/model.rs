@@ -1,4 +1,3 @@
-
 use crate::models::llama::{self, Cache, LlamaBase};
 use crate::models::with_tracing::{linear, linear_no_bias, Embedding, Linear};
 use candle_core::{CpuStorage, CustomOp1, DType, Device, Layout, Module, Shape, WithDType, D};
@@ -80,8 +79,6 @@ impl NonZeroOp for Tensor {
             .to_device(original_device)
     }
 }
-
-
 
 #[cfg(not(feature = "flash-attn"))]
 fn flash_attn(_: &Tensor, _: &Tensor, _: &Tensor, _: f32, _: bool) -> Result<Tensor> {
@@ -747,12 +744,7 @@ fn bucketize(inputs: &[f64], boundaries: &[f64], right: bool) -> Vec<i64> {
     result
 }
 
-fn unfold(
-    x: &Tensor,
-    size: usize,
-    step: usize,
-    dim: usize,
-) -> Result<Tensor> {
+fn unfold(x: &Tensor, size: usize, step: usize, dim: usize) -> Result<Tensor> {
     let x_shape = x.shape().dims().to_vec();
     let len = x_shape[dim];
     let num = (len - size) / step + 1;

@@ -401,5 +401,5 @@ fn prepare_4d_attention_mask(
 
     let inverted_mask = (1.0 - expanded_mask)?;
 
-    (inverted_mask * -1e4 as f64)?.to_dtype(dtype)
+    (inverted_mask * -1e4_f64)?.to_dtype(dtype)
 }

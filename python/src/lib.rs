@@ -212,14 +212,14 @@ impl EmbeddingModel {
             }
             WhichModel::Clip => {
                 let model_id = model_id.unwrap_or("openai/clip-vit-base-patch32");
-                let model = Embedder::Vision(VisionEmbedder::Clip(
+                let model = Embedder::Vision(Box::new(VisionEmbedder::Clip(Box::new(
                     embed_anything::embeddings::local::clip::ClipEmbedder::new(
                         model_id.to_string(),
                         revision,
                         token,
                     )
                     .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                ));
+                ))));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
@@ -264,7 +264,7 @@ impl EmbeddingModel {
                         token,
                         dtype,
                     )
-                    .unwrap(),
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
                 )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
@@ -272,12 +272,12 @@ impl EmbeddingModel {
             }
             WhichModel::Colpali => {
                 let model_id = model_id.unwrap_or("vidore/colpali-v1.2-merged");
-                let model = Embedder::Vision(VisionEmbedder::ColPali(Box::new(
+                let model = Embedder::Vision(Box::new(VisionEmbedder::ColPali(Box::new(
                     embed_anything::embeddings::local::colpali::ColPaliEmbedder::new(
                         model_id, revision,
                     )
-                    .unwrap(),
-                )));
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                ))));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })
@@ -321,12 +321,12 @@ impl EmbeddingModel {
             }
             WhichModel::CohereVision => {
                 let model_id = model_id.unwrap_or("embed-v4.0");
-                let model = Embedder::Vision(VisionEmbedder::Cohere(
+                let model = Embedder::Vision(Box::new(VisionEmbedder::Cohere(
                     embed_anything::embeddings::cloud::cohere::CohereEmbedder::new(
                         model_id.to_string(),
                         api_key,
                     ),
-                ));
+                )));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })

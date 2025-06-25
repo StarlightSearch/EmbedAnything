@@ -118,7 +118,10 @@ impl Reranker {
             .with_inter_threads(1)? // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
-        Ok(Reranker { model: RwLock::new(model), tokenizer })
+        Ok(Reranker {
+            model: RwLock::new(model),
+            tokenizer,
+        })
     }
 
     pub fn compute_scores(

@@ -23,10 +23,10 @@ fn main() -> Result<(), anyhow::Error> {
         ModelType::Ort => {
             panic!("ORT is not supported without ORT");
         }
-        ModelType::Normal => {
-            Box::new(ColSmolEmbedder::new("akshayballal/colSmol-256M-merged", None)?)
-                as Box<dyn ColPaliEmbed>
-        }
+        ModelType::Normal => Box::new(ColSmolEmbedder::new(
+            "akshayballal/colSmol-256M-merged",
+            None,
+        )?) as Box<dyn ColPaliEmbed>,
     };
     // ... rest of the code ...
 

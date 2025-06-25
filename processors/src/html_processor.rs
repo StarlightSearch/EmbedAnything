@@ -1,8 +1,8 @@
+use crate::markdown_processor::MarkdownProcessor;
+use crate::processor::{Document, DocumentProcessor};
 use anyhow::Result;
 use htmd::{HtmlToMarkdown, HtmlToMarkdownBuilder};
 use text_splitter::ChunkConfigError;
-use crate::markdown_processor::MarkdownProcessor;
-use crate::processor::{Document, DocumentProcessor};
 
 pub struct HtmlDocument {
     pub content: String,
@@ -18,8 +18,7 @@ pub struct HtmlProcessor {
 impl HtmlProcessor {
     pub fn new(chunk_size: usize, overlap: usize) -> Result<HtmlProcessor, ChunkConfigError> {
         let markdown_processor = MarkdownProcessor::new(chunk_size, overlap)?;
-        let html_to_markdown = HtmlToMarkdownBuilder::new()
-            .build();
+        let html_to_markdown = HtmlToMarkdownBuilder::new().build();
         Ok(HtmlProcessor {
             markdown_processor,
             html_to_markdown,
@@ -36,8 +35,8 @@ impl DocumentProcessor for HtmlProcessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::processor::FileProcessor;
     use super::*;
+    use crate::processor::FileProcessor;
 
     #[test]
     fn test_process_html_file() {

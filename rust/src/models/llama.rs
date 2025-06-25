@@ -358,7 +358,10 @@ impl CausalSelfAttention {
     }
 
     fn repeat_kv(&self, x: Tensor) -> Result<Tensor> {
-        candle_transformers::utils::repeat_kv(x, self.num_attention_heads / self.num_key_value_heads)
+        candle_transformers::utils::repeat_kv(
+            x,
+            self.num_attention_heads / self.num_key_value_heads,
+        )
     }
 
     fn load(vb: VarBuilder, cfg: &Config) -> Result<Self> {

@@ -376,7 +376,6 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             model_code: String::from("onnx-community/Qwen3-Embedding-0.6B-ONNX"),
             model_file: String::from("onnx/model.onnx"),
         },
-        
     ];
 
     // TODO: Use when out in stable

@@ -77,7 +77,10 @@ impl OrtBertEmbedder {
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let mut base_path = path.rsplit_once('/').map(|(p, _)| p.to_string()).unwrap_or_default();
+            let mut base_path = path
+                .rsplit_once('/')
+                .map(|(p, _)| p.to_string())
+                .unwrap_or_default();
             if !base_path.is_empty() {
                 base_path.push('/');
             }
@@ -182,7 +185,7 @@ impl OrtBertEmbedder {
             .map(|input| input.name.as_str())
             .collect();
         let output_name = model_guard.outputs.first().unwrap().name.to_string();
-        let needs_token_type = input_names.iter().any(|&x| x == "token_type_ids");
+        let needs_token_type = input_names.contains(&"token_type_ids");
 
         // Run model and extract embeddings
         let encodings = text_batch
@@ -259,7 +262,7 @@ impl OrtBertEmbedder {
             .iter()
             .map(|input| input.name.as_str())
             .collect();
-        let needs_token_type = input_names.iter().any(|&x| x == "token_type_ids");
+        let needs_token_type = input_names.contains(&"token_type_ids");
         let output_name = model_guard.outputs.first().unwrap().name.to_string();
 
         for mini_text_batch in text_batch.chunks(batch_size) {
@@ -567,10 +570,10 @@ mod tests {
         println!("embeddings: {:?}", embeddings);
 
         let test_embeddings: Vec<f32> = vec![
-            -3.81771736e-02,
-            3.29111032e-02,
-            -5.45938499e-03,
-            1.43699143e-02,
+            -3.817_717_4e-2,
+            3.291_110_3e-2,
+            -5.459_385e-3,
+            1.436_991_4e-2,
         ];
         let embeddings = embeddings[0].to_dense().unwrap()[0..4].to_vec();
         assert!(

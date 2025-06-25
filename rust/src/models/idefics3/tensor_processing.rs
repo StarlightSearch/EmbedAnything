@@ -7,6 +7,8 @@ use tokenizers::{AddedToken, Tokenizer};
 
 const MAX_IMAGE_SIZE: i32 = 4096;
 
+type ProcessedImageResult = Result<(Vec<Tensor>, Option<Vec<Tensor>>, i32, i32), anyhow::Error>;
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct Idefics3ImageProcessor {
     size: Option<HashMap<String, i32>>,
@@ -53,7 +55,7 @@ impl Idefics3ImageProcessor {
             (height, width)
         };
         self.resize(
-            &image,
+            image,
             HashMap::from([
                 ("width".to_string(), new_width as i32),
                 ("height".to_string(), new_height as i32),
@@ -231,7 +233,7 @@ impl Idefics3ImageProcessor {
             )?;
         } else {
             padded_image =
-                padded_image.slice_assign(&[0..3, 0..input_height, 0..input_width], &image)?;
+                padded_image.slice_assign(&[0..3, 0..input_height, 0..input_width], image)?;
             pixel_mask = pixel_mask.slice_assign(
                 &[0..input_height, 0..input_width],
                 &Tensor::ones((input_height, input_width), DType::I64, device)?,
@@ -314,11 +316,7 @@ impl Idefics3ImageProcessor {
         ))
     }
 
-    fn _preprocess_one_image(
-        &self,
-        image: &DynamicImage,
-        device: &Device,
-    ) -> Result<(Vec<Tensor>, Option<Vec<Tensor>>, i32, i32), anyhow::Error> {
+    fn _preprocess_one_image(&self, image: &DynamicImage, device: &Device) -> ProcessedImageResult {
         // Step 1: Initial resize
         let resized_image = self.resize(
             image,
@@ -467,11 +465,7 @@ impl Idefics3ImageProcessor {
                 .map(|_| -> Result<(Tensor, Tensor), anyhow::Error> {
                     Ok((
                         empty_image(3, max_height as u32, max_width as u32, DType::F32, device)?,
-                        Tensor::zeros(
-                            (max_height as usize, max_width as usize),
-                            DType::I64,
-                            device,
-                        )?,
+                        Tensor::zeros((max_height, max_width), DType::I64, device)?,
                     ))
                 })
                 .collect::<Result<Vec<_>, _>>()?
@@ -481,9 +475,7 @@ impl Idefics3ImageProcessor {
             padded_mask_list_full.push(padded_mask_list);
         }
         for (i, image) in preprocessed_images.iter().enumerate() {
-            for j in 0..image.len() {
-                padded_image_list_full[i][j] = image[j].clone();
-            }
+            padded_image_list_full[i][..image.len()].clone_from_slice(&image[..]);
         }
 
         let (padded_image_list_full, padded_mask_list_full): (Vec<_>, Vec<_>) =
@@ -684,7 +676,7 @@ fn _prompt_split_image(
                 image_token.content.repeat(image_seq_len as usize),
             ));
         }
-        text_split_images.push_str("\n");
+        text_split_images.push('\n');
     }
     text_split_images.push_str(&format!(
         "\n{}{}{}{}",
@@ -702,7 +694,7 @@ fn get_resize_output_image_size(image: DynamicImage, resolution_max_side: i32) -
         _resize_output_size_rescale_to_max_len(height as i32, width as i32, 1, resolution_max_side);
     let (new_height, new_width) =
         _resize_output_size_scale_below_upper_bound(new_height, new_width, Some(MAX_IMAGE_SIZE));
-    (new_height as i32, new_width as i32)
+    (new_height, new_width)
 }
 
 fn _resize_output_size_rescale_to_max_len(

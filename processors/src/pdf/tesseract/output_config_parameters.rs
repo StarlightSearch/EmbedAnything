@@ -45,8 +45,7 @@ impl FromLine for ConfigParameter {
     }
 }
 
-pub fn get_tesseract_config_parameters(
-) -> error::TessResult<ConfigParameterOutput> {
+pub fn get_tesseract_config_parameters() -> error::TessResult<ConfigParameterOutput> {
     let mut command = command::get_tesseract_command(None);
     command.arg("--print-parameters");
 
@@ -72,7 +71,9 @@ fn string_to_config_parameter_output(
 
 #[cfg(test)]
 mod tests {
-    use crate::pdf::tesseract::output_config_parameters::{string_to_config_parameter_output, ConfigParameter};
+    use crate::pdf::tesseract::output_config_parameters::{
+        string_to_config_parameter_output, ConfigParameter,
+    };
 
     #[test]
     fn test_string_to_config_parameter_output() {
@@ -97,7 +98,8 @@ mod tests {
     #[test]
     fn test_get_tesseract_config_parameters() {
         let result =
-            crate::pdf::tesseract::output_config_parameters::get_tesseract_config_parameters().unwrap();
+            crate::pdf::tesseract::output_config_parameters::get_tesseract_config_parameters()
+                .unwrap();
         let x = result
             .config_parameters
             .iter()

@@ -78,7 +78,10 @@ impl OrtJinaEmbedder {
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
-            let mut base_path = path.rsplit_once('/').map(|(p, _)| p.to_string()).unwrap_or_default();
+            let mut base_path = path
+                .rsplit_once('/')
+                .map(|(p, _)| p.to_string())
+                .unwrap_or_default();
             if !base_path.is_empty() {
                 base_path.push('/');
             }

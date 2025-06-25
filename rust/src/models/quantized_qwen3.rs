@@ -7,13 +7,12 @@
 //! - [Qwen3 Models](https://huggingface.co/Qwen/Qwen3-0.6B) (architecture based on official implementations)
 //!
 use super::with_tracing::QMatMul;
-use candle_transformers::{quantized_nn::RmsNorm, utils::repeat_kv};
 use candle_core::quantized::{gguf_file, QTensor};
 use candle_core::{DType, Device, Result, Tensor};
 use candle_nn::{kv_cache::KvCache, Activation, Embedding, Module};
+use candle_transformers::{quantized_nn::RmsNorm, utils::repeat_kv};
 use std::io::{Read, Seek};
 use std::sync::Arc;
-
 
 struct Gguf<R: Read + Seek> {
     ct: gguf_file::Content,

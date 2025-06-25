@@ -11,9 +11,7 @@ use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 use crate::embeddings::local::colpali::{get_images_from_pdf, ColPaliEmbed};
 use crate::embeddings::select_device;
 use crate::models::idefics3::model::{ColIdefics3Model, Idefics3Config};
-use crate::{
-    models::idefics3::tensor_processing::Idefics3Processor,
-};
+use crate::models::idefics3::tensor_processing::Idefics3Processor;
 
 pub struct ColSmolEmbedder {
     pub model: RwLock<ColIdefics3Model>,
@@ -44,14 +42,11 @@ impl ColSmolEmbedder {
             DType::F32
         };
 
-        let vb = unsafe {
-            VarBuilder::from_mmaped_safetensors(&[model_file], dtype, &device)?
-        };
+        let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[model_file], dtype, &device)? };
         let config_file = repo.get("config.json")?;
 
         let processor = Idefics3Processor::from_pretrained("akshayballal/colSmol-256M-merged")?;
         let config: Idefics3Config = serde_json::from_slice(&std::fs::read(config_file)?)?;
-
 
         let model = ColIdefics3Model::load(&config, false, vb)?;
 
@@ -140,7 +135,7 @@ impl ColPaliEmbed for ColSmolEmbedder {
     fn embed_image_batch(&self, image_paths: &[PathBuf]) -> anyhow::Result<Vec<EmbedData>> {
         let images = image_paths
             .iter()
-            .map(|path| image::open(path))
+            .map(image::open)
             .collect::<Result<Vec<_>, _>>()?;
         let (input_ids, attention_mask, pixel_values, pixel_attention_mask) =
             self.processor.preprocess(&images, &self.device)?;

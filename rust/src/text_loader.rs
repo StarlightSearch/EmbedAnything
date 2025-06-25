@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    fs,
-};
+use std::{collections::HashMap, fmt::Debug, fs};
 
 use anyhow::Error;
 use chrono::{DateTime, Local};

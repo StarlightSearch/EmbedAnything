@@ -187,7 +187,6 @@ impl OrtColPaliEmbedder {
         attention_mask: Array2<i64>,
         pixel_values: Array4<f32>,
     ) -> Result<Vec<EmbeddingResult>, E> {
-
         let mut model_guard = self.model.write().unwrap();
         let output_name = model_guard.outputs.first().unwrap().name.to_string();
 
@@ -200,7 +199,6 @@ impl OrtColPaliEmbedder {
             .try_extract_array::<f16>()?
             .to_owned()
             .into_dimensionality::<ndarray::Ix3>()?;
-
 
         let e = embeddings
             .outer_iter()
