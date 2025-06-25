@@ -1,7 +1,7 @@
-use core::fmt;
 use crate::pdf::tesseract::error::TessResult;
 use crate::pdf::tesseract::input::{Args, Image};
 use crate::pdf::tesseract::parse_line_util::{parse_next, FromLine};
+use core::fmt;
 
 #[derive(Debug, PartialEq)]
 pub struct BoxOutput {

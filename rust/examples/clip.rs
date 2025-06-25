@@ -22,7 +22,6 @@ async fn main() {
         .unwrap()
         .unwrap();
 
-    
     let query_emb_data = embed_query(&["Photo of a monkey?"], &model, None)
         .await
         .unwrap();
@@ -72,7 +71,7 @@ async fn main() {
 
     let mut indices: Vec<usize> = (0..similarities.len()).collect();
     indices.sort_by(|a, b| similarities[*b].partial_cmp(&similarities[*a]).unwrap());
-    
+
     println!("Descending order of similarity: ");
     for idx in &indices {
         println!("{}", image_paths[*idx]);

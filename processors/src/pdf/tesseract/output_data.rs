@@ -73,10 +73,7 @@ impl FromLine for Data {
     }
 }
 
-pub fn image_to_data(
-    image: &Image,
-    args: &Args,
-) -> error::TessResult<DataOutput> {
+pub fn image_to_data(image: &Image, args: &Args) -> error::TessResult<DataOutput> {
     let mut command = command::create_tesseract_command(image, args)?;
     command.arg("tsv");
 
@@ -112,12 +109,11 @@ mod tests {
                 top: 41,
                 width: 46,
                 height: 20,
-                conf: 96.063751,
+                conf: 96.063_75,
                 text: String::from("The"),
             }
         )
     }
-
 
     #[test]
     fn test_string_to_data_parse_error() {

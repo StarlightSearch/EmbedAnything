@@ -25,7 +25,6 @@ impl TextEmbedConfig {
         tesseract_path: Option<&str>,
         pdf_backend: Option<&str>,
     ) -> Self {
-
         let strategy = match splitting_strategy {
             Some(strategy) => {
                 match strategy {

@@ -4,9 +4,9 @@ use super::*;
 use std::process::{Command, Stdio};
 use std::string::ToString;
 
+use crate::pdf::tesseract::error::{TessError, TessResult};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
-use crate::pdf::tesseract::error::{TessError, TessResult};
 
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;

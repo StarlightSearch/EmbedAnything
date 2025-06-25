@@ -8,7 +8,7 @@ use std::{ops::Mul, sync::RwLock};
 
 use anyhow::{Error as E, Result};
 use hf_hub::{api::sync::Api, Repo};
-use ndarray::{Array2,  Axis};
+use ndarray::{Array2, Axis};
 use ort::{
     execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider},
     session::{builder::GraphOptimizationLevel, Session},
@@ -84,10 +84,7 @@ impl OrtColbertEmbedder {
             }
         };
 
-        let _ = match data_filename {
-            Ok(data) => Some(data),
-            Err(_) => None,
-        };
+        let _ = data_filename.ok();
 
         let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
         let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
@@ -174,7 +171,7 @@ impl ColbertEmbed for OrtColbertEmbedder {
 
         let batch_size = batch_size.unwrap_or(32);
 
-        let  model_guard = self.model.read().unwrap();
+        let model_guard = self.model.read().unwrap();
         let (input_names, output_name) = {
             let names = model_guard
                 .inputs
@@ -213,8 +210,6 @@ impl ColbertEmbed for OrtColbertEmbedder {
                         mask_row[1] = 1;
                     }
                 }
-            
-
                 let input_ids_tensor = ort::value::TensorRef::from_array_view(&input_ids)?;
                 let attention_mask_tensor = ort::value::TensorRef::from_array_view(&attention_mask)?;
                 let mut inputs =
@@ -285,7 +280,6 @@ impl BertEmbed for OrtColbertEmbedder {
                 let (input_ids, attention_mask): (Array2<i64>, Array2<i64>) =
                         tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
                 let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-      
 
                 let input_ids_tensor = ort::value::TensorRef::from_array_view(&input_ids)?;
                 let attention_mask_tensor = ort::value::TensorRef::from_array_view(&attention_mask)?;

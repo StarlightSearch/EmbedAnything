@@ -1,11 +1,14 @@
 use std::sync::RwLock;
 use std::{collections::HashMap, path::PathBuf};
 
+use crate::embeddings::embed::{EmbedData, EmbeddingResult};
+use crate::embeddings::local::colpali::ColPaliEmbed;
+use crate::models::idefics3::array_processing::Idefics3Processor;
 use crate::models::paligemma;
 use anyhow::Error as E;
 use base64::Engine;
 use half::f16;
-use image::{DynamicImage, ImageFormat};
+use image::ImageFormat;
 use ndarray::prelude::*;
 use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider};
 use ort::session::builder::GraphOptimizationLevel;
@@ -13,19 +16,19 @@ use ort::session::Session;
 use rayon::prelude::*;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use crate::embeddings::embed::{EmbedData, EmbeddingResult};
+use super::colpali::get_images_from_pdf;
 
-use super::colpali::{get_images_from_pdf, ColPaliEmbed};
 
-pub struct OrtColPaliEmbedder {
+pub struct OrtColSmolEmbedder {
     pub model: RwLock<Session>,
     pub tokenizer: Tokenizer,
     pub image_size: usize,
     pub num_channels: usize,
+    pub processor: Idefics3Processor,
     dummy_input: Array2<i64>,
 }
 
-impl OrtColPaliEmbedder {
+impl OrtColSmolEmbedder {
     pub fn new(
         model_id: &str,
         revision: Option<&str>,
@@ -48,7 +51,7 @@ impl OrtColPaliEmbedder {
         if !path_in_repo.is_empty() {
             path_in_repo.push('/');
         }
-        let (_, tokenizer_filename, weights_filename, _) = {
+        let (_, tokenizer_filename, weights_filename, _, processing_config_filename,) = {
             let config = repo
                 .get("config.json")
                 .unwrap_or(repo.get("preprocessor_config.json")?);
@@ -57,14 +60,16 @@ impl OrtColPaliEmbedder {
             let data = repo
                 .get(format!("{}model.onnx_data", path_in_repo).as_str())
                 .ok();
+            let processing_config = repo.get("preprocessor_config.json")?;
 
-            (config, tokenizer, weights, data)
+            (config, tokenizer, weights, data, processing_config)
         };
 
         let config: paligemma::Config = paligemma::Config::paligemma_3b_448();
         let image_size = config.vision_config.image_size;
         let num_channels = config.vision_config.num_channels;
-        let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
+        
+        let mut tokenizer = Tokenizer::from_pretrained(model_id, None).map_err(E::msg)?;
 
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
@@ -76,12 +81,13 @@ impl OrtColPaliEmbedder {
             ..Default::default()
         };
 
+        let processor: Idefics3Processor = Idefics3Processor::from_pretrained(model_id)?;
+
         tokenizer
             .with_padding(Some(pp))
             .with_truncation(Some(trunc))
             .unwrap();
 
-        tokenizer.set_encode_special_tokens(true);
 
         let cuda = CUDAExecutionProvider::default();
 
@@ -109,13 +115,14 @@ impl OrtColPaliEmbedder {
             .with_inter_threads(1)? // Set inter-op parallelism to 1 when using GPU
             .commit_from_file(weights_filename)?;
 
-        let dummy_prompt: &str = "Describe the image.\n";
+        let dummy_prompt: &str = "<|im_start|>user\n<image>Describe the image.<end_of_utterance>";
         let dummy_input = tokenize(&tokenizer, dummy_prompt.to_string())?;
 
         Ok(Self {
             model: RwLock::new(model),
             tokenizer,
             image_size,
+            processor,
             num_channels,
             dummy_input,
         })
@@ -146,7 +153,7 @@ fn tokenize_batch(tokenizer: &Tokenizer, text_batch: &[&str]) -> Result<Array2<i
 }
 
 fn tokenize(tokenizer: &Tokenizer, text: String) -> Result<Array2<i64>, E> {
-    let token_ids = tokenizer.encode(text, true).map_err(E::msg)?;
+    let token_ids = tokenizer.encode(text, false).map_err(E::msg)?;
     let token_ids_array = Array2::from_shape_vec(
         (1, token_ids.len()),
         token_ids
@@ -180,20 +187,23 @@ fn get_attention_mask(tokenizer: &Tokenizer, text_batch: &[&str]) -> Result<Arra
     .unwrap())
 }
 
-impl OrtColPaliEmbedder {
+impl OrtColSmolEmbedder {
     fn run_model(
         &self,
         token_ids: Array2<i64>,
         attention_mask: Array2<i64>,
-        pixel_values: Array4<f32>,
+        pixel_values: Array5<f32>,
+        pixel_attention_mask: Array4<i64>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let mut model_guard = self.model.write().unwrap();
         let output_name = model_guard.outputs.first().unwrap().name.to_string();
+        println!("input names: {:?}", model_guard.inputs);
 
         let token_ids_tensor = ort::value::Value::from_array(token_ids)?;
         let pixel_values_tensor = ort::value::Value::from_array(pixel_values)?;
         let attention_mask_tensor = ort::value::Value::from_array(attention_mask)?;
-        let outputs = model_guard.run(ort::inputs!["input_ids" => token_ids_tensor, "pixel_values" => pixel_values_tensor, "attention_mask" => attention_mask_tensor])?;
+        let pixel_attention_mask_tensor = ort::value::Value::from_array(pixel_attention_mask)?;
+        let outputs = model_guard.run(ort::inputs!["input_ids" => token_ids_tensor, "pixel_values" => pixel_values_tensor, "attention_mask" => attention_mask_tensor, "pixel_attention_mask" => pixel_attention_mask_tensor])?;
 
         let embeddings = outputs[output_name]
             .try_extract_array::<f16>()?
@@ -216,7 +226,7 @@ impl OrtColPaliEmbedder {
     }
 }
 
-impl ColPaliEmbed for OrtColPaliEmbedder {
+impl ColPaliEmbed for OrtColSmolEmbedder {
     fn embed(
         &self,
         text_batch: &[&str],
@@ -229,13 +239,25 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
                 let token_ids: Array2<i64> = tokenize_batch(&self.tokenizer, mini_text_batch)?;
                 let attention_mask: Array2<i64> =
                     get_attention_mask(&self.tokenizer, mini_text_batch)?;
-                let pixel_values: Array4<f32> = Array4::zeros((
+                let pixel_values: Array5<f32> = Array5::zeros((
+                    mini_text_batch.len(),
+                    1,
+                    self.num_channels,
+                    self.image_size,
+                    self.image_size,
+                ));
+                let pixel_attention_mask: Array4<i64> = Array4::ones((
                     mini_text_batch.len(),
                     self.num_channels,
                     self.image_size,
                     self.image_size,
                 ));
-                let e = self.run_model(token_ids, attention_mask, pixel_values)?;
+                let e = self.run_model(
+                    token_ids,
+                    attention_mask,
+                    pixel_values,
+                    pixel_attention_mask,
+                )?;
                 Ok(e)
             })
             .flatten()
@@ -247,10 +269,17 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
     fn embed_query(&self, query: &str) -> anyhow::Result<Vec<EmbedData>> {
         let token_ids = tokenize_batch(&self.tokenizer, &[query])?;
         let attention_mask = get_attention_mask(&self.tokenizer, &[query])?;
-        let pixel_values: Array4<f32> =
-            Array4::zeros((1, self.num_channels, self.image_size, self.image_size));
+        let pixel_values: Array5<f32> =
+            Array5::zeros((1, 1, self.num_channels, self.image_size, self.image_size));
+        let pixel_attention_mask: Array4<i64> =
+            Array4::ones((1, self.num_channels, self.image_size, self.image_size));
         let e = self
-            .run_model(token_ids, attention_mask, pixel_values)?
+            .run_model(
+                token_ids,
+                attention_mask,
+                pixel_values,
+                pixel_attention_mask,
+            )?
             .into_iter()
             .map(|x| EmbedData::new(x, None, None))
             .collect::<Vec<_>>();
@@ -260,32 +289,21 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
     fn embed_file(&self, file_path: PathBuf, batch_size: usize) -> anyhow::Result<Vec<EmbedData>> {
         let pages = get_images_from_pdf(&file_path)?;
         let mut embed_data = Vec::new();
-        for (index, batch) in pages.chunks(batch_size).enumerate() {
+        for (index, batch) in pages.chunks(1).enumerate() {
             let start_page = index * batch_size + 1;
             let end_page = start_page + batch.len();
             let page_numbers = (start_page..=end_page).collect::<Vec<_>>();
-            let page_images = pages_to_array(batch, self.num_channels, self.image_size)?;
+            let (input_ids, attention_mask, page_images, pixel_attention_mask) = self.processor.preprocess(&batch)?;
 
-            let mut dummy_input_batches = vec![];
-            for _ in 0..page_images.shape()[0] {
-                dummy_input_batches.push(self.dummy_input.clone());
-            }
-            let dummy_input_batches = Array2::<i64>::from_shape_vec(
-                (page_images.shape()[0], self.dummy_input.shape()[1]),
-                dummy_input_batches
-                    .into_iter()
-                    .flatten()
-                    .collect::<Vec<i64>>(),
+            let image_embeddings = self.run_model(
+                input_ids,
+                attention_mask,
+                page_images.insert_axis(Axis(0)),
+                pixel_attention_mask
+                    .unwrap()
+                    .insert_axis(Axis(0))
+                    .mapv(|x| x as i64),
             )?;
-
-            let image_input_ids = Array2::<i64>::from_elem((page_images.shape()[0], 1024), 257152);
-
-            let input_ids = ndarray::concatenate![Axis(1), image_input_ids, dummy_input_batches];
-
-            let attention_mask =
-                Array2::<i64>::ones((page_images.shape()[0], 1024 + self.dummy_input.shape()[1]));
-
-            let image_embeddings = self.run_model(input_ids, attention_mask, page_images)?;
             // zip the embeddings with the page numbers
             let embed_data_batch = image_embeddings
                 .into_iter()
@@ -318,16 +336,21 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
         image_path: PathBuf,
         metadata: Option<std::collections::HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
-        let image_array = load_image_as_array(&image_path, self.image_size)?;
-
-        let attention_mask = Array2::<i64>::ones((1, 1024 + self.dummy_input.shape()[1]));
-
-        // to the dummy input prefix the token id 257152.
-        let image_input_ids = Array2::<i64>::from_elem((1, 1024), 257152);
-        let input_ids = ndarray::concatenate![Axis(1), image_input_ids, self.dummy_input.clone()];
-
+        let image = image::open(&image_path)?;
+        let (input_ids, attention_mask, image_array, pixel_attention_mask) = self.processor.preprocess(&[image])?;
+   
+        println!("image array shape: {:?}", image_array.shape());
+        println!("input ids {:?}", input_ids);
         let e = self
-            .run_model(input_ids, attention_mask, image_array)?
+            .run_model(
+                input_ids,
+                attention_mask,
+                image_array.insert_axis(Axis(0)),
+                pixel_attention_mask
+                    .unwrap()
+                    .insert_axis(Axis(0))
+                    .mapv(|x| x as i64),
+            )?
             .into_iter()
             .map(|x| EmbedData::new(x, None, metadata.clone()))
             .collect::<Vec<_>>();
@@ -335,28 +358,22 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
     }
 
     fn embed_image_batch(&self, image_paths: &[PathBuf]) -> anyhow::Result<Vec<EmbedData>> {
-        let image_array = load_images_as_array(image_paths, self.num_channels, self.image_size)?;
-
-        let attention_mask =
-            Array2::<i64>::ones((image_array.shape()[0], 1024 + self.dummy_input.shape()[1]));
-
-        // to the dummy input prefix the token id 257152.
-        let image_input_ids = Array2::<i64>::from_elem((image_array.shape()[0], 1024), 257152);
-        let mut dummy_input_batches = vec![];
-        for _ in 0..image_array.shape()[0] {
-            dummy_input_batches.push(self.dummy_input.clone());
-        }
-        let dummy_input_batches = Array2::<i64>::from_shape_vec(
-            (image_array.shape()[0], self.dummy_input.shape()[1]),
-            dummy_input_batches
-                .into_iter()
-                .flatten()
-                .collect::<Vec<i64>>(),
-        )?;
-        let input_ids = ndarray::concatenate![Axis(1), image_input_ids, dummy_input_batches];
+        let images = image_paths
+            .iter()
+            .map(|path| image::open(path).unwrap())
+            .collect::<Vec<_>>();
+        let (input_ids, attention_mask, image_array, pixel_attention_mask) = self.processor.preprocess(&images)?;
 
         let e = self
-            .run_model(input_ids, attention_mask, image_array)?
+            .run_model(
+                input_ids,
+                attention_mask,
+                image_array.insert_axis(Axis(0)),
+                pixel_attention_mask
+                    .unwrap()
+                    .insert_axis(Axis(0))
+                    .mapv(|x| x as i64),
+            )?
             .into_iter()
             .enumerate()
             .map(|(i, x)| {
@@ -372,78 +389,6 @@ impl ColPaliEmbed for OrtColPaliEmbedder {
     }
 }
 
-fn pages_to_array(
-    pages: &[DynamicImage],
-    num_channels: usize,
-    image_size: usize,
-) -> anyhow::Result<Array4<f32>> {
-    let mut images = vec![];
-    for page in pages.iter() {
-        let img = page.resize_to_fill(
-            image_size as u32,
-            image_size as u32,
-            image::imageops::FilterType::Triangle,
-        );
-        let img = img.to_rgb8();
-        let img = img.into_raw();
-        let img = Array4::from_shape_vec((1, image_size, image_size, 3), img)?
-            .permuted_axes((0, 3, 1, 2));
-
-        let img = img
-            .into_iter()
-            .map(|x| x as f32 / 255.)
-            .map(|x| 2. * x - 1.);
-        images.push(img);
-    }
-    let images = Array4::from_shape_vec(
-        (images.len(), num_channels, image_size, image_size),
-        images.into_iter().flatten().collect::<Vec<f32>>(),
-    )?;
-    Ok(images)
-}
-
-fn load_image_as_array<T: AsRef<std::path::Path>>(
-    path: T,
-    image_size: usize,
-) -> anyhow::Result<Array4<f32>> {
-    let img = image::ImageReader::open(path)?.decode()?;
-    let (height, width) = (image_size, image_size);
-    let img = img.resize_to_fill(
-        width as u32,
-        height as u32,
-        image::imageops::FilterType::Triangle,
-    );
-
-    let img = img.to_rgb8();
-
-    let img = img.into_raw();
-
-    let img = Array4::from_shape_vec((1, height, width, 3), img)?.permuted_axes((0, 3, 1, 2));
-    let img = img.mapv(|x| x as f32 / 255.);
-    let img = img.mapv(|x| 2. * x - 1.);
-    Ok(img)
-}
-
-fn load_images_as_array<T: AsRef<std::path::Path>>(
-    paths: &[T],
-    num_channels: usize,
-    image_size: usize,
-) -> anyhow::Result<Array4<f32>> {
-    let mut images = vec![];
-
-    for path in paths {
-        let image_array = load_image_as_array(path, image_size)?;
-        images.push(image_array);
-    }
-
-    let images = Array4::from_shape_vec(
-        (images.len(), num_channels, image_size, image_size),
-        images.into_iter().flatten().collect::<Vec<f32>>(),
-    )?;
-
-    Ok(images)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -453,8 +398,8 @@ mod tests {
     use std::sync::Mutex;
 
     lazy_static! {
-        static ref MODEL: Mutex<OrtColPaliEmbedder> = Mutex::new(
-            OrtColPaliEmbedder::new("akshayballal/colpali-v1.2-merged-onnx", None, None).unwrap()
+        static ref MODEL: Mutex<OrtColSmolEmbedder> = Mutex::new(
+            OrtColSmolEmbedder::new("onnx-community/colSmol-256M-ONNX", None, None).unwrap()
         );
     }
 
@@ -468,19 +413,6 @@ mod tests {
             let bytes = response.bytes().await?;
             fs::write(IMAGE_PATH, &bytes)?;
         }
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_load_image_as_array() -> anyhow::Result<()> {
-        download_image().await?;
-        let image_array: ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 4]>> =
-            load_image_as_array(IMAGE_PATH, 448).unwrap();
-        assert_eq!(
-            image_array.shape(),
-            &[1, 3, 448, 448],
-            "Image array shape should be [3, 448, 448]"
-        );
         Ok(())
     }
 

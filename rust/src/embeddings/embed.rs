@@ -159,9 +159,9 @@ impl TextEmbedder {
                     token,
                 )?)))
             }
-            "model2vec" | "Model2Vec" | "MODEL2VEC" => Ok(Self::Model2Vec(Box::new(Model2VecEmbedder::new(
-                model_id, token, None,
-            )?))),
+            "model2vec" | "Model2Vec" | "MODEL2VEC" => Ok(Self::Model2Vec(Box::new(
+                Model2VecEmbedder::new(model_id, token, None)?,
+            ))),
 
             "modernbert" | "ModernBert" | "MODERNBERT" => {
                 Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
@@ -175,7 +175,7 @@ impl TextEmbedder {
                 model_id,
                 revision.map(|s| s.to_string()),
                 token,
-                dtype
+                dtype,
             )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
@@ -245,15 +245,15 @@ impl TextEmbedder {
     /// # Arguments
     ///
     /// * `model` - A string holds the model to be used for embedding. Choose from
-    ///             - "openai"
-    ///             - "cohere"
+    ///      - "openai"
+    ///      - "cohere"
     ///
     /// * `model_id` - A string holds the model ID for the model to be used for embedding.
     ///     - For OpenAI, find available models at <https://platform.openai.com/docs/guides/embeddings/embedding-models>
     ///     - For Cohere, find available models at <https://docs.cohere.com/docs/cohere-embed>
     /// * `api_key` - An optional string holds the API key for authenticating requests to the Cohere API. If not provided, it is taken from the environment variable
-    ///         - For OpenAI, create environment variable `OPENAI_API_KEY`
-    ///         - For Cohere, create environment variable `CO_API_KEY`
+    ///     - For OpenAI, create environment variable `OPENAI_API_KEY`
+    ///     - For Cohere, create environment variable `CO_API_KEY`
     ///
     /// # Returns
     ///
@@ -278,21 +278,21 @@ impl TextEmbedder {
 }
 
 pub enum VisionEmbedder {
-    Clip(ClipEmbedder),
+    Clip(Box<ClipEmbedder>),
     ColPali(Box<dyn ColPaliEmbed + Send + Sync>),
     Cohere(CohereEmbedder),
 }
 
 impl From<VisionEmbedder> for Embedder {
     fn from(value: VisionEmbedder) -> Self {
-        Embedder::Vision(value)
+        Embedder::Vision(Box::new(value))
     }
 }
 
 impl From<Embedder> for VisionEmbedder {
     fn from(value: Embedder) -> Self {
         match value {
-            Embedder::Vision(value) => value,
+            Embedder::Vision(value) => *value,
             _ => panic!("Invalid embedder type"),
         }
     }
@@ -315,11 +315,11 @@ impl VisionEmbedder {
         token: Option<&str>,
     ) -> Result<Self, anyhow::Error> {
         match model {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(
+            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(Box::new(ClipEmbedder::new(
                 model_id.to_string(),
                 revision,
                 token,
-            )?)),
+            )?))),
             "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
                 model_id, revision,
             )?))),
@@ -515,7 +515,7 @@ impl EmbedderBuilder {
 
 pub enum Embedder {
     Text(TextEmbedder),
-    Vision(VisionEmbedder),
+    Vision(Box<VisionEmbedder>),
 }
 
 impl Embedder {
@@ -539,15 +539,12 @@ impl Embedder {
         dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
         match model_architecture {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(
-                model_architecture,
-                model_id,
-                revision,
-                token,
-            )?)),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(
+            "clip" | "Clip" | "CLIP" => Ok(Self::Vision(Box::new(
                 VisionEmbedder::from_pretrained_hf(model_architecture, model_id, revision, token)?,
-            )),
+            ))),
+            "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(Box::new(
+                VisionEmbedder::from_pretrained_hf(model_architecture, model_id, revision, token)?,
+            ))),
             "bert" | "Bert" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 model_architecture,
                 model_id,
@@ -562,13 +559,15 @@ impl Embedder {
                 token,
                 dtype,
             )?)),
-            "model2vec" | "Model2Vec" | "MODEL2VEC" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                model_architecture,
-                model_id,
-                revision,
-                token,
-                dtype,
-            )?)),
+            "model2vec" | "Model2Vec" | "MODEL2VEC" => {
+                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                    model_architecture,
+                    model_id,
+                    revision,
+                    token,
+                    dtype,
+                )?))
+            }
             "sparse-bert" | "SparseBert" | "SPARSE-BERT" => {
                 Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                     model_architecture,
@@ -586,16 +585,14 @@ impl Embedder {
                     token,
                     dtype,
                 )?))
-            },
-            "qwen3" | "Qwen3" | "QWEN3" => {
-                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                    model_architecture,
-                    model_id,
-                    revision,
-                    token,
-                    dtype,
-                )?))
             }
+            "qwen3" | "Qwen3" | "QWEN3" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                model_architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -612,9 +609,9 @@ impl Embedder {
             "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
                 model, model_id, api_key,
             )?)),
-            "cohere-vision" | "CohereVision" => Ok(Self::Vision(
+            "cohere-vision" | "CohereVision" => Ok(Self::Vision(Box::new(
                 VisionEmbedder::from_pretrained_cloud(model, model_id, api_key)?,
-            )),
+            ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
