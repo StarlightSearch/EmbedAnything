@@ -139,7 +139,7 @@ impl ClipEmbedder {
             let config: Config = serde_json::from_str(&config_str)?;
             (
                 VisionModel::Siglip(siglip::Model::new(&config, vb)?),
-                    config.text_config.max_position_embeddings,
+                config.text_config.max_position_embeddings,
                 config.text_config.pad_token_id as u32,
             )
         };
@@ -267,9 +267,7 @@ impl ClipEmbedder {
                 .tokenize_sequences(Some(mini_text_batch), &self.tokenizer)
                 .unwrap();
 
-            let batch_encodings = self
-                .model
-                .get_text_features(&input_ids)?;
+            let batch_encodings = self.model.get_text_features(&input_ids)?;
             let normalized_encodings = div_l2_norm(&batch_encodings)?.to_vec2::<f32>()?;
             encodings.extend(
                 normalized_encodings
@@ -295,9 +293,7 @@ impl EmbedImage for ClipEmbedder {
             let images = self
                 .load_images(image_batch, config.vision_config.image_size)
                 .unwrap();
-            let batch_encodings = self
-                .model
-                .get_image_features(&images)?;
+            let batch_encodings = self.model.get_image_features(&images)?;
             let normalized_encodings = div_l2_norm(&batch_encodings)?.to_vec2::<f32>()?;
             encodings.extend(normalized_encodings);
         }
@@ -337,9 +333,7 @@ impl EmbedImage for ClipEmbedder {
             .unwrap()
             .unsqueeze(0)
             .unwrap();
-        let encoding = &self
-            .model
-            .get_image_features(&image)?;
+        let encoding = &self.model.get_image_features(&image)?;
         let normalized_encoding = &div_l2_norm(encoding)?.to_vec2::<f32>()?[0];
         Ok(EmbedData::new(
             EmbeddingResult::DenseVector(normalized_encoding.to_vec()),
@@ -353,10 +347,11 @@ impl EmbedImage for ClipEmbedder {
         _pdf_path: T,
         _batch_size: Option<usize>,
     ) -> anyhow::Result<Vec<EmbedData>> {
-        Err(anyhow::anyhow!("PDF embedding not supported for Clip model"))
+        Err(anyhow::anyhow!(
+            "PDF embedding not supported for Clip model"
+        ))
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -411,7 +406,13 @@ mod tests {
     async fn test_embed_image_batch() {
         let clip_embedder = ClipEmbedder::default();
         let embeddings = clip_embedder
-            .embed_image_batch(&["../test_files/clip/cat1.jpg", "../test_files/clip/cat2.jpeg"], Some(2))
+            .embed_image_batch(
+                &[
+                    "../test_files/clip/cat1.jpg",
+                    "../test_files/clip/cat2.jpeg",
+                ],
+                Some(2),
+            )
             .await
             .unwrap();
         assert_eq!(embeddings.len(), 2);

@@ -67,11 +67,7 @@ async fn main() {
 
     // Embed an html file
     let _out2 = model
-        .embed_webpage(
-            "https://www.google.com".to_string(),
-            Some(&config),
-            None,
-        )
+        .embed_webpage("https://www.google.com".to_string(), Some(&config), None)
         .await
         .unwrap()
         .unwrap();

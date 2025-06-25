@@ -88,11 +88,11 @@ impl Pooling {
                     .get_on_dim(1, attention_mask.dim(1)? - 1)?
                     .sum_all()?
                     .to_scalar::<u32>()?;
-    
+
                 if left_padding == attention_mask.dim(0)? as u32 {
-                    return Ok(PooledOutputType::Tensor(
+                    Ok(PooledOutputType::Tensor(
                         tensor.get_on_dim(1, tensor.dim(1)? - 1)?,
-                    ));
+                    ))
                 } else {
                     let sequence_lengths = attention_mask.sum(1)?.to_vec1::<u32>()?;
                     let batch_size = tensor.dim(0)?;
@@ -100,11 +100,11 @@ impl Pooling {
                     // Create a tensor of indices for the last tokens
                     let indices: Vec<u32> = sequence_lengths.iter().map(|&len| len - 1).collect();
                     let indices = Tensor::from_vec(indices, (batch_size,), tensor.device())?;
-                    
+
                     // Use gather to get all last tokens at once
                     let final_tensor = tensor.gather(&indices, 1)?;
-                    return Ok(PooledOutputType::Tensor(final_tensor))
-                } 
+                    Ok(PooledOutputType::Tensor(final_tensor))
+                }
             }
             ModelOutput::Array(array) => {
                 let attention_mask = attention_mask
@@ -117,12 +117,12 @@ impl Pooling {
                 let batch_size = array.shape()[0];
 
                 let mut final_embeddings = vec![];
-                for i in 0..batch_size{
-                    let t = array.slice(s![i, .., (sequence_lengths[i]-1.0) as usize]);
+                for i in 0..batch_size {
+                    let t = array.slice(s![i, .., (sequence_lengths[i] - 1.0) as usize]);
                     final_embeddings.push(t);
                 }
                 let final_embeddings = ndarray::stack(Axis(1), &final_embeddings)?;
-                return Ok(PooledOutputType::Array(final_embeddings))
+                Ok(PooledOutputType::Array(final_embeddings))
             }
         }
     }

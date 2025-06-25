@@ -1,6 +1,6 @@
-use text_splitter::ChunkConfigError;
 use crate::markdown_processor::MarkdownProcessor;
 use crate::processor::{Document, DocumentProcessor};
+use text_splitter::ChunkConfigError;
 
 /// A struct for processing PDF files.
 pub struct TxtProcessor {
@@ -10,9 +10,7 @@ pub struct TxtProcessor {
 impl TxtProcessor {
     pub fn new(chunk_size: usize, overlap: usize) -> Result<TxtProcessor, ChunkConfigError> {
         let markdown_processor = MarkdownProcessor::new(chunk_size, overlap)?;
-        Ok(TxtProcessor {
-            markdown_processor,
-        })
+        Ok(TxtProcessor { markdown_processor })
     }
 }
 

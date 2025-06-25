@@ -1,9 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use embed_anything::{
-    config::TextEmbedConfig,
-    embed_directory_stream, embed_file,
-    embeddings::embed::Embedder,
+    config::TextEmbedConfig, embed_directory_stream, embed_file, embeddings::embed::Embedder,
 };
 
 use anyhow::Result;

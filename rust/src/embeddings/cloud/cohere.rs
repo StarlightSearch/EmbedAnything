@@ -88,7 +88,6 @@ impl CohereEmbedder {
     }
 
     pub async fn embed(&self, text_batch: &[&str]) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
-
         let response = self
             .client
             .post(&self.url)
@@ -103,7 +102,6 @@ impl CohereEmbedder {
             }))
             .send()
             .await?;
-
 
         let data = match response.error_for_status() {
             Ok(resp) => resp.json::<CohereEmbedResponse>().await?,
@@ -191,9 +189,7 @@ impl CohereEmbedder {
                 }
             };
             let encodings = data.embeddings;
-            let embedding = encodings
-                .float
-                .iter().cloned();
+            let embedding = encodings.float.iter().cloned();
             embeddings.extend(embedding);
         }
         let embeddings = embeddings
@@ -321,5 +317,4 @@ mod tests {
         let embeddings = cohere.embed_pdf(file_path, None).await.unwrap();
         assert_eq!(embeddings.len(), 26);
     }
-
 }

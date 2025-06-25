@@ -1,10 +1,10 @@
+use crate::pdf::tesseract::error::{TessError, TessResult};
 use image::DynamicImage;
 use std::{
     collections::HashMap,
     fmt::{self},
     path::{Path, PathBuf},
 };
-use crate::pdf::tesseract::error::{TessError, TessResult};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Args {
@@ -121,7 +121,10 @@ mod tests {
     fn test_from_path() {
         let input = Image::from_path("../test_files/clip/cat1.jpg").unwrap();
 
-        assert_eq!(input.get_image_path().unwrap(), "../test_files/clip/cat1.jpg")
+        assert_eq!(
+            input.get_image_path().unwrap(),
+            "../test_files/clip/cat1.jpg"
+        )
     }
 
     #[test]

@@ -347,16 +347,16 @@ impl StatisticalChunker {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use processors_rs::pdf::pdf_processor::{OcrConfig, PdfBackend};
     use crate::extract_document;
+    use processors_rs::pdf::pdf_processor::{OcrConfig, PdfBackend};
+    use std::path::PathBuf;
 
     use super::*;
 
     #[tokio::test]
     async fn test_statistical_chunker() {
         let text = extract_document(
-            &PathBuf::from("../test_files/attention.pdf"),
+            PathBuf::from("../test_files/attention.pdf"),
             10,
             0,
             OcrConfig {
@@ -371,6 +371,6 @@ mod tests {
             ..Default::default()
         };
         let chunks = chunker.chunk(&text.chunks.join("\n"), 10).await;
-        assert!(chunks.len() > 0);
+        assert!(!chunks.is_empty());
     }
 }

@@ -422,12 +422,12 @@ mod tests {
             .embed(&["Hello, world!", "I am a rust programmer"], Some(32))
             .unwrap();
         let test_embeddings: Vec<f32> = vec![
-            -3.81771438e-02,
-            3.29110473e-02,
-            -5.45941433e-03,
-            1.43699292e-02,
-            -4.02910188e-02,
-            -1.16532497e-01,
+            -3.817_714_4e-2,
+            3.291_104_7e-2,
+            -5.459_414_3e-3,
+            1.436_992_9e-2,
+            -4.029_102e-2,
+            -1.165_325e-1,
         ];
         let embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
         println!("{:?}", embeddings);

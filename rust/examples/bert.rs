@@ -1,6 +1,6 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
-use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
-use embed_anything::{embed_directory_stream, embed_file, embed_files_batch, Dtype};
+use embed_anything::embeddings::embed::EmbedderBuilder;
+use embed_anything::{embed_directory_stream, embed_file, embed_files_batch};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
