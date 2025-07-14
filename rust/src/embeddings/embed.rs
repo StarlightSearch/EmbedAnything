@@ -3,6 +3,7 @@ use crate::file_processor::audio::audio_processor::Segment;
 use crate::Dtype;
 
 use super::cloud::cohere::CohereEmbedder;
+use super::cloud::gemini::GeminiEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
 use super::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder};
 
@@ -104,6 +105,7 @@ pub trait AudioDecoder {
 pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
+    Gemini(GeminiEmbedder),
     Jina(Box<dyn JinaEmbed + Send + Sync>),
     Model2Vec(Box<Model2VecEmbedder>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
@@ -122,6 +124,7 @@ impl TextEmbedder {
         match self {
             TextEmbedder::OpenAI(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Cohere(embedder) => embedder.embed(text_batch).await,
+            TextEmbedder::Gemini(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Model2Vec(embedder) => embedder.embed(text_batch, batch_size),
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
@@ -270,6 +273,9 @@ impl TextEmbedder {
             ))),
             "cohere" | "Cohere" => Ok(Self::Cohere(CohereEmbedder::new(
                 model_id.to_string(),
+                api_key,
+            ))),
+            "gemini" | "Gemini" => Ok(Self::Gemini(GeminiEmbedder::new(
                 api_key,
             ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
@@ -607,6 +613,9 @@ impl Embedder {
                 model, model_id, api_key,
             )?)),
             "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
+                model, model_id, api_key,
+            )?)),
+            "gemini" | "Gemini" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
                 model, model_id, api_key,
             )?)),
             "cohere-vision" | "CohereVision" => Ok(Self::Vision(Box::new(
