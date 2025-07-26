@@ -152,33 +152,26 @@ impl Reranker {
         batch_size: usize,
     ) -> Result<Vec<Vec<f32>>, E> {
 
+        // Check model type once at the beginning
+        let is_qwen3 = self.model_type.as_ref().map_or(false, |t| t == "qwen3");
         
         let prefix = "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be yes or no.<|im_end|>\n<|im_start|>user\n";
         let suffix = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
-
 
         let pairs = queries
             .iter()
             .flat_map(|query| documents.iter().map(move |doc| (*query, *doc)))
             .collect::<Vec<_>>();
 
-        let pairs = match &self.model_type {
-            Some(model_type) => {
-                if model_type == "qwen3" {
-                    pairs.iter().map(|(query, doc)| (format!("{}{}", prefix, query), format!("{}{}", doc, suffix))).collect::<Vec<_>>()
-                } else {
-                    pairs.iter().map(|(query, doc)| (query.to_string(), doc.to_string())).collect::<Vec<_>>()
-                }
-            }
-            None => {
-                pairs.iter().map(|(query, doc)| (query.to_string(), doc.to_string())).collect::<Vec<_>>()
-            }
+        let pairs = if is_qwen3 {
+            pairs.iter().map(|(query, doc)| (format!("{}{}", prefix, query), format!("{}{}", doc, suffix))).collect::<Vec<_>>()
+        } else {
+            pairs.iter().map(|(query, doc)| (query.to_string(), doc.to_string())).collect::<Vec<_>>()
         };
 
         
         let mut scores = Vec::with_capacity(pairs.len());
         let mut model_guard = self.model.write().unwrap();
-
 
         let false_token_id = self
             .tokenizer
@@ -214,82 +207,43 @@ impl Reranker {
                 ort::inputs!["input_ids" => input_ids_tensor, "attention_mask" => attention_mask_tensor]
             };
 
-        
-            match &self.model_type {
-                Some(model_type) => {
-                    if model_type == "qwen3" {
-                        let logits = qwen3::compute_scores(
-                            &mut model_guard,
-                            input_ids,
-                            attention_mask,
-                            position_ids,
-                            false_token_id,
-                            true_token_id,
-                        )?;
-                        scores.extend(logits);
-                    } else {
-                        let outputs = model_guard.run(inputs)?;
-                        let logits = outputs["logits".to_string()]
-                            .try_extract_array::<f32>()?
-                            .to_owned()
-                            .into_dimensionality::<ndarray::Ix2>()?;
-                        scores.extend(
-                            logits
-                                .outer_iter()
-                                .flat_map(|row| row.to_vec())
-                                .collect::<Vec<_>>(),
-                        );
-                       
-                    }
-                }
-                None => {
-                    let outputs = model_guard.run(inputs)?;
-                    let logits = outputs["logits".to_string()]
-                        .try_extract_array::<f32>()?
-                        .to_owned()
-                        .into_dimensionality::<ndarray::Ix2>()?;
-
-                    scores.extend(
-                        logits
-                            .outer_iter()
-                            .flat_map(|row| row.to_vec())
-                            .collect::<Vec<_>>(),
-                    );
-                    
-                }
-            };
-        }
-
-        match &self.model_type {
-            Some(model_type) => {
-                if model_type == "qwen3" {
-                    let scores_tensor = Tensor::from_vec(
-                        scores.clone(),
-                        (queries.len(), documents.len()),
-                        &Device::Cpu,
-                    )?;
-                    Ok(scores_tensor.to_vec2::<f32>()?)
-                } else {
-                    let scores_tensor = Tensor::from_vec(
-                        scores.clone(),
-                        (queries.len(), documents.len()),
-                        &Device::Cpu,
-                    )?;
-                    let sigmoid_scores = candle_nn::ops::sigmoid(&scores_tensor)?;
-                    Ok(sigmoid_scores.to_vec2::<f32>()?)
-                }
-            }
-            None => {
-                let scores_tensor = Tensor::from_vec(
-                    scores.clone(),
-                    (queries.len(), documents.len()),
-                    &Device::Cpu,
+            if is_qwen3 {
+                let logits = qwen3::compute_scores(
+                    &mut model_guard,
+                    input_ids,
+                    attention_mask,
+                    position_ids,
+                    false_token_id,
+                    true_token_id,
                 )?;
-                let sigmoid_scores = candle_nn::ops::sigmoid(&scores_tensor)?;
-                Ok(sigmoid_scores.to_vec2::<f32>()?)
+                scores.extend(logits);
+            } else {
+                let outputs = model_guard.run(inputs)?;
+                let logits = outputs["logits".to_string()]
+                    .try_extract_array::<f32>()?
+                    .to_owned()
+                    .into_dimensionality::<ndarray::Ix2>()?;
+                scores.extend(
+                    logits
+                        .outer_iter()
+                        .flat_map(|row| row.to_vec())
+                        .collect::<Vec<_>>(),
+                );
             }
         }
-    
+
+        let scores_tensor = Tensor::from_vec(
+            scores.clone(),
+            (queries.len(), documents.len()),
+            &Device::Cpu,
+        )?;
+
+        if is_qwen3 {
+            Ok(scores_tensor.to_vec2::<f32>()?)
+        } else {
+            let sigmoid_scores = candle_nn::ops::sigmoid(&scores_tensor)?;
+            Ok(sigmoid_scores.to_vec2::<f32>()?)
+        }
     }
 
     pub fn rerank(
