@@ -451,6 +451,12 @@ class Reranker:
         Reranks the given documents for the query and returns a list of RerankerResult objects.
         """
 
+    def compute_scores(
+        self, query: list[str], documents: list[str], batch_size: int
+    ) -> list[list[float]]:
+        """
+        Computes the scores for the given query and documents.
+        """
 class Dtype(Enum):
     """
     Represents the data type of the model.

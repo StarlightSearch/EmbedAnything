@@ -6,6 +6,7 @@ fn main() {
         "jinaai/jina-reranker-v2-base-multilingual",
         None,
         Dtype::F16,
+        Some("onnx"),
     )
     .unwrap();
 
