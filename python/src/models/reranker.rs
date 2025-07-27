@@ -105,11 +105,12 @@ impl RerankerResult {
 #[pymethods]
 impl Reranker {
     #[staticmethod]
-    #[pyo3(signature = (model_id, revision=None, dtype=None))]
+    #[pyo3(signature = (model_id, revision=None, dtype=None, path_in_repo=None))]
     pub fn from_pretrained(
         model_id: &str,
         revision: Option<&str>,
         dtype: Option<&Dtype>,
+        path_in_repo: Option<&str>,
     ) -> PyResult<Self> {
         let dtype = match dtype {
             Some(Dtype::F16) => embed_anything::Dtype::F16,
@@ -120,7 +121,7 @@ impl Reranker {
             Some(Dtype::F32) => embed_anything::Dtype::F32,
             _ => embed_anything::Dtype::F32,
         };
-        let model = embed_anything::reranker::model::Reranker::new(model_id, revision, dtype)
+        let model = embed_anything::reranker::model::Reranker::new(model_id, revision, dtype, path_in_repo)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self { model })
     }
@@ -142,5 +143,21 @@ impl Reranker {
             .into_iter()
             .map(|r| RerankerResult { inner: r })
             .collect::<Vec<_>>())
+    }
+
+    #[pyo3(signature = (query, documents, batch_size))]
+    pub fn compute_scores(
+        &self,
+        query: Vec<String>,
+        documents: Vec<String>,
+        batch_size: usize,
+    ) -> PyResult<Vec<Vec<f32>>> {
+        let query_refs: Vec<&str> = query.iter().map(|s| s.as_str()).collect();
+        let document_refs: Vec<&str> = documents.iter().map(|s| s.as_str()).collect();
+        let scores = self
+            .model
+            .compute_scores(query_refs, document_refs, batch_size)
+            .unwrap();
+        Ok(scores)
     }
 }

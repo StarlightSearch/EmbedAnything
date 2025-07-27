@@ -10,8 +10,8 @@ use ort::{
 };
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use crate::embeddings::local::bert::TokenizerConfig;
 use crate::Dtype;
+use crate::{embeddings::local::bert::TokenizerConfig, reranker::qwen3};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -29,12 +29,18 @@ pub struct DocumentRank {
 
 pub struct Reranker {
     model: RwLock<Session>,
+    model_type: Option<String>,
     tokenizer: Tokenizer,
 }
 
 impl Reranker {
-    pub fn new(model_id: &str, revision: Option<&str>, dtype: Dtype) -> Result<Self, E> {
-        let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
+    pub fn new(
+        model_id: &str,
+        revision: Option<&str>,
+        dtype: Dtype,
+        path_in_repo: Option<&str>,
+    ) -> Result<Self, E> {
+        let (config_filename, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
             let api = Api::new().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
@@ -50,16 +56,23 @@ impl Reranker {
             let config = api.get("config.json")?;
             let tokenizer = api.get("tokenizer.json")?;
             let tokenizer_config = api.get("tokenizer_config.json")?;
+
+            let mut path_in_repo = path_in_repo.unwrap_or_default().to_string();
+            if !path_in_repo.is_empty() {
+                path_in_repo.push('/');
+            }
             let weights = match dtype {
-                Dtype::Q4F16 => api.get("onnx/model_q4f16.onnx")?,
-                Dtype::F16 => api.get("onnx/model_fp16.onnx")?,
-                Dtype::INT8 => api.get("onnx/model_int8.onnx")?,
-                Dtype::Q4 => api.get("onnx/model_q4.onnx")?,
-                Dtype::UINT8 => api.get("onnx/model_uint8.onnx")?,
-                Dtype::BNB4 => api.get("onnx/model_bnb4.onnx")?,
-                Dtype::F32 => api.get("onnx/model.onnx")?,
-                Dtype::BF16 => api.get("onnx/model_bf16.onnx")?,
-                Dtype::QUANTIZED => api.get("onnx/model_quantized.onnx")?,
+                Dtype::Q4F16 => api.get(format!("{}model_q4f16.onnx", path_in_repo).as_str())?,
+                Dtype::F16 => api.get(format!("{}model_fp16.onnx", path_in_repo).as_str())?,
+                Dtype::INT8 => api.get(format!("{}model_int8.onnx", path_in_repo).as_str())?,
+                Dtype::Q4 => api.get(format!("{}model_q4.onnx", path_in_repo).as_str())?,
+                Dtype::UINT8 => api.get(format!("{}model_uint8.onnx", path_in_repo).as_str())?,
+                Dtype::BNB4 => api.get(format!("{}model_bnb4.onnx", path_in_repo).as_str())?,
+                Dtype::F32 => api.get(format!("{}model.onnx", path_in_repo).as_str())?,
+                Dtype::BF16 => api.get(format!("{}model_bf16.onnx", path_in_repo).as_str())?,
+                Dtype::QUANTIZED => {
+                    api.get(format!("{}model_quantized.onnx", path_in_repo).as_str())?
+                }
             };
             (config, tokenizer, weights, tokenizer_config)
         };
@@ -75,6 +88,13 @@ impl Reranker {
             (None, Some(model_max_len)) => model_max_len,
             (None, None) => 128,
         };
+
+        let config_file = std::fs::read_to_string(config_filename)?;
+        let config: serde_json::Value = serde_json::from_str(&config_file)?;
+        let model_type = config
+            .get("model_type")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
 
@@ -120,6 +140,7 @@ impl Reranker {
 
         Ok(Reranker {
             model: RwLock::new(model),
+            model_type,
             tokenizer,
         })
     }
@@ -130,37 +151,99 @@ impl Reranker {
         documents: Vec<&str>,
         batch_size: usize,
     ) -> Result<Vec<Vec<f32>>, E> {
+
+        // Check model type once at the beginning
+        let is_qwen3 = self.model_type.as_ref().is_some_and(|t| t == "qwen3");
+        
+        let prefix = "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be yes or no.<|im_end|>\n<|im_start|>user\n";
+        let suffix = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
+
         let pairs = queries
             .iter()
             .flat_map(|query| documents.iter().map(move |doc| (*query, *doc)))
             .collect::<Vec<_>>();
+
+        let pairs = if is_qwen3 {
+            pairs.iter().map(|(query, doc)| (format!("{}{}", prefix, query), format!("{}{}", doc, suffix))).collect::<Vec<_>>()
+        } else {
+            pairs.iter().map(|(query, doc)| (query.to_string(), doc.to_string())).collect::<Vec<_>>()
+        };
+
+        
         let mut scores = Vec::with_capacity(pairs.len());
         let mut model_guard = self.model.write().unwrap();
+
+        let false_token_id = self
+            .tokenizer
+            .token_to_id("no")
+            .ok_or(E::msg("no token found"))?;
+        let true_token_id = self
+            .tokenizer
+            .token_to_id("yes")
+            .ok_or(E::msg("yes token found"))?;
 
         for pair in pairs.chunks(batch_size) {
             let input_ids = self.tokenize_batch_ndarray(pair)?;
             let attention_mask = self.get_attention_mask_ndarray(pair)?;
             let input_ids_tensor = ort::value::TensorRef::from_array_view(&input_ids)?;
             let attention_mask_tensor = ort::value::TensorRef::from_array_view(&attention_mask)?;
-            let outputs = model_guard.run(ort::inputs!["input_ids" => input_ids_tensor, "attention_mask" => attention_mask_tensor])?;
-            let logits = outputs["logits".to_string()]
-                .try_extract_array::<f32>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix2>()?;
-            scores.extend(
-                logits
-                    .outer_iter()
-                    .flat_map(|row| row.to_vec())
-                    .collect::<Vec<_>>(),
-            );
+            let model_inputs = model_guard
+                .inputs
+                .iter()
+                .map(|i| i.name.clone())
+                .collect::<Vec<_>>();
+
+            let seq_len = input_ids.shape()[1];
+            let position_ids_vec: Vec<i64> = (0..seq_len as i64)
+                .collect::<Vec<i64>>()
+                .repeat(input_ids.shape()[0]);
+            let position_ids =
+                Array2::<i64>::from_shape_vec((input_ids.shape()[0], seq_len), position_ids_vec)?;
+            let position_ids_tensor = ort::value::TensorRef::from_array_view(&position_ids)?;
+
+            let inputs = if model_inputs.contains(&"position_ids".to_string()) {
+                ort::inputs!["input_ids" => input_ids_tensor, "attention_mask" => attention_mask_tensor, "position_ids" => position_ids_tensor]
+            } else {
+                ort::inputs!["input_ids" => input_ids_tensor, "attention_mask" => attention_mask_tensor]
+            };
+
+            if is_qwen3 {
+                let logits = qwen3::compute_scores(
+                    &mut model_guard,
+                    input_ids,
+                    attention_mask,
+                    position_ids,
+                    false_token_id,
+                    true_token_id,
+                )?;
+                scores.extend(logits);
+            } else {
+                let outputs = model_guard.run(inputs)?;
+                let logits = outputs["logits".to_string()]
+                    .try_extract_array::<f32>()?
+                    .to_owned()
+                    .into_dimensionality::<ndarray::Ix2>()?;
+                scores.extend(
+                    logits
+                        .outer_iter()
+                        .flat_map(|row| row.to_vec())
+                        .collect::<Vec<_>>(),
+                );
+            }
         }
+
         let scores_tensor = Tensor::from_vec(
             scores.clone(),
             (queries.len(), documents.len()),
             &Device::Cpu,
         )?;
-        let sigmoid_scores = candle_nn::ops::sigmoid(&scores_tensor).unwrap();
-        Ok(sigmoid_scores.to_vec2::<f32>()?)
+
+        if is_qwen3 {
+            Ok(scores_tensor.to_vec2::<f32>()?)
+        } else {
+            let sigmoid_scores = candle_nn::ops::sigmoid(&scores_tensor)?;
+            Ok(sigmoid_scores.to_vec2::<f32>()?)
+        }
     }
 
     pub fn rerank(
@@ -197,7 +280,7 @@ impl Reranker {
         Ok(reranker_results)
     }
 
-    pub fn tokenize_batch_ndarray(&self, pairs: &[(&str, &str)]) -> anyhow::Result<Array2<i64>> {
+    pub fn tokenize_batch_ndarray(&self, pairs: &[(String, String)]) -> anyhow::Result<Array2<i64>> {
         let token_ids = self
             .tokenizer
             .encode_batch(pairs.to_vec(), true)
@@ -222,7 +305,7 @@ impl Reranker {
 
     pub fn get_attention_mask_ndarray(
         &self,
-        pairs: &[(&str, &str)],
+        pairs: &[(String, String)],
     ) -> anyhow::Result<Array2<i64>> {
         let attention_mask = self
             .tokenizer
