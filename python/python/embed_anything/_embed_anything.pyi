@@ -431,17 +431,24 @@ class Reranker:
     """
 
     def __init__(
-        self, model_id: str, revision: str | None = None, dtype: Dtype | None = None
+        self, model_id: str, revision: str | None = None, dtype: Dtype | None = None, path_in_repo: str | None = None
     ):
         """
         Initializes the Reranker object.
         """
 
     def from_pretrained(
-        model_id: str, revision: str | None = None, dtype: Dtype | None = None
+        model_id: str, revision: str | None = None, dtype: Dtype | None = None, path_in_repo: str | None = None
     ) -> Reranker:
         """
         Loads a pre-trained Reranker model from the Hugging Face model hub.
+
+        Args:
+            model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+            dtype: The dtype of the model.
+            path_in_repo: The path to the model in the repository.
+
         """
 
     def rerank(
@@ -449,6 +456,14 @@ class Reranker:
     ) -> RerankerResult:
         """
         Reranks the given documents for the query and returns a list of RerankerResult objects.
+
+        Args:
+            query: The query to rerank.
+            documents: The list of documents to rerank.
+            top_k: The number of documents to return.
+
+        Returns:
+            A list of RerankerResult objects.
         """
 
     def compute_scores(
@@ -456,6 +471,14 @@ class Reranker:
     ) -> list[list[float]]:
         """
         Computes the scores for the given query and documents.
+
+        Args:
+            query: The query to compute the scores for.
+            documents: The list of documents to compute the scores for.
+            batch_size: The batch size for processing the scores.
+
+        Returns:
+            A list of scores for the given query and documents.
         """
 class Dtype(Enum):
     """
