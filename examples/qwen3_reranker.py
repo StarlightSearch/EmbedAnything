@@ -37,7 +37,7 @@ def basic_qwen3_reranking():
     ]
     
     # Rerank documents and get top 3 results
-    results = reranker.rerank(query, documents, top_k=3)
+    results = reranker.rerank(query, documents, 2)
     
     # Display results
     for result in results:

@@ -33,6 +33,8 @@
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
     .
     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-our-past-collaborations"><strong>Collaborations</strong></a>
+    .
+     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-colab"><strong>Notebooks</strong></a>
 
 
     
@@ -261,6 +263,17 @@ pip install embed-anything-gpu
 ```
 os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin")
 ```
+## 📒 Notebooks
+
+
+|   |   |
+| ------------- | ------------- | 
+| [End-to-End Retrieval and Reranking using VectorDB Adapters](https://colab.research.google.com/drive/1gct0lEplyW8VWGPXUgpLcQuMQeZDl6D5?usp=sharing)  | 
+| [ColPali-Onnx](https://colab.research.google.com/drive/1yCVbpkoe53ymiCxG8ttJNbRhECy1Q-Du?usp=sharing)  | 
+| [Adapters](https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters) |  |
+| [Qwen3- Embedings](https://colab.research.google.com/drive/1OlUJwTtPvj28h5tCVerf6ebEnAf8kPAh?usp=sharing) | 
+| [Benchmarks](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing) | 
+
 
 # Usage
 
@@ -322,8 +335,6 @@ This document provides guidelines and best practices to help you to contribute e
 
 One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
 
-### Adding Fine-tuning 
-One of the major goals of this year is to add finetuning these models on your data. Like a simple sentence transformer does.
 
 ### 🖼️ Modalities and Source
 
@@ -387,7 +398,7 @@ How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-deve
 But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
-If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly starlight-search@proton.me. Let's build something amazing together! 💡
+If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly turingatverge@gmail.com . Let's build something amazing together! 💡
 
 ## A big Thank you to all our StarGazers
 
