@@ -34,7 +34,7 @@
     .
     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-our-past-collaborations"><strong>Collaborations</strong></a>
     .
-     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-colab"><strong>Notebooks</strong></a>
+     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-notebooks"><strong>Notebooks</strong></a>
 
 
     
