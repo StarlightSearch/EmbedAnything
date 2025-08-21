@@ -42,7 +42,7 @@
 </div>
 
 
-EmbedAnything is a minimalist, yet highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
+EmbedAnything is a minimalist, yet highly performant, higly modular, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -72,13 +72,15 @@ EmbedAnything is a minimalist, yet highly performant, lightning-fast, lightweigh
 
 ## 🚀 Key Features
 
+
+- **No Dependency on Pytorch**: Easy to deploy on cloud, comes with low memory footprint.
+- **Highly Modular** : Choose any vectorDB adapter for RAG, with 1 line of code
 - **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
 - **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
 - **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **GPU support** : Hardware acceleration on GPU as well.
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
-- **No Dependency on Pytorch** Easy to deploy on cloud, as it comes with low memory footprint.
 
 ## 💡What is Vector Streaming
 
