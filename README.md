@@ -20,7 +20,7 @@
 <div align="center">
 
   <p align="center">
-    <b> Inference, Ingestion, and Indexing in Rust 🦀</b>
+    <b> Highly Performant and Modular - Inference, Ingestion, and Indexing in Rust 🦀</b>
     <br />
     <a href="https://embed-anything.com/references/">Python docs »</a>
     <br />
@@ -42,7 +42,7 @@
 </div>
 
 
-EmbedAnything is a minimalist, yet highly performant, higly modular, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
+EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <!-- TABLE OF CONTENTS -->
 <details>
