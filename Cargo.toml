@@ -23,7 +23,7 @@ candle-nn = { version = "0.9.1" }
 candle-transformers = { version = "0.9.1" }
 candle-core = { version = "0.9.1" }
 candle-flash-attn = { version = "0.9.1" }
-processors-rs = { path = "processors", version = "=0.6.4" }
+processors-rs = { path = "processors", version = "=0.6.5" }
 
 strum = "0.27.1"
 strum_macros = "0.27.1"
