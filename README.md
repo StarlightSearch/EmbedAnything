@@ -20,19 +20,21 @@
 <div align="center">
 
   <p align="center">
-    <b> Inference, Ingestion, and Indexing in Rust 🦀</b>
+    <b> Highly Performant and Modular - Inference, Ingestion, and Indexing in Rust 🦀</b>
     <br />
     <a href="https://embed-anything.com/references/">Python docs »</a>
     <br />
     <a href="https://docs.rs/embed_anything/latest/embed_anything/">Rust docs »</a>
     <br />
-    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#benchmarks"><strong>Benchmarks</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#%EF%B8%8Ffaq"><strong>FAQ</strong></a>
     ·
     <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
     .
     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-our-past-collaborations"><strong>Collaborations</strong></a>
+    .
+     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-notebooks"><strong>Notebooks</strong></a>
 
 
     
@@ -40,7 +42,7 @@
 </div>
 
 
-EmbedAnything is a minimalist, yet highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
+EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -70,19 +72,21 @@ EmbedAnything is a minimalist, yet highly performant, lightning-fast, lightweigh
 
 ## 🚀 Key Features
 
-- **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT
-- **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT
-- **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
+
+- **No Dependency on Pytorch**: Easy to deploy on cloud, comes with low memory footprint.
+- **Highly Modular** : Choose any vectorDB adapter for RAG, with 1 line of code
+- **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
+- **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
+- **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
-- **Rust** : All the file processing is done in rust for speed and efficiency
-- **GPU support** : We have taken care of hardware acceleration on GPU as well.
-- **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
+- **GPU support** : Hardware acceleration on GPU as well.
 - **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
-- **No Dependency on Pytorch** Easy to deploy on cloud, as it comes with low memory footprint.
 
 ## 💡What is Vector Streaming
 
-Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. 
+ Embedding models are computationally expensive and time-consuming. By separating document preprocessing from model inference, you can significantly reduce pipeline latency and improve throughput.
+
+Vector streaming transforms a sequential bottleneck into an efficient, concurrent workflow.
 
 The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
 
@@ -102,7 +106,7 @@ The embedding process happens separetly from the main process, so as to maintain
 ## 🍓 Our Past Collaborations:
 
 We have collaborated with reputed enterprise like
-[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), [Weaviate](), [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) [Milvus](https://milvus.io/docs/build_RAG_with_milvus_and_embedAnything.md) 
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), [Weaviate](https://www.linkedin.com/posts/sonam-pankaj_machinelearning-data-ai-activity-7238832243622768644-gB8c?utm_source=share&utm_medium=member_desktop&rcm=ACoAABlF_IAB4Y74d5JJwj0CUwpTkhuskE0PAt4), [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/), [Milvus](https://milvus.io/docs/build_RAG_with_milvus_and_embedAnything.md) 
 and [Analytics Vidya Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0)
 
 You can get in touch with us for further collaborations.
@@ -136,9 +140,11 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | ColPali | starlight-ai/colpali-v1.2-merged-onnx|
 | Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
-| Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 | Model2Vec | model2vec, minishlab/potion-base-8M |
 | Qwen3-Embedding | Qwen/Qwen3-Embedding-0.6B |
+| Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
+
+
 
 
 ## Splade Models:
@@ -259,15 +265,21 @@ pip install embed-anything-gpu
 ```
 os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin")
 ```
+## 📒 Notebooks
+
+
+|   |   |
+| ------------- | ------------- | 
+| [End-to-End Retrieval and Reranking using VectorDB Adapters](https://colab.research.google.com/drive/1gct0lEplyW8VWGPXUgpLcQuMQeZDl6D5?usp=sharing)  | 
+| [ColPali-Onnx](https://colab.research.google.com/drive/1yCVbpkoe53ymiCxG8ttJNbRhECy1Q-Du?usp=sharing)  | 
+| [Adapters](https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters) |  |
+| [Qwen3- Embedings](https://colab.research.google.com/drive/1OlUJwTtPvj28h5tCVerf6ebEnAf8kPAh?usp=sharing) | 
+| [Benchmarks](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing) | 
+
 
 # Usage
 
-
-
 ## ➡️ Usage For 0.3 and later version
-
-
-### To use local embedding: we support Bert and Jina
 
 ```python
 model = EmbeddingModel.from_pretrained_local(
@@ -278,45 +290,10 @@ data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 
 
 
-## For multimodal embedding: we support CLIP
-### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
-
-```python
-import embed_anything
-from embed_anything import EmbedData
-model = embed_anything.EmbeddingModel.from_pretrained_local(
-    embed_anything.WhichModel.Clip,
-    model_id="openai/clip-vit-base-patch16",
-    # revision="refs/pr/15",
-)
-data: list[EmbedData] = embed_anything.embed_image_directory("test_files", embedder=model)
-embeddings = np.array([data.embedding for data in data])
-query = ["Photo of a monkey?"]
-query_embedding = np.array(
-    embed_anything.embed_query(query, embedder=model)[0].embedding
-)
-similarities = np.dot(embeddings, query_embedding)
-max_index = np.argmax(similarities)
-Image.open(data[max_index].text).show()
-```
-
 ### Using ONNX Models
 
 To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
 
-```python
-model = EmbeddingModel.from_pretrained_onnx(
-  WhichModel.Bert, model_name = ONNXModel.AllMiniLML6V2Q
-)
-```
-
-For some models, you can also specify the dtype to use for the model.
-
-```python
-model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
-)
-```
 
 Using the above method is best to ensure that the model works correctly as these models are tested. But if you want to use other models, like finetuned models, you can use the `hf_model_id` and `path_in_repo` to load the model like below.
 
@@ -360,8 +337,6 @@ This document provides guidelines and best practices to help you to contribute e
 
 One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
 
-### Adding Fine-tuning 
-One of the major goals of this year is to add finetuning these models on your data. Like a simple sentence transformer does.
 
 ### 🖼️ Modalities and Source
 
@@ -425,7 +400,7 @@ How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-deve
 But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
-If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly starlight-search@proton.me. Let's build something amazing together! 💡
+If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly turingatverge@gmail.com . Let's build something amazing together! 💡
 
 ## A big Thank you to all our StarGazers
 

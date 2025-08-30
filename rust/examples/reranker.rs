@@ -3,9 +3,10 @@ fn main() {
     use embed_anything::Dtype;
 
     let reranker = embed_anything::reranker::model::Reranker::new(
-        "jinaai/jina-reranker-v2-base-multilingual",
+        "zhiqing/Qwen3-Reranker-0.6B-ONNX",
         None,
-        Dtype::F16,
+        Dtype::F32,
+        None,
     )
     .unwrap();
 

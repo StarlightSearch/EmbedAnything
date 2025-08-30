@@ -7,6 +7,8 @@ from embed_anything import (
     EmbeddingModel,
     WhichModel,
     ColpaliModel,
+    Reranker,
+    Dtype,
 )
 
 from embed_anything import ONNXModel
@@ -130,3 +132,17 @@ class DummyAdapter(Adapter):
 @pytest.fixture
 def dummy_adapter() -> DummyAdapter:
     return DummyAdapter("dummy")
+
+
+@pytest.fixture
+def reranker_model():
+    """Fixture to provide a working reranker model for testing."""
+    try:
+        # Using the Qwen3 reranker which is known to work
+        model = Reranker.from_pretrained(
+            "zhiqing/Qwen3-Reranker-0.6B-ONNX", 
+            dtype=Dtype.F32
+        )
+        return model
+    except Exception as e:
+        pytest.skip(f"Could not load reranker model: {e}")
