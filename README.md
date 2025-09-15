@@ -80,6 +80,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **GPU support** : Hardware acceleration on GPU as well.
+- **Chunking** : In-built chunking methods like semantic, late-chunking
 - **Vector Streaming:** Separate file processing, Indexing and Inferencing on different threads, reduces latency.
 
 ## 💡What is Vector Streaming
@@ -96,12 +97,11 @@ The embedding process happens separetly from the main process, so as to maintain
 
 ➡️Faster execution. <br />
 ➡️No Pytorch Dependency, thus low-memory footprint and easy to deploy on cloud. <br />
-➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
 ➡️Running embedding models locally and efficiently <br />
-➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage. <br/>
-➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
+➡️In-built chunking methods like semantic, late-chunking <br/>
+➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.<br />
+➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 
 ## 🍓 Our Past Collaborations:
 
