@@ -10,6 +10,9 @@ title: How to write textembedconfig for chunking
 
 After presenting at Google, PyCon DE, Berlin Buzzwords, and GDG Berlin, I was surprised by how many people approached me with questions about writing configurations, chunk sizes, and batch sizes for EmbedAnything. Since I had never specifically covered this topic in my talks or blog posts, I decided to create this comprehensive guide to clarify these concepts and explain how we handle your chunking strategy with vector streaming.
 
+<!-- more -->
+
+
 ## Understanding TextEmbedConfig
 
 TextEmbedConfig consists of three essential components that work together to optimize your text embedding process:
@@ -84,8 +87,8 @@ Key benefits of late chunking:
 ### Chunk Size
 The `chunk_size` parameter defines the maximum number of characters (or tokens, depending on the model) allowed in each chunk. Consider these factors when setting chunk size:
 
-- **Smaller chunks (256-512)**: Better for precise retrieval, more granular search results
-- **Larger chunks (1000-2000)**: Better for maintaining context, fewer total chunks to process
+- **Smaller chunks**: Better for precise retrieval, more granular search results
+- **Larger chunks**: Better for maintaining context, fewer total chunks to process
 - **Model limitations**: Ensure chunk size doesn't exceed your embedding model's maximum input length
 
 ### Batch Size for Vector Streaming
