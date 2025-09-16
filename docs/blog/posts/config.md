@@ -84,8 +84,8 @@ Key benefits of late chunking:
 ### Chunk Size
 The `chunk_size` parameter defines the maximum number of characters (or tokens, depending on the model) allowed in each chunk. Consider these factors when setting chunk size:
 
-- **Smaller chunks (256-512)**: Better for precise retrieval, more granular search results
-- **Larger chunks (1000-2000)**: Better for maintaining context, fewer total chunks to process
+- **Smaller chunks**: Better for precise retrieval, more granular search results
+- **Larger chunks**: Better for maintaining context, fewer total chunks to process
 - **Model limitations**: Ensure chunk size doesn't exceed your embedding model's maximum input length
 
 ### Batch Size for Vector Streaming

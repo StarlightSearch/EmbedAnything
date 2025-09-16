@@ -20,7 +20,9 @@
 <div align="center">
 
   <p align="center">
-    <b> Highly Performant and Modular - Inference, Ingestion, and Indexing in Rust 🦀</b>
+    <b> Highly Performant, Modular and Memory Safe</b>
+    <br />
+    <b> Ingestion, Inference and Indexing in Rust 🦀</b>
     <br />
     <a href="https://embed-anything.com/references/">Python docs »</a>
     <br />
