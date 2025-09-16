@@ -10,6 +10,9 @@ title: How to write textembedconfig for chunking
 
 After presenting at Google, PyCon DE, Berlin Buzzwords, and GDG Berlin, I was surprised by how many people approached me with questions about writing configurations, chunk sizes, and batch sizes for EmbedAnything. Since I had never specifically covered this topic in my talks or blog posts, I decided to create this comprehensive guide to clarify these concepts and explain how we handle your chunking strategy with vector streaming.
 
+<!-- more -->
+
+
 ## Understanding TextEmbedConfig
 
 TextEmbedConfig consists of three essential components that work together to optimize your text embedding process:
