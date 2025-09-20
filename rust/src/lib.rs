@@ -51,14 +51,21 @@
 //! Let's see how embed_anything can help us generate embeddings from a plain text file:
 //!
 //! ```rust
-//! use embed_anything::embed_file;
-//! use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
-//! use embed_anything::embeddings::local::jina::JinaEmbedder;
+//! use embed_anything::{embed_file, embeddings::embed::EmbedderBuilder};
+//! use embed_anything::config::TextEmbedConfig;
 //!
-//! // Create an Embedder for text. We support a variety of models out-of-the-box, including cloud-based models!
-//! let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
-//! // Generate embeddings for 'path/to/file.txt' using the embedder we just created.
-//! let embedding = embed_file("path/to/file.txt", &embedder, None, None);
+//! # async fn example() -> anyhow::Result<()> {
+//! // Create an embedder using a pre-trained model from Hugging Face
+//! let embedder = EmbedderBuilder::new()
+//!     .model_architecture("jina")
+//!     .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+//!     .from_pretrained_hf()?;
+//! let config = TextEmbedConfig::default();
+//!
+//! // Generate embeddings for any supported file type
+//! let embeddings = embed_file("document.pdf", &embedder, Some(&config), None).await?;
+//! # Ok(())
+//! # }
 //! ```
 
 pub mod chunkers;
@@ -97,15 +104,25 @@ use processors_rs::{
     txt_processor::TxtProcessor,
 };
 
+/// Numerical precision types for model weights and computations.
 pub enum Dtype {
+    /// 16-bit floating point.
     F16,
+    /// 8-bit signed integer.
     INT8,
+    /// 4-bit quantized.
     Q4,
+    /// 8-bit unsigned integer.
     UINT8,
+    /// 4-bit BitsAndBytes quantization.
     BNB4,
+    /// 32-bit floating point.
     F32,
+    /// 4-bit quantized with 16-bit float scale.
     Q4F16,
+    /// Generic quantized format.
     QUANTIZED,
+    /// 16-bit brain floating point.
     BF16,
 }
 
@@ -128,15 +145,18 @@ pub enum Dtype {
 ///
 /// # Example
 ///
-/// ```
-/// use embed_anything::embed_query;
-/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
-/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+/// ```rust
+/// use embed_anything::{embed_query, embeddings::embed::EmbedderBuilder};
 ///
-/// let query = vec!["Hello".to_string(), "World".to_string()];
-/// let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
-/// let embeddings = embed_query(query, &embedder, None).await().unwrap();
-/// println!("{:?}", embeddings);
+/// # async fn example() -> anyhow::Result<()> {
+/// let embedder = EmbedderBuilder::new()
+///     .model_architecture("jina")
+///     .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+///     .from_pretrained_hf()?;
+/// let queries = ["Hello world", "How are you?"];
+/// let embeddings = embed_query(&queries, &embedder, None).await?;
+/// # Ok(())
+/// # }
 /// ```
 pub async fn embed_query(
     query: &[&str],
@@ -175,13 +195,18 @@ pub async fn embed_query(
 /// # Example
 ///
 /// ```rust
-/// use embed_anything::embed_file;
-/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
-/// use embed_anything::embeddings::local::bert::BertEmbedder;
+/// use embed_anything::{embed_file, embeddings::embed::EmbedderBuilder};
+/// use embed_anything::config::TextEmbedConfig;
 ///
-/// let file_name = "path/to/file.pdf";
-/// let embedder = Embedder::Text(TextEmbedder::from(BertEmbedder::new("sentence-transformers/all-MiniLM-L12-v2".into(), None, None).unwrap()));
-/// let embeddings = embed_file(file_name, &embedder, None, None).unwrap();
+/// # async fn example() -> anyhow::Result<()> {
+/// let embedder = EmbedderBuilder::new()
+///     .model_architecture("bert")
+///     .model_id(Some("sentence-transformers/all-MiniLM-L12-v2"))
+///     .from_pretrained_hf()?;
+/// let config = TextEmbedConfig::default();
+/// let embeddings = embed_file("document.pdf", &embedder, Some(&config), None).await?;
+/// # Ok(())
+/// # }
 /// ```
 pub async fn embed_file<T: AsRef<std::path::Path>>(
     file_name: T,
@@ -224,13 +249,22 @@ pub async fn embed_file<T: AsRef<std::path::Path>>(
 ///
 /// # Example
 ///
-/// ```
-/// use embed_anything::embed_webpage;
-/// use embed_anything::embeddings::embed::{Embedder, TextEmbedder};
-/// use embed_anything::embeddings::local::jina::JinaEmbedder;
+/// ```rust
+/// use embed_anything::{embed_webpage, embeddings::embed::EmbedderBuilder};
+/// use embed_anything::config::TextEmbedConfig;
 ///
-/// let embedder = Embedder::Text(TextEmbedder::Jina(Box::new(JinaEmbedder::default())));
-/// let embeddings = embed_webpage("https://en.wikipedia.org/wiki/Embedding".into(), &embedder, None, None).unwrap();
+/// # async fn example() -> anyhow::Result<()> {
+/// let embedder = EmbedderBuilder::new()
+///     .model_architecture("jina")
+///     .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+///     .from_pretrained_hf()?;
+/// let config = TextEmbedConfig::default();
+/// let embeddings = embed_webpage(
+///     "https://example.com".to_string(),
+///     &embedder, Some(&config), None
+/// ).await?;
+/// # Ok(())
+/// # }
 /// ```
 pub async fn embed_webpage(
     url: String,
@@ -331,7 +365,24 @@ async fn emb_image<T: AsRef<std::path::Path>>(
     Ok(embedding)
 }
 
+/// Embeds audio content from a file using transcription and temporal segmentation.
+///
+/// Processes audio files by first transcribing them to text and then creating
+/// embeddings from the transcribed segments with temporal information.
+///
+/// # Arguments
+///
+/// * `audio_file` - Path to the audio file to process
+/// * `audio_decoder` - Audio decoder model for transcription
+/// * `embedder` - Embedding model for generating vector representations
+/// * `text_embed_config` - Optional configuration for text embedding parameters
+///
+/// # Returns
+///
+/// A vector of `EmbedData` objects containing embeddings for each audio segment,
+/// or `None` if no audio content was processed.
 #[cfg(feature = "audio")]
+#[cfg_attr(docsrs, doc(cfg(feature = "audio")))]
 pub async fn emb_audio<T: AsRef<std::path::Path>>(
     audio_file: T,
     audio_decoder: &mut AudioDecoderModel,
@@ -904,6 +955,22 @@ pub async fn embed_files_batch(
     }
 }
 
+/// Processes text chunks into embeddings with metadata preservation.
+///
+/// Takes a collection of text chunks and their associated metadata to generate
+/// embeddings using the specified embedding model with configurable batch processing.
+///
+/// # Arguments
+///
+/// * `chunks` - Array of text strings to embed
+/// * `metadata` - Array of optional metadata maps for each chunk
+/// * `embedding_model` - Embedding model for generating vector representations
+/// * `batch_size` - Optional batch size for processing chunks in groups
+/// * `late_chunking` - Optional flag to enable late chunking optimization
+///
+/// # Returns
+///
+/// An `Arc<Vec<EmbedData>>` containing embeddings and metadata for all processed chunks.
 pub async fn process_chunks(
     chunks: &[String],
     metadata: &[Option<HashMap<String, String>>],
@@ -965,9 +1032,44 @@ fn extract_document(
     }
 }
 
+/// Errors that can occur during file loading and processing.
+///
+/// Provides specific error types for common file processing failures,
+/// enabling appropriate error handling and user feedback.
+///
+/// # Error Handling
+///
+/// ```rust
+/// use embed_anything::{embed_file, FileLoadingError};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// match embed_file("document.xyz", &embedder, None, None).await {
+///     Err(e) if e.downcast_ref::<FileLoadingError>().is_some() => {
+///         match e.downcast_ref::<FileLoadingError>().unwrap() {
+///             FileLoadingError::FileNotFound(path) => {
+///                 eprintln!("File not found: {}", path);
+///             }
+///             FileLoadingError::UnsupportedFileType(ext) => {
+///                 eprintln!("Unsupported format: {}", ext);
+///             }
+///         }
+///     }
+///     Ok(embeddings) => { /* process embeddings */ }
+///     Err(e) => { /* handle other errors */ }
+/// }
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug)]
 pub enum FileLoadingError {
+    /// File does not exist at the specified path.
+    ///
+    /// Common causes:
+    /// - Incorrect file path
+    /// - File permissions
+    /// - File moved or deleted
     FileNotFound(String),
+    /// File format is not supported for processing.
     UnsupportedFileType(String),
 }
 impl Display for FileLoadingError {

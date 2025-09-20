@@ -1,4 +1,7 @@
-//! This module contains the different embedding models that can be used to generate embeddings for the text data.
+//! Embedding model implementations and utilities.
+//!
+//! Provides local and cloud-based embedding models for generating vector
+//! representations from text, image, and audio data.
 
 use std::{collections::HashMap, rc::Rc};
 
