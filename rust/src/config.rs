@@ -1,3 +1,8 @@
+//! Configuration structs and enums for embedding operations.
+//!
+//! Provides configuration options for text and image embedding processes,
+//! including chunking strategies, batch sizes, and splitting methods.
+
 use processors_rs::pdf::pdf_processor::PdfBackend;
 
 use crate::embeddings::embed::Embedder;
