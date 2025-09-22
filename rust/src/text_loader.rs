@@ -1,3 +1,8 @@
+//! Text loading and chunking utilities.
+//!
+//! Provides functionality for loading text content from files and splitting
+//! it into manageable chunks for embedding generation.
+
 use std::{collections::HashMap, fmt::Debug, fs};
 
 use anyhow::Error;
