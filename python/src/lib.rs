@@ -93,6 +93,7 @@ pub enum WhichModel {
     Bert,
     Model2Vec,
     Qwen3,
+    Gemma3,
     SparseBert,
     ColBert,
     Clip,
@@ -259,6 +260,27 @@ impl EmbeddingModel {
                 };
                 let model = Embedder::Text(TextEmbedder::Qwen3(Box::new(
                     embed_anything::embeddings::local::qwen3::Qwen3Embedder::new(
+                        model_id,
+                        revision.map(|s| s.to_string()),
+                        token,
+                        dtype,
+                    )
+                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
+                )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::Gemma3 => {
+                let model_id = model_id.unwrap_or("google/embeddinggemma-300m");
+                let dtype = match dtype {
+                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+                    Some(Dtype::BF16) => Some(embed_anything::Dtype::BF16),
+                    _ => None,
+                };
+                let model = Embedder::Text(TextEmbedder::Gemma3(Box::new(
+                    embed_anything::embeddings::local::gemma3::Gemma3Embedder::new(
                         model_id,
                         revision.map(|s| s.to_string()),
                         token,

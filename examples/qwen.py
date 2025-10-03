@@ -8,6 +8,10 @@ model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
     WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.BF16
 )
 
+# model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
+#     WhichModel.Gemma3, model_id="google/embeddinggemma-300m", dtype=Dtype.BF16
+# )
+
 config = TextEmbedConfig(
     chunk_size=1000,
     batch_size=2,

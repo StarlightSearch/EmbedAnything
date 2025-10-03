@@ -13,6 +13,7 @@ use super::local::jina::{JinaEmbed, JinaEmbedder};
 use super::local::model2vec::Model2VecEmbedder;
 use super::local::modernbert::ModernBertEmbedder;
 use super::local::qwen3::{Qwen3Embed, Qwen3Embedder};
+use super::local::gemma3::{Gemma3Embed, Gemma3Embedder};
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
 use anyhow::Result;
@@ -110,6 +111,7 @@ pub enum TextEmbedder {
     Model2Vec(Box<Model2VecEmbedder>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
     Qwen3(Box<dyn Qwen3Embed + Send + Sync>),
+    Gemma3(Box<dyn Gemma3Embed + Send + Sync>),
     ColBert(Box<dyn BertEmbed + Send + Sync>),
     ModernBert(Box<dyn BertEmbed + Send + Sync>),
 }
@@ -129,6 +131,7 @@ impl TextEmbedder {
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Qwen3(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
+            TextEmbedder::Gemma3(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::ColBert(embedder) => {
                 embedder.embed(text_batch, batch_size, late_chunking)
             }
@@ -175,6 +178,12 @@ impl TextEmbedder {
                 )?)))
             }
             "qwen3" | "Qwen3" | "QWEN3" => Ok(Self::Qwen3(Box::new(Qwen3Embedder::new(
+                model_id,
+                revision.map(|s| s.to_string()),
+                token,
+                dtype,
+            )?))),
+            "gemma3" | "Gemma3" | "GEMMA3" => Ok(Self::Gemma3(Box::new(Gemma3Embedder::new(
                 model_id,
                 revision.map(|s| s.to_string()),
                 token,
@@ -593,6 +602,13 @@ impl Embedder {
                 )?))
             }
             "qwen3" | "Qwen3" | "QWEN3" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                model_architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
+            "gemma3" | "Gemma3" | "GEMMA3" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 model_architecture,
                 model_id,
                 revision,
