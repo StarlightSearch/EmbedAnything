@@ -137,7 +137,7 @@ impl Gemma3Embed for Gemma3Embedder {
             let attention_mask = PooledOutputType::from(attention_mask);
             let attention_mask = Some(&attention_mask);
             let model_output = ModelOutput::Tensor(embeddings.clone());
-            let pooled_output = Pooling::LastToken
+            let pooled_output = Pooling::Mean
                 .pool(&model_output, attention_mask)
                 .unwrap();
             let pooled_output = pooled_output.to_tensor()?;
