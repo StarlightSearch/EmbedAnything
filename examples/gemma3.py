@@ -10,10 +10,13 @@ from huggingface_hub import login
 
 
 
-model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.F16
-)
+# model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
+#     WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.F16
+# )
 
+model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Gemma3, model_id="google/embeddinggemma-300m", dtype=Dtype.F32, token="hf_key"
+)
 
 config = TextEmbedConfig(
     chunk_size=1000,

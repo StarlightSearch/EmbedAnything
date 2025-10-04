@@ -12,7 +12,7 @@ async fn main() {
             .model_architecture("gemma3")
             .model_id(Some("google/embeddinggemma-300m"))
             .revision(None)
-            .token(Some("hf_key"))
+            // .token(Some("hf_"))
             .from_pretrained_hf()
             .unwrap(),
     );
