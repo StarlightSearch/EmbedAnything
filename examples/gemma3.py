@@ -6,13 +6,6 @@ import numpy as np
 import os
 from huggingface_hub import login
 
-# Add your HuggingFace token here or set it as an environment variable
-
-
-
-# model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-#     WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.F16
-# )
 
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
     WhichModel.Gemma3, model_id="google/embeddinggemma-300m", dtype=Dtype.F32, token="hf_key"
