@@ -39,6 +39,20 @@ pip install onnxruntime  # For ONNX inference
 ```python
 from embed_anything import Reranker, Dtype
 
+# Qwen3 Reranker requires additional formatting
+def format_query(query: str, instruction=None):
+    """You may add instruction to get better results in specific fields."""
+    if instruction is None:
+        instruction = "Given a web search query, retrieve relevant passages that answer the query"
+    output = "<Instruct>: {instruction}\n<Query>: {query}\n".format(
+        instruction=instruction,
+        query=query,
+    )
+    return output
+
+def format_document(doc: str):
+    return f"<Document>: {doc}"
+
 # Initialize the Qwen3 reranker
 reranker = Reranker.from_pretrained(
     "zhiqing/Qwen3-Reranker-0.6B-ONNX", 
@@ -53,6 +67,10 @@ documents = [
     "ML algorithms can learn from data.",
     "Pizza is a popular food."
 ]
+
+# Format query and documents
+query = [format_query(x) for x in query]
+documents = [format_document(x) for x in documents]
 
 results = reranker.rerank(query, documents, top_k=2)
 
@@ -80,6 +98,10 @@ documents = [
     "Coffee can be made with a French press.",
     "Python is great for beginners."
 ]
+
+# Format queries and documents
+queries = [format_query(x) for x in queries]
+documents = [format_document(x) for x in documents]
 
 results = reranker.rerank(queries, documents, top_k=3)
 
