@@ -44,8 +44,7 @@ def format_query(query: str, instruction=None):
     """You may add instruction to get better results in specific fields."""
     if instruction is None:
         instruction = "Given a web search query, retrieve relevant passages that answer the query"
-    output = f"<Instruct>: {instruction}\n<Query>: {query}\n"
-    return output
+    return f"<Instruct>: {instruction}\n<Query>: {query}\n"
 
 def format_document(doc: str):
     return f"<Document>: {doc}"
