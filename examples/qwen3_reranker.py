@@ -14,17 +14,30 @@ Key Features:
 from embed_anything import Reranker, Dtype, RerankerResult, DocumentRank
 import time
 
+def format_query(query: str, instruction=None):
+    """You may add instruction to get better results in specific fields."""
+    if instruction is None:
+        instruction = "Given a web search query, retrieve relevant passages that answer the query"
+    output = "<Instruct>: {instruction}\n<Query>: {query}\n".format(
+        instruction=instruction,
+        query=query,
+    )
+    return output
+
+def format_document(doc: str):
+    return f"<Document>: {doc}"
+
 def basic_qwen3_reranking():
     """Basic example of using Qwen3 reranker for simple document ranking."""
     print("=== Basic Qwen3 Reranking ===")
-    
+
     # Initialize the Qwen3 reranker
     # Using the ONNX-optimized version for better performance
     reranker = Reranker.from_pretrained(
         "zhiqing/Qwen3-Reranker-0.6B-ONNX", 
         dtype=Dtype.F32
     )
-    
+
     # Define a query and candidate documents
     query = ["What is artificial intelligence?"]
     documents = [
@@ -35,10 +48,14 @@ def basic_qwen3_reranking():
         "Deep learning uses neural networks.",
         "Pizza is a popular Italian food."
     ]
-    
+
+    # Format query and documents
+    query = [format_query(x) for x in query]
+    documents = [format_document(x) for x in documents]
+
     # Rerank documents and get top 3 results
     results = reranker.rerank(query, documents, 2)
-    
+
     # Display results
     for result in results:
         print(f"Query: {result.query}")
@@ -51,19 +68,19 @@ def basic_qwen3_reranking():
 def multi_query_reranking():
     """Example of reranking documents for multiple queries simultaneously."""
     print("=== Multi-Query Reranking ===")
-    
+
     reranker = Reranker.from_pretrained(
         "zhiqing/Qwen3-Reranker-0.6B-ONNX", 
         dtype=Dtype.F32
     )
-    
+
     # Multiple queries
     queries = [
         "How to make coffee?",
         "What is machine learning?",
         "Tell me about cats"
     ]
-    
+
     # Shared document collection
     documents = [
         "Coffee is made by brewing ground coffee beans with hot water.",
@@ -77,10 +94,14 @@ def multi_query_reranking():
         "Coffee beans come from the Coffea plant.",
         "Cats are known for their independent nature."
     ]
-    
+
+    # Format queries and documents
+    queries = [format_query(x) for x in queries]
+    documents = [format_document(x) for x in documents]
+
     # Rerank for all queries at once
     results = reranker.rerank(queries, documents, top_k=3)
-    
+
     # Display results for each query
     for result in results:
         print(f"Query: {result.query}")
@@ -92,12 +113,12 @@ def multi_query_reranking():
 def custom_scoring_example():
     """Example of using compute_scores for custom ranking logic."""
     print("=== Custom Scoring with compute_scores ===")
-    
+
     reranker = Reranker.from_pretrained(
         "zhiqing/Qwen3-Reranker-0.6B-ONNX", 
         dtype=Dtype.F32
     )
-    
+
     query = ["What are the benefits of exercise?"]
     documents = [
         "Exercise improves cardiovascular health.",
@@ -108,31 +129,35 @@ def custom_scoring_example():
         "Physical activity increases energy levels.",
         "Exercise promotes better sleep quality."
     ]
-    
+
+    # Format query and documents
+    query = [format_query(x) for x in query]
+    documents = [format_document(x) for x in documents]
+
     # Get raw scores for custom processing
     scores = reranker.compute_scores(query, documents, batch_size=4)
-    
+
     print(f"Raw relevance scores for query: '{query[0]}'")
     print("-" * 50)
-    
+
     # Create custom ranking based on scores
     doc_scores = list(zip(documents, scores[0]))
     doc_scores.sort(key=lambda x: x[1], reverse=True)
-    
+
     for i, (doc, score) in enumerate(doc_scores):
         print(f"{i+1:2d}. Score: {score:6.4f} | {doc}")
-    
+
     print()
 
 def performance_benchmark():
     """Benchmark the performance of Qwen3 reranking."""
     print("=== Performance Benchmark ===")
-    
+
     reranker = Reranker.from_pretrained(
         "zhiqing/Qwen3-Reranker-0.6B-ONNX", 
         dtype=Dtype.F32
     )
-    
+
     # Create a larger dataset for benchmarking
     queries = ["What is technology?"] * 5  # 5 identical queries
     documents = [
@@ -147,20 +172,24 @@ def performance_benchmark():
         "Educational technology enhances learning.",
         "Space technology enables exploration."
     ] * 10  # 100 total documents
-    
+
+    # Format queries and documents
+    queries = [format_query(x) for x in queries]
+    documents = [format_document(x) for x in documents]
+
     print(f"Benchmarking with {len(queries)} queries and {len(documents)} documents...")
-    
+
     # Warm up
     _ = reranker.compute_scores(queries[:1], documents[:10], batch_size=4)
-    
+
     # Benchmark
     start_time = time.time()
     results = reranker.rerank(queries, documents, top_k=5)
     end_time = time.time()
-    
+
     processing_time = end_time - start_time
     docs_per_second = len(documents) / processing_time
-    
+
     print(f"Processing time: {processing_time:.2f} seconds")
     print(f"Documents processed per second: {docs_per_second:.1f}")
     print(f"Total documents processed: {len(documents)}")
@@ -169,15 +198,15 @@ def performance_benchmark():
 def search_and_rerank_pipeline():
     """Example of a complete search and rerank pipeline."""
     print("=== Search and Rerank Pipeline ===")
-    
+
     reranker = Reranker.from_pretrained(
         "zhiqing/Qwen3-Reranker-0.6B-ONNX", 
         dtype=Dtype.F32
     )
-    
+
     # Simulate a search query
     search_query = ["How to learn Python programming?"]
-    
+
     # Simulate candidate documents from a vector search
     candidate_docs = [
         "Python is a high-level programming language.",
@@ -193,17 +222,21 @@ def search_and_rerank_pipeline():
         "Start with simple projects when learning.",
         "Python has a large and active community."
     ]
-    
+
     print(f"Search Query: {search_query[0]}")
     print(f"Found {len(candidate_docs)} candidate documents")
     print("\nReranking documents by relevance...")
-    
+
+    # Format search_query and documents
+    search_query = [format_query(x) for x in search_query]
+    documents = [format_document(x) for x in documents]
+
     # Rerank the candidates
     reranked_results = reranker.rerank(search_query, candidate_docs, top_k=5)
-    
+
     print("\nTop 5 most relevant documents:")
     print("-" * 60)
-    
+
     for result in reranked_results:
         for doc in result.documents:
             print(f"Rank {doc.rank:2d} (Score: {doc.relevance_score:.4f}):")
@@ -214,7 +247,7 @@ if __name__ == "__main__":
     print("Qwen3 Reranker Examples")
     print("=" * 50)
     print()
-    
+
     try:
         # Run all examples
         basic_qwen3_reranking()
@@ -222,9 +255,9 @@ if __name__ == "__main__":
         custom_scoring_example()
         performance_benchmark()
         search_and_rerank_pipeline()
-        
+
         print("All examples completed successfully!")
-        
+
     except Exception as e:
         print(f"Error running examples: {e}")
         print("Make sure you have the required dependencies installed:")
