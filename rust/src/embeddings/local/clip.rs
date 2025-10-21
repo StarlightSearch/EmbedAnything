@@ -372,7 +372,7 @@ mod tests {
                 "EmbedAnything is the best!".to_string(),
             ]
         );
-        assert_eq!(input_ids.shape().clone().into_dims(), &[2, 8]);
+        assert_eq!(input_ids.shape().clone().into_dims(), &[2, 77]);
     }
 
     // Tests the load_image method.
