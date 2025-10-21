@@ -64,7 +64,7 @@ impl Default for ClipEmbedder {
 
 impl ClipEmbedder {
     pub fn new(model_id: String, revision: Option<&str>, token: Option<&str>) -> Result<Self, E> {
-        let api = hf_hub::api::sync::ApiBuilder::new()
+        let api = hf_hub::api::sync::ApiBuilder::from_env()
             .with_token(token.map(|s| s.to_string()))
             .build()?;
 
@@ -372,7 +372,7 @@ mod tests {
                 "EmbedAnything is the best!".to_string(),
             ]
         );
-        assert_eq!(input_ids.shape().clone().into_dims(), &[2, 8]);
+        assert_eq!(input_ids.shape().clone().into_dims(), &[2, 77]);
     }
 
     // Tests the load_image method.

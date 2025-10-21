@@ -35,7 +35,7 @@ impl Qwen3Embedder {
         token: Option<&str>,
         dtype: Option<crate::Dtype>,
     ) -> Result<Self, anyhow::Error> {
-        let api = ApiBuilder::new()
+        let api = ApiBuilder::from_env()
             .with_token(token.map(|s| s.to_string()))
             .build()
             .unwrap();
