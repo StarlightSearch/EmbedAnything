@@ -64,7 +64,7 @@ impl Default for ClipEmbedder {
 
 impl ClipEmbedder {
     pub fn new(model_id: String, revision: Option<&str>, token: Option<&str>) -> Result<Self, E> {
-        let api = hf_hub::api::sync::ApiBuilder::new()
+        let api = hf_hub::api::sync::ApiBuilder::from_env()
             .with_token(token.map(|s| s.to_string()))
             .build()?;
 
