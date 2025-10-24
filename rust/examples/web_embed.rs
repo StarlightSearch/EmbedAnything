@@ -14,7 +14,6 @@ async fn main() {
 
     let embedder = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("bert")
             .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
             .revision(None)
             .from_pretrained_hf()

@@ -85,15 +85,15 @@ impl OrtBertEmbedder {
                 base_path.push('/');
             }
             let model_path = match dtype {
-                Some(Dtype::Q4F16) => format!("{base_path}/model_q4f16.onnx"),
-                Some(Dtype::F16) => format!("{base_path}/model_fp16.onnx"),
-                Some(Dtype::INT8) => format!("{base_path}/model_int8.onnx"),
-                Some(Dtype::Q4) => format!("{base_path}/model_q4.onnx"),
-                Some(Dtype::UINT8) => format!("{base_path}/model_uint8.onnx"),
-                Some(Dtype::BNB4) => format!("{base_path}/model_bnb4.onnx"),
-                Some(Dtype::F32) => format!("{base_path}/model.onnx"),
-                Some(Dtype::QUANTIZED) => format!("{base_path}/model_quantized.onnx"),
-                Some(Dtype::BF16) => format!("{base_path}/model_bf16.onnx"),
+                Some(Dtype::Q4F16) => format!("{base_path}model_q4f16.onnx"),
+                Some(Dtype::F16) => format!("{base_path}model_fp16.onnx"),
+                Some(Dtype::INT8) => format!("{base_path}model_int8.onnx"),
+                Some(Dtype::Q4) => format!("{base_path}model_q4.onnx"),
+                Some(Dtype::UINT8) => format!("{base_path}model_uint8.onnx"),
+                Some(Dtype::BNB4) => format!("{base_path}model_bnb4.onnx"),
+                Some(Dtype::F32) => format!("{base_path}model.onnx"),
+                Some(Dtype::QUANTIZED) => format!("{base_path}model_quantized.onnx"),
+                Some(Dtype::BF16) => format!("{base_path}model_bf16.onnx"),
                 None => path.to_string(),
             };
             let weights = api.get(model_path.as_str());

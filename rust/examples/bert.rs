@@ -9,7 +9,6 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("jina")
             .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
             .revision(None)
             .token(None)
