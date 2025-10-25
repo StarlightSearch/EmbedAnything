@@ -21,4 +21,5 @@ pub mod ort_bert;
 pub mod ort_jina;
 pub mod pooling;
 pub mod qwen3;
+pub mod vision_encoder;
 pub mod text_embedding;

@@ -1,4 +1,5 @@
 use crate::config::{ImageEmbedConfig, TextEmbedConfig};
+use crate::embeddings::local::vision_encoder::VisionEncoderEmbedder;
 use crate::file_processor::audio::audio_processor::Segment;
 use crate::Dtype;
 
@@ -146,8 +147,6 @@ impl TextEmbedder {
         token: Option<&str>,
         dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
-       
-
         match architecture {
             "JinaBertForMaskedLM" => Ok(Self::Jina(Box::new(JinaEmbedder::new(
                 model_id, revision, token,
@@ -158,25 +157,21 @@ impl TextEmbedder {
                 revision.map(|s| s.to_string()),
                 token,
             )?))),
-            "BertForMaskedLM" => {
-                Ok(Self::Bert(Box::new(SparseBertEmbedder::new(
-                    model_id.to_string(),
-                    revision.map(|s| s.to_string()),
-                    token,
-                )?)))
-            }
-            "StaticModel" => Ok(Self::Model2Vec(Box::new(
-                Model2VecEmbedder::new(model_id, token, None)?,
-            ))),
+            "BertForMaskedLM" => Ok(Self::Bert(Box::new(SparseBertEmbedder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+                token,
+            )?))),
+            "StaticModel" => Ok(Self::Model2Vec(Box::new(Model2VecEmbedder::new(
+                model_id, token, None,
+            )?))),
 
-            "ModernBertForMaskedLM" => {
-                Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
-                    model_id.to_string(),
-                    revision.map(|s| s.to_string()),
-                    token,
-                    dtype,
-                )?)))
-            }
+            "ModernBertForMaskedLM" => Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+                token,
+                dtype,
+            )?))),
             "Qwen3EmbedForCausalLM" => Ok(Self::Qwen3(Box::new(Qwen3Embedder::new(
                 model_id,
                 revision.map(|s| s.to_string()),
@@ -286,6 +281,7 @@ impl TextEmbedder {
 
 pub enum VisionEmbedder {
     Clip(Box<ClipEmbedder>),
+    VisionEncoder(Box<VisionEncoderEmbedder>),
     ColPali(Box<dyn ColPaliEmbed + Send + Sync>),
     Cohere(CohereEmbedder),
 }
@@ -316,20 +312,26 @@ impl From<Embedder> for TextEmbedder {
 
 impl VisionEmbedder {
     pub fn from_pretrained_hf(
-        model: &str,
+            architecture: &str,
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
-    ) -> Result<Self, anyhow::Error> {
-        match model {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(Box::new(ClipEmbedder::new(
+    ) -> Result<Self, anyhow::Error> {   
+        match architecture {
+            "CLIPModel" | "SiglipModel"  => Ok(Self::Clip(Box::new(ClipEmbedder::new(
                 model_id.to_string(),
                 revision,
                 token,
             )?))),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
+            "Dinov2Model" => Ok(Self::VisionEncoder(Box::new(VisionEncoderEmbedder::new(
+                model_id,
+                revision,
+                token,
+            )?))),
+            "ColPali" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
                 model_id, revision,
             )?))),
+   
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -543,34 +545,36 @@ impl Embedder {
         token: Option<&str>,
         dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
-
         let api = hf_hub::api::sync::ApiBuilder::from_env()
-        .with_token(token.map(|s| s.to_string()))
-        .build()?;
-    let api = match revision {
-        Some(rev) => api.repo(Repo::with_revision(
-            model_id.to_string(),
-            hf_hub::RepoType::Model,
-            rev.to_string(),
-        )),
-        None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
-    };
-    let config_filename = api.get("config.json")?;
-    let config = std::fs::read_to_string(config_filename)?;
-    let config: serde_json::Value = serde_json::from_str(&config)?;
+            .with_token(token.map(|s| s.to_string()))
+            .build()?;
+        let api = match revision {
+            Some(rev) => api.repo(Repo::with_revision(
+                model_id.to_string(),
+                hf_hub::RepoType::Model,
+                rev.to_string(),
+            )),
+            None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
+        };
+        let config_filename = api.get("config.json")?;
+        let config = std::fs::read_to_string(config_filename)?;
+        let config: serde_json::Value = serde_json::from_str(&config)?;
 
-    let architecture = config["architectures"]
-        .as_array()
-        .ok_or(anyhow::anyhow!("Architecture not found"))?
-        .first()
-        .ok_or(anyhow::anyhow!("Architecture not found"))?
-        .as_str()
-        .ok_or(anyhow::anyhow!("Architecture not found"))?;
+        let architecture = config["architectures"]
+            .as_array()
+            .ok_or(anyhow::anyhow!("Architecture not found"))?
+            .first()
+            .ok_or(anyhow::anyhow!("Architecture not found"))?
+            .as_str()
+            .ok_or(anyhow::anyhow!("Architecture not found"))?;
         match architecture {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Vision(Box::new(
+            "CLIPModel" | "SiglipModel"  => Ok(Self::Vision(Box::new(
                 VisionEmbedder::from_pretrained_hf(architecture, model_id, revision, token)?,
             ))),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(Box::new(
+            "ColPali" => Ok(Self::Vision(Box::new(
+                VisionEmbedder::from_pretrained_hf(architecture, model_id, revision, token)?,
+            ))),
+            "Dinov2Model" => Ok(Self::Vision(Box::new(
                 VisionEmbedder::from_pretrained_hf(architecture, model_id, revision, token)?,
             ))),
             "BertModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
@@ -578,7 +582,7 @@ impl Embedder {
                 model_id,
                 revision,
                 token,
-                dtype,   
+                dtype,
             )?)),
             "JinaBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -587,33 +591,27 @@ impl Embedder {
                 token,
                 dtype,
             )?)),
-            "StaticModel" => {
-                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                    architecture,
-                    model_id,
-                    revision,
-                    token,
-                    dtype,
-                )?))
-            }
-            "BertForMaskedLM" => {
-                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                    architecture,
-                    model_id,
-                    revision,
-                    token,
-                    dtype,
-                )?))
-            }
-            "ModernBertForMaskedLM" => {
-                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                    architecture,
-                    model_id,
-                    revision,
-                    token,
-                    dtype,
-                )?))
-            }
+            "StaticModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
+            "BertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
+            "ModernBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
             "Qwen3EmbedForCausalLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
                 model_id,
@@ -823,6 +821,7 @@ impl TextEmbed for VisionEmbedder {
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             Self::Clip(embedder) => embedder.embed(text_batch, batch_size),
+            Self::VisionEncoder(_) => Err(anyhow::anyhow!("Model not supported for text embedding")),
             Self::ColPali(embedder) => embedder.embed(text_batch, batch_size),
             Self::Cohere(embedder) => embedder.embed(text_batch).await,
         }
@@ -859,6 +858,7 @@ impl EmbedImage for VisionEmbedder {
                 embedder.embed_image(PathBuf::from(image_path.as_ref()), metadata)
             }
             Self::Cohere(embedder) => embedder.embed_image(image_path, metadata).await,
+            Self::VisionEncoder(embedder) => embedder.embed_image(image_path, metadata).await,
         }
     }
 
@@ -876,6 +876,7 @@ impl EmbedImage for VisionEmbedder {
                     .collect::<Vec<_>>(),
             ),
             Self::Cohere(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
+            Self::VisionEncoder(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
         }
     }
 

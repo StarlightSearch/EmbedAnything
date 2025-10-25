@@ -113,6 +113,7 @@ impl ClipEmbedder {
         let config_str = std::fs::read_to_string(config_filename)?;
         let config_json: serde_json::Value = serde_json::from_str(&config_str)?;
 
+        
         let mut tokenizer = Self::get_tokenizer(None, model_id, revision)?;
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
