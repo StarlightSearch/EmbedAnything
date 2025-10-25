@@ -172,7 +172,7 @@ impl TextEmbedder {
                 token,
                 dtype,
             )?))),
-            "Qwen3EmbedForCausalLM" => Ok(Self::Qwen3(Box::new(Qwen3Embedder::new(
+            "Qwen3ForCausalLM" => Ok(Self::Qwen3(Box::new(Qwen3Embedder::new(
                 model_id,
                 revision.map(|s| s.to_string()),
                 token,
@@ -612,7 +612,7 @@ impl Embedder {
                 token,
                 dtype,
             )?)),
-            "Qwen3EmbedForCausalLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+            "Qwen3ForCausalLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
                 model_id,
                 revision,

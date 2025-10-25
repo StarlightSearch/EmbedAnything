@@ -80,7 +80,6 @@ impl Qwen3Embedder {
             .map_err(Error::msg)?;
 
         let device = select_device();
-
         let dtype = match dtype {
             Some(crate::Dtype::F16) => DType::F16,
             Some(crate::Dtype::F32) => DType::F32,

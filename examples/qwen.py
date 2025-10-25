@@ -5,7 +5,7 @@ from embed_anything import Dtype, ONNXModel
 import numpy as np
 
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.BF16
+    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.F32
 )
 
 config = TextEmbedConfig(
