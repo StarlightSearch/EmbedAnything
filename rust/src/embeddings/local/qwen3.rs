@@ -121,15 +121,12 @@ impl Qwen3Embed for Qwen3Embedder {
         for mini_text_batch in text_batch.chunks(batch_size) {
             let (token_ids, attention_mask) =
                 tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
-            let embeddings: Tensor = self
-                .model
-                .write()
-                .unwrap()
-                .forward(&token_ids, &attention_mask, 0)
-                .unwrap()
-                .to_dtype(DType::F32)?;
+            let embeddings: Tensor = {
+                let mut model = self.model.write().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
+                model.forward(&token_ids, &attention_mask, 0)?.to_dtype(DType::F32)?
+            };
 
-            self.model.write().unwrap().clear_kv_cache();
+            self.model.write().map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?.clear_kv_cache();
             let attention_mask = PooledOutputType::from(attention_mask);
             let attention_mask = Some(&attention_mask);
             let model_output = ModelOutput::Tensor(embeddings.clone());
