@@ -15,8 +15,8 @@ use crate::{
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Module, VarBuilder};
 
-use crate::models::dinov2::DinoVisionTransformer;
 use crate::embeddings::embed::{EmbedData, EmbedImage};
+use crate::models::dinov2::DinoVisionTransformer;
 
 pub enum VisionEncoderModel {
     Dino(DinoVisionTransformer),
@@ -33,7 +33,7 @@ impl VisionEncoderModel {
 pub struct VisionEncoderEmbedder {
     pub model: VisionEncoderModel,
     pub device: Device,
-    pub image_size: usize,
+    pub crop_size: usize,
 }
 impl Default for VisionEncoderEmbedder {
     fn default() -> Self {
@@ -79,17 +79,22 @@ impl VisionEncoderEmbedder {
         let config_str = std::fs::read_to_string(config_filename)?;
         let config_json: serde_json::Value = serde_json::from_str(&config_str)?;
 
-        let image_size = config_json
-            .get("image_size")
-            .expect("image_size not found")
+        let preprocessor_config_filename = api.get("preprocessor_config.json")?;
+        let preprocessor_config_str = std::fs::read_to_string(preprocessor_config_filename)?;
+        let preprocessor_config_json: serde_json::Value =
+            serde_json::from_str(&preprocessor_config_str)?;
+        let crop_size = preprocessor_config_json
+            .get("crop_size").expect("crop_size not found")
+            .get("height")
+            .expect("height not found")
             .as_u64()
-            .expect("image_size not a number") as usize;
+            .expect("height not a number") as usize;
 
         let model = if let Some(architectures) = config_json.get("architectures") {
             if let Some(arch) = architectures.get(0) {
                 match arch.as_str() {
                     Some("Dinov2Model") => {
-                        let (depth, embed_dim, num_heads) = (
+                        let (depth, embed_dim, num_heads, img_size, patch_size) = (
                             config_json
                                 .get("num_hidden_layers")
                                 .expect("num_hidden_layers not found")
@@ -108,6 +113,18 @@ impl VisionEncoderEmbedder {
                                 .as_u64()
                                 .expect("num_attention_heads not a number")
                                 as usize,
+                            config_json
+                                .get("image_size")
+                                .expect("image_size not found")
+                                .as_u64()
+                                .expect("image_size not a number")
+                                as usize,
+                            config_json
+                                .get("patch_size")
+                                .expect("patch_size not found")
+                                .as_u64()
+                                .expect("patch_size not a number")
+                                as usize,
                         );
 
                         VisionEncoderModel::Dino(DinoVisionTransformer::new(
@@ -115,6 +132,8 @@ impl VisionEncoderEmbedder {
                             depth as usize,
                             embed_dim as usize,
                             num_heads as usize,
+                            img_size as usize,
+                            patch_size as usize,
                         )?)
                     }
                     _ => return Err(anyhow::Error::msg("Unsupported model architecture")),
@@ -123,22 +142,21 @@ impl VisionEncoderEmbedder {
                 return Err(anyhow::Error::msg("No architecture specified in config"));
             }
         } else {
-            VisionEncoderModel::Dino(DinoVisionTransformer::new(vb, 12, 384, 6)?)
+            VisionEncoderModel::Dino(DinoVisionTransformer::new(vb, 12, 384, 6, 518, 14)?)
         };
         Ok(VisionEncoderEmbedder {
             model,
             device,
-            image_size,
+            crop_size,
         })
     }
 
     fn load_image<T: AsRef<std::path::Path>>(
         &self,
         path: T,
-        image_size: usize,
     ) -> anyhow::Result<Tensor> {
         let img = image::ImageReader::open(path)?.decode()?;
-        let (height, width) = (224, 224);
+        let (height, width) = (self.crop_size, self.crop_size);
         let img = img.resize_exact(
             width as u32,
             height as u32,
@@ -152,15 +170,14 @@ impl VisionEncoderEmbedder {
             .permute((2, 0, 1))?
             .to_dtype(DType::F32)?
             .affine(0.00392156862745098, 0.)?; // Rescale factor: 1/255
-        println!("img: {}", img);
-        // ImageNet normalization: (image - mean) / std
+                                               // ImageNet normalization: (image - mean) / std
         let mean = Tensor::new(&[0.485f32, 0.456f32, 0.406f32], &self.device)?
             .unsqueeze(1)?
             .unsqueeze(2)?; // Shape: [3, 1, 1]
         let std = Tensor::new(&[0.229f32, 0.224f32, 0.225f32], &self.device)?
             .unsqueeze(1)?
             .unsqueeze(2)?; // Shape: [3, 1, 1]
-        
+
         let img = img.broadcast_sub(&mean)?.broadcast_div(&std)?;
         // .unsqueeze(0)?;
         Ok(img)
@@ -169,12 +186,11 @@ impl VisionEncoderEmbedder {
     fn load_images<T: AsRef<std::path::Path>>(
         &self,
         paths: &[T],
-        image_size: usize,
     ) -> anyhow::Result<Tensor> {
         let mut images = vec![];
 
         for path in paths {
-            let tensor = self.load_image(path, image_size)?;
+            let tensor = self.load_image(path)?;
             images.push(tensor);
         }
 
@@ -192,7 +208,7 @@ impl EmbedImage for VisionEncoderEmbedder {
     ) -> anyhow::Result<Vec<EmbedData>> {
         let mut encodings = Vec::new();
         for image_batch in image_paths.chunks(batch_size.unwrap_or(32)) {
-            let images = self.load_images(image_batch, self.image_size).unwrap();
+            let images = self.load_images(image_batch).unwrap();
             let batch_encodings = self.model.get_image_features(&images)?;
             let normalized_encodings = div_l2_norm(&batch_encodings)?.to_vec2::<f32>()?;
             encodings.extend(normalized_encodings);
@@ -228,7 +244,7 @@ impl EmbedImage for VisionEncoderEmbedder {
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
         let image = self
-            .load_image(&image_path, self.image_size)
+            .load_image(&image_path)
             .unwrap()
             .unsqueeze(0)
             .unwrap();
@@ -261,9 +277,8 @@ mod tests {
     fn test_load_image() {
         let vision_encoder_embedder = VisionEncoderEmbedder::default();
         let image = vision_encoder_embedder
-            .load_image("../test_files/clip/cat3.jpg", 224)
+            .load_image("../test_files/clip/cat3.jpg")
             .unwrap();
-        println!("image: {}", image);
         assert_eq!(image.shape().clone().into_dims(), &[3, 224, 224]);
     }
 
@@ -277,7 +292,6 @@ mod tests {
                     "../test_files/clip/cat1.jpg",
                     "../test_files/clip/cat2.jpeg",
                 ],
-                224,
             )
             .unwrap();
         assert_eq!(images.shape().clone().into_dims(), &[2, 3, 224, 224]);

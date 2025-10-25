@@ -40,8 +40,6 @@
 use candle_core::{IndexOp, Result, Tensor, D};
 use candle_nn::{layer_norm, LayerNorm, Linear, Module, VarBuilder};
 
-const IMG_SIZE: usize = 518;
-const PATCH_SIZE: usize = 14;
 
 fn linear(vb: VarBuilder, in_dim: usize, out_dim: usize, bias: bool) -> Result<Linear> {
     if bias {
@@ -50,6 +48,66 @@ fn linear(vb: VarBuilder, in_dim: usize, out_dim: usize, bias: bool) -> Result<L
         candle_nn::linear_no_bias(in_dim, out_dim, vb)
     }
 }
+
+
+#[derive(Debug)]
+pub struct Dinov2Embeddings {
+    cls_token: Tensor,
+    position_embeddings: Tensor,
+    patch_embed: PatchEmbed,
+    patch_size: usize,
+}
+
+impl Dinov2Embeddings {
+    fn new(vb: VarBuilder, embed_dim: usize, img_size: usize, patch_size: usize) -> Result<Self> {
+        let patch_embed = PatchEmbed::new(vb.pp("patch_embeddings"), img_size, patch_size, 3, embed_dim)?;
+        let cls_token = vb.get((1, 1, embed_dim), "cls_token")?;
+        let position_embeddings = vb.get((1, patch_embed.num_patches + 1, embed_dim), "position_embeddings")?;
+        Ok(Self { cls_token, position_embeddings, patch_embed, patch_size })
+    }
+
+    fn interpolate_pos_encoding(&self, xs: &Tensor, w: usize, h: usize) -> Result<Tensor> {
+        let npatch = xs.dim(1)? - 1;
+        let n = self.position_embeddings.dim(1)? - 1;
+        let sqrt_n = (n as f64).sqrt();
+        if npatch == n && w == h {
+            return Ok(xs.clone());
+        }
+        let class_pos_embed = self.position_embeddings.i((.., ..1))?;
+        let patch_pos_embed = self.position_embeddings.i((.., 1..))?;
+        let dim = xs.dim(D::Minus1)?;
+        let (w0, h0) = ((w / self.patch_size) as f64 + 0.1, (h / self.patch_size) as f64 + 0.1);
+        let patch_pos_embed = patch_pos_embed
+            .reshape((1, sqrt_n as usize, sqrt_n as usize, dim))?
+            .transpose(2, 3)?
+            .transpose(1, 2)?;
+        // This uses bicubic interpolation in the original implementation.
+        let patch_pos_embed = patch_pos_embed.upsample_nearest2d(h0 as usize, w0 as usize)?;
+        let el_count = patch_pos_embed.shape().elem_count();
+        let patch_pos_embed =
+            patch_pos_embed
+                .transpose(1, 2)?
+                .transpose(2, 3)?
+                .reshape((1, el_count / dim, dim))?;
+        Tensor::cat(&[&class_pos_embed, &patch_pos_embed], 1)
+    }
+
+
+}
+
+impl Module for Dinov2Embeddings {
+    fn forward(&self, xs: &Tensor) -> Result<Tensor> {
+        let (_b, _nc, w, h) = xs.dims4()?;
+        let xs = self.patch_embed.forward(xs)?;
+
+        // Repeat (tile) cls_token along the batch dimension to match xs batch size before concat:
+        let bsz = xs.dim(0)?;
+        let cls_token = self.cls_token.repeat((bsz, 1, 1))?;
+        let xs = Tensor::cat(&[&cls_token, &xs], 1)?;
+        Tensor::broadcast_add(&xs, &self.interpolate_pos_encoding(&xs, w, h)?)
+    }
+}
+
 
 #[derive(Debug)]
 struct SelfAttention {
@@ -278,163 +336,35 @@ impl Module for PatchEmbed {
     }
 }
 
+
 #[derive(Debug)]
 pub struct DinoVisionTransformer {
-    patch_embed: PatchEmbed,
-    cls_token: Tensor,
-    pos_embed: Tensor,
     blocks: Vec<Block>,
     norm: LayerNorm,
+    embeddings: Dinov2Embeddings,
 }
 
 impl DinoVisionTransformer {
-    pub fn new(vb: VarBuilder, depth: usize, embed_dim: usize, num_heads: usize) -> Result<Self> {
-        let patch_embed = PatchEmbed::new(
-            vb.pp("embeddings.patch_embeddings"),
-            IMG_SIZE,
-            PATCH_SIZE,
-            3,
-            embed_dim,
-        )?;
-        let cls_token = vb.get((1, 1, embed_dim), "embeddings.cls_token")?;
-        let num_tokens = 1;
-        let pos_embed = vb.get(
-            (1, patch_embed.num_patches + num_tokens, embed_dim),
-            "embeddings.position_embeddings",
-        )?;
+    pub fn new(vb: VarBuilder, depth: usize, embed_dim: usize, num_heads: usize, img_size: usize, patch_size: usize) -> Result<Self> {
+  
+        let embeddings = Dinov2Embeddings::new(vb.pp("embeddings"), embed_dim, img_size, patch_size)?;
+
         let norm = layer_norm(embed_dim, 1e-5, vb.pp("layernorm"))?;
         let vb_b = vb.pp("encoder.layer");
         let blocks = (0..depth)
             .map(|i| Block::new(vb_b.pp(i.to_string()), embed_dim, num_heads))
             .collect::<Result<Vec<_>>>()?;
         Ok(Self {
-            patch_embed,
-            cls_token,
-            pos_embed,
             blocks,
             norm,
+            embeddings,
         })
-    }
-
-    fn interpolate_pos_encoding(&self, xs: &Tensor, w: usize, h: usize) -> Result<Tensor> {
-        let npatch = xs.dim(1)? - 1;
-        let n = self.pos_embed.dim(1)? - 1;
-        let sqrt_n = (n as f64).sqrt();
-        if npatch == n && w == h {
-            return Ok(xs.clone());
-        }
-        let class_pos_embed = self.pos_embed.i((.., ..1))?;
-        let patch_pos_embed = self.pos_embed.i((.., 1..))?;
-        let dim = xs.dim(D::Minus1)?;
-        let (w0, h0) = ((w / PATCH_SIZE) as f64 + 0.1, (h / PATCH_SIZE) as f64 + 0.1);
-        let patch_pos_embed = patch_pos_embed
-            .reshape((1, sqrt_n as usize, sqrt_n as usize, dim))?
-            .transpose(2, 3)?
-            .transpose(1, 2)?;
-        // This uses bicubic interpolation in the original implementation.
-        let patch_pos_embed = patch_pos_embed.upsample_nearest2d(h0 as usize, w0 as usize)?;
-        let el_count = patch_pos_embed.shape().elem_count();
-        let patch_pos_embed =
-            patch_pos_embed
-                .transpose(1, 2)?
-                .transpose(2, 3)?
-                .reshape((1, el_count / dim, dim))?;
-        Tensor::cat(&[&class_pos_embed, &patch_pos_embed], 1)
-    }
-
-    fn prepare_tokens_with_mask(&self, xs: &Tensor) -> Result<Tensor> {
-        let (_b, _nc, w, h) = xs.dims4()?;
-        let xs = self.patch_embed.forward(xs)?;
-
-        // Repeat (tile) cls_token along the batch dimension to match xs batch size before concat:
-        let bsz = xs.dim(0)?;
-        let cls_token = self.cls_token.repeat((bsz, 1, 1))?;
-        let xs = Tensor::cat(&[&cls_token, &xs], 1)?;
-        Tensor::broadcast_add(&xs, &self.interpolate_pos_encoding(&xs, w, h)?)
-    }
-
-    fn get_intermediate_layers_not_chunked(
-        &self,
-        xs: &Tensor,
-        blocks_to_take: &[usize],
-    ) -> Result<Vec<Tensor>> {
-        let mut xs = self.prepare_tokens_with_mask(xs)?;
-        let mut output = Vec::new();
-        for (i, blk) in self.blocks.iter().enumerate() {
-            xs = blk.forward(&xs)?;
-            if blocks_to_take.contains(&i) {
-                output.push(xs.clone());
-            }
-        }
-        if output.len() != blocks_to_take.len() {
-            candle_core::bail!(
-                "only {} / {} blocks found",
-                output.len(),
-                blocks_to_take.len()
-            );
-        }
-        Ok(output)
-    }
-
-    pub fn get_intermediate_layers(
-        &self,
-        xs: &Tensor,
-        blocks_to_take: &[usize],
-        reshape: bool,
-        return_class_token: bool,
-        norm: bool,
-    ) -> Result<Tensor> {
-        let outputs = self.get_intermediate_layers_not_chunked(xs, blocks_to_take)?;
-        let outputs = if norm {
-            outputs
-                .iter()
-                .map(|out| self.norm.forward(out))
-                .collect::<Result<Vec<_>>>()?
-        } else {
-            outputs
-        };
-        let class_tokens = outputs
-            .iter()
-            .map(|out| out.i((.., 0)))
-            .collect::<Result<Vec<_>>>()?;
-        let outputs = outputs
-            .iter()
-            .map(|out| out.i((.., 1..)))
-            .collect::<Result<Vec<_>>>()?;
-
-        let outputs = if reshape {
-            let (b, _c, w, h) = xs.dims4()?;
-            let patch_size = self.patch_embed.patch_size.0;
-            let num_channels = outputs[0].elem_count() / (b * (w / patch_size) * (h / patch_size));
-            outputs
-                .iter()
-                .map(|out| {
-                    out.reshape((b, w / patch_size, h / patch_size, num_channels))?
-                        .transpose(2, 3)?
-                        .transpose(1, 2)
-                })
-                .collect::<Result<Vec<_>>>()?
-        } else {
-            outputs
-        };
-
-        let outputs = if return_class_token {
-            outputs
-                .iter()
-                .zip(class_tokens.iter())
-                .map(|(out, class_token)| Tensor::cat(&[out, class_token], D::Minus1))
-                .collect::<Result<Vec<_>>>()?
-        } else {
-            outputs
-        };
-
-        Tensor::stack(&outputs[..], 0)
     }
 }
 
 impl Module for DinoVisionTransformer {
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
-        let mut xs = self.prepare_tokens_with_mask(xs)?;
+        let mut xs = self.embeddings.forward(xs)?;
         for blk in self.blocks.iter() {
             xs = blk.forward(&xs)?
         }
@@ -448,5 +378,5 @@ impl Module for DinoVisionTransformer {
 }
 
 pub fn vit_small(vb: VarBuilder) -> Result<DinoVisionTransformer> {
-    DinoVisionTransformer::new(vb, 12, 384, 6)
+    DinoVisionTransformer::new(vb, 12, 384, 6, 518, 14)
 }
