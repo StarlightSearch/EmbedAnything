@@ -20,7 +20,6 @@ async fn main() {
 
     let bert_model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("bert")
             .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
             .revision(None)
             .token(None)

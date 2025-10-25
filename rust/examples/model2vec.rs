@@ -9,7 +9,6 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("model2vec")
             .model_id(Some("minishlab/potion-base-8M"))
             .revision(None)
             .token(None)
