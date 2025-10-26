@@ -1,3 +1,9 @@
+#[cfg(feature = "mkl")]
+extern crate intel_mkl_src;
+
+#[cfg(feature = "accelerate")]
+extern crate accelerate_src;
+
 use crate::{
     embeddings::{embed::EmbeddingResult, normalize_l2, select_device, utils::tokenize_batch},
     models::qwen3::{Config, Model},
