@@ -1,6 +1,15 @@
 # EmbedAnything OpenAI-Compatible Server
 
-This server provides an OpenAI-compatible API for generating embeddings using the EmbedAnything library.
+This server provides an OpenAI-compatible API for generating embeddings using the EmbedAnything library. We choose Actix Server for:
+
+1. Blazing fast: Consistently ranks among the fastest web frameworks in benchmarks like TechEmpower.
+2. Asynchronous by default: Built on Rust’s async/await, enabling efficient I/O-bound workloads.
+3. Lightweight & modular: Minimal core with extensible middleware, plugins, and integrations.
+4. Type-safe: Strong type guarantees ensure fewer runtime surprises.
+5. Production-ready: Stable, mature, and already used in industries like fintech, IoT, and SaaS platforms.
+
+
+For benchmarks between python and rust servers, you check out this blog: https://www.jonvet.com/blog/benchmarking-python-rust-web-servers
 
 ## Features
 
@@ -11,8 +20,7 @@ This server provides an OpenAI-compatible API for generating embeddings using th
 ## Running the Server
 
 ```bash
-cd server
-cargo run
+cargo run -p server --release
 ```
 
 The server will start on `http://0.0.0.0:8080`.
