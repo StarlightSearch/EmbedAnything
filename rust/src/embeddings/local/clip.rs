@@ -17,8 +17,8 @@ use crate::{
     },
 };
 use candle_core::{DType, Device, Tensor};
-
-use candle_nn::VarBuilder;
+use candle_nn::{Module, VarBuilder};
+use candle_transformers::models::dinov2::DinoVisionTransformer;
 use tokenizers::{PaddingParams, Tokenizer};
 
 use crate::embeddings::embed::{EmbedData, EmbedImage};
@@ -26,6 +26,7 @@ use crate::embeddings::embed::{EmbedData, EmbedImage};
 pub enum VisionModel {
     Clip(clip::ClipModel),
     Siglip(siglip::Model),
+    Dino(DinoVisionTransformer),
 }
 
 impl VisionModel {
@@ -33,6 +34,7 @@ impl VisionModel {
         match self {
             VisionModel::Clip(model) => model.get_image_features(image),
             VisionModel::Siglip(model) => model.get_image_features(image),
+            VisionModel::Dino(model) => model.forward(image),
         }
     }
 
@@ -40,6 +42,17 @@ impl VisionModel {
         match self {
             VisionModel::Clip(model) => model.get_text_features(text),
             VisionModel::Siglip(model) => model.get_text_features(text),
+            VisionModel::Dino(_) => Err(candle_core::Error::msg(
+                "Dino model does not support text features",
+            )),
+        }
+    }
+
+    pub fn supports_text(&self) -> bool {
+        match self {
+            VisionModel::Clip(_) => true,
+            VisionModel::Siglip(_) => true,
+            VisionModel::Dino(_) => false,
         }
     }
 }
@@ -100,6 +113,7 @@ impl ClipEmbedder {
         let config_str = std::fs::read_to_string(config_filename)?;
         let config_json: serde_json::Value = serde_json::from_str(&config_str)?;
 
+        
         let mut tokenizer = Self::get_tokenizer(None, model_id, revision)?;
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
@@ -128,6 +142,35 @@ impl ClipEmbedder {
                             VisionModel::Siglip(siglip::Model::new(&config, vb)?),
                             config.text_config.max_position_embeddings,
                             config.text_config.pad_token_id as u32,
+                        )
+                    }
+                    Some("Dinov2Model") => {
+                        let (depth, embed_dim, num_heads) = (
+                            config_json
+                                .get("num_hidden_layers")
+                                .expect("num_hidden_layers not found")
+                                .as_u64()
+                                .expect("num_hidden_layers not a number") as usize,
+                            config_json
+                                .get("hidden_size")
+                                .expect("hidden_size not found")
+                                .as_u64()
+                                .expect("hidden_size not a number") as usize,
+                            config_json
+                                .get("num_attention_heads")
+                                .expect("num_attention_heads not found")
+                                .as_u64()
+                                .expect("num_attention_heads not a number") as usize,
+                        );
+                        (
+                            VisionModel::Dino(DinoVisionTransformer::new(
+                                vb,
+                                depth as usize,
+                                embed_dim as usize,
+                                num_heads as usize,
+                            )?),
+                            0,
+                            0,
                         )
                     }
                     _ => return Err(anyhow::Error::msg("Unsupported model architecture")),
@@ -259,6 +302,10 @@ impl ClipEmbedder {
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let mut encodings = Vec::new();
+
+        if !self.model.supports_text() {
+            return Err(anyhow::Error::msg("This model does not support text features"));
+        }
 
         let batch_size = batch_size.unwrap_or(32);
 

@@ -10,7 +10,6 @@ async fn main() {
     let now = Instant::now();
 
     let model = EmbedderBuilder::new()
-        .model_architecture("clip")
         .model_id(Some("google/siglip-base-patch16-224"))
         .revision(None)
         .token(None)
