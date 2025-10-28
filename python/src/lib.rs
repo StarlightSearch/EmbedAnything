@@ -152,139 +152,29 @@ pub struct EmbeddingModel {
 #[pymethods]
 impl EmbeddingModel {
     #[staticmethod]
-    #[pyo3(signature = (model, model_id, revision=None, token=None, dtype=None))]
+    #[pyo3(signature = (model_id, revision=None, token=None, dtype=None))]
     fn from_pretrained_hf(
-        model: &WhichModel,
         model_id: Option<&str>,
         revision: Option<&str>,
         token: Option<&str>,
         dtype: Option<&Dtype>,
     ) -> PyResult<Self> {
-        // let model = WhichModel::from(model);
-        match model {
-            WhichModel::Bert => {
-                let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
-                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::BertEmbedder::new(
-                        model_id.to_string(),
-                        revision.map(|s| s.to_string()),
-                        token,
-                    )
-                    .unwrap(),
-                )));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::ModernBert => {
-                let model_id = model_id.unwrap_or("nomic-ai/modernbert-embed-base");
-                let dtype = match dtype {
-                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
-                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
-                    _ => None,
-                };
-                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::modernbert::ModernBertEmbedder::new(
-                        model_id.to_string(),
-                        revision.map(|s| s.to_string()),
-                        token,
-                        dtype,
-                    )
-                    .unwrap(),
-                )));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::SparseBert => {
-                let model_id = model_id.unwrap_or("prithivida/Splade_PP_en_v1");
-                let model = Embedder::Text(TextEmbedder::Bert(Box::new(
-                    embed_anything::embeddings::local::bert::SparseBertEmbedder::new(
-                        model_id.to_string(),
-                        revision.map(|s| s.to_string()),
-                        token,
-                    )
-                    .unwrap(),
-                )));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::Clip => {
-                let model_id = model_id.unwrap_or("openai/clip-vit-base-patch32");
-                let model = Embedder::Vision(Box::new(VisionEmbedder::Clip(Box::new(
-                    embed_anything::embeddings::local::clip::ClipEmbedder::new(
-                        model_id.to_string(),
-                        revision,
-                        token,
-                    )
-                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                ))));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::Jina => {
-                let model_id = model_id.unwrap_or("jinaai/jina-embeddings-v2-small-en");
-                let model = Embedder::Text(TextEmbedder::Jina(Box::new(
-                    embed_anything::embeddings::local::jina::JinaEmbedder::new(
-                        model_id, revision, token,
-                    )
-                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                )));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::Model2Vec => {
-                let model_id = model_id.unwrap_or("minishlab/potion-base-8M");
-                let model = Embedder::Text(TextEmbedder::Model2Vec(Box::new(
-                    embed_anything::embeddings::local::model2vec::Model2VecEmbedder::new(
-                        model_id, token, None,
-                    )
-                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                )));
-
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::Qwen3 => {
-                let model_id = model_id.unwrap_or("Qwen/Qwen3-Embedding-0.6B");
-                let dtype = match dtype {
-                    Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
-                    Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
-                    Some(Dtype::BF16) => Some(embed_anything::Dtype::BF16),
-                    _ => None,
-                };
-                let model = Embedder::Text(TextEmbedder::Qwen3(Box::new(
-                    embed_anything::embeddings::local::qwen3::Qwen3Embedder::new(
-                        model_id,
-                        revision.map(|s| s.to_string()),
-                        token,
-                        dtype,
-                    )
-                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                )));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-            WhichModel::Colpali => {
-                let model_id = model_id.unwrap_or("vidore/colpali-v1.2-merged");
-                let model = Embedder::Vision(Box::new(VisionEmbedder::ColPali(Box::new(
-                    embed_anything::embeddings::local::colpali::ColPaliEmbedder::new(
-                        model_id, revision,
-                    )
-                    .map_err(|e| PyValueError::new_err(e.to_string()))?,
-                ))));
-                Ok(EmbeddingModel {
-                    inner: Arc::new(model),
-                })
-            }
-
-            _ => panic!("Invalid model"),
-        }
+        let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
+        let dtype = match dtype {
+            Some(Dtype::F16) => Some(embed_anything::Dtype::F16),
+            Some(Dtype::F32) => Some(embed_anything::Dtype::F32),
+            Some(Dtype::BF16) => Some(embed_anything::Dtype::BF16),
+            Some(Dtype::INT8) => Some(embed_anything::Dtype::INT8),
+            Some(Dtype::Q4) => Some(embed_anything::Dtype::Q4),
+            Some(Dtype::UINT8) => Some(embed_anything::Dtype::UINT8),
+            Some(Dtype::BNB4) => Some(embed_anything::Dtype::BNB4),
+            Some(Dtype::Q4F16) => Some(embed_anything::Dtype::Q4F16),
+            _ => None,
+        };
+        let model = Embedder::from_pretrained_hf(model_id, revision, token, dtype).unwrap();
+        Ok(EmbeddingModel {
+            inner: Arc::new(model),
+        })
     }
 
     #[staticmethod]
@@ -909,7 +799,7 @@ mod tests {
 
     #[test]
     fn test_embed_file() {
-        let embedder = EmbeddingModel::from_pretrained_hf(&WhichModel::Qwen3, None, None, None, None).unwrap();
+        let embedder = EmbeddingModel::from_pretrained_hf(None, None, None, None).unwrap();
         let embeddings = embedder.embed_query(vec!["Hello, world!".to_string()], None).unwrap();
         assert!(!embeddings.is_empty());
     }
