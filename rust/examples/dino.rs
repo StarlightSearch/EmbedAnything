@@ -1,7 +1,6 @@
 use candle_core::{Device, Tensor};
 use embed_anything::{
-    embed_image_directory, embed_query,
-    embeddings::embed::{Embedder, EmbedderBuilder},
+    embed_file, embed_image_directory, embeddings::embed::{Embedder, EmbedderBuilder}
 };
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
@@ -10,7 +9,7 @@ async fn main() {
     let now = Instant::now();
 
     let model = EmbedderBuilder::new()
-        .model_id(Some("google/siglip-base-patch16-224"))
+        .model_id(Some("facebook/dinov2-large"))
         .revision(None)
         .token(None)
         .from_pretrained_hf()
@@ -21,9 +20,10 @@ async fn main() {
         .unwrap()
         .unwrap();
 
-    let query_emb_data = embed_query(&["Photo of a monkey?"], &model, None)
+    let query_emb_data = embed_file("test_files/clip/dog1.jpg", &model, None, None)
         .await
-        .unwrap();
+        .unwrap().unwrap();
+
     let n_vectors = out.len();
 
     let vector = out
@@ -74,6 +74,7 @@ async fn main() {
     println!("Descending order of similarity: ");
     for idx in &indices {
         println!("{}", image_paths[*idx]);
+        println!("Similarity: {}", similarities[*idx]);
     }
 
     println!("-----------");

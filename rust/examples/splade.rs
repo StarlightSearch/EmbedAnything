@@ -43,7 +43,6 @@ async fn main() -> anyhow::Result<()> {
         ),
         ModelType::Normal => Arc::new(
             EmbedderBuilder::new()
-                .model_architecture("sparse-bert")
                 .model_id(Some("prithivida/Splade_PP_en_v1"))
                 .revision(None)
                 .from_pretrained_hf()

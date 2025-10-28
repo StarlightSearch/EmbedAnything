@@ -492,6 +492,7 @@ class Dtype(Enum):
     BNB4 = "BNB4"
     Q4F16 = "Q4F16"
     BF16 = "BF16"
+    F32 = "F32"
 
 class RerankerResult:
     """

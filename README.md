@@ -20,7 +20,9 @@
 <div align="center">
 
   <p align="center">
-    <b> Highly Performant and Modular - Inference, Ingestion, and Indexing in Rust 🦀</b>
+    <b> Highly Performant, Modular and Memory Safe</b>
+    <br />
+    <b> Ingestion, Inference and Indexing in Rust 🦀</b>
     <br />
     <a href="https://embed-anything.com/references/">Python docs »</a>
     <br />
@@ -74,13 +76,14 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 
 
 - **No Dependency on Pytorch**: Easy to deploy on cloud, comes with low memory footprint.
-- **Highly Modular** : Choose any vectorDB adapter for RAG, with 1 line of code
+- **Highly Modular** : Choose any vectorDB adapter for RAG, with ~~1 line~~ 1 word of code
 - **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
 - **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
 - **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **GPU support** : Hardware acceleration on GPU as well.
-- **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
+- **Chunking** : In-built chunking methods like semantic, late-chunking
+- **Vector Streaming:** Separate file processing, Indexing and Inferencing on different threads, reduces latency.
 
 ## 💡What is Vector Streaming
 
@@ -96,12 +99,11 @@ The embedding process happens separetly from the main process, so as to maintain
 
 ➡️Faster execution. <br />
 ➡️No Pytorch Dependency, thus low-memory footprint and easy to deploy on cloud. <br />
-➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
 ➡️Running embedding models locally and efficiently <br />
-➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage. <br/>
-➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
+➡️In-built chunking methods like semantic, late-chunking <br/>
+➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.<br />
+➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 
 ## 🍓 Our Past Collaborations:
 
@@ -113,10 +115,13 @@ You can get in touch with us for further collaborations.
 
 ## Benchmarks
 
+### Inference Speed benchmarks.
 Only measures embedding model inference speed, on onnx-runtime. [Code](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing)
 
 <img src="https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png" width="500">
 
+
+Benchmarks with other fromeworks coming soon!! 🚀
 # ⭐ Supported Models
 
 We support any hugging-face models on Candle. And We also support ONNX runtime for BERT and ColPali.
@@ -268,8 +273,8 @@ os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/b
 ## 📒 Notebooks
 
 
-|   |   |
-| ------------- | ------------- | 
+|   |   
+| ------------- | 
 | [End-to-End Retrieval and Reranking using VectorDB Adapters](https://colab.research.google.com/drive/1gct0lEplyW8VWGPXUgpLcQuMQeZDl6D5?usp=sharing)  | 
 | [ColPali-Onnx](https://colab.research.google.com/drive/1yCVbpkoe53ymiCxG8ttJNbRhECy1Q-Du?usp=sharing)  | 
 | [Adapters](https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters) |  |

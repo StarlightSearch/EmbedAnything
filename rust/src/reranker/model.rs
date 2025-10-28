@@ -155,7 +155,7 @@ impl Reranker {
         // Check model type once at the beginning
         let is_qwen3 = self.model_type.as_ref().is_some_and(|t| t == "qwen3");
         
-        let prefix = "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be yes or no.<|im_end|>\n<|im_start|>user\n";
+        let prefix = "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n";
         let suffix = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
 
         let pairs = queries

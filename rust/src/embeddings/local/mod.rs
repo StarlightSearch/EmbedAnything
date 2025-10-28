@@ -1,3 +1,8 @@
+//! Local embedding model implementations.
+//!
+//! Self-contained embedding models that run locally without external API calls.
+//! Models use either Candle backend or ONNX Runtime for inference.
+
 pub mod bert;
 pub mod clip;
 #[cfg(feature = "ort")]
@@ -16,4 +21,5 @@ pub mod ort_bert;
 pub mod ort_jina;
 pub mod pooling;
 pub mod qwen3;
+pub mod vision_encoder;
 pub mod text_embedding;

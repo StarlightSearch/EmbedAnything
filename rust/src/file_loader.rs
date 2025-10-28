@@ -1,3 +1,8 @@
+//! File discovery and parsing utilities.
+//!
+//! Provides functionality for discovering and filtering files in directories
+//! based on patterns and file types for embedding processing.
+
 use std::{collections::HashSet, io::Error, path::PathBuf};
 
 use regex::Regex;

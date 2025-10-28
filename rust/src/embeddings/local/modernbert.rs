@@ -41,7 +41,7 @@ impl ModernBertEmbedder {
         dtype: Option<Dtype>,
     ) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = ApiBuilder::new()
+            let api = ApiBuilder::from_env()
                 .with_token(token.map(|s| s.to_string()))
                 .build()
                 .unwrap();
