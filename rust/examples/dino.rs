@@ -23,7 +23,7 @@ async fn main() {
     let query_emb_data = embed_file("test_files/clip/dog1.jpg", &model, None, None)
         .await
         .unwrap().unwrap();
-    // println!("query_emb_data: {:?}", query_emb_data[0].embedding);
+
     let n_vectors = out.len();
 
     let vector = out
