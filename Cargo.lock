@@ -1248,7 +1248,7 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "embed_anything"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "accelerate-src",
  "anyhow",
@@ -1292,7 +1292,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything_python"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "embed_anything",
  "processors-rs",
@@ -3679,7 +3679,7 @@ dependencies = [
 
 [[package]]
 name = "processors-rs"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "anyhow",
  "docx-parser",
@@ -4582,7 +4582,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "actix-web",
  "embed_anything",
