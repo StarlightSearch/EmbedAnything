@@ -1,6 +1,6 @@
 use embed_anything::config::{SplittingStrategy, TextEmbedConfig};
-use embed_anything::embeddings::embed::{EmbedData, EmbedderBuilder};
-use embed_anything::{embed_directory_stream, embed_file, embed_files_batch, Dtype};
+use embed_anything::embeddings::embed::EmbedderBuilder;
+use embed_anything::{embed_directory_stream, embed_file, embed_files_batch};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Instant};
@@ -9,11 +9,9 @@ use std::{path::PathBuf, time::Instant};
 async fn main() {
     let model = Arc::new(
         EmbedderBuilder::new()
-            .model_architecture("bert")
-            .model_id(Some("sentence-transformers/all-MiniLM-L6-v2"))
+            .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
             .revision(None)
             .token(None)
-            .dtype(Some(Dtype::F16))
             .from_pretrained_hf()
             .unwrap(),
     );
@@ -26,21 +24,19 @@ async fn main() {
 
     let now = Instant::now();
 
-    let _out = embed_file(
-        "test_files/test.pdf",
-        &model,
-        Some(&config),
-        None::<fn(Vec<EmbedData>)>,
-    )
-    .await
-    .unwrap()
-    .unwrap();
+    let _out = embed_file("test_files/test.pdf", &model, Some(&config), None)
+        .await
+        .unwrap()
+        .unwrap();
 
     let _out_2 = embed_files_batch(
-        vec![PathBuf::from("test_files/test.pdf"), PathBuf::from("test_files/test.txt")],
+        vec![
+            PathBuf::from("test_files/test.pdf"),
+            PathBuf::from("test_files/test.txt"),
+        ],
         &model,
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()
@@ -58,7 +54,7 @@ async fn main() {
         None,
         // Some(vec!["txt".to_string()]),
         Some(&config),
-        None::<fn(Vec<EmbedData>)>,
+        None,
     )
     .await
     .unwrap()

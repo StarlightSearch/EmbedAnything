@@ -1,6 +1,6 @@
 [package]
 name = "embed_anything_python"
-version = "0.5.3"
+version.workspace = true
 edition = "2021"
 
 [lib]
@@ -9,8 +9,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 embed_anything = {path = "../rust", features = ["ort"]}
-pyo3 = { version = "0.23.2"}
-tokio = { version = "1.39.0", features = ["rt-multi-thread"]}
+
+processors-rs = {path = "../processors"}
+pyo3 = { version = "0.25.0"}
+tokio = { version = "1.45.1", features = ["rt-multi-thread"]}
 strum =  {workspace = true}
 strum_macros =  {workspace = true}
 

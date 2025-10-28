@@ -81,6 +81,8 @@ pub enum ONNXModel {
     SPLADEPPENV2,
     /// onnx-models/jina-colbert-v1-en-onnx
     JinaColBERTv1,
+    /// Qwen/Qwen3-Embedding-0.6B
+    Qwen3Embedding06B,
 }
 
 /// Centralized function to initialize the models map.
@@ -366,6 +368,14 @@ fn init_models_map() -> HashMap<ONNXModel, ModelInfo<ONNXModel>> {
             model_code: String::from("onnx-models/jina-colbert-v1-en-onnx"),
             model_file: String::from("model.onnx"),
         },
+        ModelInfo {
+            model: ONNXModel::Qwen3Embedding06B,
+            dim: 768,
+            description: String::from("Qwen3 Embedding 0.6B"),
+            hf_model_id: String::from("onnx-community/Qwen3-Embedding-0.6B-ONNX"),
+            model_code: String::from("onnx-community/Qwen3-Embedding-0.6B-ONNX"),
+            model_file: String::from("onnx/model.onnx"),
+        },
     ];
 
     // TODO: Use when out in stable
@@ -452,6 +462,7 @@ impl ONNXModel {
             ONNXModel::SPLADEPPENV1 => Some(Pooling::Mean),
             ONNXModel::SPLADEPPENV2 => Some(Pooling::Mean),
             ONNXModel::JinaColBERTv1 => None,
+            ONNXModel::Qwen3Embedding06B => Some(Pooling::LastToken),
         }
     }
 

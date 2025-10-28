@@ -43,7 +43,6 @@ async fn main() -> anyhow::Result<()> {
         ),
         ModelType::Normal => Arc::new(
             EmbedderBuilder::new()
-                .model_architecture("sparse-bert")
                 .model_id(Some("prithivida/Splade_PP_en_v1"))
                 .revision(None)
                 .from_pretrained_hf()
@@ -52,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let config = TextEmbedConfig::default()
-        .with_chunk_size(256, Some(0.3))
+        .with_chunk_size(1000, Some(0.3))
         .with_batch_size(32)
         .with_buffer_size(100)
         .with_splitting_strategy(SplittingStrategy::Sentence);
@@ -98,7 +97,6 @@ async fn main() -> anyhow::Result<()> {
             similarities.push((cosine_similarity, i, j))
         }
     }
-    println!("similarities: {:?}", similarities);
     similarities.sort_by(|u, v| v.0.total_cmp(&u.0));
     for &(score, i, j) in similarities[..5].iter() {
         println!("score: {score:.2} '{}' '{}'", sentences[i], sentences[j])

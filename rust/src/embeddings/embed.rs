@@ -1,19 +1,29 @@
+use crate::config::{ImageEmbedConfig, TextEmbedConfig};
+use crate::embeddings::local::vision_encoder::VisionEncoderEmbedder;
 use crate::file_processor::audio::audio_processor::Segment;
 use crate::Dtype;
 
 use super::cloud::cohere::CohereEmbedder;
+use super::cloud::gemini::GeminiEmbedder;
 use super::cloud::openai::OpenAIEmbedder;
 use super::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder};
 
 use super::local::clip::ClipEmbedder;
 use super::local::colpali::{ColPaliEmbed, ColPaliEmbedder};
 use super::local::jina::{JinaEmbed, JinaEmbedder};
+use super::local::model2vec::Model2VecEmbedder;
 use super::local::modernbert::ModernBertEmbedder;
+use super::local::qwen3::{Qwen3Embed, Qwen3Embedder};
 use super::local::text_embedding::ONNXModel;
 use anyhow::anyhow;
+use anyhow::Result;
+use hf_hub::Repo;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::future::Future;
 use std::path::PathBuf;
+use std::sync::Arc;
+
 #[cfg(feature = "ort")]
 use {
     super::local::colbert::OrtColbertEmbedder,
@@ -97,8 +107,11 @@ pub trait AudioDecoder {
 pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
+    Gemini(GeminiEmbedder),
     Jina(Box<dyn JinaEmbed + Send + Sync>),
+    Model2Vec(Box<Model2VecEmbedder>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
+    Qwen3(Box<dyn Qwen3Embed + Send + Sync>),
     ColBert(Box<dyn BertEmbed + Send + Sync>),
     ModernBert(Box<dyn BertEmbed + Send + Sync>),
 }
@@ -108,49 +121,63 @@ impl TextEmbedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             TextEmbedder::OpenAI(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Cohere(embedder) => embedder.embed(text_batch).await,
-            TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size),
-            TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size),
-            TextEmbedder::ColBert(embedder) => embedder.embed(text_batch, batch_size),
-            TextEmbedder::ModernBert(embedder) => embedder.embed(text_batch, batch_size),
+            TextEmbedder::Gemini(embedder) => embedder.embed(text_batch).await,
+            TextEmbedder::Model2Vec(embedder) => embedder.embed(text_batch, batch_size),
+            TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
+            TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
+            TextEmbedder::Qwen3(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
+            TextEmbedder::ColBert(embedder) => {
+                embedder.embed(text_batch, batch_size, late_chunking)
+            }
+            TextEmbedder::ModernBert(embedder) => {
+                embedder.embed(text_batch, batch_size, late_chunking)
+            }
         }
     }
 
     pub fn from_pretrained_hf(
-        model: &str,
+        architecture: &str,
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
         dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
-        match model {
-            "jina" | "Jina" => Ok(Self::Jina(Box::new(JinaEmbedder::new(
+        match architecture {
+            "JinaBertForMaskedLM" => Ok(Self::Jina(Box::new(JinaEmbedder::new(
                 model_id, revision, token,
             )?))),
 
-            "Bert" | "bert" => Ok(Self::Bert(Box::new(BertEmbedder::new(
+            "BertModel" => Ok(Self::Bert(Box::new(BertEmbedder::new(
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
                 token,
             )?))),
-            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => {
-                Ok(Self::Bert(Box::new(SparseBertEmbedder::new(
-                    model_id.to_string(),
-                    revision.map(|s| s.to_string()),
-                    token,
-                )?)))
-            }
-            "modernbert" | "ModernBert" | "MODERNBERT" => {
-                Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
-                    model_id.to_string(),
-                    revision.map(|s| s.to_string()),
-                    token,
-                    dtype,
-                )?)))
-            }
+            "BertForMaskedLM" => Ok(Self::Bert(Box::new(SparseBertEmbedder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+                token,
+            )?))),
+            "StaticModel" => Ok(Self::Model2Vec(Box::new(Model2VecEmbedder::new(
+                model_id, token, None,
+            )?))),
+
+            "ModernBertForMaskedLM" => Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
+                model_id.to_string(),
+                revision.map(|s| s.to_string()),
+                token,
+                dtype,
+            )?))),
+            "Qwen3ForCausalLM" => Ok(Self::Qwen3(Box::new(Qwen3Embedder::new(
+                model_id,
+                revision.map(|s| s.to_string()),
+                token,
+                dtype,
+            )?))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -219,15 +246,15 @@ impl TextEmbedder {
     /// # Arguments
     ///
     /// * `model` - A string holds the model to be used for embedding. Choose from
-    ///             - "openai"
-    ///             - "cohere"
+    ///      - "openai"
+    ///      - "cohere"
     ///
     /// * `model_id` - A string holds the model ID for the model to be used for embedding.
     ///     - For OpenAI, find available models at <https://platform.openai.com/docs/guides/embeddings/embedding-models>
     ///     - For Cohere, find available models at <https://docs.cohere.com/docs/cohere-embed>
     /// * `api_key` - An optional string holds the API key for authenticating requests to the Cohere API. If not provided, it is taken from the environment variable
-    ///         - For OpenAI, create environment variable `OPENAI_API_KEY`
-    ///         - For Cohere, create environment variable `CO_API_KEY`
+    ///     - For OpenAI, create environment variable `OPENAI_API_KEY`
+    ///     - For Cohere, create environment variable `CO_API_KEY`
     ///
     /// # Returns
     ///
@@ -246,26 +273,29 @@ impl TextEmbedder {
                 model_id.to_string(),
                 api_key,
             ))),
+            "gemini" | "Gemini" => Ok(Self::Gemini(GeminiEmbedder::new(api_key))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
 }
 
 pub enum VisionEmbedder {
-    Clip(ClipEmbedder),
+    Clip(Box<ClipEmbedder>),
+    VisionEncoder(Box<VisionEncoderEmbedder>),
     ColPali(Box<dyn ColPaliEmbed + Send + Sync>),
+    Cohere(CohereEmbedder),
 }
 
 impl From<VisionEmbedder> for Embedder {
     fn from(value: VisionEmbedder) -> Self {
-        Embedder::Vision(value)
+        Embedder::Vision(Box::new(value))
     }
 }
 
 impl From<Embedder> for VisionEmbedder {
     fn from(value: Embedder) -> Self {
         match value {
-            Embedder::Vision(value) => value,
+            Embedder::Vision(value) => *value,
             _ => panic!("Invalid embedder type"),
         }
     }
@@ -282,20 +312,40 @@ impl From<Embedder> for TextEmbedder {
 
 impl VisionEmbedder {
     pub fn from_pretrained_hf(
-        model: &str,
+            architecture: &str,
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
-    ) -> Result<Self, anyhow::Error> {
-        match model {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Clip(ClipEmbedder::new(
+    ) -> Result<Self, anyhow::Error> {   
+        match architecture {
+            "CLIPModel" | "SiglipModel"  => Ok(Self::Clip(Box::new(ClipEmbedder::new(
                 model_id.to_string(),
                 revision,
                 token,
-            )?)),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
+            )?))),
+            "Dinov2Model" => Ok(Self::VisionEncoder(Box::new(VisionEncoderEmbedder::new(
+                model_id,
+                revision,
+                token,
+            )?))),
+            "ColPali" => Ok(Self::ColPali(Box::new(ColPaliEmbedder::new(
                 model_id, revision,
             )?))),
+   
+            _ => Err(anyhow::anyhow!("Model not supported")),
+        }
+    }
+
+    pub fn from_pretrained_cloud(
+        model: &str,
+        model_id: &str,
+        api_key: Option<String>,
+    ) -> Result<Self, anyhow::Error> {
+        match model {
+            "cohere-vision" | "CohereVision" => Ok(Self::Cohere(CohereEmbedder::new(
+                model_id.to_string(),
+                api_key,
+            ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -426,7 +476,6 @@ impl EmbedderBuilder {
     pub fn from_pretrained_hf(self) -> Result<Embedder, anyhow::Error> {
         match self.model_id {
             Some(model_id) => Embedder::from_pretrained_hf(
-                &self.model_architecture,
                 &model_id,
                 self.revision.as_deref(),
                 self.token.as_deref(),
@@ -474,71 +523,102 @@ impl EmbedderBuilder {
 
 pub enum Embedder {
     Text(TextEmbedder),
-    Vision(VisionEmbedder),
+    Vision(Box<VisionEmbedder>),
 }
-
 
 impl Embedder {
     pub async fn embed(
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
-            Self::Text(embedder) => embedder.embed(text_batch, batch_size).await,
-            Self::Vision(embedder) => embedder.embed(text_batch, batch_size),
+            Self::Text(embedder) => embedder.embed(text_batch, batch_size, late_chunking).await,
+            Self::Vision(embedder) => embedder.embed(text_batch, batch_size).await,
         }
     }
 
     pub fn from_pretrained_hf(
-        model_architecture: &str,
         model_id: &str,
         revision: Option<&str>,
         token: Option<&str>,
         dtype: Option<Dtype>,
     ) -> Result<Self, anyhow::Error> {
-        match model_architecture {
-            "clip" | "Clip" | "CLIP" => Ok(Self::Vision(VisionEmbedder::from_pretrained_hf(
-                model_architecture,
-                model_id,
-                revision,
-                token,
-            )?)),
-            "colpali" | "ColPali" | "COLPALI" => Ok(Self::Vision(
-                VisionEmbedder::from_pretrained_hf(model_architecture, model_id, revision, token)?,
+        let api = hf_hub::api::sync::ApiBuilder::from_env()
+            .with_token(token.map(|s| s.to_string()))
+            .build()?;
+        let api = match revision {
+            Some(rev) => api.repo(Repo::with_revision(
+                model_id.to_string(),
+                hf_hub::RepoType::Model,
+                rev.to_string(),
             )),
-            "bert" | "Bert" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                model_architecture,
+            None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
+        };
+        let config_filename = api.get("config.json")?;
+        let config = std::fs::read_to_string(config_filename)?;
+        let config: serde_json::Value = serde_json::from_str(&config)?;
+
+        let architecture = config["architectures"]
+            .as_array()
+            .ok_or(anyhow::anyhow!("Architecture not found"))?
+            .first()
+            .ok_or(anyhow::anyhow!("Architecture not found"))?
+            .as_str()
+            .ok_or(anyhow::anyhow!("Architecture not found"))?;
+        match architecture {
+            "CLIPModel" | "SiglipModel"  => Ok(Self::Vision(Box::new(
+                VisionEmbedder::from_pretrained_hf(architecture, model_id, revision, token)?,
+            ))),
+            "ColPali" => Ok(Self::Vision(Box::new(
+                VisionEmbedder::from_pretrained_hf(architecture, model_id, revision, token)?,
+            ))),
+            "Dinov2Model" => Ok(Self::Vision(Box::new(
+                VisionEmbedder::from_pretrained_hf(architecture, model_id, revision, token)?,
+            ))),
+            "BertModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
                 model_id,
                 revision,
                 token,
                 dtype,
             )?)),
-            "jina" | "Jina" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                model_architecture,
+            "JinaBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
                 model_id,
                 revision,
                 token,
                 dtype,
             )?)),
-            "sparse-bert" | "SparseBert" | "SPARSE-BERT" => {
-                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                    model_architecture,
-                    model_id,
-                    revision,
-                    token,
-                    dtype,
-                )?))
-            }
-            "modernbert" | "ModernBert" | "MODERNBERT" => {
-                Ok(Self::Text(TextEmbedder::from_pretrained_hf(
-                    model_architecture,
-                    model_id,
-                    revision,
-                    token,
-                    dtype,
-                )?))
-            }
+            "StaticModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
+            "BertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
+            "ModernBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
+            "Qwen3ForCausalLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -555,6 +635,12 @@ impl Embedder {
             "cohere" | "Cohere" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
                 model, model_id, api_key,
             )?)),
+            "gemini" | "Gemini" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
+                model, model_id, api_key,
+            )?)),
+            "cohere-vision" | "CohereVision" => Ok(Self::Vision(Box::new(
+                VisionEmbedder::from_pretrained_cloud(model, model_id, api_key)?,
+            ))),
             _ => Err(anyhow::anyhow!("Model not supported")),
         }
     }
@@ -591,27 +677,130 @@ impl Embedder {
             path_in_repo,
         )?))
     }
+
+    pub async fn embed_directory_stream(
+        self: &Arc<Self>,
+        directory: PathBuf,
+        extensions: Option<Vec<String>>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_directory_stream(directory, self, extensions, config, adapter).await
+    }
+
+    pub async fn embed_image_directory(
+        self: &Arc<Self>,
+        directory: PathBuf,
+        config: Option<&ImageEmbedConfig>,
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_image_directory(directory, self, config, adapter).await
+    }
+
+    pub async fn embed_file<T: AsRef<std::path::Path>>(
+        &self,
+        file_path: T,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_file(file_path, self, config, adapter).await
+    }
+
+    pub async fn embed_webpage(
+        &self,
+        url: String,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnOnce(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_webpage(url, self, config, adapter).await
+    }
+
+    /// Embeds a list of files.
+    ///
+    /// # Arguments
+    ///
+    /// * `files` - A vector of `PathBuf` objects representing the files to embed.
+    /// * `embedder` - A reference to the embedding model to use.
+    /// * `config` - An optional `TextEmbedConfig` object specifying the configuration for the embedding model.
+    /// * `adapter` - An optional callback function to handle the embeddings.
+    ///
+    /// # Returns
+    /// An `Option` containing a vector of `EmbedData` objects representing the embeddings of the files, or `None` if an adapter is used.
+    ///
+    /// # Errors
+    /// Returns a `Result` with an error if the embedding process fails.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use embed_anything::embed_files_batch;
+    /// use std::path::PathBuf;
+    /// use std::sync::Arc;
+    /// use embed_anything::config::TextEmbedConfig;
+    /// use embed_anything::embeddings::embed::EmbedderBuilder;
+    /// use embed_anything::embeddings::embed::EmbedData;
+    ///
+    /// async fn generate_embeddings() {
+    ///     let files = vec![PathBuf::from("test_files/test.txt"), PathBuf::from("test_files/test.pdf")];
+    ///     let embedder = Arc::new(EmbedderBuilder::new()
+    ///         .model_architecture("bert")
+    ///         .model_id(Some("jinaai/jina-embeddings-v2-small-en"))
+    ///         .from_pretrained_hf()
+    ///         .unwrap());
+    ///     let config = TextEmbedConfig::default();
+    ///     let embeddings = embedder.embed_files_batch(files, Some(&config), None).await.unwrap();
+    /// }
+    /// ```
+    /// This will output the embeddings of the files in the specified directory using the specified embedding model.
+    pub async fn embed_files_batch(
+        self: &Arc<Self>,
+        file_paths: impl IntoIterator<Item = impl AsRef<std::path::Path>>,
+        config: Option<&TextEmbedConfig>,
+        adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+    ) -> Result<Option<Vec<EmbedData>>> {
+        crate::embed_files_batch(file_paths, self, config, adapter).await
+    }
+
+    pub async fn embed_query(
+        self: &Arc<Self>,
+        query: &[&str],
+        config: Option<&TextEmbedConfig>,
+    ) -> Result<Vec<EmbedData>> {
+        crate::embed_query(query, self, config).await
+    }
 }
 
 impl EmbedImage for Embedder {
-    fn embed_image<T: AsRef<std::path::Path>>(
+    async fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
         match self {
-            Self::Vision(embedder) => embedder.embed_image(image_path, metadata),
+            Self::Vision(embedder) => embedder.embed_image(image_path, metadata).await,
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
         }
     }
 
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
+    async fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+        batch_size: Option<usize>,
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
-            Self::Vision(embedder) => embedder.embed_image_batch(image_paths),
+            Self::Vision(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
             _ => Err(anyhow::anyhow!("Model not supported for vision embedding")),
+        }
+    }
+
+    async fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        pdf_path: T,
+        batch_size: Option<usize>,
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        match self {
+            Self::Vision(embedder) => embedder.embed_pdf(pdf_path, batch_size).await,
+            _ => Err(anyhow::anyhow!("Model not supported for PDF embedding")),
         }
     }
 }
@@ -621,18 +810,20 @@ pub trait TextEmbed {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
-    ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
+    ) -> impl Future<Output = anyhow::Result<Vec<EmbeddingResult>>>;
 }
 
 impl TextEmbed for VisionEmbedder {
-    fn embed(
+    async fn embed(
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         match self {
             Self::Clip(embedder) => embedder.embed(text_batch, batch_size),
+            Self::VisionEncoder(_) => Err(anyhow::anyhow!("Model not supported for text embedding")),
             Self::ColPali(embedder) => embedder.embed(text_batch, batch_size),
+            Self::Cohere(embedder) => embedder.embed(text_batch).await,
         }
     }
 }
@@ -642,39 +833,61 @@ pub trait EmbedImage {
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
-    ) -> anyhow::Result<EmbedData>;
+    ) -> impl Future<Output = anyhow::Result<EmbedData>>;
     fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
-    ) -> anyhow::Result<Vec<EmbedData>>;
+        batch_size: Option<usize>,
+    ) -> impl Future<Output = anyhow::Result<Vec<EmbedData>>>;
+    fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        pdf_path: T,
+        batch_size: Option<usize>,
+    ) -> impl Future<Output = anyhow::Result<Vec<EmbedData>>>;
 }
 
 impl EmbedImage for VisionEmbedder {
-    fn embed_image<T: AsRef<std::path::Path>>(
+    async fn embed_image<T: AsRef<std::path::Path>>(
         &self,
         image_path: T,
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
         match self {
-            Self::Clip(embedder) => embedder.embed_image(image_path, metadata),
+            Self::Clip(embedder) => embedder.embed_image(image_path, metadata).await,
             Self::ColPali(embedder) => {
                 embedder.embed_image(PathBuf::from(image_path.as_ref()), metadata)
             }
+            Self::Cohere(embedder) => embedder.embed_image(image_path, metadata).await,
+            Self::VisionEncoder(embedder) => embedder.embed_image(image_path, metadata).await,
         }
     }
 
-    fn embed_image_batch<T: AsRef<std::path::Path>>(
+    async fn embed_image_batch<T: AsRef<std::path::Path>>(
         &self,
         image_paths: &[T],
+        batch_size: Option<usize>,
     ) -> anyhow::Result<Vec<EmbedData>> {
         match self {
-            Self::Clip(embedder) => embedder.embed_image_batch(image_paths),
+            Self::Clip(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
             Self::ColPali(embedder) => embedder.embed_image_batch(
                 &image_paths
                     .iter()
                     .map(|p| PathBuf::from(p.as_ref()))
                     .collect::<Vec<_>>(),
             ),
+            Self::Cohere(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
+            Self::VisionEncoder(embedder) => embedder.embed_image_batch(image_paths, batch_size).await,
+        }
+    }
+
+    async fn embed_pdf<T: AsRef<std::path::Path>>(
+        &self,
+        pdf_path: T,
+        batch_size: Option<usize>,
+    ) -> anyhow::Result<Vec<EmbedData>> {
+        match self {
+            Self::Cohere(embedder) => embedder.embed_pdf(pdf_path, batch_size).await,
+            _ => Err(anyhow::anyhow!("Model not supported for PDF embedding")),
         }
     }
 }

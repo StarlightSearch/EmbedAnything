@@ -11,7 +11,7 @@ model = EmbeddingModel.from_pretrained_hf(
 )
 
 config = TextEmbedConfig(
-    chunk_size=256,
+    chunk_size=1000,
     batch_size=32,
     buffer_size=64,
     splitting_strategy="sentence",

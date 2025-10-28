@@ -137,7 +137,11 @@ impl StatisticalChunker {
                     .collect::<Vec<&str>>();
             }
 
-            let encoded_splits = self.encoder.embed(&batch_splits, Some(16)).await.unwrap();
+            let encoded_splits = self
+                .encoder
+                .embed(&batch_splits, Some(16), None)
+                .await
+                .unwrap();
             let encoded_splits = encoded_splits
                 .into_iter()
                 .map(|x| x.to_dense().unwrap())
@@ -343,23 +347,30 @@ impl StatisticalChunker {
 
 #[cfg(test)]
 mod tests {
+    use crate::extract_document;
+    use processors_rs::pdf::pdf_processor::{OcrConfig, PdfBackend};
     use std::path::PathBuf;
-
-    use crate::text_loader::TextLoader;
 
     use super::*;
 
     #[tokio::test]
     async fn test_statistical_chunker() {
-        let text =
-            TextLoader::extract_text(&PathBuf::from("../test_files/attention.pdf"), false, None)
-                .unwrap();
+        let text = extract_document(
+            PathBuf::from("../test_files/attention.pdf"),
+            10,
+            0,
+            OcrConfig {
+                use_ocr: false,
+                tesseract_path: None,
+            },
+            Some(PdfBackend::LoPdf),
+        )
+        .unwrap();
         let chunker = StatisticalChunker {
             verbose: true,
             ..Default::default()
         };
-        println!("-----Text---\n{}", text);
-        let chunks = chunker.chunk(&text, 10).await;
-        assert_eq!(chunks.len(), 1);
+        let chunks = chunker.chunk(&text.chunks.join("\n"), 10).await;
+        assert!(!chunks.is_empty());
     }
 }

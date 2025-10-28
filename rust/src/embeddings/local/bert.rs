@@ -27,6 +27,7 @@ pub trait BertEmbed {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
 #[derive(Debug, Deserialize, Clone)]
@@ -76,7 +77,7 @@ impl BertEmbedder {
         };
 
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = ApiBuilder::new()
+            let api = ApiBuilder::from_env()
                 .with_token(token.map(|s| s.to_string()))
                 .build()
                 .unwrap();
@@ -140,9 +141,100 @@ impl BertEmbedder {
             pooling,
         })
     }
-}
 
-impl BertEmbed for BertEmbedder {
+    fn embed_late_chunking(
+        &self,
+        text_batch: &[&str],
+        batch_size: Option<usize>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        let batch_size = batch_size.unwrap_or(32);
+        let mut results = Vec::new();
+        for mini_text_batch in text_batch.chunks(batch_size) {
+            let tokens = self
+                .tokenizer
+                .encode_batch(mini_text_batch.to_vec(), true)
+                .map_err(E::msg)?;
+
+            let token_ids = tokens
+                .iter()
+                .map(|tokens| {
+                    let tokens = tokens.get_ids().to_vec();
+                    tokens
+                })
+                .collect::<Vec<_>>();
+
+            let attention_mask = tokens
+                .iter()
+                .map(|tokens| {
+                    let tokens = tokens.get_attention_mask().to_vec();
+                    tokens
+                })
+                .collect::<Vec<_>>();
+
+            // Keep track of original sequence lengths for later splitting
+            let sequence_lengths: Vec<usize> = token_ids.iter().map(|seq| seq.len()).collect();
+            let cumulative_seq_lengths: Vec<usize> = sequence_lengths
+                .iter()
+                .scan(0, |acc, &x| {
+                    *acc += x;
+                    Some(*acc)
+                })
+                .collect();
+
+            // merge the token ids and attention mask into a single sequence
+            let token_ids_merged = token_ids.concat();
+            let attention_mask_merged = attention_mask.concat();
+
+            // Convert to tensors
+            let device = &self.model.device;
+            let token_ids_tensor =
+                Tensor::new(token_ids_merged.as_slice(), device)?.unsqueeze(0)?;
+            let attention_mask_tensor =
+                Tensor::new(attention_mask_merged.as_slice(), device)?.unsqueeze(0)?;
+            let token_type_ids = token_ids_tensor.zeros_like()?;
+            // Run the model
+            let embeddings = self.model.forward(
+                &token_ids_tensor,
+                &token_type_ids,
+                Some(&attention_mask_tensor),
+            )?;
+            // Apply attention mask for pooling
+            let attention_mask_tensor = PooledOutputType::from(attention_mask_tensor);
+
+            for (i, &end_idx) in cumulative_seq_lengths.iter().enumerate() {
+                let start_idx = if i == 0 {
+                    0
+                } else {
+                    cumulative_seq_lengths[i - 1]
+                };
+
+                // Extract embeddings for this sequence
+                let seq_embeddings = embeddings.narrow(1, start_idx, end_idx - start_idx)?;
+
+                // Create attention mask for this sequence
+                let seq_attention_mask =
+                    attention_mask_tensor
+                        .to_tensor()?
+                        .narrow(1, start_idx, end_idx - start_idx)?;
+
+                // Pool and normalize the embeddings for this sequence
+                let model_output = ModelOutput::Tensor(seq_embeddings);
+                let pooled_output = Pooling::Mean.pool(
+                    &model_output,
+                    Some(&PooledOutputType::from(seq_attention_mask)),
+                )?;
+                let pooled_tensor = pooled_output.to_tensor()?;
+                let normalized = normalize_l2(pooled_tensor)?.squeeze(0)?;
+
+                // Convert to vector
+                let embedding_vec = normalized.to_vec1::<f32>().unwrap();
+                results.push(EmbeddingResult::DenseVector(embedding_vec));
+            }
+        }
+
+        Ok(results)
+    }
+
     fn embed(
         &self,
         text_batch: &[&str],
@@ -166,9 +258,9 @@ impl BertEmbed for BertEmbedder {
             let pooled_output = match self.pooling {
                 Pooling::Cls => self.pooling.pool(&model_output, None)?,
                 Pooling::Mean => self.pooling.pool(&model_output, attention_mask)?,
+                Pooling::LastToken => self.pooling.pool(&model_output, attention_mask)?,
             };
             let pooled_output = pooled_output.to_tensor()?;
-
             let embeddings = normalize_l2(pooled_output)?;
             let batch_encodings = embeddings.to_vec2::<f32>()?;
 
@@ -182,6 +274,21 @@ impl BertEmbed for BertEmbedder {
     }
 }
 
+impl BertEmbed for BertEmbedder {
+    fn embed(
+        &self,
+        text_batch: &[&str],
+        batch_size: Option<usize>,
+        late_chunking: Option<bool>,
+    ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
+        if late_chunking.unwrap_or(false) {
+            self.embed_late_chunking(text_batch, batch_size)
+        } else {
+            self.embed(text_batch, batch_size)
+        }
+    }
+}
+
 pub struct SparseBertEmbedder {
     pub tokenizer: Tokenizer,
     pub model: BertForMaskedLM,
@@ -192,7 +299,7 @@ pub struct SparseBertEmbedder {
 impl SparseBertEmbedder {
     pub fn new(model_id: String, revision: Option<String>, token: Option<&str>) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = ApiBuilder::new()
+            let api = ApiBuilder::from_env()
                 .with_token(token.map(|s| s.to_string()))
                 .build()
                 .unwrap();
@@ -262,6 +369,7 @@ impl BertEmbed for SparseBertEmbedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        _late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error> {
         let batch_size = batch_size.unwrap_or(32);
         let mut encodings: Vec<EmbeddingResult> = Vec::new();
@@ -314,17 +422,33 @@ mod tests {
             .embed(&["Hello, world!", "I am a rust programmer"], Some(32))
             .unwrap();
         let test_embeddings: Vec<f32> = vec![
-            -3.81771736e-02,
-            3.29111032e-02,
-            -5.45938499e-03,
-            1.43699143e-02,
+            -3.817_714_4e-2,
+            3.291_104_7e-2,
+            -5.459_414_3e-3,
+            1.436_992_9e-2,
+            -4.029_102e-2,
+            -1.165_325e-1,
         ];
-        let embeddings = embeddings[0].to_dense().unwrap()[0..4].to_vec();
+        let embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
+        println!("{:?}", embeddings);
         assert!(
             (embeddings
                 .iter()
                 .zip(test_embeddings.iter())
-                .all(|(a, b)| a.abs() - b.abs() < 1e-5))
+                .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
         );
+    }
+
+    #[test]
+    fn test_embed_late_chunking() {
+        let embedder = BertEmbedder::new(
+            "sentence-transformers/all-MiniLM-L6-v2".to_string(),
+            None,
+            None,
+        )
+        .unwrap();
+        let text_batch = vec!["Hello, world!"];
+        let embeddings = embedder.embed_late_chunking(&text_batch, Some(1)).unwrap();
+        println!("{:?}", embeddings);
     }
 }

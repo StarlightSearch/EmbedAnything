@@ -1,4 +1,7 @@
-//! This module contains the different embedding models that can be used to generate embeddings for the text data.
+//! Embedding model implementations and utilities.
+//!
+//! Provides local and cloud-based embedding models for generating vector
+//! representations from text, image, and audio data.
 
 use std::{collections::HashMap, rc::Rc};
 
@@ -70,7 +73,7 @@ pub async fn embed_audio<T: AsRef<std::path::Path>>(
     batch_size: Option<usize>,
 ) -> Result<Vec<EmbedData>, anyhow::Error> {
     let text_batch = text_batch_from_audio(&segments);
-    let encodings = embedder.embed(&text_batch, batch_size).await?;
+    let encodings = embedder.embed(&text_batch, batch_size, None).await?;
     get_audio_metadata(encodings, segments, audio_file)
 }
 

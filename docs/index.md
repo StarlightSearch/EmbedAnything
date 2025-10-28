@@ -1,27 +1,32 @@
-# 🏠 Home
+# Home 
 
-<p align="center">
-<img width=400 src="https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
+<p align ="center">
+<img width=400 src = "https://res.cloudinary.com/dltwftrgc/image/upload/v1712504276/Projects/EmbedAnything_500_x_200_px_a4l8xu.png">
 </p>
+
+
+
 
 <div align="center">
   <p align="center">
-    <b>Supercharge your embedding pipeline with a minimalist and lightning-fast framework built in Rust 🦀</b>
+    <b> Inference, Ingestion, and Indexing in Rust 🦀</b>
     <br />
-    <a href="https://starlightsearch.github.io/EmbedAnything/references/"><strong>Explore the docs »</strong></a>
+    <a href="https://starlightsearch.github.io/EmbedAnything/references/">Python docs »</a>
     <br />
+    <a href="https://docs.rs/embed_anything/0.4.17/embed_anything/">Rust docs »</a>
     <br />
-    <a href="https://youtu.be/HLXIuznnXcI">View Demo</a>
+    <a href="https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing"><strong>Benchmarks</strong></a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples">Examples</a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#%EF%B8%8Ffaq"><strong>FAQ</strong></a>
     ·
-    <a href="https://github.com/StarlightSearch/EmbedAnything/issues/new">Request Feature</a>
-    ·
-    <a href="https://huggingface.co/spaces/akshayballal/search_in_audio">Search in Audio Space</a>
+    <a href="https://github.com/StarlightSearch/EmbedAnything/tree/main/examples/adapters"><strong>Adapters</strong></a>
+    .
+    <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-our-past-collaborations"><strong>Collaborations</strong></a>
   </p>
 </div>
 
-EmbedAnything is a minimalist yet highly performant, lightweight, lightning-fast, multi-source, multimodal and local embedding pipeline, built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything simplifies the process of generating embeddings from various sources and streaming them to a vector database. We support dense, sparse and late-interaction embeddings.
+
+EmbedAnything is a minimalist, highly performant, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -48,71 +53,62 @@ EmbedAnything is a minimalist yet highly performant, lightweight, lightning-fast
   </ol>
 </details>
 
-To sign up for future updates, sign up to our newsletter:
-
-<script async data-uid="c65e5ea14d" src="https://starlight-3.kit.com/c65e5ea14d/index.js"></script>
-
-
-## 💡 What is Vector Streaming
-
-Vector Streaming enables you to process and generate embeddings for files and stream them. If you have a 10 GB file, it can continuously generate embeddings chunk by chunk that you can segment semantically and store in the vector database of your choice. This eliminates the need for bulk embeddings storage in RAM at once.
-
-[![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
 ## 🚀 Key Features
 
-- **Local Embedding**: Works with local embedding models like BERT and JINA
-- **ColPali**: Support for ColPali in GPU version
-- **Splade**: Support for sparse embeddings for hybrid search
-- **Cloud Embedding Models**: Supports OpenAI and Cohere
-- **Multimodality**: Works with text sources like PDFs, TXT, MD, images (JPG), and audio (WAV)
-- **Rust**: All file processing is done in Rust for speed and efficiency
-- **Candle**: We have taken care of hardware acceleration with Candle
-- **Python Interface**: Packaged as a Python library for seamless integration into your existing projects
-- **Vector Streaming**: Continuously create and stream embeddings if you have low resources
+- **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT
+- **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT
+- **Cloud Embedding Models:**: Supports OpenAI and Cohere.  
+- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
+- **Rust** : All the file processing is done in rust for speed and efficiency
+- **GPU support** : We have taken care of hardware acceleration on GPU as well.
+- **Python Interface:** Packaged as a Python library for seamless integration into your existing projects.
+- **Vector Streaming:** Continuously create and stream embeddings if you have low resource.
+- **No Dependency on Pytorch** Easy to deploy on cloud, as it comes with low memory footprint.
 
+## 💡What is Vector Streaming
 
+Vector Streaming enables you to process and generate embeddings for files and stream them, so if you have 10 GB of file, it can continuously generate embeddings Chunk by Chunk, that you can segment semantically, and store them in the vector database of your choice, Thus it eliminates bulk embeddings storage on RAM at once. The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
+
+[![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
 ## 🦀 Why Embed Anything 
 
 ➡️Faster execution. <br />
+➡️No Pytorch Dependency, thus low-memory footprint and easy to deploy on cloud.
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
 ➡️True multithreading <br />
-➡️Running language models or embedding models locally and efficiently <br />
+➡️Running embedding models locally and efficiently <br />
 ➡️Candle allows inferences on CUDA-enabled GPUs right out of the box. <br />
-➡️Decrease the memory usage of EmbedAnything.
+➡️Decrease the memory usage. <br/>
+➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.
 
-![image](https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png)
+## 🍓 Our Past Collaborations:
 
+We have collaborated with reputed enterprise like
+[Elastic](https://www.youtube.com/live/OzQopxkxHyY?si=l6KasNNuCNOKky6f), [Weaviate](), [SingleStore](https://www.linkedin.com/events/buildingdomain-specificragappli7295319309566775297/theater/) and [Datahours](https://community.analyticsvidhya.com/c/datahour/multimodal-embeddings-and-search-with-embed-anything-6adba0)
 
+You can get in touch with us for further collaborations.
 
-## 🧑‍🚀 Getting Started
+## Benchmarks
 
-### 📩 Installation
+Only measures embedding model inference speed, on onnx-runtime. [Code](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing)
 
-```bash
-pip install embed-anything
-```
+<img src="https://res.cloudinary.com/dltwftrgc/image/upload/v1730405688/embed_time_zusmua.png" width="500">
 
-For GPUs and using special models like ColPali <br/>
+## ⭐ Supported Models
 
-```bash
-pip install embed-anything-gpu
-```
+We support any hugging-face models on Candle. And We also support ONNX runtime for BERT and ColPali.
 
-
-### 📝 Usage
-
-
+## How to add custom model on candle: from_pretrained_hf
 ```python
-model = EmbeddingModel.from_pretrained_local(
-    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L6-v2"
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="model link from huggingface"
 )
-data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
+config = TextEmbedConfig(chunk_size=1000, batch_size=32)
+data = embed_anything.embed_file("file_address", embedder=model, config=config)
 ```
 
-
-## Supported Models
 
 | Model  | HF link |
 | ------------- | ------------- | 
@@ -120,29 +116,127 @@ data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
 | Bert | All Bert based models |
 | CLIP | openai/clip-* | 
 | Whisper| [OpenAI Whisper models](https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013)|
-| ColPali | vidore/colpali-v1.2-merged |
+| ColPali | starlight-ai/colpali-v1.2-merged-onnx|
 | Colbert | answerdotai/answerai-colbert-small-v1, jinaai/jina-colbert-v2 and more |
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker |
 
 
-### ♠️ Splade Models
+## Splade Models:
 
 ```python
-
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.SparseBert, "naver/splade-v3")
+    WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
+)
 ```
 
-### 👁️ ColPali Models 
+## ONNX-Runtime: from_pretrained_onnx
+
+### BERT
 
 ```python
-model: ColpaliModel = ColpaliModel.from_pretrained("vidore/colpali-v1.2-merged", None)
+model = EmbeddingModel.from_pretrained_onnx(
+  WhichModel.Bert, model_id="onnx_model_link"
+)
 ```
 
-### 📷 Image Embeddings
+### ColPali
 
-*Requirements*: Directory with pictures you want to search for example we have `test_files` with images of cat, dogs etc
+```python
+model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
+```
+
+### Colbert
+
+```python
+sentences = [
+"The quick brown fox jumps over the lazy dog", 
+"The cat is sleeping on the mat", "The dog is barking at the moon", 
+"I love pizza", 
+"The dog is sitting in the park"]
+
+model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
+embeddings = model.embed(sentences, batch_size=2)
+```
+
+### ModernBERT
+
+```python
+model = EmbeddingModel.from_pretrained_onnx(
+    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+)
+```
+
+### ReRankers
+```python
+reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
+
+results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
+```
+
+## For Semantic Chunking
+
+```python
+model = EmbeddingModel.from_pretrained_hf(
+    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+)
+
+# with semantic encoder
+semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
+config = TextEmbedConfig(chunk_size=1000, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
+
+```
+
+## For late-chunking
+```python
+config = TextEmbedConfig(
+    chunk_size=1000,
+    batch_size=8,
+    splitting_strategy="sentence",
+    late_chunking=True,
+)
+
+# Embed a single file
+data: list[EmbedData] = model.embed_file("test_files/attention.pdf", config=config)
+
+```
+
+## 🧑‍🚀 Getting Started
+
+## 💚 Installation
+
+`
+pip install embed-anything
+`<br/>
+
+For GPUs and using special models like ColPali <br/>
+
+`
+pip install embed-anything-gpu
+`
+
+
+
+# Usage
+
+
+
+## ➡️ Usage For 0.3 and later version
+
+
+### To use local embedding: we support Bert and Jina
+
+```python
+model = EmbeddingModel.from_pretrained_local(
+    WhichModel.Bert, model_id="Hugging_face_link"
+)
+data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
+```
+
+
+
+## For multimodal embedding: we support CLIP
+### Requirements Directory with pictures you want to search for example we have test_files with images of cat, dogs etc
 
 ```python
 import embed_anything
@@ -163,90 +257,48 @@ max_index = np.argmax(similarities)
 Image.open(data[max_index].text).show()
 ```
 
-### 🔊 Audio Embedding using Whisper
-*requirements*:  Audio .wav files.
+## Audio Embedding using Whisper
+### requirements:  Audio .wav files.
 
 
 ```python
 import embed_anything
-from embed_anything import JinaConfig, EmbedConfig, AudioDecoderConfig
-import time
-
-start_time = time.time()
-
-# choose any whisper or distilwhisper model 
-# from https://huggingface.co/distil-whisper or 
-# https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
-audio_decoder_config = AudioDecoderConfig(
-    decoder_model_id="openai/whisper-tiny.en",
-    decoder_revision="main",
-    model_type="tiny-en",
-    quantized=False,
+from embed_anything import (
+    AudioDecoderModel,
+    EmbeddingModel,
+    embed_audio_file,
+    TextEmbedConfig,
 )
-jina_config = JinaConfig(
-    model_id="jinaai/jina-embeddings-v2-small-en", revision="main", chunk_size=100
+# choose any whisper or distilwhisper model from https://huggingface.co/distil-whisper or https://huggingface.co/collections/openai/whisper-release-6501bba2cf999715fd953013
+audio_decoder = AudioDecoderModel.from_pretrained_hf(
+    "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
 )
-
-config = EmbedConfig(jina=jina_config, audio_decoder=audio_decoder_config)
-data = embed_anything.embed_file(
-    "test_files/audio/samples_hp0.wav", embedder="Audio", config=config
+embedder = EmbeddingModel.from_pretrained_hf(
+    embed_anything.WhichModel.Bert,
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    revision="main",
+)
+config = TextEmbedConfig(chunk_size=1000, batch_size=32)
+data = embed_anything.embed_audio_file(
+    "test_files/audio/samples_hp0.wav",
+    audio_decoder=audio_decoder,
+    embedder=embedder,
+    text_embed_config=config,
 )
 print(data[0].metadata)
-end_time = time.time()
-print("Time taken: ", end_time - start_time)
 
 ```
-
-### Colbert
-
-Several Colbert Models are supported. The tested models are:
-- `jinaai/jina-colbert-v2`
-- `answerdotai/answerai-colbert-small-v1`
-- `onnx-models/jina-colbert-v1-en-onnx`
-
-```python
-sentences = [
-"The quick brown fox jumps over the lazy dog", 
-"The cat is sleeping on the mat", "The dog is barking at the moon", 
-"I love pizza", 
-"The dog is sitting in the park"]
-
-model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
-embeddings = model.embed(sentences, batch_size=2)
-```
-
-
-### ⬆️Reranker Model
-
-We support reranker models that are available as ONNX models. Currently the models that are tested are:
-1. `jinaai/jina-reranker-v2-base-multilingual`
-2. `jinaai/jina-reranker-v1-tiny-en`
-3. `jinaai/jina-reranker-v1-turbo-en`
-4. `Xenova/bge-reranker-base`
-5. `Xenova/bge-reranker-large`
-
-```python
-from embed_anything import Reranker, Dtype, RerankerResult, DocumentRank
-
-reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.FP16)
-
-results: RerankerResult = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
-
-documents: list[DocumentRank] = results[0].documents
-```
-
-The output is a list of documents with their relevance scores and rank for each input query.
 
 ### Using ONNX Models
 
 To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
 
 ```python
-
 model = EmbeddingModel.from_pretrained_onnx(
   WhichModel.Bert, model_name = ONNXModel.AllMiniLML6V2Q
 )
 ```
+
 For some models, you can also specify the dtype to use for the model.
 
 ```python
@@ -264,3 +316,115 @@ model = EmbeddingModel.from_pretrained_onnx(
 ```
 To see all the ONNX models supported with model_name, see [here](../guides/onnx_models)
 
+## ⁉️FAQ
+
+### Do I need to know rust to use or contribute to embedanything?
+The answer is No. EmbedAnything provides you pyo3 bindings, so you can run any function in python without any issues. To contibute you should check out our guidelines and python folder example of adapters.
+
+### How is it different from fastembed?
+
+We provide both backends, candle and onnx. On top of it we also give an end-to-end pipeline, that is you can ingest different data-types and index to any vector database, and inference any model. Fastembed is just an onnx-wrapper.
+
+### We've received quite a few questions about why we're using Candle.
+
+One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
+
+
+## 🚧 Contributing to EmbedAnything
+
+First of all, thank you for taking the time to contribute to this project. We truly appreciate your contributions, whether it's bug reports, feature suggestions, or pull requests. Your time and effort are highly valued in this project. 🚀
+
+This document provides guidelines and best practices to help you to contribute effectively. These are meant to serve as guidelines, not strict rules. We encourage you to use your best judgment and feel comfortable proposing changes to this document through a pull request.
+
+
+
+<li><a href="##-RoadMap">Roadmap</a></li>
+<li><a href="##-Quick-Start">Quick Start</a></li>
+<li><a href="##-Contributing-Guidelines">Guidelines</a></li>
+
+
+# 🏎️ RoadMap 
+
+## Accomplishments
+
+One of the aims of EmbedAnything is to allow AI engineers to easily use state of the art embedding models on typical files and documents. A lot has already been accomplished here and these are the formats that we support right now and a few more have to be done. <br />
+
+### Adding Fine-tuning 
+One of the major goals of this year is to add finetuning these models on your data. Like a simple sentence transformer does.
+
+### 🖼️ Modalities and Source
+
+We’re excited to share that we've expanded our platform to support multiple modalities, including:
+
+- [x] Audio files
+
+- [x] Markdowns
+
+- [x] Websites
+
+- [x] Images
+
+- [ ] Videos
+
+- [ ] Graph
+
+This gives you the flexibility to work with various data types all in one place! 🌐 <br />
+
+### 💜 Product
+We’ve rolled out some major updates in version 0.3 to improve both functionality and performance. Here’s what’s new:
+
+- Semantic Chunking: Optimized chunking strategy for better Retrieval-Augmented Generation (RAG) workflows.
+
+- Streaming for Efficient Indexing: We’ve introduced streaming for memory-efficient indexing in vector databases. Want to know more? Check out our article on this feature here: https://www.analyticsvidhya.com/blog/2024/09/vector-streaming/
+
+- Zero-Shot Applications: Explore our zero-shot application demos to see the power of these updates in action.
+
+- Intuitive Functions: Version 0.3 includes a complete refactor for more intuitive functions, making the platform easier to use.
+
+- Chunkwise Streaming: Instead of file-by-file streaming, we now support chunkwise streaming, allowing for more flexible and efficient data processing.
+
+Check out the latest release :  and see how these features can supercharge your GenerativeAI pipeline! ✨
+
+## 🚀Coming Soon  <br />
+
+### ⚙️ Performance 
+
+
+We now support ONNX as well
+
+➡️ Support for GGUF models </br >
+- Significantly faster performance</br >
+- Stay tuned for these exciting updates! 🚀</br >
+
+
+### 🫐Embeddings:
+
+We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
+
+☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
+☑️Video Embedding <br/>
+☑️ Yolo Clip <br/>
+
+
+### 🌊Expansion to other Vector Adapters
+
+We currently support a wide range of vector databases for streaming embeddings, including:
+
+- Elastic: thanks to amazing and active Elastic team for the contribution <br/>
+- Weaviate<br/>
+- Pinecone<br/>
+- Qdrant<br/>
+- Milvus<br/>
+
+How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-development-guide.md
+
+But we're not stopping there! We're actively working to expand this list.
+
+Want to Contribute?
+If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly starlight-search@proton.me. Let's build something amazing together! 💡
+
+## A big Thank you to all our StarGazers
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=StarlightSearch/EmbedAnything&type=Date)](https://star-history.com/#StarlightSearch/EmbedAnything&Date)

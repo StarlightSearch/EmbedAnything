@@ -4,23 +4,19 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use std::ops::Mul;
+use std::{ops::Mul, sync::RwLock};
 
 use anyhow::{Error as E, Result};
 use hf_hub::{api::sync::Api, Repo};
-use ndarray::{Array2, Array3, Axis};
+use ndarray::{Array2, Axis};
 use ort::{
     execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider},
     session::{builder::GraphOptimizationLevel, Session},
     value::Value,
 };
-use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
-use crate::embeddings::{
-    embed::EmbeddingResult,
-    utils::tokenize_batch_ndarray,
-};
+use crate::embeddings::{embed::EmbeddingResult, utils::tokenize_batch_ndarray};
 
 use super::bert::{BertEmbed, TokenizerConfig};
 
@@ -36,7 +32,7 @@ pub trait ColbertEmbed {
 #[derive(Debug)]
 pub struct OrtColbertEmbedder {
     pub tokenizer: Tokenizer,
-    pub model: Session,
+    pub model: RwLock<Session>,
     pub document_marker_token_id: Option<i64>,
     pub query_marker_token_id: Option<i64>,
     pub pad_id: Option<i64>,
@@ -88,10 +84,7 @@ impl OrtColbertEmbedder {
             }
         };
 
-        let _ = match data_filename {
-            Ok(data) => Some(data),
-            Err(_) => None,
-        };
+        let _ = data_filename.ok();
 
         let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
         let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
@@ -148,7 +141,7 @@ impl OrtColbertEmbedder {
 
         Ok(OrtColbertEmbedder {
             tokenizer,
-            model,
+            model: RwLock::new(model),
             document_marker_token_id,
             query_marker_token_id,
             pad_id,
@@ -177,8 +170,24 @@ impl ColbertEmbed for OrtColbertEmbedder {
         }
 
         let batch_size = batch_size.unwrap_or(32);
+
+        let model_guard = self.model.read().unwrap();
+        let (input_names, output_name) = {
+            let names = model_guard
+                .inputs
+                .iter()
+                .map(|input| input.name.to_string())
+                .collect::<Vec<_>>();
+            let out_name = model_guard.outputs.first().unwrap().name.to_string();
+            (names, out_name)
+        };
+
+        drop(model_guard);
+
+        let mut model_guard = self.model.write().unwrap();
+
         let encodings = text_batch
-            .par_chunks(batch_size)
+            .chunks(batch_size)
             .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
                 let (mut input_ids, mut attention_mask): (Array2<i64>, Array2<i64>) =
                     tokenize_batch_ndarray(&tokenizer, mini_text_batch)?;
@@ -201,27 +210,18 @@ impl ColbertEmbed for OrtColbertEmbedder {
                         mask_row[1] = 1;
                     }
                 }
-                let input_names = self
-                    .model
-                    .inputs
-                    .iter()
-                    .map(|input| input.name.as_str())
-                    .collect::<Vec<_>>();
-
+                let input_ids_tensor = ort::value::TensorRef::from_array_view(&input_ids)?;
+                let attention_mask_tensor = ort::value::TensorRef::from_array_view(&attention_mask)?;
                 let mut inputs =
-                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask.clone()]?;
-                if input_names.iter().any(|&x| x == "token_type_ids") {
+                    ort::inputs!["input_ids" => input_ids_tensor, "attention_mask" => attention_mask_tensor.clone()];
+                if input_names.iter().any(|x| x == "token_type_ids") {
                     inputs.push((
                         "token_type_ids".into(),
                         Value::from_array(token_type_ids.clone())?.into(),
                     ));
                 }
-                let outputs = self.model.run(inputs)?;
-                let embeddings: Array3<f32> = outputs
-                    [self.model.outputs.first().unwrap().name.as_str()]
-                .try_extract_tensor::<f32>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix3>()?;
+                let outputs = model_guard.run(inputs)?;
+                let embeddings = outputs[output_name.as_str()].try_extract_array::<f32>()?.to_owned().into_dimensionality::<ndarray::Ix3>()?;
 
                 let attention_mask = attention_mask.mapv(|x| x as f32).insert_axis(Axis(2));
                 let embeddings = embeddings.mul(attention_mask);
@@ -260,37 +260,39 @@ impl BertEmbed for OrtColbertEmbedder {
         &self,
         text_batch: &[&str],
         batch_size: Option<usize>,
+        _late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, E> {
         let batch_size = batch_size.unwrap_or(32);
+        let mut model_guard = self.model.write().unwrap();
+
+        let (input_names, output_name) = {
+            let names = model_guard
+                .inputs
+                .iter()
+                .map(|input| input.name.to_string())
+                .collect::<Vec<_>>();
+            let out_name = model_guard.outputs.first().unwrap().name.to_string();
+            (names, out_name)
+        };
         let encodings = text_batch
-            .par_chunks(batch_size)
+            .chunks(batch_size)
             .flat_map(|mini_text_batch| -> Result<Vec<EmbeddingResult>, E> {
                 let (input_ids, attention_mask): (Array2<i64>, Array2<i64>) =
                         tokenize_batch_ndarray(&self.tokenizer, mini_text_batch)?;
-
                 let token_type_ids: Array2<i64> = Array2::zeros(input_ids.raw_dim());
-                    
-                let input_names = self
-                    .model
-                    .inputs
-                    .iter()
-                    .map(|input| input.name.as_str())
-                    .collect::<Vec<_>>();
 
+                let input_ids_tensor = ort::value::TensorRef::from_array_view(&input_ids)?;
+                let attention_mask_tensor = ort::value::TensorRef::from_array_view(&attention_mask)?;
                 let mut inputs =
-                    ort::inputs!["input_ids" => input_ids, "attention_mask" => attention_mask.clone()]?;
-                if input_names.iter().any(|&x| x == "token_type_ids") {
+                    ort::inputs!["input_ids" => input_ids_tensor, "attention_mask" => attention_mask_tensor.clone()];
+                if input_names.iter().any(|x| x == "token_type_ids") {
                     inputs.push((
                         "token_type_ids".into(),
                         Value::from_array(token_type_ids.clone())?.into(),
                     ));
                 }
-                let outputs = self.model.run(inputs)?;
-                let embeddings: Array3<f32> = outputs
-                    [self.model.outputs.first().unwrap().name.as_str()]
-                .try_extract_tensor::<f32>()?
-                .to_owned()
-                .into_dimensionality::<ndarray::Ix3>()?;
+                let outputs = model_guard.run(inputs)?;
+                let embeddings = outputs[output_name.as_str()].try_extract_array::<f32>()?.to_owned().into_dimensionality::<ndarray::Ix3>()?;
 
                 let attention_mask = attention_mask.mapv(|x| x as f32).insert_axis(Axis(2));
                 let embeddings = embeddings.mul(attention_mask);

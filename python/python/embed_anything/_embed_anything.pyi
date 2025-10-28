@@ -225,12 +225,46 @@ def embed_webpage(
     ```
     """
 
+def embed_html(
+    file_name: str,
+    embedder: EmbeddingModel,
+    origin: str | None = None,
+    config: TextEmbedConfig | None = None,
+    adapter: Adapter | None = None,
+) -> list[EmbedData]:
+    """
+    Embeds the given HTML file and returns a list of EmbedData objects.
+
+    Args:
+        file_name: The path to the HTML file to embed.
+        embedder: The embedding model to use.
+        origin: The origin of the HTML file.
+        config: The configuration for the embedding model.
+        adapter: The adapter to use for storing the embeddings.
+
+    Returns:
+        A list of EmbedData objects.
+
+    Example:
+    ```python
+    import embed_anything
+    model = embed_anything.EmbeddingModel.from_pretrained_hf(
+        embed_anything.WhichModel.Bert,
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        revision="main",
+    )
+    data = embed_anything.embed_html(
+        "test_files/test.html", embedder=model, origin="https://www.akshaymakes.com/"
+    )
+    ```
+    """
+
 def embed_audio_file(
     file_path: str,
     audio_decoder: AudioDecoderModel,
     embedder: EmbeddingModel,
     text_embed_config: TextEmbedConfig | None = TextEmbedConfig(
-        chunk_size=200, batch_size=32
+        chunk_size=1000, batch_size=32
     ),
 ) -> list[EmbedData]:
     """
@@ -259,7 +293,7 @@ def embed_audio_file(
         revision="main",
     )
 
-    config = embed_anything.TextEmbedConfig(chunk_size=200, batch_size=32)
+    config = embed_anything.TextEmbedConfig(chunk_size=1000, batch_size=32)
     data = embed_anything.embed_audio_file(
         "test_files/audio/samples_hp0.wav",
         audio_decoder=audio_decoder,
@@ -397,17 +431,24 @@ class Reranker:
     """
 
     def __init__(
-        self, model_id: str, revision: str | None = None, dtype: Dtype | None = None
+        self, model_id: str, revision: str | None = None, dtype: Dtype | None = None, path_in_repo: str | None = None
     ):
         """
         Initializes the Reranker object.
         """
 
     def from_pretrained(
-        model_id: str, revision: str | None = None, dtype: Dtype | None = None
+        model_id: str, revision: str | None = None, dtype: Dtype | None = None, path_in_repo: str | None = None
     ) -> Reranker:
         """
         Loads a pre-trained Reranker model from the Hugging Face model hub.
+
+        Args:
+            model_id: The ID of the model from Hugging Face.
+            revision: The revision of the model.
+            dtype: The dtype of the model.
+            path_in_repo: The path to the model in the repository.
+
         """
 
     def rerank(
@@ -415,8 +456,30 @@ class Reranker:
     ) -> RerankerResult:
         """
         Reranks the given documents for the query and returns a list of RerankerResult objects.
+
+        Args:
+            query: The query to rerank.
+            documents: The list of documents to rerank.
+            top_k: The number of documents to return.
+
+        Returns:
+            A list of RerankerResult objects.
         """
 
+    def compute_scores(
+        self, query: list[str], documents: list[str], batch_size: int
+    ) -> list[list[float]]:
+        """
+        Computes the scores for the given query and documents.
+
+        Args:
+            query: The query to compute the scores for.
+            documents: The list of documents to compute the scores for.
+            batch_size: The batch size for processing the scores.
+
+        Returns:
+            A list of scores for the given query and documents.
+        """
 class Dtype(Enum):
     """
     Represents the data type of the model.
@@ -428,6 +491,8 @@ class Dtype(Enum):
     UINT8 = "UINT8"
     BNB4 = "BNB4"
     Q4F16 = "Q4F16"
+    BF16 = "BF16"
+    F32 = "F32"
 
 class RerankerResult:
     """
@@ -460,41 +525,50 @@ class TextEmbedConfig:
     Represents the configuration for the Text Embedding model.
 
     Attributes:
-        chunk_size: The chunk size for the Text Embedding model.
+        chunk_size: The chunk size for the Text Embedding model. Default is 1000 Characters.
         batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
+        buffer_size: The buffer size for the Text Embedding model. Default is 100.
+        late_chunking: A flag indicating whether to use late chunking for the Text Embedding model. Use late chunking to increase the context that is taken into account for each chunk.  Default is False.
         splitting_strategy: The strategy to use for splitting the text into chunks. Default is "sentence". If semantic splitting is used, semantic_encoder is required.
         semantic_encoder: The semantic encoder for the Text Embedding model. Default is None.
         use_ocr: A flag indicating whether to use OCR for the Text Embedding model. Default is False.
         tesseract_path: The path to the Tesseract OCR executable. Default is None and uses the system path.
+        pdf_backend: The backend to use for PDF text extraction. Currently only `lopdf` is supported. Default is `lopdf`.
     """
 
     def __init__(
         self,
-        chunk_size: int | None = 256,
+        chunk_size: int | None = 1000,
         overlap_ratio: float | None = 0.0,
         batch_size: int | None = 32,
+        late_chunking: bool | None = False,
         buffer_size: int | None = 100,
         splitting_strategy: str | None = "sentence",
         semantic_encoder: EmbeddingModel | None = None,
         use_ocr: bool | None = False,
         tesseract_path: str | None = None,
+        pdf_backend: str | None = "lopdf",
     ):
         self.chunk_size = chunk_size
         self.overlap_ratio = overlap_ratio
         self.batch_size = batch_size
+        self.late_chunking = late_chunking
         self.buffer_size = buffer_size
         self.splitting_strategy = splitting_strategy
         self.semantic_encoder = semantic_encoder
         self.use_ocr = use_ocr
         self.tesseract_path = tesseract_path
+        self.pdf_backend = pdf_backend
     chunk_size: int | None
     overlap_ratio: float | None
     batch_size: int | None
+    late_chunking: bool | None
     buffer_size: int | None
     splitting_strategy: str | None
     semantic_encoder: EmbeddingModel | None
     use_ocr: bool | None
     tesseract_path: str | None
+    pdf_backend: str | None
 
 class ImageEmbedConfig:
     """
@@ -502,11 +576,14 @@ class ImageEmbedConfig:
 
     Attributes:
         buffer_size: The buffer size for the Image Embedding model. Default is 100.
+        batch_size: The batch size for processing the embeddings. Default is 32. Based on the memory, you can increase or decrease the batch size.
     """
 
-    def __init__(self, buffer_size: int | None = None):
+    def __init__(self, buffer_size: int | None = None, batch_size: int | None = None):
         self.buffer_size = buffer_size
+        self.batch_size = batch_size
     buffer_size: int | None
+    batch_size: int | None
 
 class EmbeddingModel:
     """
@@ -514,7 +591,11 @@ class EmbeddingModel:
     """
 
     def from_pretrained_hf(
-        model: WhichModel, model_id: str, revision: str | None = None, token: str | None = None, dtype: Dtype | None = None
+        model: WhichModel,
+        model_id: str,
+        revision: str | None = None,
+        token: str | None = None,
+        dtype: Dtype | None = None,
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
@@ -546,9 +627,12 @@ class EmbeddingModel:
         Attributes:
             model (WhichModel): The cloud service to use. Currently supports WhichModel.OpenAI and WhichModel.Cohere.
             model_id (str): The ID of the model to use.
+
                 - For OpenAI, see available models at https://platform.openai.com/docs/guides/embeddings/embedding-models
                 - For Cohere, see available models at https://docs.cohere.com/docs/cohere-embed
+                - For CohereVision, see available models at https://docs.cohere.com/docs/cohere-embed
             api_key (str | None, optional): The API key for accessing the model. If not provided, it is taken from the environment variable:
+
                 - For OpenAI: OPENAI_API_KEY
                 - For Cohere: CO_API_KEY
 
@@ -640,6 +724,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_files_batch(
         self,
         files: list[str],
@@ -657,6 +742,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_audio_file(
         self,
         audio_file: str,
@@ -674,6 +760,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_query(
         self,
         query: list[str],
@@ -707,6 +794,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_directory(
         self,
         directory: str,
@@ -724,6 +812,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_directory_stream(
         self,
         directory: str,
@@ -741,6 +830,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
     def embed_webpage(
         self,
         url: str,
@@ -758,6 +848,7 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
 class AudioDecoderModel:
     """
     Represents an audio decoder model.
@@ -795,13 +886,17 @@ class AudioDecoderModel:
 class WhichModel(Enum):
     OpenAI = ("OpenAI",)
     Cohere = ("Cohere",)
+    CohereVision = ("CohereVision",)
     Bert = ("Bert",)
+    Model2Vec = ("Model2Vec",)
     Jina = ("Jina",)
     Clip = ("Clip",)
     Colpali = ("Colpali",)
     ColBert = ("ColBert",)
     SparseBert = ("SparseBert",)
     ModernBert = ("ModernBert",)
+    Qwen3 = ("Qwen3",)
+
 class ONNXModel(Enum):
     """
     Enum representing various ONNX models.
