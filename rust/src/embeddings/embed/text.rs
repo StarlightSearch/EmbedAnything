@@ -6,7 +6,6 @@ use crate::embeddings::local::jina::{JinaEmbed, JinaEmbedder};
 use crate::embeddings::local::model2vec::Model2VecEmbedder;
 use crate::embeddings::local::modernbert::ModernBertEmbedder;
 use crate::embeddings::local::qwen3::{Qwen3Embed, Qwen3Embedder};
-use crate::embeddings::local::text_embedding::ONNXModel;
 use crate::Dtype;
 use anyhow::{anyhow, Result};
 use std::future::Future;
@@ -14,11 +13,13 @@ use std::future::Future;
 use super::types::EmbeddingResult;
 
 #[cfg(feature = "ort")]
-use crate::embeddings::local::colbert::OrtColbertEmbedder;
-#[cfg(feature = "ort")]
-use crate::embeddings::local::ort_bert::{OrtBertEmbedder, OrtSparseBertEmbedder};
-#[cfg(feature = "ort")]
-use crate::embeddings::local::ort_jina::OrtJinaEmbedder;
+use crate::embeddings::local::{
+    colbert::OrtColbertEmbedder,
+    ort_bert::{OrtBertEmbedder, OrtSparseBertEmbedder},
+    ort_jina::OrtJinaEmbedder,
+    text_embedding::ONNXModel,
+};
+
 
 pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),

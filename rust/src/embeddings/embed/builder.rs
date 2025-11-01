@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 
 use super::embedder::Embedder;
-use crate::Dtype;
 use crate::embeddings::local::text_embedding::ONNXModel;
+use crate::Dtype;
 
 #[derive(Default)]
 pub struct EmbedderBuilder {
@@ -92,9 +92,7 @@ impl EmbedderBuilder {
 
     pub fn from_pretrained_onnx(self) -> Result<Embedder> {
         match (self.onnx_model_id, self.model_id) {
-            (None, None) => Err(anyhow!(
-                "Either model_id or onnx_model_id is required"
-            )),
+            (None, None) => Err(anyhow!("Either model_id or onnx_model_id is required")),
             (Some(_), Some(_)) => Err(anyhow!(
                 "Only one of model_id or onnx_model_id can be provided"
             )),
