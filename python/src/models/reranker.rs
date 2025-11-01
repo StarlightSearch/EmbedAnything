@@ -121,8 +121,9 @@ impl Reranker {
             Some(Dtype::F32) => embed_anything::Dtype::F32,
             _ => embed_anything::Dtype::F32,
         };
-        let model = embed_anything::reranker::model::Reranker::new(model_id, revision, dtype, path_in_repo)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let model =
+            embed_anything::reranker::model::Reranker::new(model_id, revision, dtype, path_in_repo)
+                .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self { model })
     }
 

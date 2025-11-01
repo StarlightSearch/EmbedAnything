@@ -800,7 +800,9 @@ mod tests {
     #[test]
     fn test_embed_file() {
         let embedder = EmbeddingModel::from_pretrained_hf(None, None, None, None).unwrap();
-        let embeddings = embedder.embed_query(vec!["Hello, world!".to_string()], None).unwrap();
+        let embeddings = embedder
+            .embed_query(vec!["Hello, world!".to_string()], None)
+            .unwrap();
         assert!(!embeddings.is_empty());
     }
 }
