@@ -134,10 +134,12 @@ impl Gemma3Embed for Gemma3Embedder {
             self.model.write().unwrap().clear_kv_cache();
             
             // Convert attention_mask to the expected format for pooling
+            // For decoder-only models like Gemma3, we use LastToken pooling instead of Mean pooling
+            // The last token contains the most meaningful representation for the entire sequence
             let attention_mask = PooledOutputType::from(attention_mask);
             let attention_mask = Some(&attention_mask);
             let model_output = ModelOutput::Tensor(embeddings.clone());
-            let pooled_output = Pooling::Mean
+            let pooled_output = Pooling::LastToken
                 .pool(&model_output, attention_mask)
                 .unwrap();
             let pooled_output = pooled_output.to_tensor()?;
