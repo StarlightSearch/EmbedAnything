@@ -6,15 +6,6 @@
 
 
 
-<div align="center">
-
-[![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
-[![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
-[![MkDocs](https://img.shields.io/badge/Blogs-F38020?.svg?logoColor=fff)](https://embed-anything.com/blog/)
-
-</div>
 
 
 <div align="center">
@@ -189,29 +180,13 @@ model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo
 embeddings = model.embed(sentences, batch_size=2)
 ```
 
-### ModernBERT
 
-```python
-model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
-)
-```
 
 ### ReRankers
 ```python
 reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
 
 results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
-```
-
-### Embed 4
-
-```python
-# Initialize the model once
-model: EmbeddingModel = EmbeddingModel.from_pretrained_cloud(
-    WhichModel.CohereVision, model_id="embed-v4.0"
-)
-
 ```
 
 ### Qwen 3 - Embedding
@@ -281,6 +256,12 @@ os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/b
 | [Qwen3- Embedings](https://colab.research.google.com/drive/1OlUJwTtPvj28h5tCVerf6ebEnAf8kPAh?usp=sharing) | 
 | [Benchmarks](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing) | 
 
+
+## 🚀 Running EmbedAnything as an OpenAI-Compatible Server
+
+You can run EmbedAnything as an OpenAI-compatible API server using Actix-web. This provides a production-ready, high-performance server for generating embeddings.
+
+To learn more about running the server, API endpoints, and usage examples, see [Actix Server Guide](/docs/guides/actix_server.md)
 
 # Usage
 
