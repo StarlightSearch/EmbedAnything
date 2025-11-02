@@ -72,6 +72,9 @@ model2vec-rs = "0.1.1"
 
 # Logging
 log = "0.4"
+aws-sdk-s3 = {version = "1.110.0", features = ["rt-tokio"]}
+aws-config = {version = "1.8.10", features = ["behavior-version-latest"]} 
+aws-credential-types = "1.2.8"
 
 [dev-dependencies]
 tempdir = "0.3.7"

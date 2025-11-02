@@ -1,5 +1,6 @@
 pub mod config;
 pub mod models;
+pub mod s3_client;
 use embed_anything::embeddings::embed::{TextEmbedder, VisionEmbedder};
 use embed_anything::{
     self,
@@ -900,6 +901,8 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Dtype>()?;
     m.add_class::<RerankerResult>()?;
     m.add_class::<DocumentRank>()?;
+    m.add_class::<s3_client::S3Client>()?;
+    m.add_class::<s3_client::S3File>()?;
     Ok(())
 }
 
