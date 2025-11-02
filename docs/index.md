@@ -6,15 +6,6 @@
 
 
 
-<div align="center">
-
-[![Downloads](https://static.pepy.tech/badge/embed-anything)](https://pepy.tech/project/embed-anything)
-[![gpu](https://static.pepy.tech/badge/embed-anything-gpu)](https://www.pepy.tech/projects/embed-anything-gpu)
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1CowJrqZxDDYJzkclI-rbHaZHgL9C6K3p?usp=sharing)
-[![roadmap](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white)](https://discord.gg/juETVTMdZu)
-[![MkDocs](https://img.shields.io/badge/Blogs-F38020?.svg?logoColor=fff)](https://embed-anything.com/blog/)
-
-</div>
 
 
 <div align="center">
@@ -63,7 +54,12 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
         <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-getting-started">Usage</a></li>
+    <li>
+      <a href="#usage">Usage</a>
+      <ul>
+        <li><a href="#running-embedanything-as-an-openai-compatible-server">Actix Server</a></li>
+      </ul>
+    </li>
     <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#roadmap">Roadmap</a></li>
     <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#quick-start">Contributing</a></li>
     <li><a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#Supported-Models">How to add custom model and chunk size</a></li>
@@ -282,7 +278,7 @@ os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/b
 | [Benchmarks](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing) | 
 
 
-# Usage
+# Usage {#usage}
 
 ## ➡️ Usage For 0.3 and later version
 
@@ -308,6 +304,12 @@ model = EmbeddingModel.from_pretrained_onnx(
 )
 ```
 To see all the ONNX models supported with model_name, see [here](/docs/guides/onnx_models.md)
+
+## 🚀 Running EmbedAnything as an OpenAI-Compatible Server
+
+You can run EmbedAnything as an OpenAI-compatible API server using Actix-web. This provides a production-ready, high-performance server for generating embeddings.
+
+To learn more about running the server, API endpoints, and usage examples, see [Actix Server Guide](/docs/guides/actix_server.md)
 
 ## ⁉️FAQ
 
