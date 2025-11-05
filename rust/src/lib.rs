@@ -1007,7 +1007,7 @@ fn extract_document(
             FileLoadingError::FileNotFound(file.as_ref().to_str().unwrap().to_string()).into(),
         );
     }
-    let file_extension = file.as_ref().extension().unwrap();
+    let file_extension = file.as_ref().extension().unwrap_or_default();
     match file_extension.to_str().unwrap() {
         "pdf" => PdfProcessor::new(
             chunk_size,
@@ -1023,7 +1023,7 @@ fn extract_document(
         _ => Err(FileLoadingError::UnsupportedFileType(
             file.as_ref()
                 .extension()
-                .unwrap()
+                .unwrap_or_default()
                 .to_str()
                 .unwrap()
                 .to_string(),
