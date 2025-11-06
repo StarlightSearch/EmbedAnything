@@ -836,23 +836,6 @@ class EmbeddingModel:
             A list of EmbedData objects.
         """
 
-    def embed_webpage(
-        self,
-        url: str,
-        config: TextEmbedConfig | None = None,
-        adapter: Adapter | None = None,
-    ) -> list[EmbedData]:
-        """
-        Embeds the given webpage and returns a list of EmbedData objects.
-
-        Args:
-            url: The URL of the webpage to embed.
-            config: The configuration for the embedding.
-            adapter: The adapter for the embedding.
-
-        Returns:
-            A list of EmbedData objects.
-        """
 
 class AudioDecoderModel:
     """
@@ -1012,5 +995,3 @@ class ONNXModel(Enum):
     SPLADEPPENV1 = "SPLADEPPENV1"
 
     SPLADEPPENV2 = "SPLADEPPENV2"
-
-    ModernBERTBase = "ModernBERTBase"
