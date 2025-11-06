@@ -77,6 +77,7 @@ pub mod models;
 #[cfg(feature = "ort")]
 pub mod reranker;
 pub mod text_loader;
+pub mod s3_loader;
 
 use anyhow::{Error, Result};
 use config::{ImageEmbedConfig, TextEmbedConfig};
