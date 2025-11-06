@@ -21,7 +21,7 @@ pub struct ColSmolEmbedder {
 
 impl ColSmolEmbedder {
     pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
-        let api = hf_hub::api::sync::Api::new()?;
+        let api = hf_hub::api::sync::ApiBuilder::from_env().build()?;
         let repo: hf_hub::api::sync::ApiRepo = match revision {
             Some(rev) => api.repo(hf_hub::Repo::with_revision(
                 model_id.to_string(),

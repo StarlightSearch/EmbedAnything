@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Error, Ok};
-use hf_hub::{api::sync::Api, Repo, RepoType};
+use hf_hub::{api::sync::ApiBuilder, Repo, RepoType};
 use image::{imageops::FilterType, DynamicImage, GenericImageView, RgbImage};
 use ndarray::{s, Array2};
 use regex::Regex;
@@ -65,7 +65,7 @@ impl Idefics3ImageProcessor {
     }
 
     pub fn from_pretrained(model_id: &str) -> Result<Self, anyhow::Error> {
-        let api = Api::new()?;
+        let api = ApiBuilder::from_env().build()?;
         let repo = api.repo(Repo::new(model_id.to_string(), RepoType::Model));
         let config_file = repo.get("preprocessor_config.json").unwrap();
         let processor: Idefics3ImageProcessor =
@@ -692,7 +692,7 @@ fn normalize(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hf_hub::api::sync::Api;
+    use hf_hub::api::sync::ApiBuilder;
     use hf_hub::{Repo, RepoType};
     use image::RgbImage;
 
@@ -701,7 +701,7 @@ mod tests {
         let image = image::open("/home/akshay/projects/EmbedAnything/test.jpg").unwrap();
         let image_array = image.to_rgb8().into_raw();
 
-        let api = Api::new().unwrap();
+        let api = ApiBuilder::from_env().build().unwrap();
         let repo = api.repo(Repo::new(
             "onnx-community/colSmol-256M-ONNX".to_string(),
             RepoType::Model,

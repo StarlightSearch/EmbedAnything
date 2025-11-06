@@ -1,5 +1,5 @@
 use candle_core::{DType, Device, Tensor};
-use hf_hub::{api::sync::Api, Repo, RepoType};
+use hf_hub::{api::sync::ApiBuilder, Repo, RepoType};
 use image::{imageops::FilterType, DynamicImage, GenericImageView, RgbImage};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -503,7 +503,7 @@ impl Idefics3ImageProcessor {
     }
 
     pub fn from_pretrained(model_id: &str) -> Result<Self, anyhow::Error> {
-        let api = Api::new()?;
+        let api = ApiBuilder::from_env().build()?;
         let repo = api.repo(Repo::new(model_id.to_string(), RepoType::Model));
         let config_file = repo.get("preprocessor_config.json")?;
         let processor: Idefics3ImageProcessor =
@@ -525,7 +525,7 @@ pub struct Idefics3Processor {
 impl Idefics3Processor {
     pub fn from_pretrained(model_id: &str) -> anyhow::Result<Self> {
         let image_processor = Idefics3ImageProcessor::from_pretrained(model_id)?;
-        let api = Api::new()?;
+        let api = ApiBuilder::from_env().build()?;
         let repo = api.repo(Repo::new(model_id.to_string(), RepoType::Model));
 
         let processor_config_file = repo.get("processor_config.json")?;

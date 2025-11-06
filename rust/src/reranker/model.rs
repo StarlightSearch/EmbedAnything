@@ -2,7 +2,7 @@ use std::sync::RwLock;
 
 use anyhow::{Error as E, Result};
 use candle_core::{Device, Tensor};
-use hf_hub::{api::sync::Api, Repo};
+use hf_hub::{api::sync::ApiBuilder, Repo};
 use ndarray::Array2;
 use ort::{
     execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider},
@@ -41,7 +41,7 @@ impl Reranker {
         path_in_repo: Option<&str>,
     ) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
-            let api = Api::new().unwrap();
+            let api = ApiBuilder::from_env().build().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
                     model_id.to_string(),

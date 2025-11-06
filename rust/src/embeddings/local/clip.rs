@@ -203,7 +203,7 @@ impl ClipEmbedder {
     ) -> anyhow::Result<Tokenizer> {
         let tokenizer = match tokenizer {
             None => {
-                let api = hf_hub::api::sync::Api::new()?;
+                let api = hf_hub::api::sync::ApiBuilder::from_env().build()?;
                 let api = match revision {
                     Some(rev) => api.repo(hf_hub::Repo::with_revision(
                         model_id,
