@@ -335,6 +335,7 @@ class ColpaliModel:
             revision: The revision of the model.
         """
 
+    @staticmethod
     def from_pretrained(model_id: str, revision: str | None = None) -> ColpaliModel:
         """
         Loads a pre-trained Colpali model from the Hugging Face model hub.
@@ -347,6 +348,7 @@ class ColpaliModel:
             A ColpaliModel object.
         """
 
+    @staticmethod
     def from_pretrained_onnx(
         model_id: str, revision: str | None = None
     ) -> ColpaliModel:
@@ -400,8 +402,8 @@ class ColbertModel:
         Initializes the ColbertModel object.
         """
 
+    @staticmethod
     def from_pretrained_onnx(
-        self,
         hf_model_id: str | None = None,
         revision: str | None = None,
         path_in_repo: str | None = None,
@@ -437,6 +439,7 @@ class Reranker:
         Initializes the Reranker object.
         """
 
+    @staticmethod
     def from_pretrained(
         model_id: str, revision: str | None = None, dtype: Dtype | None = None, path_in_repo: str | None = None
     ) -> Reranker:
@@ -590,6 +593,7 @@ class EmbeddingModel:
     Represents an embedding model.
     """
 
+    @staticmethod
     def from_pretrained_hf(
         model_id: str,
         revision: str | None = None,
@@ -617,6 +621,7 @@ class EmbeddingModel:
 
         """
 
+    @staticmethod
     def from_pretrained_cloud(
         model: WhichModel, model_id: str, api_key: str | None = None
     ) -> EmbeddingModel:
@@ -657,6 +662,7 @@ class EmbeddingModel:
         ```
         """
 
+    @staticmethod
     def from_pretrained_onnx(
         model: WhichModel,
         model_name: Optional[ONNXModel] | None = None,
@@ -875,6 +881,7 @@ class AudioDecoderModel:
     model_type: str
     quantized: bool
 
+    @staticmethod
     def from_pretrained_hf(
         model_id: str | None = None,
         revision: str | None = None,
