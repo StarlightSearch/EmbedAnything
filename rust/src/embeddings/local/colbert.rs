@@ -7,7 +7,7 @@ extern crate accelerate_src;
 use std::{ops::Mul, sync::RwLock};
 
 use anyhow::{Error as E, Result};
-use hf_hub::{api::sync::Api, Repo};
+use hf_hub::{api::sync::ApiBuilder, Repo};
 use ndarray::{Array2, Axis};
 use ort::{
     execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider},
@@ -52,7 +52,7 @@ impl OrtColbertEmbedder {
         };
 
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename, data_filename) = {
-            let api = Api::new().unwrap();
+            let api = ApiBuilder::from_env().build().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
                     hf_model_id.to_string(),

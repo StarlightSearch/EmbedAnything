@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use anyhow::{Error as E, Result};
 use candle_core::{Device, IndexOp, Tensor};
 use candle_nn::{ops::softmax, VarBuilder};
-use hf_hub::{api::sync::Api, Repo, RepoType};
+use hf_hub::{api::sync::ApiBuilder, Repo, RepoType};
 use rand::{
     distr::{weighted::WeightedIndex, Distribution},
     SeedableRng,
@@ -458,7 +458,7 @@ pub fn build_model(
         (None, None) => (default_model, default_revision),
     };
 
-    let api = Api::new()?;
+    let api = ApiBuilder::from_env().build()?;
     let repo = api.repo(Repo::with_revision(
         model_id.to_string(),
         RepoType::Model,
