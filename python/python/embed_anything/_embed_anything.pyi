@@ -591,7 +591,6 @@ class EmbeddingModel:
     """
 
     def from_pretrained_hf(
-        model: WhichModel,
         model_id: str,
         revision: str | None = None,
         token: str | None = None,

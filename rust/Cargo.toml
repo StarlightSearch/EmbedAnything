@@ -29,8 +29,8 @@ regex = "1.10.3"
 rayon = "1.8.1"
 
 # Natural Language Processing
-tokenizers = {version="0.21.1", default-features = false, features=["http"]}
-text-splitter = {version= "0.27.0", features=["tokenizers", "markdown"]}
+tokenizers = {version="0.22.1", default-features = false, features=["http"]}
+text-splitter = {version= "0.28.0", features=["tokenizers", "markdown"]}
 
 tracing = "0.1.41"
 
@@ -64,11 +64,11 @@ base64 = "0.22.1"
 # Optional Dependency
 intel-mkl-src = { version = "0.8.1", optional = true }
 accelerate-src = { version = "0.3.2", optional = true }
-indicatif = "0.17.11"
+indicatif = "0.18.2"
 statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
-model2vec-rs = "0.1.1"
+model2vec-rs = "0.1.4"
 
 # Logging
 log = "0.4"

@@ -1,11 +1,11 @@
 import heapq
-from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel, Dtype
+from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, Dtype
 
 from embed_anything import Dtype, ONNXModel
 import numpy as np
 
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.F32
+    model_id="Qwen/Qwen3-Embedding-0.6B", dtype=Dtype.F32
 )
 
 config = TextEmbedConfig(
