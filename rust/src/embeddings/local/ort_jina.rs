@@ -6,7 +6,7 @@ use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::utils::tokenize_batch_ndarray;
 use crate::Dtype;
 use anyhow::Error as E;
-use hf_hub::api::sync::Api;
+use hf_hub::api::sync::ApiBuilder;
 use hf_hub::Repo;
 use ndarray::prelude::*;
 use std::sync::RwLock;
@@ -63,7 +63,7 @@ impl OrtJinaEmbedder {
         };
 
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
-            let api = Api::new().unwrap();
+            let api = ApiBuilder::from_env().build().unwrap();
             let api = match revision {
                 Some(rev) => api.repo(Repo::with_revision(
                     hf_model_id.to_string(),
