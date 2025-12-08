@@ -21,8 +21,6 @@ RUN apt-get update && apt-get install -y \
 RUN add-apt-repository ppa:deadsnakes/ppa -y && \
     apt-get update && \
     apt-get install -y \
-    python3.8 \
-    python3.9 \
     python3.10 \
     python3.11 \
     python3.12 \
