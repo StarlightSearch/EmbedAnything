@@ -62,6 +62,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
   </ol>
 </details>
 
+<a class="ml-onclick-form" href="javascript:void(0)" onclick="ml('show', '3DU10v', true)">Click here to show form</a>
 
 ## 🚀 Key Features
 
@@ -387,6 +388,17 @@ But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
 If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly turingatverge@gmail.com . Let's build something amazing together! 💡
+
+<!-- MailerLite Universal -->
+<script>
+    (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])
+    .push(arguments);},l=d.createElement(e),l.async=1,l.src=u,
+    n=d.getElementsByTagName(e)[0],n.parentNode.insertBefore(l,n);})
+    (window,document,'script','https://assets.mailerlite.com/js/universal.js','ml');
+    ml('account', '1975233');
+</script>
+<!-- End MailerLite Universal -->
+
 
 ## A big Thank you to all our StarGazers
 
