@@ -58,9 +58,9 @@ Others, like adding HF home, endpoint, fixing Qwen instruction prompt, fixing ve
 **Project highlights**
 
 I am only mentioning a few of them that I really liked
-1. FogX-Store is a dataset store service that collects and serves large robotics datasets: https://github.com/J-HowHuang/FogX-Store
-2. A Rust-based cursor like chat with your codebase tool: https://github.com/timpratim/cargo-chat
-3. Semantic file tracker in CLI operated through a daemon built with rust.: https://github.com/sam-salehi/sophist
+1. FogX-Store is a dataset store service that collects and serves large robotics datasets: https://github.com/J-HowHuang/FogX-Store \n
+2. A Rust-based cursor like chat with your codebase tool: https://github.com/timpratim/cargo-chat \n
+3. Semantic file tracker in CLI operated through a daemon built with rust.: https://github.com/sam-salehi/sophist \n
 
 Find the full list here: https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#awesome-projects-built-on-embedanything
 
@@ -94,10 +94,18 @@ What we've created isn't just technically sound on paper. It works, it scales, a
 
 This deployment gave us invaluable insights into production requirements and confirmed that our architecture can handle enterprise-scale workloads. More importantly, it demonstrated that the performance characteristics we've prioritized—speed, accuracy, and reliability—translate directly into user value.
 
+**Writing More Technical Contents**
+
+After every talk I presented, I found out some knowledge gap, that still exists in people's mind and wrote a technical blog about it. Read our blogs on memory leak, configuring textembedconfig for embedanything, ColPali and Fusion DeepSearch --> [Here](https://embed-anything.com/blog/).
+
+And Subscribe to our [newletter](https://preview.mailerlite.io/forms/1975233/173424452135028700/share) to get notification for upcoming blogs on Agents and Reinformcement Learning.
+
+
 <div style="display: flex; gap: 10px; align-items: center;">
   <img src="https://royal-hygienic-522.notion.site/image/attachment%3A57e9d863-7534-4b1e-b57b-af017bcb318a%3Aimage.png?table=block&id=2c581b6a-6bbe-80b9-913b-cc7fb734e1b3&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=660&userId=&cache=v2" alt="image.png" style="flex: 1; max-width: 50%; height: auto;" />
   <img src="https://royal-hygienic-522.notion.site/image/attachment%3A7fb11489-0dc5-4619-b1ca-9d98a9db1d5b%3Aimage.png?table=block&id=2c581b6a-6bbe-8032-acc2-d5a88d448e36&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=660&userId=&cache=v2" alt="image.png" style="flex: 1; max-width: 50%; height: auto;" />
 </div>
+
 
 **A Difficult Decision: Closing Lumo**
 
