@@ -10,7 +10,7 @@ title: Beyond EmbedAnything!
 
 **Reflecting on EmbedAnything: A Year Later**
 
-A year ago, I shared the story behind EmbedAnything—how we built and scaled an embedding infrastructure that has since been adopted by developers at Microsoft, Meta, Tencent, AWS, and Alibaba. In that post, I documented our journey: the technical decisions that enabled massive scale, the enterprise collaborations that shaped our direction, and our unwavering commitment to building best-in-class infrastructure for RAG and agentic systems.
+A year ago, I shared the story behind EmbedAnything—how we built and scaled an embedding infrastructure that has since been loved by developers at Microsoft, Meta, Tencent, AWS, ByteDance and RedHat. In that post, I documented our journey: the technical decisions that enabled massive scale, the enterprise collaborations that shaped our direction, and our unwavering commitment to building best-in-class infrastructure for RAG and agentic systems.
 
 <!-- more -->
 
@@ -23,7 +23,7 @@ I also made a point to be transparent about our mistakes alongside our successes
 
 This past year exceeded my expectations in ways I hadn't anticipated. 
 
-**By the numbers:** We grew 3X, and our GitHub star count increased from 200 to 900. But the metrics that matter most can't be captured in downloads alone.
+**By the numbers:** We grew 3X, and our GitHub star count increased from 200 to 870+. But the metrics that matter most can't be captured in downloads alone.
 
 **What truly stands out** is the organic community that's emerged around EmbedAnything. Developers are actively discussing the project on social media and at conferences, leading to meaningful contributions and technical discussions on our GitHub repository. This kind of engagement is what makes open-source work rewarding.
 
@@ -34,9 +34,10 @@ This past year exceeded my expectations in ways I hadn't anticipated.
 
 ![image.png](https://royal-hygienic-522.notion.site/image/attachment%3A698c0698-d93a-4be1-bfe2-b7de732f8b08%3Aimage.png?table=block&id=2c581b6a-6bbe-80eb-b50a-f8c6d0a5bdf9&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=660&userId=&cache=v2)
 
-![image.png](attachment:22ceb3e8-922c-46af-af1b-d4e1de445bfa:image.png)
-
-![image.png](https://royal-hygienic-522.notion.site/image/attachment%3A0cd544ba-bff3-433f-914c-66f966dabe03%3Aimage.png?table=block&id=2c581b6a-6bbe-80a8-847a-d3cec6a3d4b3&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=660&userId=&cache=v2)
+<div style="display: flex; gap: 10px; align-items: center;">
+  <img src="https://royal-hygienic-522.notion.site/image/attachment%3A22ceb3e8-922c-46af-af1b-d4e1de445bfa%3Aimage.png?table=block&id=2c581b6a-6bbe-8030-b503-dcd73f7c0565&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=660&userId=&cache=v2" alt="image.png" style="flex: 1; max-width: 50%; height: auto;" />
+  <img src="https://royal-hygienic-522.notion.site/image/attachment%3A0cd544ba-bff3-433f-914c-66f966dabe03%3Aimage.png?table=block&id=2c581b6a-6bbe-80a8-847a-d3cec6a3d4b3&spaceId=f1bf59bf-2c3f-4b4d-a5f9-109d041ef45a&width=660&userId=&cache=v2" alt="image.png" style="flex: 1; max-width: 50%; height: auto;" />
+</div>
 
 I've been fortunate to witness this enthusiasm firsthand. Over the past year, I've had the opportunity to present EmbedAnything at Berlin Buzzwords, PyCon DE, GDG Berlin, and DevFest
 
@@ -44,7 +45,7 @@ I've also shared our work in the offices of Google, Deutsche Bank, JetBrains, an
 
 These conversations—whether at conferences, in office visits, or through GitHub issues—have been invaluable in shaping our roadmap and understanding real-world use cases.
 
-Some of the contributions I want to highlight,
+**Some of the contributions I want to highlight**
 
 1. Jack Bosewell: Processor Crate:  which takes files of different types and produces metadata-rich descriptions, extremely useful for RAG.
 2. Taradeepan’s AWS: Now you can embed a file directly from your AWS S3 bucket
@@ -54,7 +55,7 @@ Others, like adding HF home, endpoint, fixing Qwen instruction prompt, fixing ve
 
 []()
 
-Project highlights,
+**Project highlights**
 
 I am only mentioning a few of them that I really liked
 1. FogX-Store is a dataset store service that collects and serves large robotics datasets: https://github.com/J-HowHuang/FogX-Store
@@ -63,9 +64,9 @@ I am only mentioning a few of them that I really liked
 
 Find the full list here: https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#awesome-projects-built-on-embedanything
 
-Things that we did right:
+**Things that we did right:**
 
-1. At StarlightSearch, community feedback has always been our compass. It's what enabled us to build solutions that truly differentiate us in the market. Our GitHub discussions are a testament to this—they reflect real conversations with real developers solving real problems, and they directly inform our roadmap.
+1. **StarlightSearch Discussions**, community feedback has always been our compass. It's what enabled us to build solutions that truly differentiate us in the market. Our GitHub discussions are a testament to this—they reflect real conversations with real developers solving real problems, and they directly inform our roadmap.
     
 
     
@@ -76,14 +77,14 @@ Things that we did right:
 
 Milvus even published a dedicated blog post about EmbedAnything, highlighting how our library integrates with their platform. This kind of recognition from established players in the space validates both our technical approach and the value we're providing to the developer community.
 
-1. **Expanding into Agents and Reinforcement Learning**
+**Expanding into Agents and Reinforcement Learning**
 
 This year, you asked for agentic capabilities, and we delivered—built in Rust for performance and reliability. As the Model Context Protocol (MCP) gained traction and context engineering became increasingly critical, we focused our efforts on two key areas:
 
 1. **CodeAct implementation** for more sophisticated agent behaviors
 2. **Reinforcement learning training** for domain-specific agents, including self-improvement capabilities based on SearchR1 architectures
 
-1. **First Real-World Validation: Our First On-Premise Deployment**
+**First Real-World Validation: Our First On-Premise Deployment**
 
 This year, we deployed our search product on-premises at the Serpentine, student tech group at TU/e to test scalability and real-time response capabilities under production conditions.
 
@@ -116,9 +117,9 @@ This situation has been challenging, but it hasn't stopped our momentum. We rema
 - Maintaining transparency with our community
 - Continuing to listen and respond to developer needs
 
-I'm asking the open-source community to support original projects and creators. creativity, empathy, and genuine community engagement can't be purchased or copied. They will always remain a second-class copy of embedanything. I will make sure of that.
+I'm asking the open-source community to support original projects and creators. creativity, empathy, and genuine community engagement can't be purchased or copied. They will always remain a second-class copy of embedanything.
 
-Mistakes and learnings.
+**Mistakes and learnings.**
 
 My biggest mistake this year was delaying our sales efforts. Without the cushion of venture funding, we need revenue to sustain our open-source work—it's that simple. While we entered the agentic AI market later than some competitors, we're strategically positioned in reinforcement learning, where we believe the real differentiation lies.
 
@@ -139,7 +140,7 @@ I delayed incorporating StarlightSearch, waiting to secure our first customer be
 
 **Moving Forward: StarlightSearch is Ready**
 
-I'm pleased to announce that **StarlightSearch is now incorporated** and ready to serve high-performance Infrastructure.
+I'm pleased to announce that **StarlightSearch is in the process of incorporation** and ready to serve high-performance Infrastructure.
 
 I'm driven by a genuine passion for building exceptional products, advancing AI capabilities, and embracing emerging technologies. While I may not have a traditional business school background or claim any particular title like a product “leader”, my approach is grounded in a few core principles:
 
