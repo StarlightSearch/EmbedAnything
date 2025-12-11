@@ -19,7 +19,7 @@ A year ago, I shared the story behind EmbedAnything—how we built and scaled an
 
 I also made a point to be transparent about our mistakes alongside our successes. Building great products requires learning from what doesn't work as much as celebrating what does. If you're interested in the technical architecture, scaling challenges, or the candid lessons we learned along the way, [https://embed-anything.com/blog/2024/12/15/embed-anything/](https://www.notion.so/Beyond-EmbedAnything-A-Year-of-Growth-Beyond-Expectations-2c481b6a6bbe8015a550dd7b5504626c?pvs=21).
 
-**A Year of Growth Beyond Expectations**
+## A Year of Growth Beyond Expectations
 
 This past year exceeded my expectations in ways I hadn't anticipated. 
 
@@ -45,7 +45,7 @@ I've also shared our work in the offices of Google, Deutsche Bank, JetBrains, an
 
 These conversations—whether at conferences, in office visits, or through GitHub issues—have been invaluable in shaping our roadmap and understanding real-world use cases.
 
-**Some of the contributions I want to highlight**
+## **Some of the contributions I want to highlight**
 
 1. Jack Bosewell: Processor Crate:  which takes files of different types and produces metadata-rich descriptions, extremely useful for RAG.
 2. Taradeepan’s AWS: Now you can embed a file directly from your AWS S3 bucket
@@ -53,9 +53,9 @@ These conversations—whether at conferences, in office visits, or through GitHu
 
 Others, like adding HF home, endpoint, fixing Qwen instruction prompt, fixing versions, etc
 
-[]()
 
-**Project highlights**
+
+## **Project highlights**
 
 I am only mentioning a few of them that I really liked
 1. FogX-Store is a dataset store service that collects and serves large robotics datasets: https://github.com/J-HowHuang/FogX-Store \n
@@ -64,7 +64,7 @@ I am only mentioning a few of them that I really liked
 
 Find the full list here: https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#awesome-projects-built-on-embedanything
 
-**Things that we did right:**
+## **Things that we did right:**
 
 1. **StarlightSearch Discussions**, community feedback has always been our compass. It's what enabled us to build solutions that truly differentiate us in the market. Our GitHub discussions are a testament to this—they reflect real conversations with real developers solving real problems, and they directly inform our roadmap.
     
@@ -107,7 +107,7 @@ And Subscribe to our [newletter](https://preview.mailerlite.io/forms/1975233/173
 </div>
 
 
-**A Difficult Decision: Closing Lumo**
+## **A Difficult Decision: Closing Lumo**
 
 We made the difficult decision to close-source Lumo, our agentic AI framework. This decision wasn't made lightly, and I want to be transparent about why.
 
@@ -125,9 +125,9 @@ This situation has been challenging, but it hasn't stopped our momentum. We rema
 - Maintaining transparency with our community
 - Continuing to listen and respond to developer needs
 
-I'm asking the open-source community to support original projects and creators. creativity, empathy, and genuine community engagement can't be purchased or copied. They will always remain a second-class copy of embedanything.
+I'm asking the open-source community to support original projects and creators. creativity, empathy, and genuine community engagement can't be purchased or copied. The organisation who copied us will always remain a second-class copy of embedanything.
 
-**Mistakes and learnings.**
+## **Mistakes and learnings.**
 
 My biggest mistake this year was delaying our sales efforts. Without the cushion of venture funding, we need revenue to sustain our open-source work—it's that simple. While we entered the agentic AI market later than some competitors, we're strategically positioned in reinforcement learning, where we believe the real differentiation lies.
 
@@ -146,7 +146,7 @@ As the saying goes: when you build for everyone, you build for no one. We're foc
 
 I delayed incorporating StarlightSearch, waiting to secure our first customer before making it official. In retrospect, this was backward thinking. When you're gaining significant community traction and industry attention, incorporation provides credibility and trust that can actually accelerate customer acquisition.
 
-**Moving Forward: StarlightSearch is Ready**
+## **Moving Forward: StarlightSearch is Ready**
 
 I'm pleased to announce that **StarlightSearch is in the process of incorporation** and ready to serve high-performance Infrastructure.
 
