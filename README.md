@@ -48,7 +48,6 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 
 <p align ="center">
 <img width=400 src = "https://res.cloudinary.com/dogbbs77y/image/upload/v1766251819/streaming_popagm.png">
-Vector Streaming Adapters for Vector Databases
 </p>
 
 <!-- TABLE OF CONTENTS -->
