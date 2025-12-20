@@ -47,7 +47,8 @@
 EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
 <p align ="center">
-<img width=400 src = "https://res.cloudinary.com/dogbbs77y/image/upload/v1766249104/Your_paragraph_text_td29l7.png">
+<img width=400 src = "https://res.cloudinary.com/dogbbs77y/image/upload/v1766251819/streaming_popagm.png">
+Vector Streaming Adapters for Vector Databases
 </p>
 
 <!-- TABLE OF CONTENTS -->
