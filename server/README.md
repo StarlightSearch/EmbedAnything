@@ -56,16 +56,6 @@ The server will start on `http://0.0.0.0:8080`.
 
 Returns a 200 OK status if the server is running.
 
-## Supported Models
-
-The server maps model names to EmbedAnything model architectures:
-
-- `text-embedding-ada-002` → Jina embeddings
-- `text-embedding-3-small` → Jina embeddings  
-- `text-embedding-3-large` → Jina embeddings
-- `text-embedding-ada-001` → BERT embeddings
-- Unknown models → Default to Jina embeddings
-
 ## Error Handling
 
 The API returns OpenAI-compatible error responses:
