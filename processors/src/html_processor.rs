@@ -2,6 +2,7 @@ use crate::markdown_processor::MarkdownProcessor;
 use crate::processor::{Document, DocumentProcessor};
 use anyhow::Result;
 use htmd::{HtmlToMarkdown, HtmlToMarkdownBuilder};
+use regex::Regex;
 use text_splitter::ChunkConfigError;
 
 pub struct HtmlDocument {
@@ -28,7 +29,14 @@ impl HtmlProcessor {
 
 impl DocumentProcessor for HtmlProcessor {
     fn process_document(&self, content: &str) -> Result<Document> {
-        let content = self.html_to_markdown.convert(content)?;
+        let mut content = self.html_to_markdown.convert(content)?;
+        
+        // Remove markdown hyperlinks: [text](url) -> text
+        // This regex matches markdown link syntax and replaces it with just the link text
+        let link_regex = Regex::new(r"\[([^\]]+)\]\([^\)]+\)").unwrap();
+        content = link_regex.replace_all(&content, "$1").to_string();
+        
+
         self.markdown_processor.process_document(&content)
     }
 }

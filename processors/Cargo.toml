@@ -10,7 +10,7 @@ readme = "README.md"
 
 [dependencies]
 # HTTP Client
-reqwest = { version = "0.12.15", default-features = false, features = ["json", "blocking"] }
+reqwest = { version = "0.12.15", default-features = false, features = ["json", "blocking", "gzip", "brotli", "deflate"] }
 
 # Natural Language Processing
 text-splitter = { version= "0.25.1", features=["tokenizers", "markdown"] }
@@ -20,6 +20,7 @@ anyhow = "1.0.98"
 
 # HTML processing
 htmd = "0.1.6"
+regex = "1.10.3"
 
 # PDF processing
 pdf-extract = {workspace = true}
