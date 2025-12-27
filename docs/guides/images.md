@@ -18,7 +18,6 @@ from embed_anything import EmbeddingModel, WhichModel
 
 # Load CLIP model for image-text embeddings
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Clip,
     model_id="openai/clip-vit-base-patch16"
 )
 
@@ -52,7 +51,6 @@ from embed_anything import EmbeddingModel, WhichModel
 
 # Load model
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Clip,
     model_id="openai/clip-vit-base-patch16"
 )
 
@@ -104,7 +102,6 @@ from embed_anything import EmbeddingModel, WhichModel
 
 # Load model
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Clip,
     model_id="openai/clip-vit-base-patch16"
 )
 
