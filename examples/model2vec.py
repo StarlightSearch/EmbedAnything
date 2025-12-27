@@ -1,11 +1,8 @@
-import time
-import numpy as np
-import embed_anything
-from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichModel
+from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig
 
 # Initialize the model once
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Model2Vec, model_id="minishlab/potion-base-8M"
+    model_id="minishlab/potion-base-8M"
 )
 
 
