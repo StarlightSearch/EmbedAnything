@@ -1962,7 +1962,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything"
-version = "0.6.7"
+version = "0.7.0"
 dependencies = [
  "accelerate-src",
  "anyhow",
@@ -2009,7 +2009,7 @@ dependencies = [
 
 [[package]]
 name = "embed_anything_python"
-version = "0.6.7"
+version = "0.7.0"
 dependencies = [
  "embed_anything",
  "processors-rs",
@@ -4551,7 +4551,7 @@ dependencies = [
 
 [[package]]
 name = "processors-rs"
-version = "0.6.7"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "docx-parser",
@@ -5572,7 +5572,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "0.6.7"
+version = "0.7.0"
 dependencies = [
  "actix-multipart",
  "actix-web",
