@@ -25,7 +25,7 @@ print(f"File: {file}")
 
 # Step 2: Embed the file
 embedder = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
+    model_id="jinaai/jina-embeddings-v2-small-en"
 )
 embeddings = embedder.embed_file(file, config=TextEmbedConfig(chunk_size=1000, batch_size=32, buffer_size=64, splitting_strategy="sentence"))
 print(f"Embeddings: {embeddings}")
