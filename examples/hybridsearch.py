@@ -47,7 +47,7 @@ query_text = ["best programming language for beginners?"]
 
 
 jina_model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
+     model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
 jina_embedddings = embed_anything.embed_query(sentences, embedder=jina_model)
@@ -55,7 +55,7 @@ jina_query = embed_anything.embed_query(query_text, embedder=jina_model)[0]
 
 
 splade_model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
+    model_id="prithivida/Splade_PP_en_v1"
 )
 jina_embedddings = embed_anything.embed_query(sentences, embedder=jina_model)
 
