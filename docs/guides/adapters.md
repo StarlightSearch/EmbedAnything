@@ -41,7 +41,6 @@ es_adapter.create_index(
 
 # Load embedding model
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert,
     model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 

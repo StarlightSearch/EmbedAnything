@@ -23,14 +23,12 @@ import embed_anything
 
 # Main embedding model - generates final embeddings
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, 
     model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
 # Semantic encoder - determines where to split text
 # This model analyzes text to find natural semantic breaks
 semantic_encoder = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Jina, 
     model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
@@ -68,7 +66,6 @@ import embed_anything
 
 # Use a more powerful semantic encoder for better boundary detection
 semantic_encoder = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Jina,
     model_id="jinaai/jina-embeddings-v2-base-en"  # Larger model for better analysis
 )
 

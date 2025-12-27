@@ -138,7 +138,6 @@ import embed_anything
 
 # Load a custom BERT model from Hugging Face
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, 
     model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
@@ -187,7 +186,6 @@ import embed_anything
 
 # Load a SPLADE model for sparse embeddings
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.SparseBert, 
     model_id="prithivida/Splade_PP_en_v1"
 )
 
@@ -427,7 +425,6 @@ model = EmbeddingModel.from_pretrained_hf(
 # Semantic encoder for determining chunk boundaries
 # This model analyzes text to find natural semantic breaks
 semantic_encoder = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Jina, 
     model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
@@ -457,7 +454,6 @@ from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig, EmbedDat
 
 # Load your embedding model
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert,
     model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
@@ -542,8 +538,7 @@ from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 import embed_anything
 
 # Load model
-model = EmbeddingModel.from_pretrained_local(
-    WhichModel.Jina,
+model = EmbeddingModel.from_pretrained_hf(
     model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
@@ -576,8 +571,7 @@ import embed_anything
 import numpy as np
 
 # Load model
-model = EmbeddingModel.from_pretrained_local(
-    WhichModel.Bert,
+model = EmbeddingModel.from_pretrained_hf(
     model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
@@ -598,8 +592,7 @@ from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 import embed_anything
 
 # Load model
-model = EmbeddingModel.from_pretrained_local(
-    WhichModel.Bert,
+model = EmbeddingModel.from_pretrained_hf(
     model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
