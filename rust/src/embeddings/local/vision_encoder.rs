@@ -84,7 +84,8 @@ impl VisionEncoderEmbedder {
         let preprocessor_config_json: serde_json::Value =
             serde_json::from_str(&preprocessor_config_str)?;
         let crop_size = preprocessor_config_json
-            .get("crop_size").expect("crop_size not found")
+            .get("crop_size")
+            .expect("crop_size not found")
             .get("height")
             .expect("height not found")
             .as_u64()
@@ -151,10 +152,7 @@ impl VisionEncoderEmbedder {
         })
     }
 
-    fn load_image<T: AsRef<std::path::Path>>(
-        &self,
-        path: T,
-    ) -> anyhow::Result<Tensor> {
+    fn load_image<T: AsRef<std::path::Path>>(&self, path: T) -> anyhow::Result<Tensor> {
         let img = image::ImageReader::open(path)?.decode()?;
         let (height, width) = (self.crop_size, self.crop_size);
         let img = img.resize_exact(
@@ -183,10 +181,7 @@ impl VisionEncoderEmbedder {
         Ok(img)
     }
 
-    fn load_images<T: AsRef<std::path::Path>>(
-        &self,
-        paths: &[T],
-    ) -> anyhow::Result<Tensor> {
+    fn load_images<T: AsRef<std::path::Path>>(&self, paths: &[T]) -> anyhow::Result<Tensor> {
         let mut images = vec![];
 
         for path in paths {
@@ -243,11 +238,7 @@ impl EmbedImage for VisionEncoderEmbedder {
         image_path: T,
         metadata: Option<HashMap<String, String>>,
     ) -> anyhow::Result<EmbedData> {
-        let image = self
-            .load_image(&image_path)
-            .unwrap()
-            .unsqueeze(0)
-            .unwrap();
+        let image = self.load_image(&image_path).unwrap().unsqueeze(0).unwrap();
         let encoding = &self.model.get_image_features(&image)?;
         let normalized_encoding = &div_l2_norm(encoding)?.to_vec2::<f32>()?[0];
         Ok(EmbedData::new(
@@ -287,12 +278,10 @@ mod tests {
     fn test_load_images() {
         let vision_encoder_embedder = VisionEncoderEmbedder::default();
         let images = vision_encoder_embedder
-            .load_images(
-                &[
-                    "../test_files/clip/cat1.jpg",
-                    "../test_files/clip/cat2.jpeg",
-                ],
-            )
+            .load_images(&[
+                "../test_files/clip/cat1.jpg",
+                "../test_files/clip/cat2.jpeg",
+            ])
             .unwrap();
         assert_eq!(images.shape().clone().into_dims(), &[2, 3, 224, 224]);
     }
