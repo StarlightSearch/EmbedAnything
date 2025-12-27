@@ -63,6 +63,9 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 </details>
 
 
+
+<iframe src="https://preview.mailerlite.io/forms/1975233/173424452135028700/share" width="100%" height="600" frameborder="0" style="border: 1px solid #ccc; border-radius: 8px; margin: 20px 0;"></iframe>
+
 ## 🚀 Key Features
 
 
@@ -387,6 +390,9 @@ But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
 If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly turingatverge@gmail.com . Let's build something amazing together! 💡
+
+
+
 
 ## A big Thank you to all our StarGazers
 
