@@ -12,7 +12,7 @@ from time import time
 import numpy as np
 
 model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+    model_id=ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
 )
 
 # model = EmbeddingModel.from_pretrained_hf(

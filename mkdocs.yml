@@ -56,6 +56,7 @@ nav:
   - guides/adapters.md
   - guides/onnx_models.md
   - guides/ocr.md
+  - guides/actix_server.md
 - Contribution:
   - roadmap/roadmap.md
   - roadmap/contribution.md
