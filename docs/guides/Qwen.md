@@ -17,7 +17,6 @@ import numpy as np
 
 # Initialize Qwen3 embedding model
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, 
     model_id="Qwen/Qwen3-Embedding-0.6B",
     dtype=Dtype.F32  # Use float32 for best quality, F16 for faster inference
 )

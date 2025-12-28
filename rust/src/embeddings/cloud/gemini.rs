@@ -44,9 +44,11 @@ impl GeminiEmbedder {
         // Convert text_batch to the format expected by Gemini API
         let contents: Vec<serde_json::Value> = text_batch
             .iter()
-            .map(|text| json!({
-                "parts": [{"text": text}]
-            }))
+            .map(|text| {
+                json!({
+                    "parts": [{"text": text}]
+                })
+            })
             .collect();
 
         let request_body = json!({
@@ -85,9 +87,11 @@ mod tests {
         let gemini = GeminiEmbedder::default();
         let contents: Vec<serde_json::Value> = vec!["Hello world"]
             .iter()
-            .map(|text| json!({
-                "parts": [{"text": text}]
-            }))
+            .map(|text| {
+                json!({
+                    "parts": [{"text": text}]
+                })
+            })
             .collect();
 
         let request_body = json!({
@@ -106,7 +110,7 @@ mod tests {
             .send()
             .await
             .unwrap();
-        
+
         let data = response.json::<GeminiEmbedResponse>().await.unwrap();
         println!("{:?}", data);
     }

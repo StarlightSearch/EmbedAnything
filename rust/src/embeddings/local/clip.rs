@@ -113,7 +113,6 @@ impl ClipEmbedder {
         let config_str = std::fs::read_to_string(config_filename)?;
         let config_json: serde_json::Value = serde_json::from_str(&config_str)?;
 
-        
         let mut tokenizer = Self::get_tokenizer(None, model_id, revision)?;
         let pp = PaddingParams {
             strategy: tokenizers::PaddingStrategy::BatchLongest,
@@ -150,17 +149,20 @@ impl ClipEmbedder {
                                 .get("num_hidden_layers")
                                 .expect("num_hidden_layers not found")
                                 .as_u64()
-                                .expect("num_hidden_layers not a number") as usize,
+                                .expect("num_hidden_layers not a number")
+                                as usize,
                             config_json
                                 .get("hidden_size")
                                 .expect("hidden_size not found")
                                 .as_u64()
-                                .expect("hidden_size not a number") as usize,
+                                .expect("hidden_size not a number")
+                                as usize,
                             config_json
                                 .get("num_attention_heads")
                                 .expect("num_attention_heads not found")
                                 .as_u64()
-                                .expect("num_attention_heads not a number") as usize,
+                                .expect("num_attention_heads not a number")
+                                as usize,
                         );
                         (
                             VisionModel::Dino(DinoVisionTransformer::new(
@@ -304,7 +306,9 @@ impl ClipEmbedder {
         let mut encodings = Vec::new();
 
         if !self.model.supports_text() {
-            return Err(anyhow::Error::msg("This model does not support text features"));
+            return Err(anyhow::Error::msg(
+                "This model does not support text features",
+            ));
         }
 
         let batch_size = batch_size.unwrap_or(32);

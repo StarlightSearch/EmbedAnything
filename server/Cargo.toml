@@ -20,7 +20,13 @@ embed_anything = {path = "../rust"}
 
 
 [target.'cfg(target_os = "macos")'.dependencies]
-embed_anything = {path = "../rust", features = ["metal"]}
+embed_anything = {path = "../rust", features = ["ort","audio"]}
+
+[features]
+metal = ["embed_anything/metal"]
+mkl = ["embed_anything/mkl"]
+accelerate = ["embed_anything/accelerate"]
+cuda = ["embed_anything/cuda"]
 
 
 [[bin]]

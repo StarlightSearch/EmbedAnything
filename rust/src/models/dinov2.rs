@@ -40,7 +40,6 @@
 use candle_core::{IndexOp, Result, Tensor, D};
 use candle_nn::{layer_norm, LayerNorm, Linear, Module, VarBuilder};
 
-
 fn linear(vb: VarBuilder, in_dim: usize, out_dim: usize, bias: bool) -> Result<Linear> {
     if bias {
         candle_nn::linear(in_dim, out_dim, vb)
@@ -48,7 +47,6 @@ fn linear(vb: VarBuilder, in_dim: usize, out_dim: usize, bias: bool) -> Result<L
         candle_nn::linear_no_bias(in_dim, out_dim, vb)
     }
 }
-
 
 #[derive(Debug)]
 pub struct Dinov2Embeddings {
@@ -60,10 +58,24 @@ pub struct Dinov2Embeddings {
 
 impl Dinov2Embeddings {
     fn new(vb: VarBuilder, embed_dim: usize, img_size: usize, patch_size: usize) -> Result<Self> {
-        let patch_embed = PatchEmbed::new(vb.pp("patch_embeddings"), img_size, patch_size, 3, embed_dim)?;
+        let patch_embed = PatchEmbed::new(
+            vb.pp("patch_embeddings"),
+            img_size,
+            patch_size,
+            3,
+            embed_dim,
+        )?;
         let cls_token = vb.get((1, 1, embed_dim), "cls_token")?;
-        let position_embeddings = vb.get((1, patch_embed.num_patches + 1, embed_dim), "position_embeddings")?;
-        Ok(Self { cls_token, position_embeddings, patch_embed, patch_size })
+        let position_embeddings = vb.get(
+            (1, patch_embed.num_patches + 1, embed_dim),
+            "position_embeddings",
+        )?;
+        Ok(Self {
+            cls_token,
+            position_embeddings,
+            patch_embed,
+            patch_size,
+        })
     }
 
     fn interpolate_pos_encoding(&self, xs: &Tensor, w: usize, h: usize) -> Result<Tensor> {
@@ -76,7 +88,10 @@ impl Dinov2Embeddings {
         let class_pos_embed = self.position_embeddings.i((.., ..1))?;
         let patch_pos_embed = self.position_embeddings.i((.., 1..))?;
         let dim = xs.dim(D::Minus1)?;
-        let (w0, h0) = ((w / self.patch_size) as f64 + 0.1, (h / self.patch_size) as f64 + 0.1);
+        let (w0, h0) = (
+            (w / self.patch_size) as f64 + 0.1,
+            (h / self.patch_size) as f64 + 0.1,
+        );
         let patch_pos_embed = patch_pos_embed
             .reshape((1, sqrt_n as usize, sqrt_n as usize, dim))?
             .transpose(2, 3)?
@@ -91,8 +106,6 @@ impl Dinov2Embeddings {
                 .reshape((1, el_count / dim, dim))?;
         Tensor::cat(&[&class_pos_embed, &patch_pos_embed], 1)
     }
-
-
 }
 
 impl Module for Dinov2Embeddings {
@@ -107,7 +120,6 @@ impl Module for Dinov2Embeddings {
         Tensor::broadcast_add(&xs, &self.interpolate_pos_encoding(&xs, w, h)?)
     }
 }
-
 
 #[derive(Debug)]
 struct SelfAttention {
@@ -336,7 +348,6 @@ impl Module for PatchEmbed {
     }
 }
 
-
 #[derive(Debug)]
 pub struct DinoVisionTransformer {
     blocks: Vec<Block>,
@@ -345,9 +356,16 @@ pub struct DinoVisionTransformer {
 }
 
 impl DinoVisionTransformer {
-    pub fn new(vb: VarBuilder, depth: usize, embed_dim: usize, num_heads: usize, img_size: usize, patch_size: usize) -> Result<Self> {
-  
-        let embeddings = Dinov2Embeddings::new(vb.pp("embeddings"), embed_dim, img_size, patch_size)?;
+    pub fn new(
+        vb: VarBuilder,
+        depth: usize,
+        embed_dim: usize,
+        num_heads: usize,
+        img_size: usize,
+        patch_size: usize,
+    ) -> Result<Self> {
+        let embeddings =
+            Dinov2Embeddings::new(vb.pp("embeddings"), embed_dim, img_size, patch_size)?;
 
         let norm = layer_norm(embed_dim, 1e-5, vb.pp("layernorm"))?;
         let vb_b = vb.pp("encoder.layer");
