@@ -1,6 +1,7 @@
 use candle_core::{Device, Tensor};
 use embed_anything::{
-    embed_file, embed_image_directory, embeddings::embed::{Embedder, EmbedderBuilder}
+    embed_file, embed_image_directory,
+    embeddings::embed::{Embedder, EmbedderBuilder},
 };
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
@@ -22,7 +23,8 @@ async fn main() {
 
     let query_emb_data = embed_file("test_files/clip/dog1.jpg", &model, None, None)
         .await
-        .unwrap().unwrap();
+        .unwrap()
+        .unwrap();
 
     let n_vectors = out.len();
 
