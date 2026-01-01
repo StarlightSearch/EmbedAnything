@@ -1,88 +1,85 @@
-# Stage 1: Chef base with CUDA development tools
-FROM nvidia/cuda:12.2.2-devel-ubuntu22.04 AS chef
-WORKDIR /app
+FROM nvidia/cuda:12.2.0-devel-ubuntu22.04 AS base-builder
 
-# Set non-interactive mode
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TORCH_CUDA_ARCH_LIST=Turing
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES video,compute,utility
-# Set CUDA compute capability for candle-kernels (Turing = 7.5, encoded as 75)
-# This bypasses the need for nvidia-smi during build
-# Format: major * 10 + minor (e.g., 7.5 -> 75, 8.0 -> 80, 8.6 -> 86)
+ENV SCCACHE=0.10.0
+ENV RUSTC_WRAPPER=/usr/local/bin/sccache
+ENV PATH="/root/.cargo/bin:${PATH}"
+# aligned with `cargo-chef` version in `lukemathwalker/cargo-chef:latest-rust-1.85-bookworm`
+ENV CARGO_CHEF=0.1.71
 ENV CUDA_COMPUTE_CAP=75
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    curl \
     libssl-dev \
+    pkg-config \
     python3 \
     python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and configure sccache
+RUN curl -fsSL https://github.com/mozilla/sccache/releases/download/v$SCCACHE/sccache-v$SCCACHE-x86_64-unknown-linux-musl.tar.gz | tar -xzv --strip-components=1 -C /usr/local/bin sccache-v$SCCACHE-x86_64-unknown-linux-musl/sccache && \
+    chmod +x /usr/local/bin/sccache
+
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN cargo install cargo-chef --version $CARGO_CHEF --locked
+
+FROM base-builder AS planner
+
+WORKDIR /app
+
+COPY processors processors
+COPY rust rust
+COPY python python
+COPY server server
+COPY Cargo.toml ./
+COPY Cargo.lock ./
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM base-builder AS builder
+
+ARG GIT_SHA
+ARG DOCKER_LABEL
+
+# sccache specific variables
+ARG SCCACHE_GHA_ENABLED
+
+# Limit parallelism
+ARG RAYON_NUM_THREADS=4
+ARG CARGO_BUILD_JOBS
+ARG CARGO_BUILD_INCREMENTAL
+
+WORKDIR /app
+
+COPY --from=planner /app/recipe.json recipe.json
+
+RUN --mount=type=secret,id=actions_results_url,env=ACTIONS_RESULTS_URL \
+    --mount=type=secret,id=actions_runtime_token,env=ACTIONS_RUNTIME_TOKEN \
+    cargo chef cook --release --recipe-path recipe.json --package server --features cuda && sccache -s;
+
+COPY processors processors
+COPY rust rust
+COPY server server
+COPY Cargo.toml ./
+COPY Cargo.lock ./
+
+RUN --mount=type=secret,id=actions_results_url,env=ACTIONS_RESULTS_URL \
+    --mount=type=secret,id=actions_runtime_token,env=ACTIONS_RUNTIME_TOKEN \
+    cargo build --release --bin server --features cuda && sccache -s;
+
+RUN strip /app/target/release/server
+
+FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04 AS runtime
+
+WORKDIR /app
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Install cargo-chef (we use CUDA base image instead of lukemathwalker/cargo-chef 
-# because we need CUDA development tools)
-RUN cargo install cargo-chef --locked
-
-# Create a mock nvidia-smi script as fallback (in case CUDA_COMPUTE_CAP doesn't work)
-# This script will be used if nvidia-smi is not available
-RUN echo '#!/bin/bash\n\
-# Mock nvidia-smi for Docker build\n\
-# Returns compute capability 75 (Turing 7.5) for build-time detection\n\
-if echo "$*" | grep -q "compute_cap"; then\n\
-    echo "compute_cap"\n\
-    echo "75"\n\
-elif echo "$*" | grep -q "query"; then\n\
-    # Handle --query-gpu format\n\
-    if echo "$*" | grep -q "csv"; then\n\
-        echo "compute_cap"\n\
-        echo "75"\n\
-    else\n\
-        echo "CUDA Version: 12.2"\n\
-        echo "Driver Version: 535.00"\n\
-        echo "Compute Capability: 7.5"\n\
-    fi\n\
-else\n\
-    # Default output\n\
-    echo "NVIDIA-SMI 535.00"\n\
-    echo "Driver Version: 535.00"\n\
-    echo "CUDA Version: 12.2"\n\
-fi\n\
-exit 0' > /usr/local/bin/nvidia-smi && chmod +x /usr/local/bin/nvidia-smi
-
-# Stage 2: Planner - prepare recipe
-FROM chef AS planner
-COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
-
-# Stage 3: Builder - cook dependencies and build
-FROM chef AS builder
-COPY --from=planner /app/recipe.json recipe.json
-# Build dependencies - this is the caching Docker layer!
-RUN cargo chef cook --release --recipe-path recipe.json --package server --features cuda
-# Build application
-COPY . .
-RUN cargo build --release -p server --features cuda
-RUN strip target/release/server
-
-# Stage 4: Runtime - minimal CUDA runtime image
-FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04 AS runtime
-WORKDIR /app
-
-# Install minimal runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy the stripped binary from builder
 COPY --from=builder /app/target/release/server /usr/local/bin/server
 
 EXPOSE 8080
 
 CMD ["server"]
-
