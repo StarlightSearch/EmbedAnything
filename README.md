@@ -46,6 +46,8 @@
 
 EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
+
+
 <p align ="center">
 <img width=400 src = "https://res.cloudinary.com/dogbbs77y/image/upload/v1766251819/streaming_popagm.png">
 </p>
@@ -82,12 +84,14 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **No Dependency on Pytorch**: Easy to deploy on cloud, comes with low memory footprint.
 - **Highly Modular** : Choose any vectorDB adapter for RAG, with ~~1 line~~ 1 word of code
 - **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
-- **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
-- **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
+- **ONNX Backend** : Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
+- **Cloud Embedding Models:** : Supports OpenAI, Cohere, and Gemini.
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **GPU support** : Hardware acceleration on GPU as well.
 - **Chunking** : In-built chunking methods like semantic, late-chunking
-- **Vector Streaming:** Separate file processing, Indexing and Inferencing on different threads, reduces latency.
+- **Vector Streaming:** : Separate file processing, Indexing and Inferencing on different threads, reduces latency.
+- **AWS S3 Bucket:** : Directly import AWS S3 bucket files.
+- **SearchAgent** : Example of how you can use index for Searchr1 reasoning.
 
 ## 💡What is Vector Streaming
 
@@ -108,6 +112,9 @@ The embedding process happens separetly from the main process, so as to maintain
 ➡️In-built chunking methods like semantic, late-chunking <br/>
 ➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.<br />
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
+
+**⚠️ WhichModel has been deprecated in pretrained_hf**
+
 
 ## 🍓 Our Past Collaborations:
 
@@ -131,6 +138,8 @@ Benchmarks with other fromeworks coming soon!! 🚀
 We support any hugging-face models on Candle. And We also support ONNX runtime for BERT and ColPali.
 
 ## How to add custom model on candle: from_pretrained_hf
+
+**⚠️ WhichModel has been deprecated in from_pretrained_hf**
 
 ```python
 from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
@@ -174,14 +183,12 @@ for item in data:
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
 
 
-
-
 ## Splade Models (Sparse Embeddings)
 
 Sparse embeddings are useful for keyword-based retrieval and hybrid search scenarios.
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
+from embed_anything import EmbeddingModel, TextEmbedConfig
 import embed_anything
 
 # Load a SPLADE model for sparse embeddings
@@ -211,140 +218,12 @@ ONNX models provide faster inference and lower memory usage. Use the `ONNXModel`
 from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype, TextEmbedConfig
 import embed_anything
 
-# Option 1: Use a pre-configured ONNX model (recommended)
-model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, 
-    model_id=ONNXModel.BGESmallENV15Q  # Quantized BGE model for faster inference
-)
-
 # Option 2: Use a custom ONNX model from Hugging Face
 model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, 
+    WhichModel.Bert
     model_id="onnx_model_link",
     dtype=Dtype.F16  # Use half precision for faster inference
 )
-
-# Embed files with ONNX model
-config = TextEmbedConfig(chunk_size=1000, batch_size=32)
-data = embed_anything.embed_file("test_files/document.pdf", embedder=model, config=config)
-```
-
-### ModernBERT (Quantized)
-
-ModernBERT is a state-of-the-art BERT variant optimized for efficiency.
-
-```python
-from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype
-
-# Load quantized ModernBERT for maximum efficiency
-model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, 
-    model_id=ONNXModel.ModernBERTBase, 
-    dtype=Dtype.Q4F16  # 4-bit quantized for minimal memory usage
-)
-
-# Use it like any other model
-data = embed_anything.embed_file("test_files/document.pdf", embedder=model)
-```
-
-### ColPali (Document Embedding)
-
-ColPali is optimized for document and image-text embedding tasks.
-
-```python
-from embed_anything import ColpaliModel
-import numpy as np
-
-# Load ColPali ONNX model
-model = ColpaliModel.from_pretrained_onnx(
-    "starlight-ai/colpali-v1.2-merged-onnx", 
-    None
-)
-
-# Embed a PDF file (ColPali processes pages as images)
-data = model.embed_file("test_files/document.pdf", batch_size=1)
-
-# Query the embedded document
-query = "What is the main topic?"
-query_embedding = model.embed_query(query)
-
-# Calculate similarity scores
-file_embeddings = np.array([e.embedding for e in data])
-query_emb = np.array([e.embedding for e in query_embedding])
-
-# Find most relevant pages
-scores = np.einsum("bnd,csd->bcns", query_emb, file_embeddings).max(axis=3).sum(axis=2).squeeze()
-top_pages = np.argsort(scores)[::-1][:5]
-
-for page_idx in top_pages:
-    print(f"Page {data[page_idx].metadata['page_number']}: {data[page_idx].text[:200]}")
-```
-
-### ColBERT (Late-Interaction Embeddings)
-
-ColBERT provides token-level embeddings for fine-grained semantic matching.
-
-```python
-from embed_anything import ColbertModel
-import numpy as np
-
-# Load ColBERT ONNX model
-model = ColbertModel.from_pretrained_onnx(
-    "jinaai/jina-colbert-v2", 
-    path_in_repo="onnx/model.onnx"
-)
-
-# Embed sentences
-sentences = [
-    "The quick brown fox jumps over the lazy dog", 
-    "The cat is sleeping on the mat", 
-    "The dog is barking at the moon", 
-    "I love pizza", 
-    "The dog is sitting in the park"
-]
-
-# ColBERT returns token-level embeddings
-embeddings = model.embed(sentences, batch_size=2)
-
-# Each embedding is a matrix: [num_tokens, embedding_dim]
-for i, emb in enumerate(embeddings):
-    print(f"Sentence {i+1}: {sentences[i]}")
-    print(f"Embedding shape: {emb.shape}")  # Shape: (num_tokens, embedding_dim)
-```
-
-### ReRankers
-
-Rerankers improve retrieval quality by re-scoring candidate documents.
-
-```python
-from embed_anything import Reranker, Dtype, RerankerResult, DocumentRank
-
-# Load a reranker model
-reranker = Reranker.from_pretrained(
-    "jinaai/jina-reranker-v1-turbo-en", 
-    dtype=Dtype.F16
-)
-
-# Query and candidate documents
-query = "What is the capital of France?"
-candidates = [
-    "France is a country in Europe.", 
-    "Paris is the capital of France.",
-    "The Eiffel Tower is in Paris."
-]
-
-# Rerank documents (returns top-k results)
-results: list[RerankerResult] = reranker.rerank(
-    [query], 
-    candidates, 
-    top_k=2  # Return top 2 results
-)
-
-# Access reranked results
-for result in results:
-    documents: list[DocumentRank] = result.documents
-    for doc in documents:
-        print(f"Score: {doc.score:.4f} | Text: {doc.text}")
 ```
 
 ### Cloud Embedding Models (Cohere Embed v4)
@@ -368,57 +247,17 @@ model = EmbeddingModel.from_pretrained_cloud(
 data = embed_anything.embed_file("test_files/document.pdf", embedder=model)
 ```
 
-### Qwen 3 - Embedding
-
-Qwen3 supports over 100 languages including various programming languages.
-
-```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig, Dtype
-import numpy as np
-
-# Initialize Qwen3 embedding model
-model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, 
-    model_id="Qwen/Qwen3-Embedding-0.6B",
-    dtype=Dtype.F32
-)
-
-# Configure embedding
-config = TextEmbedConfig(
-    chunk_size=1000,
-    batch_size=2,
-    splitting_strategy="sentence"
-)
-
-# Embed a file
-data = model.embed_file("test_files/document.pdf", config=config)
-
-# Query embedding
-query = "Which GPU is used for training"
-query_embedding = np.array(model.embed_query([query])[0].embedding)
-
-# Calculate similarities
-embedding_array = np.array([e.embedding for e in data])
-similarities = np.matmul(query_embedding, embedding_array.T)
-
-# Get top results
-top_5_indices = np.argsort(similarities)[-5:][::-1]
-for idx in top_5_indices:
-    print(f"Score: {similarities[idx]:.4f} | {data[idx].text[:200]}")
-```
-
 
 ## For Semantic Chunking
 
 Semantic chunking preserves meaning by splitting text at semantically meaningful boundaries rather than fixed sizes.
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
+from embed_anything import EmbeddingModel, TextEmbedConfig
 import embed_anything
 
 # Main embedding model for generating final embeddings
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, 
     model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
@@ -450,7 +289,7 @@ for item in data:
 Late-chunking splits text into smaller units first, then combines them during embedding for better context preservation.
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig, EmbedData
+from embed_anything import EmbeddingModel, TextEmbedConfig, EmbedData
 
 # Load your embedding model
 model = EmbeddingModel.from_pretrained_hf(
@@ -506,30 +345,6 @@ os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/b
 | [Benchmarks](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing) | 
 
 
-# Usage
-
-## ➡️ Usage For 0.3 and later version
-
-### Basic Text Embedding
-
-```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
-import embed_anything
-
-# Load a model from Hugging Face
-model = EmbeddingModel.from_pretrained_local(
-    WhichModel.Bert, 
-    model_id="sentence-transformers/all-MiniLM-L12-v2"
-)
-
-# Simple file embedding with default config
-data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
-
-# Access results
-for item in data:
-    print(f"Text chunk: {item.text[:100]}...")
-    print(f"Embedding shape: {len(item.embedding)}")
-```
 
 ### Advanced Usage with Configuration
 
@@ -566,14 +381,6 @@ for item in data:
 ### Embedding Queries
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel
-import embed_anything
-import numpy as np
-
-# Load model
-model = EmbeddingModel.from_pretrained_hf(
-    model_id="sentence-transformers/all-MiniLM-L12-v2"
-)
 
 # Embed a query
 queries = ["What is machine learning?", "How does neural networks work?"]
@@ -588,16 +395,6 @@ for i, query_emb in enumerate(query_embeddings):
 ### Embedding Directories
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
-import embed_anything
-
-# Load model
-model = EmbeddingModel.from_pretrained_hf(
-    model_id="sentence-transformers/all-MiniLM-L12-v2"
-)
-
-# Configure
-config = TextEmbedConfig(chunk_size=1000, batch_size=32)
 
 # Embed all files in a directory
 data = embed_anything.embed_directory(
@@ -607,30 +404,6 @@ data = embed_anything.embed_directory(
 )
 
 print(f"Total chunks: {len(data)}")
-```
-
-
-
-### Using ONNX Models
-
-ONNX models provide faster inference and lower memory usage. You can use pre-configured models via the `ONNXModel` enum or load custom ONNX models.
-
-#### Using Pre-configured ONNX Models (Recommended)
-
-```python
-from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype, TextEmbedConfig
-import embed_anything
-
-# Use a pre-configured ONNX model (tested and optimized)
-model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert,
-    model_id=ONNXModel.BGESmallENV15Q,  # Quantized BGE model
-    dtype=Dtype.Q4F16                    # Quantized 4-bit float16
-)
-
-# Embed files
-config = TextEmbedConfig(chunk_size=1000, batch_size=32)
-data = embed_anything.embed_file("test_files/document.pdf", embedder=model, config=config)
 ```
 
 #### Using Custom ONNX Models
@@ -750,7 +523,7 @@ How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-deve
 But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
-If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly turingatverge@gmail.com . Let's build something amazing together! 💡
+If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly sonam@starlight-search.com . Let's build something amazing together! 💡
 
 ## AWESOME Projects built on EmbedAnything.
 1. A Rust-based cursor like chat with your codebase tool: https://github.com/timpratim/cargo-chat
