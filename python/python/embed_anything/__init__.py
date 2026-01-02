@@ -249,6 +249,11 @@ import glob
 if platform.system() == "Windows":
     # Common CUDA installation paths
     cuda_paths = [
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.1/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8/bin",
+        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.7/bin",
         r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin",
         r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin",
         r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/bin",
@@ -272,7 +277,7 @@ if platform.system() == "Windows":
     if not cuda_found:
         print("Warning: CUDA DLL directory not found. If you encounter DLL loading issues, "
               "please ensure CUDA is installed and add its bin directory to the system path.")
-              
+
 path = os.path.dirname(onnxruntime.__file__) + "/capi/"
 
 if path is None:
