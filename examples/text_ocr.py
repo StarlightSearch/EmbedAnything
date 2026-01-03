@@ -7,7 +7,7 @@ from time import time
 
 
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
+    model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
 config = TextEmbedConfig(

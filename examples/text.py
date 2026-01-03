@@ -5,7 +5,7 @@ from embed_anything import EmbedData, EmbeddingModel, TextEmbedConfig, WhichMode
 
 # Initialize the model once
 model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Jina, model_id="jinaai/jina-embeddings-v2-small-en"
+    model_id="jinaai/jina-embeddings-v2-small-en"
 )
 
 

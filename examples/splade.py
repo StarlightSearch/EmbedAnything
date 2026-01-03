@@ -8,7 +8,7 @@ import heapq
 
 
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
+    "prithivida/Splade_PP_en_v1"
 )
 
 ## ONNX model

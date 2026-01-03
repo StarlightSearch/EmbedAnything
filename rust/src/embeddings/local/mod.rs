@@ -23,3 +23,4 @@ pub mod pooling;
 pub mod qwen3;
 pub mod gemma3;
 pub mod text_embedding;
+pub mod vision_encoder;

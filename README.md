@@ -46,6 +46,12 @@
 
 EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, lightweight, multisource, multimodal, and local embedding pipeline built in Rust. Whether you're working with text, images, audio, PDFs, websites, or other media, EmbedAnything streamlines the process of generating embeddings from various sources and seamlessly streaming (memory-efficient-indexing) them to a vector database. It supports dense, sparse, ONNX, model2vec and late-interaction embeddings, offering flexibility for a wide range of use cases.
 
+
+
+<p align ="center">
+<img width=400 src = "https://res.cloudinary.com/dogbbs77y/image/upload/v1766251819/streaming_popagm.png">
+</p>
+
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
@@ -78,12 +84,14 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **No Dependency on Pytorch**: Easy to deploy on cloud, comes with low memory footprint.
 - **Highly Modular** : Choose any vectorDB adapter for RAG, with ~~1 line~~ 1 word of code
 - **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
-- **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
-- **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
+- **ONNX Backend** : Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
+- **Cloud Embedding Models:** : Supports OpenAI, Cohere, and Gemini.
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **GPU support** : Hardware acceleration on GPU as well.
 - **Chunking** : In-built chunking methods like semantic, late-chunking
-- **Vector Streaming:** Separate file processing, Indexing and Inferencing on different threads, reduces latency.
+- **Vector Streaming:** : Separate file processing, Indexing and Inferencing on different threads, reduces latency.
+- **AWS S3 Bucket:** : Directly import AWS S3 bucket files.
+- **SearchAgent** : Example of how you can use index for Searchr1 reasoning.
 
 ## 💡What is Vector Streaming
 
@@ -104,6 +112,9 @@ The embedding process happens separetly from the main process, so as to maintain
 ➡️In-built chunking methods like semantic, late-chunking <br/>
 ➡️Supports range of models, Dense, Sparse, Late-interaction, ReRanker, ModernBert.<br />
 ➡️Memory Management: Rust enforces memory management simultaneously, preventing memory leaks and crashes that can plague other languages <br />
+
+**⚠️ WhichModel has been deprecated in pretrained_hf**
+
 
 ## 🍓 Our Past Collaborations:
 
@@ -127,12 +138,34 @@ Benchmarks with other fromeworks coming soon!! 🚀
 We support any hugging-face models on Candle. And We also support ONNX runtime for BERT and ColPali.
 
 ## How to add custom model on candle: from_pretrained_hf
+
+**⚠️ WhichModel has been deprecated in from_pretrained_hf**
+
 ```python
+from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
+import embed_anything
+
+# Load a custom BERT model from Hugging Face
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="model link from huggingface"
+    model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
-config = TextEmbedConfig(chunk_size=1000, batch_size=32)
-data = embed_anything.embed_file("file_address", embedder=model, config=config)
+
+# Configure embedding parameters
+config = TextEmbedConfig(
+    chunk_size=1000,      # Maximum characters per chunk
+    batch_size=32,        # Number of chunks to process in parallel
+    splitting_strategy="sentence"  # How to split text: "sentence", "word", or "semantic"
+)
+
+# Embed a file (supports PDF, TXT, MD, etc.)
+data = embed_anything.embed_file("path/to/your/file.pdf", embedder=model, config=config)
+
+# Access the embeddings and text
+for item in data:
+    print(f"Text: {item.text[:100]}...")  # First 100 characters
+    print(f"Embedding shape: {len(item.embedding)}")
+    print(f"Metadata: {item.metadata}")
+    print("---" * 20)
 ```
 
 
@@ -150,105 +183,135 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
 
 
+## Splade Models (Sparse Embeddings)
 
-
-## Splade Models:
+Sparse embeddings are useful for keyword-based retrieval and hybrid search scenarios.
 
 ```python
+from embed_anything import EmbeddingModel, TextEmbedConfig
+import embed_anything
+
+# Load a SPLADE model for sparse embeddings
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.SparseBert, "prithivida/Splade_PP_en_v1"
+    model_id="prithivida/Splade_PP_en_v1"
 )
+
+# Configure the embedding process
+config = TextEmbedConfig(chunk_size=1000, batch_size=32)
+
+# Embed text files
+data = embed_anything.embed_file("test_files/document.txt", embedder=model, config=config)
+
+# Sparse embeddings are useful for hybrid search (combining dense and sparse)
+for item in data:
+    print(f"Text: {item.text}")
+    print(f"Sparse embedding (non-zero values): {sum(1 for x in item.embedding if x != 0)}")
 ```
 
 ## ONNX-Runtime: from_pretrained_onnx
 
-### BERT
+ONNX models provide faster inference and lower memory usage. Use the `ONNXModel` enum for pre-configured models or provide a custom model path.
+
+### BERT Models
 
 ```python
+from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype, TextEmbedConfig
+import embed_anything
+
+# Option 2: Use a custom ONNX model from Hugging Face
 model = EmbeddingModel.from_pretrained_onnx(
-  WhichModel.Bert, model_id="onnx_model_link"
+    WhichModel.Bert
+    model_id="onnx_model_link",
+    dtype=Dtype.F16  # Use half precision for faster inference
 )
 ```
 
-### ColPali
+### Cloud Embedding Models (Cohere Embed v4)
+
+Use cloud models for high-quality embeddings without local model deployment.
 
 ```python
-model: ColpaliModel = ColpaliModel.from_pretrained_onnx("starlight-ai/colpali-v1.2-merged-onnx", None)
-```
+from embed_anything import EmbeddingModel, WhichModel
+import os
 
-### Colbert
+# Set your API key
+os.environ["COHERE_API_KEY"] = "your-api-key-here"
 
-```python
-sentences = [
-"The quick brown fox jumps over the lazy dog", 
-"The cat is sleeping on the mat", "The dog is barking at the moon", 
-"I love pizza", 
-"The dog is sitting in the park"]
-
-model = ColbertModel.from_pretrained_onnx("jinaai/jina-colbert-v2", path_in_repo="onnx/model.onnx")
-embeddings = model.embed(sentences, batch_size=2)
-```
-
-### ModernBERT
-
-```python
-model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
-)
-```
-
-### ReRankers
-```python
-reranker = Reranker.from_pretrained("jinaai/jina-reranker-v1-turbo-en", dtype=Dtype.F16)
-
-results: list[RerankerResult] = reranker.rerank(["What is the capital of France?"], ["France is a country in Europe.", "Paris is the capital of France."], 2)
-```
-
-### Embed 4
-
-```python
-# Initialize the model once
-model: EmbeddingModel = EmbeddingModel.from_pretrained_cloud(
-    WhichModel.CohereVision, model_id="embed-v4.0"
+# Initialize the cloud model
+model = EmbeddingModel.from_pretrained_cloud(
+    WhichModel.CohereVision, 
+    model_id="embed-v4.0"
 )
 
-```
-
-### Qwen 3 - Embedding
-
-```python
-# Initialize the model once
-model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Qwen3, model_id="Qwen/Qwen3-Embedding-0.6B"
-)
+# Use it like any other model
+data = embed_anything.embed_file("test_files/document.pdf", embedder=model)
 ```
 
 
 ## For Semantic Chunking
 
+Semantic chunking preserves meaning by splitting text at semantically meaningful boundaries rather than fixed sizes.
+
 ```python
+from embed_anything import EmbeddingModel, TextEmbedConfig
+import embed_anything
+
+# Main embedding model for generating final embeddings
 model = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Bert, model_id="sentence-transformers/all-MiniLM-L12-v2"
+    model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
-# with semantic encoder
-semantic_encoder = EmbeddingModel.from_pretrained_hf(WhichModel.Jina, model_id = "jinaai/jina-embeddings-v2-small-en")
-config = TextEmbedConfig(chunk_size=1000, batch_size=32, splitting_strategy = "semantic", semantic_encoder=semantic_encoder)
+# Semantic encoder for determining chunk boundaries
+# This model analyzes text to find natural semantic breaks
+semantic_encoder = EmbeddingModel.from_pretrained_hf(
+    model_id="jinaai/jina-embeddings-v2-small-en"
+)
 
+# Configure semantic chunking
+config = TextEmbedConfig(
+    chunk_size=1000,                    # Target chunk size
+    batch_size=32,                      # Batch processing size
+    splitting_strategy="semantic",      # Use semantic splitting
+    semantic_encoder=semantic_encoder    # Model for semantic analysis
+)
+
+# Embed with semantic chunking
+data = embed_anything.embed_file("test_files/document.pdf", embedder=model, config=config)
+
+# Chunks will be split at semantically meaningful boundaries
+for item in data:
+    print(f"Chunk: {item.text[:200]}...")
+    print("---" * 20)
 ```
 
-## For late-chunking
+## For Late-Chunking
+
+Late-chunking splits text into smaller units first, then combines them during embedding for better context preservation.
+
 ```python
-config = TextEmbedConfig(
-    chunk_size=1000,
-    batch_size=8,
-    splitting_strategy="sentence",
-    late_chunking=True,
+from embed_anything import EmbeddingModel, TextEmbedConfig, EmbedData
+
+# Load your embedding model
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="sentence-transformers/all-MiniLM-L12-v2"
 )
 
-# Embed a single file
+# Configure late-chunking
+config = TextEmbedConfig(
+    chunk_size=1000,              # Maximum chunk size
+    batch_size=8,                 # Batch size for processing
+    splitting_strategy="sentence", # Split by sentences first
+    late_chunking=True,           # Enable late-chunking
+)
+
+# Embed a file with late-chunking
 data: list[EmbedData] = model.embed_file("test_files/attention.pdf", config=config)
 
+# Late-chunking helps preserve context across sentence boundaries
+for item in data:
+    print(f"Text: {item.text}")
+    print(f"Embedding dimension: {len(item.embedding)}")
+    print("---" * 20)
 ```
 
 # 🧑‍🚀 Getting Started
@@ -282,32 +345,87 @@ os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/b
 | [Benchmarks](https://colab.research.google.com/drive/1nXvd25hDYO-j7QGOIIC0M7MDpovuPCaD?usp=sharing) | 
 
 
-# Usage
 
-## ➡️ Usage For 0.3 and later version
+### Advanced Usage with Configuration
 
 ```python
-model = EmbeddingModel.from_pretrained_local(
-    WhichModel.Bert, model_id="Hugging_face_link"
+from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
+import embed_anything
+
+# Load model
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="jinaai/jina-embeddings-v2-small-en"
 )
-data = embed_anything.embed_file("test_files/test.pdf", embedder=model)
+
+# Configure embedding parameters
+config = TextEmbedConfig(
+    chunk_size=1000,              # Characters per chunk
+    batch_size=32,                # Process 32 chunks at once
+    buffer_size=64,               # Buffer size for streaming
+    splitting_strategy="sentence" # Split by sentences
+)
+
+# Embed with custom configuration
+data = embed_anything.embed_file(
+    "test_files/document.pdf", 
+    embedder=model, 
+    config=config
+)
+
+# Process embeddings
+for item in data:
+    print(f"Chunk: {item.text}")
+    print(f"Metadata: {item.metadata}")
 ```
 
-
-
-### Using ONNX Models
-
-To use ONNX models, you can either use the `ONNXModel` enum or the `model_id` from the Hugging Face model.
-
-
-Using the above method is best to ensure that the model works correctly as these models are tested. But if you want to use other models, like finetuned models, you can use the `hf_model_id` and `path_in_repo` to load the model like below.
+### Embedding Queries
 
 ```python
+
+# Embed a query
+queries = ["What is machine learning?", "How does neural networks work?"]
+query_embeddings = embed_anything.embed_query(queries, embedder=model)
+
+# Use embeddings for similarity search
+for i, query_emb in enumerate(query_embeddings):
+    print(f"Query: {queries[i]}")
+    print(f"Embedding shape: {len(query_emb.embedding)}")
+```
+
+### Embedding Directories
+
+```python
+
+# Embed all files in a directory
+data = embed_anything.embed_directory(
+    "test_files/", 
+    embedder=model, 
+    config=config
+)
+
+print(f"Total chunks: {len(data)}")
+```
+
+#### Using Custom ONNX Models
+
+For custom or fine-tuned models, specify the Hugging Face model ID and path to the ONNX file:
+
+```python
+from embed_anything import EmbeddingModel, WhichModel, Dtype
+
+# Load a custom ONNX model from Hugging Face
 model = EmbeddingModel.from_pretrained_onnx(
-  WhichModel.Jina, hf_model_id = "jinaai/jina-embeddings-v2-small-en", path_in_repo="model.onnx"
+    WhichModel.Jina,
+    hf_model_id="jinaai/jina-embeddings-v2-small-en",
+    path_in_repo="model.onnx",  # Path to ONNX file in the repo
+    dtype=Dtype.F16              # Use half precision
 )
+
+# Use the model
+data = embed_anything.embed_file("test_files/document.pdf", embedder=model)
 ```
-To see all the ONNX models supported with model_name, see [here](/docs/guides/onnx_models.md)
+
+**Note**: Using pre-configured models (via `ONNXModel` enum) is recommended as these models are tested and optimized. For a complete list of supported ONNX models, see [ONNX Models Guide](/docs/guides/onnx_models.md).
 
 ## ⁉️FAQ
 
@@ -405,7 +523,19 @@ How to add an adpters: https://starlight-search.com/blog/2024/02/25/adapter-deve
 But we're not stopping there! We're actively working to expand this list.
 
 Want to Contribute?
-If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly turingatverge@gmail.com . Let's build something amazing together! 💡
+If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly sonam@starlight-search.com . Let's build something amazing together! 💡
+
+## AWESOME Projects built on EmbedAnything.
+1. A Rust-based cursor like chat with your codebase tool: https://github.com/timpratim/cargo-chat
+2. A simple vector-based search engine, also supports ordinary text search : https://github.com/szuwgh/vectorbase2
+3. Semantic file tracker in CLI operated through daemon built with rust.: https://github.com/sam-salehi/sophist
+4. FogX-Store is a dataset store service that collects and serves large robotics datasets : https://github.com/J-HowHuang/FogX-Store
+5. A Dart Wrapper for EmbedAnything Crate: https://github.com/cotw-fabier/embedanythingindart
+6. Generate embeddings in Rust with tauri on MacOS : https://github.com/do-me/tauri-embedanything-ios
+7. RAG with EmbedAnything and Milvus: https://milvus.io/docs/v2.5.x/build_RAG_with_milvus_and_embedAnything.md
+
+
+
 
 ## A big Thank you to all our StarGazers
 

@@ -151,11 +151,10 @@ impl Reranker {
         documents: Vec<&str>,
         batch_size: usize,
     ) -> Result<Vec<Vec<f32>>, E> {
-
         // Check model type once at the beginning
         let is_qwen3 = self.model_type.as_ref().is_some_and(|t| t == "qwen3");
-        
-        let prefix = "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be yes or no.<|im_end|>\n<|im_start|>user\n";
+
+        let prefix = "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n";
         let suffix = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n";
 
         let pairs = queries
@@ -164,12 +163,17 @@ impl Reranker {
             .collect::<Vec<_>>();
 
         let pairs = if is_qwen3 {
-            pairs.iter().map(|(query, doc)| (format!("{}{}", prefix, query), format!("{}{}", doc, suffix))).collect::<Vec<_>>()
+            pairs
+                .iter()
+                .map(|(query, doc)| (format!("{}{}", prefix, query), format!("{}{}", doc, suffix)))
+                .collect::<Vec<_>>()
         } else {
-            pairs.iter().map(|(query, doc)| (query.to_string(), doc.to_string())).collect::<Vec<_>>()
+            pairs
+                .iter()
+                .map(|(query, doc)| (query.to_string(), doc.to_string()))
+                .collect::<Vec<_>>()
         };
 
-        
         let mut scores = Vec::with_capacity(pairs.len());
         let mut model_guard = self.model.write().unwrap();
 
@@ -280,7 +284,10 @@ impl Reranker {
         Ok(reranker_results)
     }
 
-    pub fn tokenize_batch_ndarray(&self, pairs: &[(String, String)]) -> anyhow::Result<Array2<i64>> {
+    pub fn tokenize_batch_ndarray(
+        &self,
+        pairs: &[(String, String)],
+    ) -> anyhow::Result<Array2<i64>> {
         let token_ids = self
             .tokenizer
             .encode_batch(pairs.to_vec(), true)

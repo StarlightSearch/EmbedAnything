@@ -7,7 +7,6 @@ start = time.time()
 
 # Load the model.
 model = embed_anything.EmbeddingModel.from_pretrained_hf(
-    embed_anything.WhichModel.Clip,
     model_id="google/siglip-base-patch16-224",
 )
 data: list[EmbedData] = embed_anything.embed_image_directory(

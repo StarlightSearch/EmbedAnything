@@ -50,7 +50,7 @@ impl Default for JinaEmbedder {
 
 impl JinaEmbedder {
     pub fn new(model_id: &str, revision: Option<&str>, token: Option<&str>) -> Result<Self, E> {
-        let api = hf_hub::api::sync::ApiBuilder::new()
+        let api = hf_hub::api::sync::ApiBuilder::from_env()
             .with_token(token.map(|s| s.to_string()))
             .build()?;
         let api = match revision {

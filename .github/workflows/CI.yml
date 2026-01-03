@@ -46,7 +46,6 @@ jobs:
           sudo apt install -y build-essential 
           sudo apt install -y pkg-config
           sudo apt install python3.11 libpython3.11-dev
-          sudo apt install python3.9 libpython3.9-dev
           sudo apt install python3.10 libpython3.11-dev
           sudo apt install python3.12
           

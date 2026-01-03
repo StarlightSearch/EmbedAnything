@@ -12,11 +12,11 @@ from time import time
 import numpy as np
 
 model = EmbeddingModel.from_pretrained_onnx(
-    WhichModel.Bert, ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
+    model = WhichModel.Bert, model_name=ONNXModel.ModernBERTBase, dtype = Dtype.Q4F16
 )
 
 # model = EmbeddingModel.from_pretrained_hf(
-#     WhichModel.Bert, "BAAI/bge-small-en-v1.5"
+#     model = WhichModel.Bert, model_name="BAAI/bge-small-en-v1.5"
 # )
 
 sentences = [
