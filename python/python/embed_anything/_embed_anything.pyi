@@ -452,7 +452,7 @@ class Reranker:
         """
 
     def rerank(
-        self, query: list[str], documents: list[str], top_k: int
+        self, query: list[str], documents: list[str], batch_size: int
     ) -> RerankerResult:
         """
         Reranks the given documents for the query and returns a list of RerankerResult objects.
@@ -460,7 +460,7 @@ class Reranker:
         Args:
             query: The query to rerank.
             documents: The list of documents to rerank.
-            top_k: The number of documents to return.
+            batch_size: The number of documents to process per batch.
 
         Returns:
             A list of RerankerResult objects.
