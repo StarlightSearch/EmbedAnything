@@ -91,6 +91,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **Chunking** : In-built chunking methods like semantic, late-chunking
 - **Vector Streaming:** : Separate file processing, Indexing and Inferencing on different threads, reduces latency.
 - **AWS S3 Bucket:** : Directly import AWS S3 bucket files.
+- **Prebult Docker Image** : Just pull [it]( starlightsearch/embedanything-server)
 - **SearchAgent** : Example of how you can use index for Searchr1 reasoning.
 
 ## 💡What is Vector Streaming
