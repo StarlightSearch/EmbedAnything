@@ -6,6 +6,8 @@ use embed_anything::{
     self,
     config::TextEmbedConfig,
     emb_audio,
+    embed_video_directory as embed_video_directory_rs,
+    embed_video_file as embed_video_file_rs,
     embeddings::embed::{Embedder, EmbeddingResult},
     file_processor::audio::audio_processor,
     FileLoadingError,
@@ -384,6 +386,25 @@ impl EmbeddingModel {
     ) -> PyResult<Option<Vec<EmbedData>>> {
         embed_audio_file(audio_file, audio_decoder, self, config)
     }
+
+    #[pyo3(signature = (video_file, config=None))]
+    pub fn embed_video_file(
+        &self,
+        video_file: &str,
+        config: Option<&config::VideoEmbedConfig>,
+    ) -> PyResult<Vec<EmbedData>> {
+        embed_video_file(video_file, self, config)
+    }
+
+    #[pyo3(signature = (directory, config=None, adapter=None))]
+    pub fn embed_video_directory(
+        &self,
+        directory: PathBuf,
+        config: Option<&config::VideoEmbedConfig>,
+        adapter: Option<PyObject>,
+    ) -> PyResult<Option<Vec<EmbedData>>> {
+        embed_video_directory(directory, self, config, adapter)
+    }
 }
 
 #[pyclass]
@@ -604,6 +625,90 @@ pub fn embed_audio_file(
 }
 
 #[pyfunction]
+#[pyo3(signature = (video_file, embedder, config=None))]
+pub fn embed_video_file(
+    video_file: &str,
+    embedder: &EmbeddingModel,
+    config: Option<&config::VideoEmbedConfig>,
+) -> PyResult<Vec<EmbedData>> {
+    let config = config.map(|c| &c.inner);
+    let embedding_model = &embedder.inner;
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+
+    if !Path::new(video_file).exists() {
+        return Err(PyFileNotFoundError::new_err(format!(
+            "File not found: {:?}",
+            video_file
+        )));
+    };
+
+    let data = rt
+        .block_on(async { embed_video_file_rs(video_file, embedding_model.as_ref(), config).await })
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+    Ok(data.into_iter().map(|data| EmbedData { inner: data }).collect())
+}
+
+#[pyfunction]
+#[pyo3(signature = (directory, embedder, config=None, adapter=None))]
+pub fn embed_video_directory(
+    directory: PathBuf,
+    embedder: &EmbeddingModel,
+    config: Option<&config::VideoEmbedConfig>,
+    adapter: Option<PyObject>,
+) -> PyResult<Option<Vec<EmbedData>>> {
+    let config = config.map(|c| &c.inner);
+    let embedding_model = &embedder.inner;
+    let rt = Builder::new_multi_thread().enable_all().build().unwrap();
+
+    let adapter = match adapter {
+        Some(adapter) => {
+            let callback = move |data: Vec<embed_anything::embeddings::embed::EmbedData>| {
+                Python::with_gil(|py| {
+                    let upsert_fn = adapter.getattr(py, "upsert").unwrap();
+                    let converted_data = data
+                        .into_iter()
+                        .map(|data| EmbedData { inner: data })
+                        .collect::<Vec<EmbedData>>();
+                    upsert_fn
+                        .call1(py, (converted_data,))
+                        .map_err(|e| PyValueError::new_err(e.to_string()))
+                        .unwrap();
+                });
+            };
+            Some(callback)
+        }
+        None => None,
+    };
+
+    let data = rt.block_on(async {
+        embed_video_directory_rs(
+            directory,
+            embedding_model,
+            config,
+            adapter.map(|f| {
+                Box::new(f)
+                    as Box<
+                        dyn FnMut(Vec<embed_anything::embeddings::embed::EmbedData>)
+                            + Send
+                            + Sync,
+                    >
+            }),
+        )
+        .await
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+        .unwrap()
+        .map(|data| {
+            data.into_iter()
+                .map(|data| EmbedData { inner: data })
+                .collect::<Vec<_>>()
+        })
+    });
+
+    Ok(data)
+}
+
+#[pyfunction]
 #[pyo3(signature = (directory, embedder, extensions=None, config=None, adapter = None))]
 pub fn embed_directory(
     directory: PathBuf,
@@ -779,6 +884,8 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_query, m)?)?;
     m.add_function(wrap_pyfunction!(embed_webpage, m)?)?;
     m.add_function(wrap_pyfunction!(embed_audio_file, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_video_file, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_video_directory, m)?)?;
     m.add_class::<ColpaliModel>()?;
     m.add_class::<ColbertModel>()?;
     m.add_class::<EmbeddingModel>()?;
@@ -786,6 +893,7 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<WhichModel>()?;
     m.add_class::<EmbedData>()?;
     m.add_class::<config::TextEmbedConfig>()?;
+    m.add_class::<config::VideoEmbedConfig>()?;
     m.add_class::<ONNXModel>()?;
     m.add_class::<Reranker>()?;
     m.add_class::<Dtype>()?;

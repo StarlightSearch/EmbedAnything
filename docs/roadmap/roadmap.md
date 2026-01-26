@@ -17,7 +17,7 @@ We’re excited to share that we've expanded our platform to support multiple mo
 
 - [x] Images
 
-- [ ] Videos
+- [x] Videos (frame sampling; enable the `video` feature)
 
 - [ ] Graph
 
@@ -58,7 +58,7 @@ To address this, we’re excited to announce that we’re introducing Candle-ONN
 We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
 
 ☑️Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-☑️Video Embedding <br/>
+☑️Video embedding improvements (temporal + audio) <br/>
 ☑️ Yolo Clip <br/>
 
 

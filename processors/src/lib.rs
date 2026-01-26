@@ -15,3 +15,7 @@ pub mod html_processor;
 
 /// This module contains the file processor for DOCX files.
 pub mod docx_processor;
+
+/// This module contains the file processor for video files.
+#[cfg(feature = "video")]
+pub mod video_processor;

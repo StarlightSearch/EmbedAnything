@@ -92,3 +92,44 @@ impl ImageEmbedConfig {
         self.inner.batch_size
     }
 }
+
+#[pyclass]
+#[derive(Clone, Default)]
+pub struct VideoEmbedConfig {
+    pub inner: embed_anything::config::VideoEmbedConfig,
+}
+
+#[pymethods]
+impl VideoEmbedConfig {
+    #[new]
+    #[pyo3(signature = (frame_step=None, max_frames=None, batch_size=None))]
+    pub fn new(
+        frame_step: Option<usize>,
+        max_frames: Option<usize>,
+        batch_size: Option<usize>,
+    ) -> Self {
+        let default_config = embed_anything::config::VideoEmbedConfig::default();
+        Self {
+            inner: embed_anything::config::VideoEmbedConfig {
+                frame_step: frame_step.or(default_config.frame_step),
+                max_frames: max_frames.or(default_config.max_frames),
+                batch_size: batch_size.or(default_config.batch_size),
+            },
+        }
+    }
+
+    #[getter]
+    pub fn frame_step(&self) -> Option<usize> {
+        self.inner.frame_step
+    }
+
+    #[getter]
+    pub fn max_frames(&self) -> Option<usize> {
+        self.inner.max_frames
+    }
+
+    #[getter]
+    pub fn batch_size(&self) -> Option<usize> {
+        self.inner.batch_size
+    }
+}
