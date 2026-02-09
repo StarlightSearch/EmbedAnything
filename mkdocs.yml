@@ -52,6 +52,7 @@ nav:
 - Guides:
   - guides/colpali.md
   - guides/images.md
+  - guides/video.md
   - guides/semantic.md
   - guides/adapters.md
   - guides/onnx_models.md

@@ -96,6 +96,7 @@ cudnn = ["candle-core/cudnn"]
 flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]
 metal = ["candle-core/metal", "candle-nn/metal"]
 audio = ["dep:symphonia"]
+video = ["processors-rs/video"]
 ort = ["dep:ort",]
 rustls-tls = [
     "reqwest/rustls-tls",
