@@ -83,15 +83,13 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 
 - **No Dependency on Pytorch**: Easy to deploy on cloud, comes with low memory footprint.
 - **Highly Modular** : Choose any vectorDB adapter for RAG, with ~~1 line~~ 1 word of code
-- **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
-- **ONNX Backend** : Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
-- **Cloud Embedding Models:** : Supports OpenAI, Cohere, and Gemini.
+- **Backend** : Supports Candle, ONNX and cloud models
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **GPU support** : Hardware acceleration on GPU as well.
 - **Chunking** : In-built chunking methods like semantic, late-chunking
 - **Vector Streaming:** : Separate file processing, Indexing and Inferencing on different threads, reduces latency.
 - **AWS S3 Bucket:** : Directly import AWS S3 bucket files.
-- **Prebult Docker Image** : Just pull [it]( starlightsearch/embedanything-server)
+- **Prebult Docker Image** : Just pull it: starlightsearch/embedanything-server
 - **SearchAgent** : Example of how you can use index for Searchr1 reasoning.
 
 ## 💡What is Vector Streaming
@@ -143,8 +141,9 @@ We support any hugging-face models on Candle. And We also support ONNX runtime f
 **⚠️ WhichModel has been deprecated in from_pretrained_hf**
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
+
 
 # Load a custom BERT model from Hugging Face
 model = EmbeddingModel.from_pretrained_hf(
@@ -189,8 +188,9 @@ for item in data:
 Sparse embeddings are useful for keyword-based retrieval and hybrid search scenarios.
 
 ```python
-from embed_anything import EmbeddingModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, TextEmbedConfig
+
 
 # Load a SPLADE model for sparse embeddings
 model = EmbeddingModel.from_pretrained_hf(
@@ -216,8 +216,9 @@ ONNX models provide faster inference and lower memory usage. Use the `ONNXModel`
 ### BERT Models
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype, TextEmbedConfig
+
 
 # Option 2: Use a custom ONNX model from Hugging Face
 model = EmbeddingModel.from_pretrained_onnx(
@@ -232,6 +233,7 @@ model = EmbeddingModel.from_pretrained_onnx(
 Use cloud models for high-quality embeddings without local model deployment.
 
 ```python
+import embed_anything
 from embed_anything import EmbeddingModel, WhichModel
 import os
 
@@ -254,8 +256,8 @@ data = embed_anything.embed_file("test_files/document.pdf", embedder=model)
 Semantic chunking preserves meaning by splitting text at semantically meaningful boundaries rather than fixed sizes.
 
 ```python
-from embed_anything import EmbeddingModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, TextEmbedConfig
 
 # Main embedding model for generating final embeddings
 model = EmbeddingModel.from_pretrained_hf(
@@ -290,6 +292,7 @@ for item in data:
 Late-chunking splits text into smaller units first, then combines them during embedding for better context preservation.
 
 ```python
+import embed_anything
 from embed_anything import EmbeddingModel, TextEmbedConfig, EmbedData
 
 # Load your embedding model
@@ -350,8 +353,8 @@ os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/b
 ### Advanced Usage with Configuration
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 
 # Load model
 model = EmbeddingModel.from_pretrained_hf(
@@ -412,6 +415,7 @@ print(f"Total chunks: {len(data)}")
 For custom or fine-tuned models, specify the Hugging Face model ID and path to the ONNX file:
 
 ```python
+import embed_anything
 from embed_anything import EmbeddingModel, WhichModel, Dtype
 
 # Load a custom ONNX model from Hugging Face

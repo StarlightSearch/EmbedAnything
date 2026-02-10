@@ -5,6 +5,7 @@ This server provides an OpenAI-compatible API for generating embeddings using th
 ## Features
 
 - OpenAI-compatible `/v1/embeddings` endpoint
+- PDF embeddings via `/v1/pdf_embeddings/upload` (file upload)
 - Support for multiple embedding models (Jina, BERT, etc.)
 - Health check endpoint
 
@@ -50,6 +51,33 @@ The server will start on `http://0.0.0.0:8080`.
 }
 ```
 
+### PDF Embeddings (Upload Files)
+
+**Endpoint:** `POST /v1/pdf_embeddings/upload`
+
+Upload PDF files as multipart form data to generate embeddings. Accepts one or more PDF files.
+
+**Request:** `multipart/form-data`
+- `model` (required): The embedding model to use (e.g., `sentence-transformers/all-MiniLM-L12-v2`)
+- `files` (required): One or more PDF file uploads
+
+**Response:**
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": [0.0023064255, -0.009327292, ...],
+      "metadata": null,
+      "text": "Extracted text from PDF page..."
+    }
+  ],
+  "model": "sentence-transformers/all-MiniLM-L12-v2"
+}
+```
+
 ### Health Check
 
 **Endpoint:** `GET /health_check`
@@ -81,6 +109,12 @@ curl -X POST http://localhost:8080/v1/embeddings \
     "input": ["Hello world", "How are you?"]
   }'
 
+# Upload PDF files for embeddings
+curl -X POST http://localhost:8080/v1/pdf_embeddings/upload \
+  -F "model=sentence-transformers/all-MiniLM-L12-v2" \
+  -F "files=@document1.pdf" \
+  -F "files=@document2.pdf"
+
 # Health check
 curl http://localhost:8080/health_check
 ```
@@ -105,4 +139,15 @@ if response.status_code == 200:
     print(f"First embedding dimension: {len(data['data'][0]['embedding'])}")
 else:
     print(f"Error: {response.json()}")
+
+# Upload PDF files for embeddings
+with open("document.pdf", "rb") as f:
+    upload_response = requests.post(
+        "http://localhost:8080/v1/pdf_embeddings/upload",
+        data={"model": "sentence-transformers/all-MiniLM-L12-v2"},
+        files={"files": ("document.pdf", f, "application/pdf")}
+    )
+if upload_response.status_code == 200:
+    data = upload_response.json()
+    print(f"Generated {len(data['data'])} PDF embeddings")
 ```
