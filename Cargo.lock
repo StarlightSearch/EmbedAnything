@@ -5576,8 +5576,10 @@ version = "0.7.0"
 dependencies = [
  "actix-multipart",
  "actix-web",
+ "base64 0.22.1",
  "embed_anything",
  "futures-util",
+ "image",
  "serde",
  "tempfile",
  "tokio",

@@ -185,3 +185,38 @@ impl ImageEmbedConfig {
         }
     }
 }
+
+pub const DEFAULT_VIDEO_FRAME_STEP: usize = 30;
+pub const DEFAULT_VIDEO_MAX_FRAMES: usize = 300;
+pub const DEFAULT_VIDEO_BATCH_SIZE: usize = 32;
+
+#[derive(Clone)]
+pub struct VideoEmbedConfig {
+    pub frame_step: Option<usize>,
+    pub max_frames: Option<usize>,
+    pub batch_size: Option<usize>,
+}
+
+impl Default for VideoEmbedConfig {
+    fn default() -> Self {
+        Self {
+            frame_step: Some(DEFAULT_VIDEO_FRAME_STEP),
+            max_frames: Some(DEFAULT_VIDEO_MAX_FRAMES),
+            batch_size: Some(DEFAULT_VIDEO_BATCH_SIZE),
+        }
+    }
+}
+
+impl VideoEmbedConfig {
+    pub fn new(
+        frame_step: Option<usize>,
+        max_frames: Option<usize>,
+        batch_size: Option<usize>,
+    ) -> Self {
+        Self {
+            frame_step,
+            max_frames,
+            batch_size,
+        }
+    }
+}

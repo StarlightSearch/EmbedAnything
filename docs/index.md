@@ -74,7 +74,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
 - **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
 - **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
-- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
+- **MultiModality** : Works with text sources like PDFs, txt, md, images, audio (.WAV), and videos (frame sampling; enable the `video` feature)
 - **GPU support** : Hardware acceleration on GPU as well.
 - **Chunking** : In-built chunking methods like semantic, late-chunking
 - **Vector Streaming:** Separate file processing, Indexing and Inferencing on different threads, reduces latency.
@@ -339,7 +339,7 @@ We’re excited to share that we've expanded our platform to support multiple mo
 
 - [x] Images
 
-- [ ] Videos
+- [x] Videos (frame sampling; enable the `video` feature)
 
 - [ ] Graph
 
@@ -359,7 +359,7 @@ We now support both candle and Onnx backend<br/>
 We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
 
 ➡️ Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-➡️ Video Embedding <br/>
+➡️ Video embedding improvements (temporal + audio) <br/>
 ➡️ Yolo Clip <br/>
 
 

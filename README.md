@@ -91,6 +91,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **AWS S3 Bucket:** : Directly import AWS S3 bucket files.
 - **Prebult Docker Image** : Just pull it: starlightsearch/embedanything-server
 - **SearchAgent** : Example of how you can use index for Searchr1 reasoning.
+- **Video guide** : Quick start for frame sampling: https://embed-anything.com/guides/video/
 
 ## 💡What is Vector Streaming
 
@@ -478,7 +479,7 @@ We’re excited to share that we've expanded our platform to support multiple mo
 
 - [x] Images
 
-- [ ] Videos
+- [x] Videos (frame sampling; enable the `video` feature)
 
 - [ ] Graph
 
@@ -498,7 +499,7 @@ We now support both candle and Onnx backend<br/>
 We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
 
 ➡️ Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-➡️ Video Embedding <br/>
+➡️ Video embedding improvements (temporal + audio) <br/>
 ➡️ Yolo Clip <br/>
 
 

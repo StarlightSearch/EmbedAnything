@@ -17,7 +17,7 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --package server
 # Build application
 COPY . .
-RUN cargo build --release --package server
+RUN cargo build --release -p server
 RUN strip target/release/server
 
 # We do not need the Rust toolchain to run the binary!
