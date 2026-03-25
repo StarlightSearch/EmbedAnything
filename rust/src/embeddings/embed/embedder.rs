@@ -133,6 +133,9 @@ impl Embedder {
             "gemini" | "Gemini" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
                 model, model_id, api_key,
             )?)),
+            "minimax" | "MiniMax" => Ok(Self::Text(TextEmbedder::from_pretrained_cloud(
+                model, model_id, api_key,
+            )?)),
             "cohere-vision" | "CohereVision" => Ok(Self::Vision(Box::new(
                 VisionEmbedder::from_pretrained_cloud(model, model_id, api_key)?,
             ))),

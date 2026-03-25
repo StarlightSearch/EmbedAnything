@@ -92,6 +92,14 @@ def openai_model() -> EmbeddingModel:
 
 
 @pytest.fixture
+def minimax_model() -> EmbeddingModel:
+    model = EmbeddingModel.from_pretrained_cloud(
+        WhichModel.MiniMax, model_id="embo-01"
+    )
+    return model
+
+
+@pytest.fixture
 def onnx_model() -> EmbeddingModel:
     model = EmbeddingModel.from_pretrained_onnx(
         WhichModel.Bert, ONNXModel.AllMiniLML6V2Q

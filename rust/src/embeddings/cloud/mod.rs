@@ -5,4 +5,5 @@
 
 pub mod cohere;
 pub mod gemini;
+pub mod minimax;
 pub mod openai;

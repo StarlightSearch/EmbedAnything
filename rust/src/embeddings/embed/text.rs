@@ -1,5 +1,6 @@
 use crate::embeddings::cloud::cohere::CohereEmbedder;
 use crate::embeddings::cloud::gemini::GeminiEmbedder;
+use crate::embeddings::cloud::minimax::MiniMaxEmbedder;
 use crate::embeddings::cloud::openai::OpenAIEmbedder;
 use crate::embeddings::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder};
 use crate::embeddings::local::jina::{JinaEmbed, JinaEmbedder};
@@ -25,6 +26,7 @@ pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
     Gemini(GeminiEmbedder),
+    MiniMax(MiniMaxEmbedder),
     Jina(Box<dyn JinaEmbed + Send + Sync>),
     Model2Vec(Box<Model2VecEmbedder>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
@@ -44,6 +46,7 @@ impl TextEmbedder {
             TextEmbedder::OpenAI(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Cohere(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Gemini(embedder) => embedder.embed(text_batch).await,
+            TextEmbedder::MiniMax(embedder) => embedder.embed(text_batch).await,
             TextEmbedder::Model2Vec(embedder) => embedder.embed(text_batch, batch_size),
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
@@ -172,6 +175,10 @@ impl TextEmbedder {
                 api_key,
             ))),
             "gemini" | "Gemini" => Ok(Self::Gemini(GeminiEmbedder::new(api_key))),
+            "minimax" | "MiniMax" => Ok(Self::MiniMax(MiniMaxEmbedder::new(
+                model_id.to_string(),
+                api_key,
+            ))),
             _ => Err(anyhow!("Model not supported")),
         }
     }

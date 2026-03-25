@@ -94,6 +94,7 @@ pub enum WhichModel {
     OpenAI,
     Cohere,
     CohereVision,
+    MiniMax,
     Bert,
     Model2Vec,
     Qwen3,
@@ -221,6 +222,18 @@ impl EmbeddingModel {
                         api_key,
                     ),
                 )));
+                Ok(EmbeddingModel {
+                    inner: Arc::new(model),
+                })
+            }
+            WhichModel::MiniMax => {
+                let model_id = model_id.unwrap_or("embo-01");
+                let model = Embedder::Text(TextEmbedder::MiniMax(
+                    embed_anything::embeddings::cloud::minimax::MiniMaxEmbedder::new(
+                        model_id.to_string(),
+                        api_key,
+                    ),
+                ));
                 Ok(EmbeddingModel {
                     inner: Arc::new(model),
                 })

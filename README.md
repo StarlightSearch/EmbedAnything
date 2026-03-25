@@ -183,6 +183,15 @@ for item in data:
 | Qwen3-Embedding | Qwen/Qwen3-Embedding-0.6B |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
 
+### Cloud Models
+
+| Provider | Model | Dimensions |
+|----------|-------|-----------|
+| OpenAI | text-embedding-3-small, text-embedding-3-large | 1536 / 3072 |
+| Cohere | embed-english-v3.0, embed-v4.0 | 1024 |
+| Gemini | gemini-embedding-001 | 768 |
+| MiniMax | embo-01 | 1536 |
+
 
 ## Splade Models (Sparse Embeddings)
 
@@ -245,6 +254,28 @@ os.environ["COHERE_API_KEY"] = "your-api-key-here"
 model = EmbeddingModel.from_pretrained_cloud(
     WhichModel.CohereVision, 
     model_id="embed-v4.0"
+)
+
+# Use it like any other model
+data = embed_anything.embed_file("test_files/document.pdf", embedder=model)
+```
+
+### Cloud Embedding Models (MiniMax embo-01)
+
+Use MiniMax's `embo-01` embedding model for high-quality 1536-dimensional embeddings.
+
+```python
+import embed_anything
+from embed_anything import EmbeddingModel, WhichModel
+import os
+
+# Set your API key
+os.environ["MINIMAX_API_KEY"] = "your-api-key-here"
+
+# Initialize the MiniMax cloud model
+model = EmbeddingModel.from_pretrained_cloud(
+    WhichModel.MiniMax,
+    model_id="embo-01"
 )
 
 # Use it like any other model
