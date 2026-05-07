@@ -99,7 +99,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 
 Vector streaming transforms a sequential bottleneck into an efficient, concurrent workflow.
 
-The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
+The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://embed-anything.com/blog/2024/03/31/vector-streaming/).
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
