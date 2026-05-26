@@ -7,8 +7,8 @@ import os
 from huggingface_hub import login
 
 
-model:EmbeddingModel = EmbeddingModel.from_pretrained_hf(
-    WhichModel.Gemma3, model_id="google/embeddinggemma-300m", dtype=Dtype.F32, token="hf_key"
+model: EmbeddingModel = EmbeddingModel.from_pretrained_hf(
+    model_id="google/embeddinggemma-300m", dtype=Dtype.F32, token="hf_key"
 )
 
 config = TextEmbedConfig(
