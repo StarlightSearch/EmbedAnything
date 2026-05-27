@@ -469,4 +469,71 @@ mod tests {
         let embeddings = embedder.embed_late_chunking(&text_batch, Some(1)).unwrap();
         println!("{:?}", embeddings);
     }
+
+    /// Demonstrates the mean-pooling denominator bug in `Pooling::mean`.
+    ///
+    /// Reference: sentence-transformers `all-MiniLM-L6-v2`, input "Hello, world!"
+    /// (input_ids = [101, 7592, 1010, 2088, 999, 102]; 6 tokens, hidden_size 384),
+    /// captured at each pipeline stage: Transformer -> Pooling(mean) -> Normalize.
+    ///
+    /// The transformer output and the final L2-normalized embedding match ST, but the
+    /// pre-normalize mean-pooled vector is off by exactly hidden_size (384x): `Pooling::mean`
+    /// divides by `sum_all(mask)` (= tokens * hidden) instead of by the token count. The
+    /// scale is uniform, so the downstream L2-normalize hides it — which is why every
+    /// mean-pooled model's normalized output (and its golden test) still looks correct.
+    ///
+    /// This test currently FAILS at the pooled stage; it should pass once the divisor is
+    /// fixed to the per-row token count.
+    #[test]
+    fn mean_pool_matches_sentence_transformers() {
+        let embedder = BertEmbedder::new(
+            "sentence-transformers/all-MiniLM-L6-v2".to_string(),
+            None,
+            None,
+        )
+        .unwrap();
+
+        let (token_ids, attention_mask) =
+            tokenize_batch(&embedder.tokenizer, &["Hello, world!"], &embedder.model.device)
+                .unwrap();
+        let token_type_ids = token_ids.zeros_like().unwrap();
+        let hidden = embedder
+            .model
+            .forward(&token_ids, &token_type_ids, Some(&attention_mask))
+            .unwrap();
+
+        let close = |a: &[f32], b: &[f32]| a.iter().zip(b).all(|(x, y)| (x - y).abs() < 1e-4);
+
+        // Stage 1 - transformer output (token 0): matches ST.
+        let st_transformer0 = [0.097046, 0.044667, 0.033430, 0.294218, -0.096382, -0.397249];
+        let rust_transformer0 = hidden.to_vec3::<f32>().unwrap()[0][0][..6].to_vec();
+        println!("transformer token0: rust={rust_transformer0:?} st={st_transformer0:?}");
+        assert!(
+            close(&rust_transformer0, &st_transformer0),
+            "transformer output should match ST"
+        );
+
+        // Stage 2 - mean-pooled, pre-normalize: SHOULD match ST but is off by ~384x (bug).
+        let model_output = ModelOutput::Tensor(hidden.clone());
+        let mask = PooledOutputType::from(attention_mask);
+        let pooled_t = Pooling::Mean.pool(&model_output, Some(&mask)).unwrap();
+        let pooled_t = pooled_t.to_tensor().unwrap();
+        let pooled = pooled_t.to_vec2::<f32>().unwrap()[0][..6].to_vec();
+        let st_pooled = [-0.186758, 0.160997, -0.026707, 0.070296, -0.197099, -0.570063];
+        println!("pooled:             rust={pooled:?} st={st_pooled:?}");
+        assert!(
+            close(&pooled, &st_pooled),
+            "mean-pooled vector should match ST but is off by ~hidden_size (384x): rust={pooled:?} st={st_pooled:?}"
+        );
+
+        // Stage 3 - final L2-normalized: matches ST (the uniform scale cancels here).
+        // Only reached once the pooling divisor is fixed.
+        let normalized = normalize_l2(pooled_t).unwrap().to_vec2::<f32>().unwrap()[0][..6].to_vec();
+        let st_normalized = [-0.038177, 0.032911, -0.005459, 0.014370, -0.040291, -0.116532];
+        println!("normalized:         rust={normalized:?} st={st_normalized:?}");
+        assert!(
+            close(&normalized, &st_normalized),
+            "normalized output should match ST"
+        );
+    }
 }
