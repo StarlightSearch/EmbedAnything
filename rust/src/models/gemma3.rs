@@ -11,6 +11,10 @@ use candle_nn::{linear_b as linear, Activation, Linear, VarBuilder};
 
 use crate::models::qwen3::repeat_kv;
 
+fn default_rope_local_base_freq() -> f64 {
+    10000.0
+}
+
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct Config {
     pub attention_bias: bool,
@@ -23,6 +27,8 @@ pub struct Config {
     pub num_key_value_heads: usize,
     pub rms_norm_eps: f64,
     pub rope_theta: f64,
+    #[serde(default = "default_rope_local_base_freq")]
+    pub rope_local_base_freq: f64,
     pub vocab_size: usize,
     pub final_logit_softcapping: Option<f64>,
     pub attn_logit_softcapping: Option<f64>,
@@ -69,12 +75,12 @@ struct RotaryEmbedding {
 }
 
 impl RotaryEmbedding {
-    fn new(dtype: DType, cfg: &Config, dev: &Device) -> Result<Self> {
+    fn new(dtype: DType, rope_theta: f64, cfg: &Config, dev: &Device) -> Result<Self> {
         let dim = cfg.head_dim;
         let max_seq_len = cfg.max_position_embeddings;
         let inv_freq: Vec<_> = (0..dim)
             .step_by(2)
-            .map(|i| 1f32 / cfg.rope_theta.powf(i as f64 / dim as f64) as f32)
+            .map(|i| 1f32 / rope_theta.powf(i as f64 / dim as f64) as f32)
             .collect();
         let inv_freq_len = inv_freq.len();
         let inv_freq = Tensor::from_vec(inv_freq, (1, inv_freq_len), dev)?.to_dtype(dtype)?;
@@ -240,8 +246,7 @@ impl Attention {
         };
 
         let key_states = repeat_kv(key_states, self.num_kv_groups)?.contiguous()?;
-        let value_states =
-            repeat_kv(value_states, self.num_kv_groups)?.contiguous()?;
+        let value_states = repeat_kv(value_states, self.num_kv_groups)?.contiguous()?;
 
         let attn_output = if self.use_flash_attn {
             // flash-attn expects (b_sz, seq_len, nheads, head_dim)
@@ -304,6 +309,7 @@ struct DecoderLayer {
     pre_feedforward_layernorm: RmsNorm,
     post_feedforward_layernorm: RmsNorm,
     post_attention_layernorm: RmsNorm,
+    is_sliding: bool,
 }
 
 impl DecoderLayer {
@@ -346,6 +352,7 @@ impl DecoderLayer {
             pre_feedforward_layernorm,
             post_feedforward_layernorm,
             post_attention_layernorm,
+            is_sliding,
         })
     }
 
@@ -387,13 +394,32 @@ impl Model {
     pub fn new(use_flash_attn: bool, cfg: &Config, vb: VarBuilder) -> Result<Self> {
         let embed_tokens =
             candle_nn::embedding(cfg.vocab_size, cfg.hidden_size, vb.pp("embed_tokens"))?;
-        let rotary_emb = Arc::new(RotaryEmbedding::new(vb.dtype(), cfg, vb.device())?);
+        // Gemma3 uses two RoPE base frequencies: a global one (rope_theta) for
+        // full-attention layers and a local one (rope_local_base_freq) for
+        // sliding-attention layers.
+        let global_rotary_emb = Arc::new(RotaryEmbedding::new(
+            vb.dtype(),
+            cfg.rope_theta,
+            cfg,
+            vb.device(),
+        )?);
+        let local_rotary_emb = Arc::new(RotaryEmbedding::new(
+            vb.dtype(),
+            cfg.rope_local_base_freq,
+            cfg,
+            vb.device(),
+        )?);
         let mut layers = Vec::with_capacity(cfg.num_hidden_layers);
         let vb_l = vb.pp("layers");
         for layer_idx in 0..cfg.num_hidden_layers {
             let is_sliding = (layer_idx + 1) % cfg._sliding_window_pattern > 0;
+            let rotary_emb = if is_sliding {
+                local_rotary_emb.clone()
+            } else {
+                global_rotary_emb.clone()
+            };
             let layer = DecoderLayer::new(
-                rotary_emb.clone(),
+                rotary_emb,
                 use_flash_attn,
                 is_sliding,
                 cfg,
@@ -413,56 +439,72 @@ impl Model {
         })
     }
 
-    fn prepare_decoder_attention_mask(
+    /// Builds an additive attention bias for EmbeddingGemma's bidirectional
+    /// attention (`use_bidirectional_attention=true`): a token may attend to every
+    /// non-padding token. Sliding-attention layers are additionally restricted to a
+    /// symmetric band `|i - j| < window`; full-attention layers pass `window = None`.
+    fn bidirectional_mask(
         &self,
+        attention_mask: Option<&Tensor>,
         b_size: usize,
         tgt_len: usize,
-        seqlen_offset: usize,
+        window: Option<usize>,
     ) -> Result<Tensor> {
-        let mask: Vec<_> = match Some(self.sliding_window) {
-            None => (0..tgt_len)
-                .flat_map(|i| (0..tgt_len).map(move |j| if i < j { f32::NEG_INFINITY } else { 0. }))
+        let real: Vec<Vec<bool>> = match attention_mask {
+            Some(am) => am
+                .to_vec2::<u32>()?
+                .into_iter()
+                .map(|row| row.into_iter().map(|v| v != 0).collect())
                 .collect(),
-            Some(sliding_window) => (0..tgt_len)
-                .flat_map(|i| {
-                    (0..tgt_len).map(move |j| {
-                        if i < j || j + sliding_window < i {
-                            f32::NEG_INFINITY
-                        } else {
-                            0.
-                        }
-                    })
-                })
-                .collect(),
+            None => vec![vec![true; tgt_len]; b_size],
         };
-        let mask = Tensor::from_slice(&mask, (tgt_len, tgt_len), &self.device)?;
-        let mask = if seqlen_offset > 0 {
-            let mask0 = Tensor::zeros((tgt_len, seqlen_offset), DType::F32, &self.device)?;
-            Tensor::cat(&[&mask0, &mask], D::Minus1)?
-        } else {
-            mask
-        };
-        mask.expand((b_size, 1, tgt_len, tgt_len + seqlen_offset))?
-            .to_dtype(self.dtype)
+        let mut data = Vec::with_capacity(b_size * tgt_len * tgt_len);
+        for row in real.iter().take(b_size) {
+            for i in 0..tgt_len {
+                for (j, &is_real) in row.iter().enumerate() {
+                    let out_of_band = match window {
+                        Some(w) => ((i as i64) - (j as i64)).unsigned_abs() as usize >= w,
+                        None => false,
+                    };
+                    let masked = !is_real || out_of_band;
+                    data.push(if masked { f32::NEG_INFINITY } else { 0.0 });
+                }
+            }
+        }
+        Tensor::from_vec(data, (b_size, 1, tgt_len, tgt_len), &self.device)?.to_dtype(self.dtype)
     }
 
-    pub fn forward(&mut self, input_ids: &Tensor, seqlen_offset: usize) -> Result<Tensor> {
+    pub fn forward(
+        &mut self,
+        input_ids: &Tensor,
+        attention_mask: Option<&Tensor>,
+        seqlen_offset: usize,
+    ) -> Result<Tensor> {
         let (b_size, seq_len) = input_ids.dims2()?;
-        let attention_mask = if seq_len <= 1 {
-            None
+        let (full_mask, sliding_mask) = if seq_len <= 1 {
+            (None, None)
         } else {
-            let mask = self.prepare_decoder_attention_mask(b_size, seq_len, seqlen_offset)?;
-            Some(mask)
+            (
+                Some(self.bidirectional_mask(attention_mask, b_size, seq_len, None)?),
+                Some(self.bidirectional_mask(
+                    attention_mask,
+                    b_size,
+                    seq_len,
+                    Some(self.sliding_window),
+                )?),
+            )
         };
         let xs = self.embed_tokens.forward(input_ids)?;
         let mut xs = (xs * (self.hidden_size as f64).sqrt())?;
         for layer in self.layers.iter_mut() {
-            xs = layer.forward(&xs, attention_mask.as_ref(), seqlen_offset)?
+            let mask = if layer.is_sliding {
+                sliding_mask.as_ref()
+            } else {
+                full_mask.as_ref()
+            };
+            xs = layer.forward(&xs, mask, seqlen_offset)?;
         }
-        let logits = xs
-            .apply(&self.norm)?;
-
-        Ok(logits)
+        xs.apply(&self.norm)
     }
 
     pub fn clear_kv_cache(&mut self) {
