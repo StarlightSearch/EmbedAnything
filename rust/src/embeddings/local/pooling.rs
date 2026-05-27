@@ -144,7 +144,10 @@ impl Pooling {
                     .expand(&[tensor.dim(0)?, tensor.dim(1)?, tensor.dim(2)?])?
                     .to_dtype(tensor.dtype())?;
 
-                let mask_sum = expanded_mask.sum_all()?.clamp(1e-10, f32::MAX)?;
+                // Per-row token count: sum the mask over the sequence dim only (not over
+                // the hidden dim or the whole batch). Shape [batch, hidden]; each row holds
+                // that row's number of non-padding tokens.
+                let mask_sum = expanded_mask.sum(1)?.clamp(1e-10, f32::MAX)?;
 
                 let result = tensor
                     .mul(&expanded_mask)?
@@ -162,15 +165,16 @@ impl Pooling {
 
                 let mask_3d = attention_mask.view().insert_axis(Axis(2));
 
-                let mask_sum = mask_3d.iter().sum::<f32>();
+                // Per-row token count (sum over the sequence dim), one denominator per row.
+                let counts = attention_mask.sum_axis(Axis(1));
 
-                let result = output
-                    .view()
-                    .mul(&mask_3d)
-                    .sum_axis(Axis(1))
-                    .mapv(|x| x / mask_sum.clamp(1e-10, f32::MAX));
+                let mut result = output.view().mul(&mask_3d).sum_axis(Axis(1));
+                for (mut row, &count) in result.outer_iter_mut().zip(counts.iter()) {
+                    let denom = count.max(1e-10);
+                    row.mapv_inplace(|x| x / denom);
+                }
 
-                Ok(PooledOutputType::Array(result.to_owned()))
+                Ok(PooledOutputType::Array(result))
             }
         }
     }
