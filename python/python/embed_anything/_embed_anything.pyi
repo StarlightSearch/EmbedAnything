@@ -268,6 +268,40 @@ def embed_audio_file(
     ),
 ) -> list[EmbedData]:
     """
+    Embeds the given audio file and returns a list of EmbedData objects.
+
+    Args:
+        file_path: The path to the audio file to embed.
+        audio_decoder: The audio decoder model to use.
+        embedder: The embedding model to use.
+        text_embed_config: The configuration for the embedding model.
+
+    Returns:
+        A list of EmbedData objects.
+
+    Example:
+    ```python
+
+    import embed_anything
+    audio_decoder = embed_anything.AudioDecoderModel.from_pretrained_hf(
+        "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
+    )
+
+    embedder = embed_anything.EmbeddingModel.from_pretrained_hf(
+        embed_anything.WhichModel.Bert,
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        revision="main",
+    )
+
+    config = embed_anything.TextEmbedConfig(chunk_size=1000, batch_size=32)
+    data = embed_anything.embed_audio_file(
+        "test_files/audio/samples_hp0.wav",
+        audio_decoder=audio_decoder,
+        embedder=embedder,
+        text_embed_config=config,
+    )
+    ```
+    """
 
 def embed_video_file(
     file_path: str,
@@ -303,41 +337,6 @@ def embed_video_directory(
 
     Returns:
         A list of EmbedData objects, or None if an adapter is used.
-    """
-    Embeds the given audio file and returns a list of EmbedData objects.
-
-    Args:
-        file_path: The path to the audio file to embed.
-        audio_decoder: The audio decoder model to use.
-        embedder: The embedding model to use.
-        text_embed_config: The configuration for the embedding model.
-
-    Returns:
-        A list of EmbedData objects.
-
-    Example:
-    ```python
-
-    import embed_anything
-    audio_decoder = embed_anything.AudioDecoderModel.from_pretrained_hf(
-        "openai/whisper-tiny.en", revision="main", model_type="tiny-en", quantized=False
-    )
-
-    embedder = embed_anything.EmbeddingModel.from_pretrained_hf(
-        embed_anything.WhichModel.Bert,
-        model_id="sentence-transformers/all-MiniLM-L6-v2",
-        revision="main",
-    )
-
-    config = embed_anything.TextEmbedConfig(chunk_size=1000, batch_size=32)
-    data = embed_anything.embed_audio_file(
-        "test_files/audio/samples_hp0.wav",
-        audio_decoder=audio_decoder,
-        embedder=embedder,
-        text_embed_config=config,
-    )
-    ```
-
     """
 
 class EmbedData:
@@ -654,23 +653,42 @@ class EmbeddingModel:
         revision: str | None = None,
         token: str | None = None,
         dtype: Dtype | None = None,
+        pooling: Pooling | None = None,
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
 
+        The model architecture (BERT, Jina, CLIP, ModernBERT, Qwen3, Gemma3,
+        Model2Vec, SPLADE, ColPali, etc.) is auto-detected from the model's
+        `config.json`, so `WhichModel` is no longer required here.
+
         Attributes:
-            model_id: The ID of the model.
-            revision: The revision of the model.
-            token: The Hugging Face token.
+            model_id: The ID of the model on the Hugging Face Hub.
+            revision: The revision (branch, tag, or commit) of the model.
+            token: The Hugging Face access token. Required for private or gated
+                repositories. If None, the token is read from the `HF_TOKEN`
+                environment variable (or the local Hugging Face login) when available.
             dtype: The dtype of the model.
+            pooling: The pooling strategy used to turn token embeddings into a
+                single sentence embedding (`Pooling.Mean`, `Pooling.Cls`, or
+                `Pooling.LastToken`). If None, the model's default pooling is used.
         Returns:
             An EmbeddingModel object.
 
         Example:
         ```python
+        from embed_anything import EmbeddingModel, Pooling
+
         model = EmbeddingModel.from_pretrained_hf(
             model_id="sentence-transformers/all-MiniLM-L6-v2",
-            revision="main"
+            revision="main",
+            pooling=Pooling.Mean,
+        )
+
+        # Loading a private or gated model with an access token
+        gated_model = EmbeddingModel.from_pretrained_hf(
+            model_id="google/embeddinggemma-300m",
+            token="hf_...",
         )
         ```
 
@@ -1038,7 +1056,6 @@ class ONNXModel(Enum):
     | `JINAV3`                         | jinaai/jina-embeddings-v3                        |
     | `SPLADEPPENV1`                   | prithivida/Splade_PP_en_v1                      |
     | `SPLADEPPENV2`                   | prithivida/Splade_PP_en_v2                      |
-    | `ModernBERTBase`                 | nomic-ai/modernbert-embed-base                   |
     ```
     """
 
@@ -1107,5 +1124,3 @@ class ONNXModel(Enum):
     SPLADEPPENV1 = "SPLADEPPENV1"
 
     SPLADEPPENV2 = "SPLADEPPENV2"
-
-    ModernBERTBase = "ModernBERTBase"

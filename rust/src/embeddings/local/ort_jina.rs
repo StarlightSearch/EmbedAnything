@@ -6,8 +6,7 @@ use crate::embeddings::embed::EmbeddingResult;
 use crate::embeddings::utils::tokenize_batch_ndarray;
 use crate::Dtype;
 use anyhow::Error as E;
-use hf_hub::api::sync::Api;
-use hf_hub::Repo;
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use ndarray::prelude::*;
 use std::sync::RwLock;
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
@@ -63,21 +62,12 @@ impl OrtJinaEmbedder {
         };
 
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
-            let api = Api::new().unwrap();
-            let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                    rev.to_string(),
-                )),
-                None => api.repo(hf_hub::Repo::new(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                )),
-            };
-            let config = api.get("config.json")?;
-            let tokenizer = api.get("tokenizer.json")?;
-            let tokenizer_config = api.get("tokenizer_config.json")?;
+            let client = build_client(None)?;
+            let repo = model_repo(&client, hf_model_id);
+
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let tokenizer_config = download_file(&repo, "tokenizer_config.json", revision)?;
             let mut base_path = path
                 .rsplit_once('/')
                 .map(|(p, _)| p.to_string())
@@ -97,8 +87,8 @@ impl OrtJinaEmbedder {
                 Some(Dtype::BF16) => format!("{base_path}model_bf16.onnx"),
                 None => path.to_string(),
             };
-            let weights = api.get(model_path.as_str());
-            let _ = api.get(format!("{path}_data").as_str());
+            let weights = download_file(&repo, model_path.as_str(), revision);
+            let _ = download_file(&repo, format!("{path}_data").as_str(), revision);
 
             (config, tokenizer, weights, tokenizer_config)
         };

@@ -10,6 +10,7 @@ use image::ImageFormat;
 use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 use crate::embeddings::local::colpali::{get_images_from_pdf, ColPaliEmbed};
 use crate::embeddings::select_device;
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use crate::models::idefics3::model::{ColIdefics3Model, Idefics3Config};
 use crate::models::idefics3::tensor_processing::Idefics3Processor;
 
@@ -21,20 +22,10 @@ pub struct ColSmolEmbedder {
 
 impl ColSmolEmbedder {
     pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
-        let api = hf_hub::api::sync::Api::new()?;
-        let repo: hf_hub::api::sync::ApiRepo = match revision {
-            Some(rev) => api.repo(hf_hub::Repo::with_revision(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-                rev.to_string(),
-            )),
-            None => api.repo(hf_hub::Repo::new(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-            )),
-        };
+        let client = build_client(None)?;
+        let repo = model_repo(&client, model_id);
 
-        let model_file = repo.get("model.safetensors")?;
+        let model_file = download_file(&repo, "model.safetensors", revision)?;
         let device = select_device();
         let dtype = if device.is_cuda() {
             DType::BF16
@@ -43,7 +34,7 @@ impl ColSmolEmbedder {
         };
 
         let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[model_file], dtype, &device)? };
-        let config_file = repo.get("config.json")?;
+        let config_file = download_file(&repo, "config.json", revision)?;
 
         let processor = Idefics3Processor::from_pretrained("akshayballal/colSmol-256M-merged")?;
         let config: Idefics3Config = serde_json::from_slice(&std::fs::read(config_file)?)?;

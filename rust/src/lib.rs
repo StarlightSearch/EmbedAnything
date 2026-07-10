@@ -97,6 +97,7 @@
 
 pub mod chunkers;
 pub mod config;
+pub(crate) mod hf_hub_utils;
 pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
@@ -109,8 +110,7 @@ pub mod s3_loader;
 
 use anyhow::{Error, Result};
 use config::{
-    ImageEmbedConfig, TextEmbedConfig, VideoEmbedConfig, DEFAULT_VIDEO_BATCH_SIZE,
-    DEFAULT_VIDEO_FRAME_STEP,
+    ImageEmbedConfig, TextEmbedConfig, VideoEmbedConfig  
 };
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},

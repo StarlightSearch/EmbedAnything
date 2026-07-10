@@ -10,6 +10,7 @@ use anyhow::Error as E;
 
 use crate::{
     embeddings::{embed::EmbeddingResult, select_device},
+    hf_hub_utils::{build_client, download_file, model_repo},
     models::{
         clip::div_l2_norm,
         clip::{self, ClipConfig},
@@ -77,29 +78,16 @@ impl Default for ClipEmbedder {
 
 impl ClipEmbedder {
     pub fn new(model_id: String, revision: Option<&str>, token: Option<&str>) -> Result<Self, E> {
-        let api = hf_hub::api::sync::ApiBuilder::from_env()
-            .with_token(token.map(|s| s.to_string()))
-            .build()?;
-
-        let api = match revision {
-            Some(rev) => api.repo(hf_hub::Repo::with_revision(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-                rev.to_string(),
-            )),
-            None => api.repo(hf_hub::Repo::new(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-            )),
-        };
+        let client = build_client(token)?;
+        let repo = model_repo(&client, &model_id);
 
         let device = select_device();
 
-        let vb = match api.get("model.safetensors") {
+        let vb = match download_file(&repo, "model.safetensors", revision) {
             Ok(safetensors) => unsafe {
                 VarBuilder::from_mmaped_safetensors(&[safetensors], DType::F32, &device)?
             },
-            Err(_) => match api.get("pytorch_model.bin") {
+            Err(_) => match download_file(&repo, "pytorch_model.bin", revision) {
                 Ok(pytorch_model) => VarBuilder::from_pth(pytorch_model, DType::F32, &device)?,
                 Err(e) => {
                     return Err(anyhow::Error::msg(format!(
@@ -109,7 +97,7 @@ impl ClipEmbedder {
                 }
             },
         };
-        let config_filename = api.get("config.json")?;
+        let config_filename = download_file(&repo, "config.json", revision)?;
         let config_str = std::fs::read_to_string(config_filename)?;
         let config_json: serde_json::Value = serde_json::from_str(&config_str)?;
 
@@ -205,16 +193,9 @@ impl ClipEmbedder {
     ) -> anyhow::Result<Tokenizer> {
         let tokenizer = match tokenizer {
             None => {
-                let api = hf_hub::api::sync::Api::new()?;
-                let api = match revision {
-                    Some(rev) => api.repo(hf_hub::Repo::with_revision(
-                        model_id,
-                        hf_hub::RepoType::Model,
-                        rev.to_string(),
-                    )),
-                    None => api.repo(hf_hub::Repo::new(model_id, hf_hub::RepoType::Model)),
-                };
-                api.get("tokenizer.json")?
+                let client = build_client(None)?;
+                let repo = model_repo(&client, &model_id);
+                download_file(&repo, "tokenizer.json", revision)?
             }
             Some(file) => file.into(),
         };

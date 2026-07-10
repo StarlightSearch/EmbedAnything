@@ -912,6 +912,7 @@ fn _embed_anything(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::TextEmbedConfig>()?;
     m.add_class::<config::VideoEmbedConfig>()?;
     m.add_class::<ONNXModel>()?;
+    m.add_class::<Pooling>()?;
     m.add_class::<Reranker>()?;
     m.add_class::<Dtype>()?;
     m.add_class::<RerankerResult>()?;

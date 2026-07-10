@@ -20,10 +20,10 @@ version = "0.7.0"
 
 [workspace.dependencies]
 pdf-extract = "0.9.0"
-candle-nn = { version = "0.9.2" }
-candle-transformers = { version = "0.9.2" }
-candle-core = { version = "0.9.2" }
-candle-flash-attn = { version = "0.9.2" }
+candle-nn = { version = "0.11.0" }
+candle-transformers = { version = "0.11.0" }
+candle-core = { version = "0.11.0" }
+candle-flash-attn = { version = "0.11.0" }
 processors-rs = { path = "processors", version = "=0.7.0" }
 
 strum = "0.27.1"

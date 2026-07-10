@@ -6,7 +6,7 @@ use crate::{
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
-use hf_hub::{api::sync::ApiBuilder, Repo};
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use crate::embeddings::{embed::EmbeddingResult, select_device};
@@ -41,22 +41,14 @@ impl ModernBertEmbedder {
         dtype: Option<Dtype>,
     ) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = ApiBuilder::from_env()
-                .with_token(token.map(|s| s.to_string()))
-                .build()
-                .unwrap();
-            let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
-                None => api.repo(hf_hub::Repo::new(
-                    model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                )),
-            };
-            let config = api.get("config.json")?;
-            let tokenizer = api.get("tokenizer.json")?;
-            let weights = match api.get("model.safetensors") {
+            let client = build_client(token)?;
+            let repo = model_repo(&client, &model_id);
+            let revision = revision.as_deref();
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let weights = match download_file(&repo, "model.safetensors", revision) {
                 Ok(safetensors) => safetensors,
-                Err(_) => match api.get("pytorch_model.bin") {
+                Err(_) => match download_file(&repo, "pytorch_model.bin", revision) {
                     Ok(pytorch_model) => pytorch_model,
                     Err(e) => {
                         return Err(anyhow::Error::msg(format!(

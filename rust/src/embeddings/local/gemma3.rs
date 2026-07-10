@@ -5,7 +5,7 @@ use crate::{
 use anyhow::Error;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{Linear, Module, VarBuilder};
-use hf_hub::{api::sync::ApiBuilder, Repo};
+use crate::hf_hub_utils::{build_client, download_file, model_repo, ModelRepo};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use super::{
@@ -33,11 +33,12 @@ pub struct Gemma3Embedder {
 /// Loads a sentence-transformers `Dense` module (a single no-bias `nn.Linear`
 /// stored under the key `linear.weight`) from a safetensors file in the repo.
 fn load_dense(
-    repo: &hf_hub::api::sync::ApiRepo,
+    repo: &ModelRepo,
     path: &str,
+    revision: Option<&str>,
     device: &Device,
 ) -> Result<Linear, anyhow::Error> {
-    let weights_path = repo.get(path)?;
+    let weights_path = download_file(repo, path, revision)?;
     let mut tensors = candle_core::safetensors::load(weights_path, device)?;
     let weight = tensors
         .remove("linear.weight")
@@ -53,27 +54,14 @@ impl Gemma3Embedder {
         token: Option<&str>,
         dtype: Option<crate::Dtype>,
     ) -> Result<Self, anyhow::Error> {
-        let mut api_builder = ApiBuilder::from_env();
-        if let Some(token) = token {
-            api_builder = api_builder.with_token(Some(token.to_string()));
-        }
-        let api = api_builder.build()?;
+        let client = build_client(token)?;
+        let repo = model_repo(&client, model_id);
+        let revision = revision.as_deref();
 
-        let repo = match revision {
-            Some(rev) => api.repo(Repo::with_revision(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-                rev,
-            )),
-            None => api.repo(hf_hub::Repo::new(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-            )),
-        };
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let config = repo.get("config.json")?;
-            let tokenizer = repo.get("tokenizer.json")?;
-            let weights = repo.get("model.safetensors");
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let weights = download_file(&repo, "model.safetensors", revision);
 
             (config, tokenizer, weights)
         };
@@ -112,7 +100,7 @@ impl Gemma3Embedder {
                 VarBuilder::from_mmaped_safetensors(&[weights], dtype, &device)?
             },
             Err(_) => {
-                let weights = hub_load_safetensors(&repo, "model.safetensors.index.json")?;
+                let weights = hub_load_safetensors(&repo, "model.safetensors.index.json", revision)?;
                 unsafe { VarBuilder::from_mmaped_safetensors(&weights, dtype, &device)? }
             }
         };
@@ -123,8 +111,8 @@ impl Gemma3Embedder {
         // (sentence-transformers modules 2_Dense / 3_Dense, both no-bias with
         // Identity activation) between mean pooling and L2 normalization. These
         // weights live outside model.safetensors and must be applied separately.
-        let dense1 = load_dense(&repo, "2_Dense/model.safetensors", &device)?;
-        let dense2 = load_dense(&repo, "3_Dense/model.safetensors", &device)?;
+        let dense1 = load_dense(&repo, "2_Dense/model.safetensors", revision, &device)?;
+        let dense2 = load_dense(&repo, "3_Dense/model.safetensors", revision, &device)?;
 
         Ok(Self {
             model: std::sync::RwLock::new(model),

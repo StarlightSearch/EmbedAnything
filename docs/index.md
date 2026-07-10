@@ -141,9 +141,40 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Model2Vec | model2vec, minishlab/potion-base-8M |
 | Qwen3-Embedding | Qwen/Qwen3-Embedding-0.6B |
+| Gemma3 | google/embeddinggemma-300m and other Gemma3 embedding models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
 
 
+## Custom Pooling Strategy
+
+By default, the model's own pooling method is used. You can override it by passing a `Pooling` strategy to `from_pretrained_hf` — useful for checkpoints without pooling config or to reproduce a specific sentence-embedding recipe.
+
+```python
+from embed_anything import EmbeddingModel, Pooling
+
+# Available strategies: Pooling.Mean, Pooling.Cls, Pooling.LastToken
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    pooling=Pooling.Mean,
+)
+```
+
+| Strategy            | Description                                                        |
+| ------------------- | ----------------------------------------------------------------- |
+| `Pooling.Mean`      | Averages token embeddings (weighted by the attention mask).       |
+| `Pooling.Cls`       | Uses the `[CLS]` / first-token embedding.                         |
+| `Pooling.LastToken` | Uses the last non-padding token (common for causal/LLM encoders). |
+
+## Authentication (Private & Gated Models)
+
+Pass a Hugging Face access token to load private or gated repositories (e.g. `google/embeddinggemma-300m`). If `token` is omitted, the `HF_TOKEN` environment variable or your local `huggingface-cli login` credentials are used.
+
+```python
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="google/embeddinggemma-300m",
+    token="hf_your_access_token",   # or set the HF_TOKEN environment variable
+)
+```
 
 
 ## Splade Models:

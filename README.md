@@ -181,8 +181,44 @@ for item in data:
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Model2Vec | model2vec, minishlab/potion-base-8M |
 | Qwen3-Embedding | Qwen/Qwen3-Embedding-0.6B |
+| Gemma3 | google/embeddinggemma-300m and other Gemma3 embedding models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
 
+
+## Custom Pooling Strategy
+
+By default, EmbedAnything uses the pooling method defined by the model. You can override it by passing a `Pooling` strategy to `from_pretrained_hf`. This is useful when a checkpoint ships without pooling config, or when you want to reproduce a specific sentence-embedding recipe.
+
+```python
+from embed_anything import EmbeddingModel, Pooling
+
+# Available strategies: Pooling.Mean, Pooling.Cls, Pooling.LastToken
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    pooling=Pooling.Mean,   # mean-pool token embeddings (matches sentence-transformers)
+)
+
+data = embed_anything.embed_query(["What is mean pooling?"], embedder=model)
+```
+
+| Strategy            | Description                                                        |
+| ------------------- | ----------------------------------------------------------------- |
+| `Pooling.Mean`      | Averages token embeddings (weighted by the attention mask).       |
+| `Pooling.Cls`       | Uses the `[CLS]` / first-token embedding.                         |
+| `Pooling.LastToken` | Uses the last non-padding token (common for causal/LLM encoders). |
+
+## Authentication (Private & Gated Models)
+
+To load private or gated repositories (for example `google/embeddinggemma-300m`), pass a Hugging Face access token. If `token` is omitted, EmbedAnything falls back to the `HF_TOKEN` environment variable or your local `huggingface-cli login` credentials.
+
+```python
+from embed_anything import EmbeddingModel
+
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="google/embeddinggemma-300m",
+    token="hf_your_access_token",   # or set the HF_TOKEN environment variable
+)
+```
 
 ## Splade Models (Sparse Embeddings)
 
