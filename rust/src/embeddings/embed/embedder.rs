@@ -128,6 +128,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             _ => Err(anyhow!("Model not supported")),
         }
