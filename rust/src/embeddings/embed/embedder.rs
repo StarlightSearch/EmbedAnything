@@ -114,6 +114,13 @@ impl Embedder {
                 token,
                 dtype,
             )?)),
+            "Gemma3TextModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+            )?)),
             _ => Err(anyhow!("Model not supported")),
         }
     }
