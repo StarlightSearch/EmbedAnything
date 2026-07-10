@@ -94,6 +94,27 @@ impl FileParser {
         Ok(self.files.clone())
     }
 
+    pub fn get_video_paths(&mut self, directory_path: &PathBuf) -> Result<Vec<String>, Error> {
+        let video_regex = Regex::new(r".*\.(mp4|mov|avi|mkv|webm|m4v|flv|wmv)$").unwrap();
+
+        let video_paths: Vec<String> = WalkDir::new(directory_path)
+            .into_iter()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_file())
+            .filter(|entry| video_regex.is_match(entry.file_name().to_str().unwrap_or("")))
+            .map(|entry| {
+                let absolute_path = entry
+                    .path()
+                    .canonicalize()
+                    .unwrap_or_else(|_| entry.path().to_path_buf());
+                absolute_path.to_string_lossy().to_string()
+            })
+            .collect();
+
+        self.files = video_paths;
+        Ok(self.files.clone())
+    }
+
     pub fn get_files_to_index(&self, indexed_files: &HashSet<String>) -> Vec<String> {
         let files = self
             .files
@@ -207,6 +228,30 @@ mod tests {
             .unwrap();
 
         assert_eq!(audio_files.len(), 2);
+    }
+
+    #[test]
+    fn test_get_video_paths() {
+        let temp_dir = TempDir::new("example").unwrap();
+        let video_file = temp_dir.path().join("clip.mp4");
+        let _ignored_file = temp_dir.path().join("note.txt");
+        File::create(&video_file).unwrap();
+        File::create(&_ignored_file).unwrap();
+
+        let mut file_parser = FileParser::new();
+        let video_files = file_parser
+            .get_video_paths(&PathBuf::from(temp_dir.path()))
+            .unwrap();
+
+        assert_eq!(video_files.len(), 1);
+        assert_eq!(
+            video_files[0],
+            video_file
+                .canonicalize()
+                .unwrap()
+                .to_string_lossy()
+                .to_string()
+        );
     }
 
     #[test]

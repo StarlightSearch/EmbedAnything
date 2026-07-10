@@ -450,15 +450,6 @@ dependencies = [
 
 [[package]]
 name = "autocfg"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dde43e75fd43e8a1bf86103336bc699aa8d17ad1be60c76c0bdfd4828e19b78"
-dependencies = [
- "autocfg 1.4.0",
-]
-
-[[package]]
-name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
@@ -473,7 +464,7 @@ dependencies = [
  "arrayvec",
  "log",
  "nom 7.1.3",
- "num-rational 0.4.2",
+ "num-rational",
  "v_frame",
 ]
 
@@ -1420,15 +1411,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 
 [[package]]
-name = "cloudabi"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
-dependencies = [
- "bitflags 1.3.2",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2061,7 +2043,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "statistical",
  "strum 0.27.1",
  "symphonia",
  "tempdir",
@@ -2432,7 +2413,7 @@ dependencies = [
  "gemm-f16 0.18.2",
  "gemm-f32 0.18.2",
  "gemm-f64 0.18.2",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2452,7 +2433,7 @@ dependencies = [
  "gemm-f16 0.19.0",
  "gemm-f32 0.19.0",
  "gemm-f64 0.19.0",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2467,7 +2448,7 @@ checksum = "f6db9fd9f40421d00eea9dd0770045a5603b8d684654816637732463f4073847"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.18.2",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2482,7 +2463,7 @@ checksum = "086936dbdcb99e37aad81d320f98f670e53c1e55a98bee70573e83f95beb128c"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.19.0",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2497,7 +2478,7 @@ checksum = "dfcad8a3d35a43758330b635d02edad980c1e143dc2f21e6fd25f9e4eada8edf"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.18.2",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2512,7 +2493,7 @@ checksum = "20c8aeeeec425959bda4d9827664029ba1501a90a0d1e6228e48bef741db3a3f"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.19.0",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2529,7 +2510,7 @@ dependencies = [
  "dyn-stack",
  "half",
  "libm",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "once_cell",
  "paste",
@@ -2550,7 +2531,7 @@ dependencies = [
  "dyn-stack",
  "half",
  "libm",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "once_cell",
  "paste",
@@ -2571,7 +2552,7 @@ dependencies = [
  "gemm-common 0.18.2",
  "gemm-f32 0.18.2",
  "half",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2589,7 +2570,7 @@ dependencies = [
  "gemm-common 0.19.0",
  "gemm-f32 0.19.0",
  "half",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2605,7 +2586,7 @@ checksum = "bc8d3d4385393304f407392f754cd2dc4b315d05063f62cf09f47b58de276864"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.18.2",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2620,7 +2601,7 @@ checksum = "02e0b8c9da1fbec6e3e3ab2ce6bc259ef18eb5f6f0d3e4edf54b75f9fd41a81c"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.19.0",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2635,7 +2616,7 @@ checksum = "35b2a4f76ce4b8b16eadc11ccf2e083252d8237c1b589558a49b0183545015bd"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.18.2",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -2650,7 +2631,7 @@ checksum = "056131e8f2a521bfab322f804ccd652520c79700d81209e9d9275bbdecaadc6a"
 dependencies = [
  "dyn-stack",
  "gemm-common 0.19.0",
- "num-complex 0.4.6",
+ "num-complex",
  "num-traits",
  "paste",
  "raw-cpuid",
@@ -3703,7 +3684,7 @@ version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96936507f153605bddfcda068dd804796c84324ed2510809e5b2a624c81da765"
 dependencies = [
- "autocfg 1.4.0",
+ "autocfg",
  "scopeguard",
 ]
 
@@ -3826,7 +3807,7 @@ version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a06de3016e9fae57a36fd14dba131fccf49f74b40b7fbdb472f96e361ec71a08"
 dependencies = [
- "autocfg 1.4.0",
+ "autocfg",
  "rawpointer",
 ]
 
@@ -3872,7 +3853,7 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
- "autocfg 1.4.0",
+ "autocfg",
 ]
 
 [[package]]
@@ -3985,7 +3966,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb12d4e967ec485a5f71c6311fe28158e9d6f4bc4a447b474184d0f91a8fa32"
 dependencies = [
  "matrixmultiply",
- "num-complex 0.4.6",
+ "num-complex",
  "num-integer",
  "num-traits",
  "rawpointer",
@@ -3998,7 +3979,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
 dependencies = [
  "matrixmultiply",
- "num-complex 0.4.6",
+ "num-complex",
  "num-integer",
  "num-traits",
  "portable-atomic",
@@ -4050,40 +4031,15 @@ checksum = "0676bb32a98c1a483ce53e500a81ad9c3d5b3f7c920c28c24e9cb0980d0b5bc8"
 
 [[package]]
 name = "num"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8536030f9fea7127f841b45bb6243b27255787fb4eb83958aa1ef9d2fdc0c36"
-dependencies = [
- "num-bigint 0.2.6",
- "num-complex 0.2.4",
- "num-integer",
- "num-iter",
- "num-rational 0.2.4",
- "num-traits",
-]
-
-[[package]]
-name = "num"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
 dependencies = [
- "num-bigint 0.4.6",
- "num-complex 0.4.6",
+ "num-bigint",
+ "num-complex",
  "num-integer",
  "num-iter",
- "num-rational 0.4.2",
- "num-traits",
-]
-
-[[package]]
-name = "num-bigint"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "090c7f9998ee0ff65aa5b723e4009f7b217707f1fb5ea551329cc4d6231fb304"
-dependencies = [
- "autocfg 1.4.0",
- "num-integer",
+ "num-rational",
  "num-traits",
 ]
 
@@ -4094,16 +4050,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-complex"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6b19411a9719e753aff12e5187b74d60d3dc449ec3f4dc21e3989c3f554bc95"
-dependencies = [
- "autocfg 1.4.0",
  "num-traits",
 ]
 
@@ -4149,19 +4095,7 @@ version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1429034a0490724d0075ebb2bc9e875d6503c3cf69e235a8941aa757d83ef5bf"
 dependencies = [
- "autocfg 1.4.0",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-rational"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c000134b5dbf44adc5cb772486d335293351644b801551abe8f75c84cfa4aef"
-dependencies = [
- "autocfg 1.4.0",
- "num-bigint 0.2.6",
+ "autocfg",
  "num-integer",
  "num-traits",
 ]
@@ -4172,7 +4106,7 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
 dependencies = [
- "num-bigint 0.4.6",
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -4183,7 +4117,7 @@ version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
- "autocfg 1.4.0",
+ "autocfg",
  "libm",
 ]
 
@@ -4789,7 +4723,7 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "libm",
- "num-complex 0.4.6",
+ "num-complex",
  "reborrow",
  "version_check",
 ]
@@ -4803,7 +4737,7 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "libm",
- "num-complex 0.4.6",
+ "num-complex",
  "paste",
  "pulp-wasm-simd-flag",
  "raw-cpuid",
@@ -4979,25 +4913,6 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d71dacdc3c88c1fde3885a3be3fbab9f35724e6ce99467f7d9c5026132184ca"
-dependencies = [
- "autocfg 0.1.8",
- "libc",
- "rand_chacha 0.1.1",
- "rand_core 0.4.2",
- "rand_hc",
- "rand_isaac",
- "rand_jitter",
- "rand_os",
- "rand_pcg",
- "rand_xorshift",
- "winapi",
-]
-
-[[package]]
-name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
@@ -5026,16 +4941,6 @@ dependencies = [
  "chacha20",
  "getrandom 0.4.1",
  "rand_core 0.10.0",
-]
-
-[[package]]
-name = "rand_chacha"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "556d3a1ca6600bfcbab7c7c91ccb085ac7fbbcd70e008a98742e7847f4f7bcef"
-dependencies = [
- "autocfg 0.1.8",
- "rand_core 0.3.1",
 ]
 
 [[package]]
@@ -5105,68 +5010,6 @@ checksum = "6a8615d50dcf34fa31f7ab52692afec947c4dd0ab803cc87cb3b0b4570ff7463"
 dependencies = [
  "num-traits",
  "rand 0.9.1",
-]
-
-[[package]]
-name = "rand_hc"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b40677c7be09ae76218dc623efbf7b18e34bced3f38883af07bb75630a21bc4"
-dependencies = [
- "rand_core 0.3.1",
-]
-
-[[package]]
-name = "rand_isaac"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ded997c9d5f13925be2a6fd7e66bf1872597f759fd9dd93513dd7e92e5a5ee08"
-dependencies = [
- "rand_core 0.3.1",
-]
-
-[[package]]
-name = "rand_jitter"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1166d5c91dc97b88d1decc3285bb0a99ed84b05cfd0bc2341bdf2d43fc41e39b"
-dependencies = [
- "libc",
- "rand_core 0.4.2",
- "winapi",
-]
-
-[[package]]
-name = "rand_os"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b75f676a1e053fc562eafbb47838d67c84801e38fc1ba459e8f180deabd5071"
-dependencies = [
- "cloudabi",
- "fuchsia-cprng",
- "libc",
- "rand_core 0.4.2",
- "rdrand",
- "winapi",
-]
-
-[[package]]
-name = "rand_pcg"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abf9b09b01790cfe0364f52bf32995ea3c39f4d2dd011eac241d2914146d0b44"
-dependencies = [
- "autocfg 0.1.8",
- "rand_core 0.4.2",
-]
-
-[[package]]
-name = "rand_xorshift"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbf7e9e623549b0e21f6e97cf8ecf247c1a8fd2e8a992ae265314300b2455d5c"
-dependencies = [
- "rand_core 0.3.1",
 ]
 
 [[package]]
@@ -5788,8 +5631,10 @@ version = "0.7.0"
 dependencies = [
  "actix-multipart",
  "actix-web",
+ "base64 0.22.1",
  "embed_anything",
  "futures-util",
+ "image",
  "serde",
  "tempfile",
  "tokio",
@@ -5869,7 +5714,7 @@ version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
- "autocfg 1.4.0",
+ "autocfg",
 ]
 
 [[package]]
@@ -5938,16 +5783,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "statistical"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49d57902bb128e5e38b5218d3681215ae3e322d99f65d5420e9849730d2ea372"
-dependencies = [
- "num 0.2.1",
- "rand 0.6.5",
-]
 
 [[package]]
 name = "string_cache"
@@ -6797,7 +6632,7 @@ dependencies = [
  "half",
  "libloading 0.8.8",
  "memmap2",
- "num 0.4.3",
+ "num",
  "num-traits",
  "num_cpus",
  "rayon",

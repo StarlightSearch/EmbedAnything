@@ -2,6 +2,7 @@ use crate::embeddings::cloud::cohere::CohereEmbedder;
 use crate::embeddings::cloud::gemini::GeminiEmbedder;
 use crate::embeddings::cloud::openai::OpenAIEmbedder;
 use crate::embeddings::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder};
+use crate::embeddings::local::gemma3::{Gemma3Embed, Gemma3Embedder};
 use crate::embeddings::local::jina::{JinaEmbed, JinaEmbedder};
 use crate::embeddings::local::model2vec::Model2VecEmbedder;
 use crate::embeddings::local::modernbert::ModernBertEmbedder;
@@ -30,6 +31,7 @@ pub enum TextEmbedder {
     Model2Vec(Box<Model2VecEmbedder>),
     Bert(Box<dyn BertEmbed + Send + Sync>),
     Qwen3(Box<dyn Qwen3Embed + Send + Sync>),
+    Gemma3(Box<dyn Gemma3Embed + Send + Sync>),
     ColBert(Box<dyn BertEmbed + Send + Sync>),
     ModernBert(Box<dyn BertEmbed + Send + Sync>),
 }
@@ -49,6 +51,7 @@ impl TextEmbedder {
             TextEmbedder::Jina(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Bert(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::Qwen3(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
+            TextEmbedder::Gemma3(embedder) => embedder.embed(text_batch, batch_size, late_chunking),
             TextEmbedder::ColBert(embedder) => {
                 embedder.embed(text_batch, batch_size, late_chunking)
             }
@@ -93,6 +96,12 @@ impl TextEmbedder {
                 dtype,
             )?))),
             "Qwen3ForCausalLM" => Ok(Self::Qwen3(Box::new(Qwen3Embedder::new(
+                model_id,
+                revision.map(|s| s.to_string()),
+                token,
+                dtype,
+            )?))),
+            "Gemma3TextModel" => Ok(Self::Gemma3(Box::new(Gemma3Embedder::new(
                 model_id,
                 revision.map(|s| s.to_string()),
                 token,

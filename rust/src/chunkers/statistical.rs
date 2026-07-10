@@ -11,6 +11,35 @@ use text_splitter::{ChunkConfig, TextSplitter};
 // use text_splitter::{ChunkConfig, TextSplitter};
 use tokenizers::Tokenizer;
 
+fn median<T>(data: &[T]) -> Option<T>
+where
+    T: Copy + PartialOrd + std::ops::Add<Output = T> + std::ops::Div<Output = T> + From<u8>,
+{
+    if data.is_empty() {
+        return None;
+    }
+    let mut sorted = data.to_vec();
+    // Use `unwrap_or` to handle NaN values (treat them as equal) instead of panicking.
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let mid = sorted.len() / 2;
+    let result = if sorted.len() % 2 == 0 {
+        (sorted[mid - 1] + sorted[mid]) / T::from(2u8)
+    } else {
+        sorted[mid]
+    };
+    Some(result)
+}
+
+fn std_dev(data: &[f32]) -> Option<f32> {
+    if data.len() < 2 {
+        return None;
+    }
+    let n = data.len() as f32;
+    let mean = data.iter().sum::<f32>() / n;
+    let variance = data.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / n;
+    Some(variance.sqrt())
+}
+
 pub struct StatisticalChunker {
     pub encoder: Arc<Embedder>,
     pub device: candle_core::Device,
@@ -232,7 +261,14 @@ impl StatisticalChunker {
         raw_similarities
     }
 
-    fn _find_optimal_threshold(&self, batch_splits: &[&str], similarities: &Vec<f32>) -> f32 {
+    fn _find_optimal_threshold(&self, batch_splits: &[&str], similarities: &[f32]) -> f32 {
+        // Guard: we need at least 2 similarity scores to compute median + std_dev.
+        // With 0 scores there are no chunk boundaries to find; return a neutral threshold.
+        // With 1 score there is no variance to measure; use that single score directly.
+        if similarities.len() < 2 {
+            return similarities.first().copied().unwrap_or(0.5);
+        }
+
         let tokens = self
             .tokenizer
             .encode_batch(batch_splits.to_vec(), true)
@@ -250,9 +286,11 @@ impl StatisticalChunker {
             })
             .collect::<Vec<_>>();
 
-        // analyze the distribution of similarity scores to oset initial bounds
-        let median_score = statistical::median(similarities);
-        let std_dev = statistical::standard_deviation(similarities, None);
+        // analyze the distribution of similarity scores to set initial bounds
+        // Both median() and std_dev() return Option; the len() >= 2 guard above
+        // ensures they always return Some(_) here.
+        let median_score = median(similarities).unwrap_or(0.5);
+        let std_dev = std_dev(similarities).unwrap_or(0.0);
 
         // set initial bounds based on median and standard deviation
         let mut low = f32::max(0.0, median_score - std_dev);
@@ -277,7 +315,7 @@ impl StatisticalChunker {
                 .map(|(start, end)| cumulative_token_counts[*end] - cumulative_token_counts[*start])
                 .collect();
 
-            median_tokens = statistical::median(&split_token_counts);
+            median_tokens = median(&split_token_counts).unwrap_or(0);
 
             if self.min_split_tokens - self.split_token_tolerance <= median_tokens
                 && median_tokens <= self.max_split_tokens + self.split_token_tolerance
@@ -292,7 +330,7 @@ impl StatisticalChunker {
         }
         calculated_threshold
     }
-    fn _find_split_indices(&self, similarities: &Vec<f32>, threshold: f32) -> Vec<usize> {
+    fn _find_split_indices(&self, similarities: &[f32], threshold: f32) -> Vec<usize> {
         let mut split_indices = Vec::new();
         for (idx, score) in enumerate(similarities) {
             if *score < threshold {

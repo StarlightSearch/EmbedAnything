@@ -2,7 +2,7 @@
 
 This module provides functions and classes for embedding queries, files, and
 directories using different embedding models. It supports text, images, audio,
-PDFs, and other media types with various embedding backends (Candle, ONNX, Cloud).
+videos, PDFs, and other media types with various embedding backends (Candle, ONNX, Cloud).
 
 Main Functions:
 ---------------
@@ -11,6 +11,8 @@ Main Functions:
 - `embed_directory`: Embeds all files in a directory and returns a list of EmbedData objects.
 - `embed_image_directory`: Embeds all images in a directory.
 - `embed_audio_file`: Embeds audio files using Whisper for transcription.
+- `embed_video_file`: Embeds a video file by sampling frames.
+- `embed_video_directory`: Embeds all videos in a directory.
 - `embed_webpage`: Embeds content from a webpage URL.
 
 Main Classes:
@@ -18,6 +20,7 @@ Main Classes:
 - `EmbeddingModel`: Main class for loading and using embedding models.
 - `EmbedData`: Represents embedded data with text, embedding vector, and metadata.
 - `TextEmbedConfig`: Configuration for text embedding (chunking, batching, etc.).
+- `VideoEmbedConfig`: Configuration for video embedding (frame sampling, batching).
 - `ColpaliModel`: Specialized model for document/image-text embedding.
 - `ColbertModel`: Model for late-interaction embeddings.
 - `Reranker`: Model for re-ranking search results.

@@ -92,13 +92,14 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **Prebult Docker Image** : Just pull it: starlightsearch/embedanything-server
 - **SearchAgent** : Example of how you can use index for Searchr1 reasoning.
 
+
 ## 💡What is Vector Streaming
 
  Embedding models are computationally expensive and time-consuming. By separating document preprocessing from model inference, you can significantly reduce pipeline latency and improve throughput.
 
 Vector streaming transforms a sequential bottleneck into an efficient, concurrent workflow.
 
-The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
+The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://embed-anything.com/blog/2024/03/31/vector-streaming/).
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -478,7 +479,7 @@ We’re excited to share that we've expanded our platform to support multiple mo
 
 - [x] Images
 
-- [ ] Videos
+- [x] Videos (frame sampling; enable the `video` feature)
 
 - [ ] Graph
 
@@ -498,7 +499,7 @@ We now support both candle and Onnx backend<br/>
 We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
 
 ➡️ Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-➡️ Video Embedding <br/>
+➡️ Video embedding improvements (temporal + audio) <br/>
 ➡️ Yolo Clip <br/>
 
 

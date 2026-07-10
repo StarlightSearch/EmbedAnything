@@ -65,7 +65,6 @@ base64 = "0.22.1"
 intel-mkl-src = { version = "0.8.1", optional = true }
 accelerate-src = { version = "0.3.2", optional = true }
 indicatif = "0.18.2"
-statistical = "1.0.0"
 half = "2.4.1"
 candle-flash-attn = { workspace = true, optional = true }
 model2vec-rs = "0.1.4"
@@ -96,6 +95,7 @@ cudnn = ["candle-core/cudnn"]
 flash-attn = ["cuda", "candle-transformers/flash-attn", "dep:candle-flash-attn"]
 metal = ["candle-core/metal", "candle-nn/metal"]
 audio = ["dep:symphonia"]
+video = ["processors-rs/video"]
 ort = ["dep:ort",]
 aws = ["dep:aws-sdk-s3", "dep:aws-config", "dep:aws-credential-types"]
 rustls-tls = [

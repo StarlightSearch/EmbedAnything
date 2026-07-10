@@ -30,11 +30,29 @@ pub trait BertEmbed {
         late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
+// HuggingFace tokenizer configs represent special tokens either as a plain
+// string or as an AddedToken object. Both forms must be accepted.
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum SpecialToken {
+    String(String),
+    Added { content: String },
+}
+
+impl SpecialToken {
+    pub fn content(&self) -> &str {
+        match self {
+            SpecialToken::String(s) => s,
+            SpecialToken::Added { content } => content,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct TokenizerConfig {
     pub max_length: Option<usize>,
     pub model_max_length: Option<usize>,
-    pub mask_token: Option<String>,
+    pub mask_token: Option<SpecialToken>,
     pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
 }
 

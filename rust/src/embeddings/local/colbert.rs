@@ -100,9 +100,12 @@ impl OrtColbertEmbedder {
         };
 
         let mut tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
-        let mask_token = tokenizer_config.clone().mask_token;
-        let pad_id = match mask_token.clone() {
-            Some(mask_token) => tokenizer_config.get_token_id_from_token(&mask_token),
+        let mask_token: Option<String> = tokenizer_config
+            .mask_token
+            .as_ref()
+            .map(|t| t.content().to_owned());
+        let pad_id = match mask_token.as_deref() {
+            Some(mask_token) => tokenizer_config.get_token_id_from_token(mask_token),
             None => None,
         };
         let document_marker_token_id = tokenizer_config.get_token_id_from_token("[DocumentMarker]");

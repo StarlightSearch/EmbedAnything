@@ -268,6 +268,42 @@ def embed_audio_file(
     ),
 ) -> list[EmbedData]:
     """
+
+def embed_video_file(
+    file_path: str,
+    embedder: EmbeddingModel,
+    config: VideoEmbedConfig | None = None,
+) -> list[EmbedData]:
+    """
+    Embeds the given video file by sampling frames and returns a list of EmbedData objects.
+
+    Args:
+        file_path: The path to the video file to embed.
+        embedder: The embedding model to use.
+        config: The configuration for video embedding.
+
+    Returns:
+        A list of EmbedData objects.
+    """
+
+def embed_video_directory(
+    file_path: str,
+    embedder: EmbeddingModel,
+    config: VideoEmbedConfig | None = None,
+    adapter: Adapter | None = None,
+) -> list[EmbedData] | None:
+    """
+    Embeds all videos in the given directory and returns a list of EmbedData objects.
+
+    Args:
+        file_path: The path to the directory containing videos to embed.
+        embedder: The embedding model to use.
+        config: The configuration for video embedding.
+        adapter: The adapter to use for storing the embeddings in a vector database.
+
+    Returns:
+        A list of EmbedData objects, or None if an adapter is used.
+    """
     Embeds the given audio file and returns a list of EmbedData objects.
 
     Args:
@@ -585,6 +621,29 @@ class ImageEmbedConfig:
     buffer_size: int | None
     batch_size: int | None
 
+class VideoEmbedConfig:
+    """
+    Represents the configuration for the Video Embedding model.
+
+    Attributes:
+        frame_step: Sample every Nth frame. Default is 30.
+        max_frames: Maximum number of frames to embed. Default is 300.
+        batch_size: The batch size for processing frames. Default is 32.
+    """
+
+    def __init__(
+        self,
+        frame_step: int | None = None,
+        max_frames: int | None = None,
+        batch_size: int | None = None,
+    ):
+        self.frame_step = frame_step
+        self.max_frames = max_frames
+        self.batch_size = batch_size
+    frame_step: int | None
+    max_frames: int | None
+    batch_size: int | None
+
 class EmbeddingModel:
     """
     Represents an embedding model.
@@ -758,6 +817,40 @@ class EmbeddingModel:
 
         Returns:
             A list of EmbedData objects.
+        """
+
+    def embed_video_file(
+        self,
+        video_file: str,
+        config: VideoEmbedConfig | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given video file and returns a list of EmbedData objects.
+
+        Args:
+            video_file: The path to the video file to embed.
+            config: The configuration for video embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+
+    def embed_video_directory(
+        self,
+        directory: str,
+        config: VideoEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData] | None:
+        """
+        Embeds videos in the given directory and returns a list of EmbedData objects.
+
+        Args:
+            directory: The path to the directory to embed.
+            config: The configuration for video embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects, or None if an adapter is used.
         """
 
     def embed_query(
