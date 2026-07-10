@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::config::{ImageEmbedConfig, TextEmbedConfig};
 use crate::Dtype;
+use crate::embeddings::local::pooling::Pooling;
 use anyhow::{anyhow, Result};
 use hf_hub::Repo;
 
@@ -33,6 +34,7 @@ impl Embedder {
         revision: Option<&str>,
         token: Option<&str>,
         dtype: Option<Dtype>,
+        pooling: Option<Pooling>,
     ) -> Result<Self> {
         let api = hf_hub::api::sync::ApiBuilder::from_env()
             .with_token(token.map(|s| s.to_string()))
@@ -78,6 +80,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "JinaBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -85,6 +88,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "StaticModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -92,6 +96,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "BertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -99,6 +104,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "ModernBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -106,6 +112,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "Qwen3ForCausalLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -113,6 +120,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             _ => Err(anyhow!("Model not supported")),
         }

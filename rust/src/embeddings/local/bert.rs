@@ -61,20 +61,14 @@ impl Default for BertEmbedder {
             "sentence-transformers/all-MiniLM-L12-v2".to_string(),
             None,
             None,
+            None,
         )
         .unwrap()
     }
 }
 impl BertEmbedder {
-    pub fn new(model_id: String, revision: Option<String>, token: Option<&str>) -> Result<Self, E> {
-        let model_info = get_model_info_by_hf_id(&model_id);
-        let pooling = match model_info {
-            Some(info) => info
-                .model
-                .get_default_pooling_method()
-                .unwrap_or(Pooling::Mean),
-            None => Pooling::Mean,
-        };
+    pub fn new(model_id: String, revision: Option<String>, token: Option<&str>, pooling: Option<Pooling>) -> Result<Self, E> {
+        let pooling = pooling.unwrap_or(Pooling::Mean);
 
         let (config_filename, tokenizer_filename, weights_filename) = {
             let api = ApiBuilder::from_env()
@@ -416,6 +410,7 @@ mod tests {
             "sentence-transformers/all-MiniLM-L6-v2".to_string(),
             None,
             None,
+            None,
         )
         .unwrap();
         let embeddings = embedder
@@ -443,6 +438,7 @@ mod tests {
     fn test_embed_late_chunking() {
         let embedder = BertEmbedder::new(
             "sentence-transformers/all-MiniLM-L6-v2".to_string(),
+            None,
             None,
             None,
         )

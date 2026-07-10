@@ -5,6 +5,7 @@ use crate::embeddings::local::bert::{BertEmbed, BertEmbedder, SparseBertEmbedder
 use crate::embeddings::local::jina::{JinaEmbed, JinaEmbedder};
 use crate::embeddings::local::model2vec::Model2VecEmbedder;
 use crate::embeddings::local::modernbert::ModernBertEmbedder;
+use crate::embeddings::local::pooling::Pooling;
 use crate::embeddings::local::qwen3::{Qwen3Embed, Qwen3Embedder};
 use crate::Dtype;
 use anyhow::{anyhow, Result};
@@ -63,6 +64,7 @@ impl TextEmbedder {
         revision: Option<&str>,
         token: Option<&str>,
         dtype: Option<Dtype>,
+        pooling: Option<Pooling>,
     ) -> Result<Self> {
         match architecture {
             "JinaBertForMaskedLM" => Ok(Self::Jina(Box::new(JinaEmbedder::new(
@@ -73,6 +75,7 @@ impl TextEmbedder {
                 model_id.to_string(),
                 revision.map(|s| s.to_string()),
                 token,
+                pooling,
             )?))),
             "BertForMaskedLM" => Ok(Self::Bert(Box::new(SparseBertEmbedder::new(
                 model_id.to_string(),

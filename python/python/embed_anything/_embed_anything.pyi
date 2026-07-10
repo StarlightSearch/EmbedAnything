@@ -848,6 +848,15 @@ class EmbeddingModel:
             A list of EmbedData objects.
         """
 
+class Pooling(Enum):
+    """
+    Represents the pooling method to use for the embedding model.
+    """
+    Mean = "Mean"
+    Cls = "Cls"    
+    LastToken = "LastToken"
+
+
 class AudioDecoderModel:
     """
     Represents an audio decoder model.

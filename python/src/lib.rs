@@ -146,6 +146,15 @@ impl fmt::Display for ONNXModel {
     }
 }
 
+
+#[pyclass(eq, eq_int)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumString)]
+pub enum Pooling {
+    Mean,
+    Cls,
+    LastToken,
+}
+
 #[pyclass]
 pub struct EmbeddingModel {
     pub inner: Arc<Embedder>,
@@ -154,12 +163,13 @@ pub struct EmbeddingModel {
 #[pymethods]
 impl EmbeddingModel {
     #[staticmethod]
-    #[pyo3(signature = (model_id, revision=None, token=None, dtype=None))]
+    #[pyo3(signature = (model_id, revision=None, token=None, dtype=None, pooling=None))]
     fn from_pretrained_hf(
         model_id: Option<&str>,
         revision: Option<&str>,
         token: Option<&str>,
         dtype: Option<&Dtype>,
+        pooling: Option<&Pooling>,
     ) -> PyResult<Self> {
         let model_id = model_id.unwrap_or("sentence-transformers/all-MiniLM-L12-v2");
         let dtype = match dtype {
@@ -173,7 +183,13 @@ impl EmbeddingModel {
             Some(Dtype::Q4F16) => Some(embed_anything::Dtype::Q4F16),
             _ => None,
         };
-        let model = Embedder::from_pretrained_hf(model_id, revision, token, dtype).unwrap();
+        let pooling = match pooling {
+            Some(Pooling::Mean) => Some(embed_anything::embeddings::local::pooling::Pooling::Mean),
+            Some(Pooling::Cls) => Some(embed_anything::embeddings::local::pooling::Pooling::Cls),
+            Some(Pooling::LastToken) => Some(embed_anything::embeddings::local::pooling::Pooling::LastToken),
+            None => None,
+        };
+        let model = Embedder::from_pretrained_hf(model_id, revision, token, dtype, pooling).unwrap();
         Ok(EmbeddingModel {
             inner: Arc::new(model),
         })
@@ -803,7 +819,7 @@ mod tests {
 
     #[test]
     fn test_embed_file() {
-        let embedder = EmbeddingModel::from_pretrained_hf(None, None, None, None).unwrap();
+        let embedder = EmbeddingModel::from_pretrained_hf(None, None, None, None, None).unwrap();
         let embeddings = embedder
             .embed_query(vec!["Hello, world!".to_string()], None)
             .unwrap();
