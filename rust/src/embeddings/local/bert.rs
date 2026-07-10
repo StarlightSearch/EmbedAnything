@@ -486,6 +486,7 @@ mod tests {
             "sentence-transformers/all-MiniLM-L6-v2".to_string(),
             None,
             None,
+            None,
         )
         .unwrap();
 
