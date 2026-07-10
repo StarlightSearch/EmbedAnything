@@ -55,6 +55,13 @@ impl CustomOp1 for NonZero {
             CpuStorage::F16(vs) => self.nonzero(vs, layout),
             CpuStorage::F32(vs) => self.nonzero(vs, layout),
             CpuStorage::F64(vs) => self.nonzero(vs, layout),
+            CpuStorage::I16(vs) => self.nonzero(vs, layout),
+            CpuStorage::I32(vs) => self.nonzero(vs, layout),
+            CpuStorage::F8E4M3(vs) => self.nonzero(vs, layout),
+            CpuStorage::F6E2M3(vs) => self.nonzero(vs, layout),
+            CpuStorage::F6E3M2(vs) => self.nonzero(vs, layout),
+            CpuStorage::F4(vs) => self.nonzero(vs, layout),
+            CpuStorage::F8E8M0(vs) => self.nonzero(vs, layout)
         };
         let index_len = layout.dims().len();
         let result_len = result.len() / index_len;

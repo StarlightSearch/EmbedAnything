@@ -88,6 +88,12 @@ jobs:
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          # windows-latest now ships Visual Studio 18 (2026); aws-lc-sys (pulled in
+          # transitively via rustls-tls) falls back to a CMake build that the pinned
+          # cmake crate can't map to a VS generator. Using the crate's prebuilt NASM
+          # objects keeps aws-lc-sys off the CMake path entirely.
+          AWS_LC_SYS_PREBUILT_NASM: "1"
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter --features mkl,extension-module,ort,audio

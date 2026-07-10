@@ -9,8 +9,7 @@ use crate::embeddings::utils::{get_type_ids_ndarray, tokenize_batch_ndarray};
 
 use crate::Dtype;
 use anyhow::Error as E;
-use hf_hub::api::sync::Api;
-use hf_hub::Repo;
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use ndarray::prelude::*;
 use ort::execution_providers::{CUDAExecutionProvider, CoreMLExecutionProvider, ExecutionProvider};
 use ort::session::builder::GraphOptimizationLevel;
@@ -62,21 +61,12 @@ impl OrtBertEmbedder {
         };
 
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
-            let api = Api::new().unwrap();
-            let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                    rev.to_string(),
-                )),
-                None => api.repo(hf_hub::Repo::new(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                )),
-            };
-            let config = api.get("config.json")?;
-            let tokenizer = api.get("tokenizer.json")?;
-            let tokenizer_config = api.get("tokenizer_config.json")?;
+            let client = build_client(None)?;
+            let repo = model_repo(&client, hf_model_id);
+
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let tokenizer_config = download_file(&repo, "tokenizer_config.json", revision)?;
             let mut base_path = path
                 .rsplit_once('/')
                 .map(|(p, _)| p.to_string())
@@ -96,7 +86,7 @@ impl OrtBertEmbedder {
                 Some(Dtype::BF16) => format!("{base_path}model_bf16.onnx"),
                 None => path.to_string(),
             };
-            let weights = api.get(model_path.as_str());
+            let weights = download_file(&repo, model_path.as_str(), revision);
             (config, tokenizer, weights, tokenizer_config)
         };
 
@@ -418,24 +408,26 @@ impl OrtSparseBertEmbedder {
         };
 
         let (_, tokenizer_filename, weights_filename, tokenizer_config_filename) = {
-            let api = Api::new().unwrap();
-            let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                    rev.to_string(),
-                )),
-                None => api.repo(hf_hub::Repo::new(
-                    hf_model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                )),
-            };
-            let config = api.get("config.json")?;
-            let tokenizer = api.get("tokenizer.json")?;
-            let tokenizer_config = api.get("tokenizer_config.json")?;
-            let weights = api.get(path)?;
+            let client = build_client(None)?;
+            let repo = model_repo(&client, hf_model_id);
+
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let tokenizer_config = download_file(&repo, "tokenizer_config.json", revision)?;
+            let weights = download_file(&repo, path, revision);
             (config, tokenizer, weights, tokenizer_config)
         };
+
+        let weights_filename = match weights_filename {
+            Ok(weights) => weights,
+            Err(e) => {
+                return Err(anyhow::anyhow!(
+                    "ONNX weights not found for the model. Please check if the weights for the specified dtype exists. {}",
+                    e
+                ));
+            }
+        };
+
         let tokenizer_config = std::fs::read_to_string(tokenizer_config_filename)?;
         let tokenizer_config: TokenizerConfig = serde_json::from_str(&tokenizer_config)?;
 

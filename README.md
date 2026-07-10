@@ -83,15 +83,15 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 
 - **No Dependency on Pytorch**: Easy to deploy on cloud, comes with low memory footprint.
 - **Highly Modular** : Choose any vectorDB adapter for RAG, with ~~1 line~~ 1 word of code
-- **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
-- **ONNX Backend** : Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
-- **Cloud Embedding Models:** : Supports OpenAI, Cohere, and Gemini.
+- **Backend** : Supports Candle, ONNX and cloud models
 - **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
 - **GPU support** : Hardware acceleration on GPU as well.
 - **Chunking** : In-built chunking methods like semantic, late-chunking
 - **Vector Streaming:** : Separate file processing, Indexing and Inferencing on different threads, reduces latency.
 - **AWS S3 Bucket:** : Directly import AWS S3 bucket files.
+- **Prebult Docker Image** : Just pull it: starlightsearch/embedanything-server
 - **SearchAgent** : Example of how you can use index for Searchr1 reasoning.
+
 
 ## 💡What is Vector Streaming
 
@@ -99,7 +99,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 
 Vector streaming transforms a sequential bottleneck into an efficient, concurrent workflow.
 
-The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
+The embedding process happens separetly from the main process, so as to maintain high performance enabled by rust MPSC, and no memory leak as embeddings are directly saved to vector database. Find our [blog](https://embed-anything.com/blog/2024/03/31/vector-streaming/).
 
 [![EmbedAnythingXWeaviate](https://res.cloudinary.com/dltwftrgc/image/upload/v1731166897/demo_o8auu4.gif)](https://www.youtube.com/watch?v=OJRWPLQ44Dw)
 
@@ -142,8 +142,9 @@ We support any hugging-face models on Candle. And We also support ONNX runtime f
 **⚠️ WhichModel has been deprecated in from_pretrained_hf**
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
+
 
 # Load a custom BERT model from Hugging Face
 model = EmbeddingModel.from_pretrained_hf(
@@ -180,16 +181,53 @@ for item in data:
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Model2Vec | model2vec, minishlab/potion-base-8M |
 | Qwen3-Embedding | Qwen/Qwen3-Embedding-0.6B |
+| Gemma3 | google/embeddinggemma-300m and other Gemma3 embedding models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
 
+
+## Custom Pooling Strategy
+
+By default, EmbedAnything uses the pooling method defined by the model. You can override it by passing a `Pooling` strategy to `from_pretrained_hf`. This is useful when a checkpoint ships without pooling config, or when you want to reproduce a specific sentence-embedding recipe.
+
+```python
+from embed_anything import EmbeddingModel, Pooling
+
+# Available strategies: Pooling.Mean, Pooling.Cls, Pooling.LastToken
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    pooling=Pooling.Mean,   # mean-pool token embeddings (matches sentence-transformers)
+)
+
+data = embed_anything.embed_query(["What is mean pooling?"], embedder=model)
+```
+
+| Strategy            | Description                                                        |
+| ------------------- | ----------------------------------------------------------------- |
+| `Pooling.Mean`      | Averages token embeddings (weighted by the attention mask).       |
+| `Pooling.Cls`       | Uses the `[CLS]` / first-token embedding.                         |
+| `Pooling.LastToken` | Uses the last non-padding token (common for causal/LLM encoders). |
+
+## Authentication (Private & Gated Models)
+
+To load private or gated repositories (for example `google/embeddinggemma-300m`), pass a Hugging Face access token. If `token` is omitted, EmbedAnything falls back to the `HF_TOKEN` environment variable or your local `huggingface-cli login` credentials.
+
+```python
+from embed_anything import EmbeddingModel
+
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="google/embeddinggemma-300m",
+    token="hf_your_access_token",   # or set the HF_TOKEN environment variable
+)
+```
 
 ## Splade Models (Sparse Embeddings)
 
 Sparse embeddings are useful for keyword-based retrieval and hybrid search scenarios.
 
 ```python
-from embed_anything import EmbeddingModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, TextEmbedConfig
+
 
 # Load a SPLADE model for sparse embeddings
 model = EmbeddingModel.from_pretrained_hf(
@@ -215,8 +253,9 @@ ONNX models provide faster inference and lower memory usage. Use the `ONNXModel`
 ### BERT Models
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, WhichModel, ONNXModel, Dtype, TextEmbedConfig
+
 
 # Option 2: Use a custom ONNX model from Hugging Face
 model = EmbeddingModel.from_pretrained_onnx(
@@ -231,6 +270,7 @@ model = EmbeddingModel.from_pretrained_onnx(
 Use cloud models for high-quality embeddings without local model deployment.
 
 ```python
+import embed_anything
 from embed_anything import EmbeddingModel, WhichModel
 import os
 
@@ -253,8 +293,8 @@ data = embed_anything.embed_file("test_files/document.pdf", embedder=model)
 Semantic chunking preserves meaning by splitting text at semantically meaningful boundaries rather than fixed sizes.
 
 ```python
-from embed_anything import EmbeddingModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, TextEmbedConfig
 
 # Main embedding model for generating final embeddings
 model = EmbeddingModel.from_pretrained_hf(
@@ -289,6 +329,7 @@ for item in data:
 Late-chunking splits text into smaller units first, then combines them during embedding for better context preservation.
 
 ```python
+import embed_anything
 from embed_anything import EmbeddingModel, TextEmbedConfig, EmbedData
 
 # Load your embedding model
@@ -349,8 +390,8 @@ os.add_dll_directory("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/b
 ### Advanced Usage with Configuration
 
 ```python
-from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 import embed_anything
+from embed_anything import EmbeddingModel, WhichModel, TextEmbedConfig
 
 # Load model
 model = EmbeddingModel.from_pretrained_hf(
@@ -411,6 +452,7 @@ print(f"Total chunks: {len(data)}")
 For custom or fine-tuned models, specify the Hugging Face model ID and path to the ONNX file:
 
 ```python
+import embed_anything
 from embed_anything import EmbeddingModel, WhichModel, Dtype
 
 # Load a custom ONNX model from Hugging Face
@@ -473,7 +515,7 @@ We’re excited to share that we've expanded our platform to support multiple mo
 
 - [x] Images
 
-- [ ] Videos
+- [x] Videos (frame sampling; enable the `video` feature)
 
 - [ ] Graph
 
@@ -493,7 +535,7 @@ We now support both candle and Onnx backend<br/>
 We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
 
 ➡️ Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-➡️ Video Embedding <br/>
+➡️ Video embedding improvements (temporal + audio) <br/>
 ➡️ Yolo Clip <br/>
 
 

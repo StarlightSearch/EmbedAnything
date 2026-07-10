@@ -301,7 +301,42 @@ def embed_audio_file(
         text_embed_config=config,
     )
     ```
+    """
 
+def embed_video_file(
+    file_path: str,
+    embedder: EmbeddingModel,
+    config: VideoEmbedConfig | None = None,
+) -> list[EmbedData]:
+    """
+    Embeds the given video file by sampling frames and returns a list of EmbedData objects.
+
+    Args:
+        file_path: The path to the video file to embed.
+        embedder: The embedding model to use.
+        config: The configuration for video embedding.
+
+    Returns:
+        A list of EmbedData objects.
+    """
+
+def embed_video_directory(
+    file_path: str,
+    embedder: EmbeddingModel,
+    config: VideoEmbedConfig | None = None,
+    adapter: Adapter | None = None,
+) -> list[EmbedData] | None:
+    """
+    Embeds all videos in the given directory and returns a list of EmbedData objects.
+
+    Args:
+        file_path: The path to the directory containing videos to embed.
+        embedder: The embedding model to use.
+        config: The configuration for video embedding.
+        adapter: The adapter to use for storing the embeddings in a vector database.
+
+    Returns:
+        A list of EmbedData objects, or None if an adapter is used.
     """
 
 class EmbedData:
@@ -452,7 +487,7 @@ class Reranker:
         """
 
     def rerank(
-        self, query: list[str], documents: list[str], top_k: int
+        self, query: list[str], documents: list[str], batch_size: int
     ) -> RerankerResult:
         """
         Reranks the given documents for the query and returns a list of RerankerResult objects.
@@ -460,7 +495,7 @@ class Reranker:
         Args:
             query: The query to rerank.
             documents: The list of documents to rerank.
-            top_k: The number of documents to return.
+            batch_size: The number of documents to process per batch.
 
         Returns:
             A list of RerankerResult objects.
@@ -585,6 +620,29 @@ class ImageEmbedConfig:
     buffer_size: int | None
     batch_size: int | None
 
+class VideoEmbedConfig:
+    """
+    Represents the configuration for the Video Embedding model.
+
+    Attributes:
+        frame_step: Sample every Nth frame. Default is 30.
+        max_frames: Maximum number of frames to embed. Default is 300.
+        batch_size: The batch size for processing frames. Default is 32.
+    """
+
+    def __init__(
+        self,
+        frame_step: int | None = None,
+        max_frames: int | None = None,
+        batch_size: int | None = None,
+    ):
+        self.frame_step = frame_step
+        self.max_frames = max_frames
+        self.batch_size = batch_size
+    frame_step: int | None
+    max_frames: int | None
+    batch_size: int | None
+
 class EmbeddingModel:
     """
     Represents an embedding model.
@@ -595,23 +653,42 @@ class EmbeddingModel:
         revision: str | None = None,
         token: str | None = None,
         dtype: Dtype | None = None,
+        pooling: Pooling | None = None,
     ) -> EmbeddingModel:
         """
         Loads an embedding model from the Hugging Face model hub.
 
+        The model architecture (BERT, Jina, CLIP, ModernBERT, Qwen3, Gemma3,
+        Model2Vec, SPLADE, ColPali, etc.) is auto-detected from the model's
+        `config.json`, so `WhichModel` is no longer required here.
+
         Attributes:
-            model_id: The ID of the model.
-            revision: The revision of the model.
-            token: The Hugging Face token.
+            model_id: The ID of the model on the Hugging Face Hub.
+            revision: The revision (branch, tag, or commit) of the model.
+            token: The Hugging Face access token. Required for private or gated
+                repositories. If None, the token is read from the `HF_TOKEN`
+                environment variable (or the local Hugging Face login) when available.
             dtype: The dtype of the model.
+            pooling: The pooling strategy used to turn token embeddings into a
+                single sentence embedding (`Pooling.Mean`, `Pooling.Cls`, or
+                `Pooling.LastToken`). If None, the model's default pooling is used.
         Returns:
             An EmbeddingModel object.
 
         Example:
         ```python
+        from embed_anything import EmbeddingModel, Pooling
+
         model = EmbeddingModel.from_pretrained_hf(
             model_id="sentence-transformers/all-MiniLM-L6-v2",
-            revision="main"
+            revision="main",
+            pooling=Pooling.Mean,
+        )
+
+        # Loading a private or gated model with an access token
+        gated_model = EmbeddingModel.from_pretrained_hf(
+            model_id="google/embeddinggemma-300m",
+            token="hf_...",
         )
         ```
 
@@ -760,6 +837,40 @@ class EmbeddingModel:
             A list of EmbedData objects.
         """
 
+    def embed_video_file(
+        self,
+        video_file: str,
+        config: VideoEmbedConfig | None = None,
+    ) -> list[EmbedData]:
+        """
+        Embeds the given video file and returns a list of EmbedData objects.
+
+        Args:
+            video_file: The path to the video file to embed.
+            config: The configuration for video embedding.
+
+        Returns:
+            A list of EmbedData objects.
+        """
+
+    def embed_video_directory(
+        self,
+        directory: str,
+        config: VideoEmbedConfig | None = None,
+        adapter: Adapter | None = None,
+    ) -> list[EmbedData] | None:
+        """
+        Embeds videos in the given directory and returns a list of EmbedData objects.
+
+        Args:
+            directory: The path to the directory to embed.
+            config: The configuration for video embedding.
+            adapter: The adapter for the embedding.
+
+        Returns:
+            A list of EmbedData objects, or None if an adapter is used.
+        """
+
     def embed_query(
         self,
         query: list[str],
@@ -847,6 +958,15 @@ class EmbeddingModel:
         Returns:
             A list of EmbedData objects.
         """
+
+class Pooling(Enum):
+    """
+    Represents the pooling method to use for the embedding model.
+    """
+    Mean = "Mean"
+    Cls = "Cls"    
+    LastToken = "LastToken"
+
 
 class AudioDecoderModel:
     """
@@ -936,7 +1056,6 @@ class ONNXModel(Enum):
     | `JINAV3`                         | jinaai/jina-embeddings-v3                        |
     | `SPLADEPPENV1`                   | prithivida/Splade_PP_en_v1                      |
     | `SPLADEPPENV2`                   | prithivida/Splade_PP_en_v2                      |
-    | `ModernBERTBase`                 | nomic-ai/modernbert-embed-base                   |
     ```
     """
 
@@ -1005,5 +1124,3 @@ class ONNXModel(Enum):
     SPLADEPPENV1 = "SPLADEPPENV1"
 
     SPLADEPPENV2 = "SPLADEPPENV2"
-
-    ModernBERTBase = "ModernBERTBase"

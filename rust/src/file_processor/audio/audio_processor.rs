@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use anyhow::{Error as E, Result};
 use candle_core::{Device, IndexOp, Tensor};
 use candle_nn::{ops::softmax, VarBuilder};
-use hf_hub::{api::sync::Api, Repo, RepoType};
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use rand::{
     distr::{weighted::WeightedIndex, Distribution},
     SeedableRng,
@@ -458,12 +458,9 @@ pub fn build_model(
         (None, None) => (default_model, default_revision),
     };
 
-    let api = Api::new()?;
-    let repo = api.repo(Repo::with_revision(
-        model_id.to_string(),
-        RepoType::Model,
-        revision.to_string(),
-    ));
+    let client = build_client(None)?;
+    let repo = model_repo(&client, model_id);
+    let revision = Some(revision);
 
     let (config, tokenizer, model) = if quantized {
         let ext = match model_type {
@@ -472,15 +469,15 @@ pub fn build_model(
             _ => unimplemented!("no quantized support for {:?}", model_type),
         };
 
-        let config = repo.get(&format!("config-{ext}.json"))?;
-        let tokenizer = repo.get(&format!("tokenizer-{ext}.json"))?;
-        let model = repo.get(&format!("model-{ext}-q80.gguf"))?;
+        let config = download_file(&repo, &format!("config-{ext}.json"), revision)?;
+        let tokenizer = download_file(&repo, &format!("tokenizer-{ext}.json"), revision)?;
+        let model = download_file(&repo, &format!("model-{ext}-q80.gguf"), revision)?;
 
         (config, tokenizer, model)
     } else {
-        let config = repo.get("config.json")?;
-        let tokenizer = repo.get("tokenizer.json")?;
-        let model = repo.get("model.safetensors")?;
+        let config = download_file(&repo, "config.json", revision)?;
+        let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+        let model = download_file(&repo, "model.safetensors", revision)?;
 
         (config, tokenizer, model)
     };

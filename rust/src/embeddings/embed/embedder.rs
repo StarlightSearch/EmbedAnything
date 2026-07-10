@@ -3,8 +3,9 @@ use std::sync::Arc;
 
 use crate::config::{ImageEmbedConfig, TextEmbedConfig};
 use crate::Dtype;
+use crate::embeddings::local::pooling::Pooling;
 use anyhow::{anyhow, Result};
-use hf_hub::Repo;
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 
 use super::text::{TextEmbed, TextEmbedder};
 use super::types::{EmbedData, EmbeddingResult};
@@ -33,19 +34,11 @@ impl Embedder {
         revision: Option<&str>,
         token: Option<&str>,
         dtype: Option<Dtype>,
+        pooling: Option<Pooling>,
     ) -> Result<Self> {
-        let api = hf_hub::api::sync::ApiBuilder::from_env()
-            .with_token(token.map(|s| s.to_string()))
-            .build()?;
-        let api = match revision {
-            Some(rev) => api.repo(Repo::with_revision(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-                rev.to_string(),
-            )),
-            None => api.repo(Repo::new(model_id.to_string(), hf_hub::RepoType::Model)),
-        };
-        let config_filename = api.get("config.json")?;
+        let client = build_client(token)?;
+        let repo = model_repo(&client, model_id);
+        let config_filename = download_file(&repo, "config.json", revision)?;
         let config = std::fs::read_to_string(config_filename)?;
         let config: serde_json::Value = serde_json::from_str(&config)?;
 
@@ -78,6 +71,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "JinaBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -85,6 +79,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "StaticModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -92,6 +87,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "BertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -99,6 +95,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "ModernBertForMaskedLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -106,6 +103,7 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
             )?)),
             "Qwen3ForCausalLM" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
                 architecture,
@@ -113,6 +111,15 @@ impl Embedder {
                 revision,
                 token,
                 dtype,
+                pooling,
+            )?)),
+            "Gemma3TextModel" => Ok(Self::Text(TextEmbedder::from_pretrained_hf(
+                architecture,
+                model_id,
+                revision,
+                token,
+                dtype,
+                pooling,
             )?)),
             _ => Err(anyhow!("Model not supported")),
         }

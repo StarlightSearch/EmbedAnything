@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 
 use super::embedder::Embedder;
+use crate::embeddings::local::pooling::Pooling;
 use crate::embeddings::local::text_embedding::ONNXModel;
 use crate::Dtype;
 
@@ -18,7 +19,10 @@ pub struct EmbedderBuilder {
     path_in_repo: Option<String>,
     // The ONNX Model ID that you want to use
     onnx_model_id: Option<ONNXModel>,
+    // The dtype to use
     dtype: Option<Dtype>,
+    // The pooling method to use
+    pooling: Option<Pooling>,
 }
 
 impl EmbedderBuilder {
@@ -32,6 +36,7 @@ impl EmbedderBuilder {
             path_in_repo: None,
             onnx_model_id: None,
             dtype: None,
+            pooling: None,
         }
     }
 
@@ -77,6 +82,10 @@ impl EmbedderBuilder {
         self.dtype = dtype;
         self
     }
+    pub fn pooling(mut self, pooling: Option<Pooling>) -> Self {
+        self.pooling = pooling;
+        self
+    }
 
     pub fn from_pretrained_hf(self) -> Result<Embedder> {
         match self.model_id {
@@ -85,6 +94,7 @@ impl EmbedderBuilder {
                 self.revision.as_deref(),
                 self.token.as_deref(),
                 self.dtype,
+                self.pooling,
             ),
             None => Err(anyhow!("Model ID is required")),
         }

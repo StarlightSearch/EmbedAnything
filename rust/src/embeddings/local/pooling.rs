@@ -144,7 +144,10 @@ impl Pooling {
                     .expand(&[tensor.dim(0)?, tensor.dim(1)?, tensor.dim(2)?])?
                     .to_dtype(tensor.dtype())?;
 
-                let mask_sum = expanded_mask.sum_all()?.clamp(1e-10, f32::MAX)?;
+                // Per-row token count: sum the mask over the sequence dim only (not over
+                // the hidden dim or the whole batch). Shape [batch, hidden]; each row holds
+                // that row's number of non-padding tokens.
+                let mask_sum = expanded_mask.sum(1)?.clamp(1e-10, f32::MAX)?;
 
                 let result = tensor
                     .mul(&expanded_mask)?
@@ -162,16 +165,75 @@ impl Pooling {
 
                 let mask_3d = attention_mask.view().insert_axis(Axis(2));
 
-                let mask_sum = mask_3d.iter().sum::<f32>();
+                // Per-row token count (sum over the sequence dim), one denominator per row.
+                let counts = attention_mask.sum_axis(Axis(1));
 
-                let result = output
-                    .view()
-                    .mul(&mask_3d)
-                    .sum_axis(Axis(1))
-                    .mapv(|x| x / mask_sum.clamp(1e-10, f32::MAX));
+                let mut result = output.view().mul(&mask_3d).sum_axis(Axis(1));
+                for (mut row, &count) in result.outer_iter_mut().zip(counts.iter()) {
+                    let denom = count.max(1e-10);
+                    row.mapv_inplace(|x| x / denom);
+                }
 
-                Ok(PooledOutputType::Array(result.to_owned()))
+                Ok(PooledOutputType::Array(result))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use candle_core::Device;
+
+    // A batch whose two rows have different real-token counts, so the correct mean
+    // divisor differs per row (this is what the `sum_all` bug got wrong):
+    //   row 0: tokens [1,2] and [3,4], plus one PADDING token [5,6] (mask 0)
+    //   row 1: tokens [10,20], [30,40], [50,60] (all real)
+    const HIDDEN: [f32; 12] = [1., 2., 3., 4., 5., 6., 10., 20., 30., 40., 50., 60.];
+    // Correct per-row mean over real tokens:
+    //   row0 = ([1,2] + [3,4]) / 2 = [2, 3]
+    //   row1 = ([10,20] + [30,40] + [50,60]) / 3 = [30, 40]
+    const EXPECTED: [[f32; 2]; 2] = [[2., 3.], [30., 40.]];
+
+    fn assert_close(got: &[Vec<f32>]) {
+        assert_eq!(got.len(), EXPECTED.len());
+        for (row, want) in got.iter().zip(EXPECTED.iter()) {
+            for (a, b) in row.iter().zip(want.iter()) {
+                assert!((a - b).abs() < 1e-6, "got {got:?} want {EXPECTED:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn mean_pool_tensor_divides_by_per_row_token_count() {
+        let device = Device::Cpu;
+        let hidden = Tensor::from_vec(HIDDEN.to_vec(), (2, 3, 2), &device).unwrap();
+        let mask = Tensor::from_vec(vec![1u32, 1, 0, 1, 1, 1], (2, 3), &device).unwrap();
+        let pooled = Pooling::Mean
+            .pool(
+                &ModelOutput::Tensor(hidden),
+                Some(&PooledOutputType::from(mask)),
+            )
+            .unwrap();
+        assert_close(&pooled.to_tensor().unwrap().to_vec2::<f32>().unwrap());
+    }
+
+    #[test]
+    fn mean_pool_ndarray_divides_by_per_row_token_count() {
+        let hidden = Array3::from_shape_vec((2, 3, 2), HIDDEN.to_vec()).unwrap();
+        let mask = Array2::from_shape_vec((2, 3), vec![1., 1., 0., 1., 1., 1.]).unwrap();
+        let pooled = Pooling::Mean
+            .pool(
+                &ModelOutput::Array(hidden),
+                Some(&PooledOutputType::from(mask)),
+            )
+            .unwrap();
+        let rows: Vec<Vec<f32>> = pooled
+            .to_array()
+            .unwrap()
+            .outer_iter()
+            .map(|r| r.to_vec())
+            .collect();
+        assert_close(&rows);
     }
 }

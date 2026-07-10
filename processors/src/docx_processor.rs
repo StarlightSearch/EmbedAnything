@@ -18,7 +18,22 @@ impl DocxProcessor {
 
 impl FileProcessor for DocxProcessor {
     fn process_file(&self, path: impl AsRef<Path>) -> anyhow::Result<Document> {
-        let docs = MarkdownDocument::from_file(path);
+        // `docx-parser::MarkdownDocument::from_file` uses `panic!` instead of returning
+        // `Result` when the file is missing, corrupt, or not a valid DOCX/ZIP archive.
+        // We catch that panic here and convert it into a proper anyhow error so callers
+        // get a clean Err(…) rather than a process-level abort.
+        let path = path.as_ref().to_owned();
+        let docs =
+            std::panic::catch_unwind(move || MarkdownDocument::from_file(&path)).map_err(|e| {
+                let msg = if let Some(s) = e.downcast_ref::<String>() {
+                    s.clone()
+                } else if let Some(s) = e.downcast_ref::<&str>() {
+                    s.to_string()
+                } else {
+                    "unknown panic".to_string()
+                };
+                anyhow::anyhow!("docx_parser panicked while opening file: {}", msg)
+            })?;
         let markdown = docs.to_markdown(false);
         self.markdown_processor.process_document(&markdown)
     }

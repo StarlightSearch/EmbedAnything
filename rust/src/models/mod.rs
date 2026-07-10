@@ -21,6 +21,7 @@ pub mod clip;
 pub mod colpali;
 pub mod dinov2;
 pub mod gemma;
+pub mod gemma3;
 pub mod idefics3;
 pub mod jina_bert;
 pub mod llama;

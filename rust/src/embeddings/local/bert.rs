@@ -7,15 +7,13 @@ extern crate accelerate_src;
 use std::collections::HashMap;
 
 use crate::embeddings::embed::EmbeddingResult;
-use crate::embeddings::local::text_embedding::get_model_info_by_hf_id;
 use crate::embeddings::utils::tokenize_batch;
 use crate::embeddings::{normalize_l2, select_device};
 use anyhow::Error as E;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::models::bert::{BertForMaskedLM, BertModel, Config, DTYPE};
-use hf_hub::api::sync::ApiBuilder;
-use hf_hub::Repo;
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 
 use serde::Deserialize;
 use tokenizers::{AddedToken, PaddingParams, Tokenizer, TruncationParams};
@@ -30,11 +28,29 @@ pub trait BertEmbed {
         late_chunking: Option<bool>,
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
+// HuggingFace tokenizer configs represent special tokens either as a plain
+// string or as an AddedToken object. Both forms must be accepted.
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum SpecialToken {
+    String(String),
+    Added { content: String },
+}
+
+impl SpecialToken {
+    pub fn content(&self) -> &str {
+        match self {
+            SpecialToken::String(s) => s,
+            SpecialToken::Added { content } => content,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct TokenizerConfig {
     pub max_length: Option<usize>,
     pub model_max_length: Option<usize>,
-    pub mask_token: Option<String>,
+    pub mask_token: Option<SpecialToken>,
     pub added_tokens_decoder: Option<HashMap<String, AddedToken>>,
 }
 
@@ -61,38 +77,24 @@ impl Default for BertEmbedder {
             "sentence-transformers/all-MiniLM-L12-v2".to_string(),
             None,
             None,
+            None,
         )
         .unwrap()
     }
 }
 impl BertEmbedder {
-    pub fn new(model_id: String, revision: Option<String>, token: Option<&str>) -> Result<Self, E> {
-        let model_info = get_model_info_by_hf_id(&model_id);
-        let pooling = match model_info {
-            Some(info) => info
-                .model
-                .get_default_pooling_method()
-                .unwrap_or(Pooling::Mean),
-            None => Pooling::Mean,
-        };
+    pub fn new(model_id: String, revision: Option<String>, token: Option<&str>, pooling: Option<Pooling>) -> Result<Self, E> {
+        let pooling = pooling.unwrap_or(Pooling::Mean);
 
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = ApiBuilder::from_env()
-                .with_token(token.map(|s| s.to_string()))
-                .build()
-                .unwrap();
-            let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
-                None => api.repo(hf_hub::Repo::new(
-                    model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                )),
-            };
-            let config = api.get("config.json")?;
-            let tokenizer = api.get("tokenizer.json")?;
-            let weights = match api.get("model.safetensors") {
+            let client = build_client(token)?;
+            let repo = model_repo(&client, &model_id);
+            let revision = revision.as_deref();
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let weights = match download_file(&repo, "model.safetensors", revision) {
                 Ok(safetensors) => safetensors,
-                Err(_) => match api.get("pytorch_model.bin") {
+                Err(_) => match download_file(&repo, "pytorch_model.bin", revision) {
                     Ok(pytorch_model) => pytorch_model,
                     Err(e) => {
                         return Err(anyhow::Error::msg(format!(
@@ -299,22 +301,14 @@ pub struct SparseBertEmbedder {
 impl SparseBertEmbedder {
     pub fn new(model_id: String, revision: Option<String>, token: Option<&str>) -> Result<Self, E> {
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let api = ApiBuilder::from_env()
-                .with_token(token.map(|s| s.to_string()))
-                .build()
-                .unwrap();
-            let api = match revision {
-                Some(rev) => api.repo(Repo::with_revision(model_id, hf_hub::RepoType::Model, rev)),
-                None => api.repo(hf_hub::Repo::new(
-                    model_id.to_string(),
-                    hf_hub::RepoType::Model,
-                )),
-            };
-            let config = api.get("config.json")?;
-            let tokenizer = api.get("tokenizer.json")?;
-            let weights = match api.get("model.safetensors") {
+            let client = build_client(token)?;
+            let repo = model_repo(&client, &model_id);
+            let revision = revision.as_deref();
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let weights = match download_file(&repo, "model.safetensors", revision) {
                 Ok(safetensors) => safetensors,
-                Err(_) => match api.get("pytorch_model.bin") {
+                Err(_) => match download_file(&repo, "pytorch_model.bin", revision) {
                     Ok(pytorch_model) => pytorch_model,
                     Err(e) => {
                         return Err(anyhow::Error::msg(format!(
@@ -416,6 +410,7 @@ mod tests {
             "sentence-transformers/all-MiniLM-L6-v2".to_string(),
             None,
             None,
+            None,
         )
         .unwrap();
         let embeddings = embedder
@@ -445,10 +440,79 @@ mod tests {
             "sentence-transformers/all-MiniLM-L6-v2".to_string(),
             None,
             None,
+            None,
         )
         .unwrap();
         let text_batch = vec!["Hello, world!"];
         let embeddings = embedder.embed_late_chunking(&text_batch, Some(1)).unwrap();
         println!("{:?}", embeddings);
+    }
+
+    /// Demonstrates the mean-pooling denominator bug in `Pooling::mean`.
+    ///
+    /// Reference: sentence-transformers `all-MiniLM-L6-v2`, input "Hello, world!"
+    /// (input_ids = [101, 7592, 1010, 2088, 999, 102]; 6 tokens, hidden_size 384),
+    /// captured at each pipeline stage: Transformer -> Pooling(mean) -> Normalize.
+    ///
+    /// The transformer output and the final L2-normalized embedding match ST, but the
+    /// pre-normalize mean-pooled vector is off by exactly hidden_size (384x): `Pooling::mean`
+    /// divides by `sum_all(mask)` (= tokens * hidden) instead of by the token count. The
+    /// scale is uniform, so the downstream L2-normalize hides it — which is why every
+    /// mean-pooled model's normalized output (and its golden test) still looks correct.
+    ///
+    /// This test currently FAILS at the pooled stage; it should pass once the divisor is
+    /// fixed to the per-row token count.
+    #[test]
+    fn mean_pool_matches_sentence_transformers() {
+        let embedder = BertEmbedder::new(
+            "sentence-transformers/all-MiniLM-L6-v2".to_string(),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        let (token_ids, attention_mask) =
+            tokenize_batch(&embedder.tokenizer, &["Hello, world!"], &embedder.model.device)
+                .unwrap();
+        let token_type_ids = token_ids.zeros_like().unwrap();
+        let hidden = embedder
+            .model
+            .forward(&token_ids, &token_type_ids, Some(&attention_mask))
+            .unwrap();
+
+        let close = |a: &[f32], b: &[f32]| a.iter().zip(b).all(|(x, y)| (x - y).abs() < 1e-4);
+
+        // Stage 1 - transformer output (token 0): matches ST.
+        let st_transformer0 = [0.097046, 0.044667, 0.033430, 0.294218, -0.096382, -0.397249];
+        let rust_transformer0 = hidden.to_vec3::<f32>().unwrap()[0][0][..6].to_vec();
+        println!("transformer token0: rust={rust_transformer0:?} st={st_transformer0:?}");
+        assert!(
+            close(&rust_transformer0, &st_transformer0),
+            "transformer output should match ST"
+        );
+
+        // Stage 2 - mean-pooled, pre-normalize: SHOULD match ST but is off by ~384x (bug).
+        let model_output = ModelOutput::Tensor(hidden.clone());
+        let mask = PooledOutputType::from(attention_mask);
+        let pooled_t = Pooling::Mean.pool(&model_output, Some(&mask)).unwrap();
+        let pooled_t = pooled_t.to_tensor().unwrap();
+        let pooled = pooled_t.to_vec2::<f32>().unwrap()[0][..6].to_vec();
+        let st_pooled = [-0.186758, 0.160997, -0.026707, 0.070296, -0.197099, -0.570063];
+        println!("pooled:             rust={pooled:?} st={st_pooled:?}");
+        assert!(
+            close(&pooled, &st_pooled),
+            "mean-pooled vector should match ST but is off by ~hidden_size (384x): rust={pooled:?} st={st_pooled:?}"
+        );
+
+        // Stage 3 - final L2-normalized: matches ST (the uniform scale cancels here).
+        // Only reached once the pooling divisor is fixed.
+        let normalized = normalize_l2(pooled_t).unwrap().to_vec2::<f32>().unwrap()[0][..6].to_vec();
+        let st_normalized = [-0.038177, 0.032911, -0.005459, 0.014370, -0.040291, -0.116532];
+        println!("normalized:         rust={normalized:?} st={st_normalized:?}");
+        assert!(
+            close(&normalized, &st_normalized),
+            "normalized output should match ST"
+        );
     }
 }

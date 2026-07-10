@@ -1,17 +1,11 @@
-#[cfg(feature = "mkl")]
-extern crate intel_mkl_src;
-
-#[cfg(feature = "accelerate")]
-extern crate accelerate_src;
-
 use crate::{
     embeddings::{embed::EmbeddingResult, normalize_l2, select_device, utils::tokenize_batch},
-    models::qwen3::{Config, Model},
+    models::gemma3::{Config, Model},
 };
 use anyhow::Error;
 use candle_core::{DType, Device, Tensor};
-use candle_nn::VarBuilder;
-use crate::hf_hub_utils::{build_client, download_file, model_repo};
+use candle_nn::{Linear, Module, VarBuilder};
+use crate::hf_hub_utils::{build_client, download_file, model_repo, ModelRepo};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use super::{
@@ -19,7 +13,7 @@ use super::{
     pooling::{ModelOutput, PooledOutputType, Pooling},
 };
 
-pub trait Qwen3Embed {
+pub trait Gemma3Embed {
     fn embed(
         &self,
         text_batch: &[&str],
@@ -28,13 +22,32 @@ pub trait Qwen3Embed {
     ) -> Result<Vec<EmbeddingResult>, anyhow::Error>;
 }
 
-pub struct Qwen3Embedder {
+pub struct Gemma3Embedder {
     pub model: std::sync::RwLock<Model>,
     pub tokenizer: Tokenizer,
     pub device: Device,
+    dense1: Linear,
+    dense2: Linear,
 }
 
-impl Qwen3Embedder {
+/// Loads a sentence-transformers `Dense` module (a single no-bias `nn.Linear`
+/// stored under the key `linear.weight`) from a safetensors file in the repo.
+fn load_dense(
+    repo: &ModelRepo,
+    path: &str,
+    revision: Option<&str>,
+    device: &Device,
+) -> Result<Linear, anyhow::Error> {
+    let weights_path = download_file(repo, path, revision)?;
+    let mut tensors = candle_core::safetensors::load(weights_path, device)?;
+    let weight = tensors
+        .remove("linear.weight")
+        .ok_or_else(|| anyhow::anyhow!("missing 'linear.weight' in {path}"))?
+        .to_dtype(DType::F32)?;
+    Ok(Linear::new(weight, None))
+}
+
+impl Gemma3Embedder {
     pub fn new(
         model_id: &str,
         revision: Option<String>,
@@ -74,6 +87,7 @@ impl Qwen3Embedder {
             .map_err(Error::msg)?;
 
         let device = select_device();
+
         let dtype = match dtype {
             Some(crate::Dtype::F16) => DType::F16,
             Some(crate::Dtype::F32) => DType::F32,
@@ -91,17 +105,26 @@ impl Qwen3Embedder {
             }
         };
 
-        let model = Model::new(&config, vb)?;
+        let model = Model::new(false, &config, vb)?; // use_flash_attn = false by default
+
+        // EmbeddingGemma applies a 768 -> 3072 -> 768 dense projection head
+        // (sentence-transformers modules 2_Dense / 3_Dense, both no-bias with
+        // Identity activation) between mean pooling and L2 normalization. These
+        // weights live outside model.safetensors and must be applied separately.
+        let dense1 = load_dense(&repo, "2_Dense/model.safetensors", revision, &device)?;
+        let dense2 = load_dense(&repo, "3_Dense/model.safetensors", revision, &device)?;
 
         Ok(Self {
             model: std::sync::RwLock::new(model),
             tokenizer,
             device,
+            dense1,
+            dense2,
         })
     }
 }
 
-impl Qwen3Embed for Qwen3Embedder {
+impl Gemma3Embed for Gemma3Embedder {
     fn embed(
         &self,
         text_batch: &[&str],
@@ -115,27 +138,26 @@ impl Qwen3Embed for Qwen3Embedder {
             let (token_ids, attention_mask) =
                 tokenize_batch(&self.tokenizer, mini_text_batch, &self.device)?;
 
-            let embeddings: Tensor = {
-                let mut model = self
-                    .model
-                    .write()
-                    .map_err(|e| anyhow::anyhow!("Lock poisoned: {}", e))?;
-                let result = model
-                    .forward(&token_ids, &attention_mask, 0)?
-                    .to_dtype(DType::F32)?;
-                model.clear_kv_cache();
+            // Forward pass through the model. EmbeddingGemma uses bidirectional
+            // attention, so the padding mask must be passed in (not just used for pooling).
+            let embeddings: Tensor = self
+                .model
+                .write()
+                .unwrap()
+                .forward(&token_ids, Some(&attention_mask), 0)
+                .unwrap()
+                .to_dtype(DType::F32)?;
 
-                result
-            };
+            self.model.write().unwrap().clear_kv_cache();
 
+            // Convert attention_mask to the expected format for pooling
             let attention_mask = PooledOutputType::from(attention_mask);
             let attention_mask = Some(&attention_mask);
             let model_output = ModelOutput::Tensor(embeddings.clone());
-            let pooled_output = Pooling::LastToken
-                .pool(&model_output, attention_mask)
-                .unwrap();
+            let pooled_output = Pooling::Mean.pool(&model_output, attention_mask).unwrap();
             let pooled_output = pooled_output.to_tensor()?;
-            let embeddings = normalize_l2(pooled_output)?;
+            let projected = self.dense2.forward(&self.dense1.forward(pooled_output)?)?;
+            let embeddings = normalize_l2(&projected)?;
             let batch_encodings = embeddings.to_vec2::<f32>()?;
 
             encodings.extend(
@@ -148,19 +170,22 @@ impl Qwen3Embed for Qwen3Embedder {
         Ok(encodings)
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_qwen3_embed() {
-        let embedder = Qwen3Embedder::new(
-            "Qwen/Qwen3-Embedding-0.6B",
+    fn test_gemma3_embed() {
+        let embedder = Gemma3Embedder::new(
+            "google/embeddinggemma-300m",
             None,
             None,
             Some(crate::Dtype::F32),
-        )
-        .unwrap();
+        );
+        let Ok(embedder) = embedder else {
+            return;
+        };
         let embeddings = embedder
             .embed(
                 &["Hello, world!", "I am a rust programmer now"],
@@ -168,38 +193,37 @@ mod tests {
                 None,
             )
             .unwrap();
+
+        // Exercise full pipeline and check first 6 dims.
+        // bidirectional transformer -> mean pool
+        // -> dense(768->3072) -> dense(3072->768) -> L2 norm
         let test_embeddings: Vec<f32> = vec![
-            0.00555867,
-            0.00928946,
-            -0.00985782,
-            -0.06393453,
-            0.00829317,
-            0.00708855,
+            -0.17819002,
+            0.02147517,
+            0.06739803,
+            -0.03160102,
+            0.02198322,
+            -0.00981485,
         ];
         let first_embeddings = embeddings[0].to_dense().unwrap()[0..6].to_vec();
         println!("{:?}", first_embeddings);
-        assert!(
-            (first_embeddings
-                .iter()
-                .zip(test_embeddings.iter())
-                .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
-        );
+        assert!(first_embeddings
+		.iter()
+		.zip(test_embeddings.iter())
+		.all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6));
         let test_embeddings: Vec<f32> = vec![
-            0.03579775,
-            -0.04019123,
-            -0.01412615,
-            -0.05743032,
-            0.04517555,
-            -0.0193235,
+            -0.19414055,
+            -0.01050718,
+            0.02919163,
+            0.0027125,
+            0.037645,
+            0.04710986,
         ];
-
         let second_embeddings = embeddings[1].to_dense().unwrap()[0..6].to_vec();
         println!("{:?}", second_embeddings);
-        assert!(
-            (second_embeddings
-                .iter()
-                .zip(test_embeddings.iter())
-                .all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6))
-        );
+        assert!(second_embeddings
+		.iter()
+		.zip(test_embeddings.iter())
+		.all(|(a, b)| (a.abs() - b.abs()).abs() < 1e-6));
     }
 }

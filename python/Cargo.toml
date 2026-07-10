@@ -17,6 +17,7 @@ strum =  {workspace = true}
 strum_macros =  {workspace = true}
 
 [features]
+default = ["extension-module", "ort", "audio", "aws"]
 extension-module = ["pyo3/extension-module"]
 mkl = ["embed_anything/mkl"]
 accelerate = ["embed_anything/accelerate"]
@@ -25,3 +26,5 @@ cudnn = ["embed_anything/cudnn"]
 metal = ["embed_anything/metal"]
 ort = ["embed_anything/ort"]
 audio = ["embed_anything/audio"]
+aws = ["embed_anything/aws"]
+video = ["embed_anything/video"]
