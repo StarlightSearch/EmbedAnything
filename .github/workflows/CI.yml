@@ -77,7 +77,10 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: windows-latest
+          # Pinned to VS 2022 (v17): windows-latest moved to Visual Studio 18 (2026),
+          # which cmake 0.1.54 (pulled in via aws-lc-sys) can't map to a generator, so
+          # the aws-lc-sys CMake build panics with "couldn't determine visual studio generator".
+          - runner: windows-2022
             target: x64
     steps:
       - uses: actions/checkout@v4
@@ -89,10 +92,9 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         env:
-          # windows-latest now ships Visual Studio 18 (2026); aws-lc-sys (pulled in
-          # transitively via rustls-tls) falls back to a CMake build that the pinned
-          # cmake crate can't map to a VS generator. Using the crate's prebuilt NASM
-          # objects keeps aws-lc-sys off the CMake path entirely.
+          # aws-lc-sys (pulled in transitively via rustls-tls) has no CcBuilder support for
+          # x86_64-pc-windows-msvc, so it always uses its CMake builder. Feed that build the
+          # crate's prebuilt NASM objects so it assembles without a separate NASM install.
           AWS_LC_SYS_PREBUILT_NASM: "1"
         with:
           target: ${{ matrix.platform.target }}
