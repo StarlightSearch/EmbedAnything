@@ -1,5 +1,5 @@
 use candle_core::{DType, Device, Tensor};
-use hf_hub::{api::sync::Api, Repo, RepoType};
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use image::{imageops::FilterType, DynamicImage, GenericImageView, RgbImage};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -503,9 +503,9 @@ impl Idefics3ImageProcessor {
     }
 
     pub fn from_pretrained(model_id: &str) -> Result<Self, anyhow::Error> {
-        let api = Api::new()?;
-        let repo = api.repo(Repo::new(model_id.to_string(), RepoType::Model));
-        let config_file = repo.get("preprocessor_config.json")?;
+        let client = build_client(None)?;
+        let repo = model_repo(&client, model_id);
+        let config_file = download_file(&repo, "preprocessor_config.json", None)?;
         let processor: Idefics3ImageProcessor =
             serde_json::from_slice(&std::fs::read(config_file)?)
                 .map_err(|e| anyhow::anyhow!("Failed to read preprocessor config: {}", e))?;
@@ -525,14 +525,14 @@ pub struct Idefics3Processor {
 impl Idefics3Processor {
     pub fn from_pretrained(model_id: &str) -> anyhow::Result<Self> {
         let image_processor = Idefics3ImageProcessor::from_pretrained(model_id)?;
-        let api = Api::new()?;
-        let repo = api.repo(Repo::new(model_id.to_string(), RepoType::Model));
+        let client = build_client(None)?;
+        let repo = model_repo(&client, model_id);
 
-        let processor_config_file = repo.get("processor_config.json")?;
+        let processor_config_file = download_file(&repo, "processor_config.json", None)?;
         let processor_config: serde_json::Value =
             serde_json::from_slice(&std::fs::read(processor_config_file)?)?;
         let image_seq_len = processor_config["image_seq_len"].as_u64().unwrap_or(64) as i32;
-        let config_file = repo.get("tokenizer.json")?;
+        let config_file = download_file(&repo, "tokenizer.json", None)?;
         let mut tokenizer = Tokenizer::from_file(config_file)
             .map_err(|e| anyhow::anyhow!("Tokenizer error: {}", e))?;
         let fake_image_token = AddedToken::from("<fake_token_around_image>", true);

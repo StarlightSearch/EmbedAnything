@@ -3,6 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 use crate::embeddings::local::colpali::ColPaliEmbed;
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use crate::models::idefics3::array_processing::Idefics3Processor;
 use crate::models::paligemma;
 use anyhow::Error as E;
@@ -34,33 +35,25 @@ impl OrtColSmolEmbedder {
         revision: Option<&str>,
         path_in_repo: Option<&str>,
     ) -> Result<Self, E> {
-        let api = hf_hub::api::sync::Api::new()?;
-        let repo: hf_hub::api::sync::ApiRepo = match revision {
-            Some(rev) => api.repo(hf_hub::Repo::with_revision(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-                rev.to_string(),
-            )),
-            None => api.repo(hf_hub::Repo::new(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-            )),
-        };
+        let client = build_client(None)?;
+        let repo = model_repo(&client, model_id);
 
         let mut path_in_repo = path_in_repo.unwrap_or_default().to_string();
         if !path_in_repo.is_empty() {
             path_in_repo.push('/');
         }
         let (_, tokenizer_filename, weights_filename, _, processing_config_filename,) = {
-            let config = repo
-                .get("config.json")
-                .unwrap_or(repo.get("preprocessor_config.json")?);
-            let tokenizer = repo.get("tokenizer.json")?;
-            let weights = repo.get(format!("{}model.onnx", path_in_repo).as_str())?;
-            let data = repo
-                .get(format!("{}model.onnx_data", path_in_repo).as_str())
-                .ok();
-            let processing_config = repo.get("preprocessor_config.json")?;
+            let config = download_file(&repo, "config.json", revision)
+                .or_else(|_| download_file(&repo, "preprocessor_config.json", revision))?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let weights = download_file(&repo, format!("{}model.onnx", path_in_repo).as_str(), revision)?;
+            let data = download_file(
+                &repo,
+                format!("{}model.onnx_data", path_in_repo).as_str(),
+                revision,
+            )
+            .ok();
+            let processing_config = download_file(&repo, "preprocessor_config.json", revision)?;
 
             (config, tokenizer, weights, data, processing_config)
         };

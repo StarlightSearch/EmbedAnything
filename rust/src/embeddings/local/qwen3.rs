@@ -11,7 +11,7 @@ use crate::{
 use anyhow::Error;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::VarBuilder;
-use hf_hub::{api::sync::ApiBuilder, Repo};
+use crate::hf_hub_utils::{build_client, download_file, model_repo};
 use tokenizers::{PaddingParams, Tokenizer, TruncationParams};
 
 use super::{
@@ -41,26 +41,14 @@ impl Qwen3Embedder {
         token: Option<&str>,
         dtype: Option<crate::Dtype>,
     ) -> Result<Self, anyhow::Error> {
-        let api = ApiBuilder::from_env()
-            .with_token(token.map(|s| s.to_string()))
-            .build()
-            .unwrap();
+        let client = build_client(token)?;
+        let repo = model_repo(&client, model_id);
+        let revision = revision.as_deref();
 
-        let repo = match revision {
-            Some(rev) => api.repo(Repo::with_revision(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-                rev,
-            )),
-            None => api.repo(hf_hub::Repo::new(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-            )),
-        };
         let (config_filename, tokenizer_filename, weights_filename) = {
-            let config = repo.get("config.json")?;
-            let tokenizer = repo.get("tokenizer.json")?;
-            let weights = repo.get("model.safetensors");
+            let config = download_file(&repo, "config.json", revision)?;
+            let tokenizer = download_file(&repo, "tokenizer.json", revision)?;
+            let weights = download_file(&repo, "model.safetensors", revision);
 
             (config, tokenizer, weights)
         };
@@ -98,7 +86,7 @@ impl Qwen3Embedder {
                 VarBuilder::from_mmaped_safetensors(&[weights], dtype, &device)?
             },
             Err(_) => {
-                let weights = hub_load_safetensors(&repo, "model.safetensors.index.json")?;
+                let weights = hub_load_safetensors(&repo, "model.safetensors.index.json", revision)?;
                 unsafe { VarBuilder::from_mmaped_safetensors(&weights, dtype, &device)? }
             }
         };

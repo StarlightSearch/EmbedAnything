@@ -67,9 +67,37 @@
 //! # Ok(())
 //! # }
 //! ```
+//! //! # Feature flags
+//!
+//! The crate can be configured with the following [Cargo features](https://doc.rust-lang.org/cargo/reference/features.html):
+//!
+//! | Feature | Description |
+//! |---------|-------------|
+//! | **default** | Enables `rustls-tls` for TLS. Keep this unless you need a different TLS backend. |
+//! | **rustls-tls** | Use [Rustls](https://github.com/rustls/rustls) for TLS in HTTP clients (reqwest, hf-hub, tokenizers). |
+//! | **mkl** | Intel [MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) (Math Kernel Library) for CPU-accelerated linear algebra. |
+//! | **accelerate** | Apple [Accelerate](https://developer.apple.com/documentation/accelerate) framework for optimized math on macOS. |
+//! | **cuda** | [NVIDIA CUDA](https://developer.nvidia.com/cuda-toolkit) support for GPU-accelerated inference. |
+//! | **cudnn** | [cuDNN](https://developer.nvidia.com/cudnn) for CUDA-accelerated deep learning (enables `cuda`-related optimizations). |
+//! | **flash-attn** | [Flash Attention](https://github.com/Dao-AILab/flash-attention) for faster attention on CUDA GPUs. Implies **cuda**. |
+//! | **metal** | Apple [Metal](https://developer.apple.com/metal/) for GPU-accelerated inference on macOS. |
+//! | **audio** | Audio embedding via [Symphonia](https://github.com/pdeljanov/Symphonia): transcribe and embed audio files (e.g. `emb_audio`). |
+//! | **ort** | [ONNX Runtime](https://onnxruntime.ai/) for running ONNX models (e.g. reranker and ONNX-based embedders). |
+//! | **aws** | [AWS SDK](https://aws.amazon.com/sdk-for-rust/) for loading objects from S3 (e.g. `s3_loader` module). |
+//!
+//! ## Example
+//!
+//! Enable only the features you need to reduce build time and binary size:
+//!
+//! ```toml
+//! [dependencies]
+//! embed_anything = { path = "rust", default-features = false, features = ["rustls-tls", "audio", "aws"] }
+//! ```
+//!
 
 pub mod chunkers;
 pub mod config;
+pub(crate) mod hf_hub_utils;
 pub mod embeddings;
 pub mod file_loader;
 pub mod file_processor;
@@ -77,10 +105,13 @@ pub mod models;
 #[cfg(feature = "ort")]
 pub mod reranker;
 pub mod text_loader;
+#[cfg(feature = "aws")]
 pub mod s3_loader;
 
 use anyhow::{Error, Result};
-use config::{ImageEmbedConfig, TextEmbedConfig};
+use config::{
+    ImageEmbedConfig, TextEmbedConfig, VideoEmbedConfig  
+};
 use embeddings::{
     embed::{EmbedData, EmbedImage, Embedder, TextEmbedder, VisionEmbedder},
     get_text_metadata,
@@ -104,6 +135,8 @@ use processors_rs::{
     processor::{Document, FileProcessor, UrlProcessor},
     txt_processor::TxtProcessor,
 };
+#[cfg(feature = "video")]
+use processors_rs::video_processor::VideoProcessor;
 
 /// Numerical precision types for model weights and computations.
 pub enum Dtype {
@@ -176,6 +209,16 @@ pub async fn embed_query(
     Ok(embeddings)
 }
 
+fn is_video_extension(extension: &std::ffi::OsStr) -> bool {
+    match extension.to_str().map(|ext| ext.to_ascii_lowercase()) {
+        Some(ext) => matches!(
+            ext.as_str(),
+            "mp4" | "mov" | "avi" | "mkv" | "webm" | "m4v" | "flv" | "wmv"
+        ),
+        None => false,
+    }
+}
+
 /// Embeds the text from a file using the specified embedding model.
 ///
 /// # Arguments
@@ -227,6 +270,25 @@ pub async fn embed_file<T: AsRef<std::path::Path>>(
                     file_name.as_ref().to_str().unwrap()
                 );
                 Ok(Some(embedder.embed_pdf(file_name, Some(batch_size)).await?))
+            }
+            Some(extension) if is_video_extension(extension) => {
+                #[cfg(feature = "video")]
+                {
+                    let batch_size = config.and_then(|cfg| cfg.batch_size);
+                    let video_config = VideoEmbedConfig::default();
+                    let video_config = VideoEmbedConfig {
+                        batch_size,
+                        ..video_config
+                    };
+                    let embeddings = emb_video(file_name, embedder, &video_config).await?;
+                    Ok(Some(embeddings))
+                }
+                #[cfg(not(feature = "video"))]
+                {
+                    Err(anyhow::anyhow!(
+                        "The 'video' feature is not enabled. Rebuild with --features video to embed videos."
+                    ))
+                }
             }
             _ => Ok(Some(vec![emb_image(file_name, embedder).await?])),
         },
@@ -364,6 +426,144 @@ async fn emb_image<T: AsRef<std::path::Path>>(
         .await?;
 
     Ok(embedding)
+}
+
+#[cfg(feature = "video")]
+pub async fn embed_video_file<T: AsRef<std::path::Path>>(
+    file_name: T,
+    embedder: &Embedder,
+    config: Option<&VideoEmbedConfig>,
+) -> Result<Vec<EmbedData>> {
+    let default_config = VideoEmbedConfig::default();
+    let config = config.unwrap_or(&default_config);
+    match embedder {
+        Embedder::Vision(embedder) => emb_video(file_name, embedder, config).await,
+        _ => Err(anyhow::anyhow!(
+            "Model not supported for video embedding"
+        )),
+    }
+}
+
+#[cfg(not(feature = "video"))]
+pub async fn embed_video_file<T: AsRef<std::path::Path>>(
+    _file_name: T,
+    _embedder: &Embedder,
+    _config: Option<&VideoEmbedConfig>,
+) -> Result<Vec<EmbedData>> {
+    Err(anyhow::anyhow!(
+        "The 'video' feature is not enabled. Please enable it to use video embedding."
+    ))
+}
+
+#[cfg(feature = "video")]
+pub async fn embed_video_directory(
+    directory: PathBuf,
+    embedding_model: &Arc<Embedder>,
+    config: Option<&VideoEmbedConfig>,
+    adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+) -> Result<Option<Vec<EmbedData>>> {
+    let mut file_parser = FileParser::new();
+    file_parser.get_video_paths(&directory)?;
+
+    let default_config = VideoEmbedConfig::default();
+    let config = config.unwrap_or(&default_config);
+    let files = file_parser.files.clone();
+    let pb = indicatif::ProgressBar::new(files.len() as u64);
+    pb.set_style(indicatif::ProgressStyle::with_template(
+        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+    )?);
+
+    let mut all_embeddings = Vec::new();
+    let mut adapter = adapter;
+    for file in files {
+        let embeddings = embed_video_file(&file, embedding_model.as_ref(), Some(config)).await?;
+        pb.inc(1);
+
+        if let Some(adapter) = adapter.as_mut() {
+            adapter(embeddings);
+        } else {
+            all_embeddings.extend(embeddings);
+        }
+    }
+
+    if adapter.is_some() {
+        Ok(None)
+    } else {
+        Ok(Some(all_embeddings))
+    }
+}
+
+#[cfg(not(feature = "video"))]
+pub async fn embed_video_directory(
+    _directory: PathBuf,
+    _embedding_model: &Arc<Embedder>,
+    _config: Option<&VideoEmbedConfig>,
+    _adapter: Option<Box<dyn FnMut(Vec<EmbedData>) + Send + Sync>>,
+) -> Result<Option<Vec<EmbedData>>> {
+    Err(anyhow::anyhow!(
+        "The 'video' feature is not enabled. Please enable it to use video embedding."
+    ))
+}
+
+#[cfg(feature = "video")]
+pub async fn emb_video<T: AsRef<std::path::Path>>(
+    video_path: T,
+    embedding_model: &VisionEmbedder,
+    config: &VideoEmbedConfig,
+) -> Result<Vec<EmbedData>> {
+    let frame_step = config.frame_step.unwrap_or(DEFAULT_VIDEO_FRAME_STEP).max(1);
+    let max_frames = config.max_frames.filter(|value| *value > 0);
+    let batch_size = config
+        .batch_size
+        .unwrap_or(DEFAULT_VIDEO_BATCH_SIZE)
+        .max(1);
+
+    let processor = VideoProcessor::new(frame_step);
+    let processor = match max_frames {
+        Some(limit) => processor.with_max_frames(limit),
+        None => processor,
+    };
+
+    let video_path = video_path.as_ref();
+    let video_path_string = fs::canonicalize(video_path)
+        .unwrap_or_else(|_| video_path.to_path_buf())
+        .to_string_lossy()
+        .to_string();
+
+    let (_temp_dir, frames) = processor.extract_frames_to_temp_dir(video_path)?;
+    if frames.is_empty() {
+        return Err(anyhow::anyhow!("No frames extracted from video"));
+    }
+
+    let mut all_embeddings = Vec::new();
+    for frame_chunk in frames.chunks(batch_size) {
+        let frame_paths: Vec<&std::path::Path> =
+            frame_chunk.iter().map(|frame| frame.path.as_path()).collect();
+        let mut embeddings = embedding_model
+            .embed_image_batch(&frame_paths, Some(batch_size))
+            .await?;
+
+        for (embedding, frame) in embeddings.iter_mut().zip(frame_chunk.iter()) {
+            let metadata = embedding.metadata.get_or_insert_with(HashMap::new);
+            metadata.insert("video_path".to_string(), video_path_string.clone());
+            metadata.insert("frame_index".to_string(), frame.index.to_string());
+        }
+
+        all_embeddings.extend(embeddings);
+    }
+
+    Ok(all_embeddings)
+}
+
+#[cfg(not(feature = "video"))]
+pub async fn emb_video<T: AsRef<std::path::Path>>(
+    _video_path: T,
+    _embedding_model: &VisionEmbedder,
+    _config: &VideoEmbedConfig,
+) -> Result<Vec<EmbedData>> {
+    Err(anyhow::anyhow!(
+        "The 'video' feature is not enabled. Please enable it to use the emb_video function."
+    ))
 }
 
 /// Embeds audio content from a file using transcription and temporal segmentation.

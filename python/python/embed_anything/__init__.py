@@ -2,7 +2,7 @@
 
 This module provides functions and classes for embedding queries, files, and
 directories using different embedding models. It supports text, images, audio,
-PDFs, and other media types with various embedding backends (Candle, ONNX, Cloud).
+videos, PDFs, and other media types with various embedding backends (Candle, ONNX, Cloud).
 
 Main Functions:
 ---------------
@@ -11,6 +11,8 @@ Main Functions:
 - `embed_directory`: Embeds all files in a directory and returns a list of EmbedData objects.
 - `embed_image_directory`: Embeds all images in a directory.
 - `embed_audio_file`: Embeds audio files using Whisper for transcription.
+- `embed_video_file`: Embeds a video file by sampling frames.
+- `embed_video_directory`: Embeds all videos in a directory.
 - `embed_webpage`: Embeds content from a webpage URL.
 
 Main Classes:
@@ -18,6 +20,7 @@ Main Classes:
 - `EmbeddingModel`: Main class for loading and using embedding models.
 - `EmbedData`: Represents embedded data with text, embedding vector, and metadata.
 - `TextEmbedConfig`: Configuration for text embedding (chunking, batching, etc.).
+- `VideoEmbedConfig`: Configuration for video embedding (frame sampling, batching).
 - `ColpaliModel`: Specialized model for document/image-text embedding.
 - `ColbertModel`: Model for late-interaction embeddings.
 - `Reranker`: Model for re-ranking search results.
@@ -239,34 +242,6 @@ https://embed-anything.com
 
 import platform
 import os
-
-# Handle CUDA DLL paths on Windows
-if platform.system() == "Windows":
-    # Common CUDA installation paths
-    cuda_paths = [
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.5/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.2/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.8/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.7/bin",
-        r"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.6/bin",
-    ]
-    
-    # Try to find and add CUDA path
-    cuda_found = False
-    for cuda_path in cuda_paths:
-        if os.path.exists(cuda_path):
-            os.add_dll_directory(cuda_path)
-            cuda_found = True
-            break
-    
-    if not cuda_found:
-        print("Warning: CUDA DLL directory not found. If you encounter DLL loading issues, "
-              "please ensure CUDA is installed and add its bin directory to the system path.")
 
 from .vectordb import *
 from ._embed_anything import *

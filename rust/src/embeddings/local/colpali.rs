@@ -4,6 +4,7 @@ use std::{collections::HashMap, path::Path};
 
 use crate::embeddings::embed::{EmbedData, EmbeddingResult};
 use crate::embeddings::select_device;
+use crate::hf_hub_utils::{build_client, download_file, model_repo, ModelRepo};
 use crate::models::{colpali::Model, paligemma};
 use anyhow::Error as E;
 use base64::Engine;
@@ -43,27 +44,13 @@ pub struct ColPaliEmbedder {
 
 impl ColPaliEmbedder {
     pub fn new(model_id: &str, revision: Option<&str>) -> Result<Self, anyhow::Error> {
-        let api = hf_hub::api::sync::Api::new()?;
-        let repo: hf_hub::api::sync::ApiRepo = match revision {
-            Some(rev) => api.repo(hf_hub::Repo::with_revision(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-                rev.to_string(),
-            )),
-            None => api.repo(hf_hub::Repo::new(
-                model_id.to_string(),
-                hf_hub::RepoType::Model,
-            )),
-        };
-
-        let tokenizer_api = api.repo(hf_hub::Repo::new(
-            "vidore/colpali".to_string(),
-            hf_hub::RepoType::Model,
-        ));
+        let client = build_client(None)?;
+        let repo = model_repo(&client, model_id);
+        let tokenizer_repo = model_repo(&client, "vidore/colpali");
 
         let (tokenizer_filename, weights_filename) = {
-            let tokenizer = tokenizer_api.get("tokenizer.json")?;
-            let weights = hub_load_safetensors(&repo, "model.safetensors.index.json")?;
+            let tokenizer = download_file(&tokenizer_repo, "tokenizer.json", revision)?;
+            let weights = hub_load_safetensors(&repo, "model.safetensors.index.json", revision)?;
 
             (tokenizer, weights)
         };
@@ -297,10 +284,11 @@ fn tokenize_batch(
 }
 
 pub fn hub_load_safetensors(
-    repo: &hf_hub::api::sync::ApiRepo,
+    repo: &ModelRepo,
     json_file: &str,
+    revision: Option<&str>,
 ) -> Result<Vec<std::path::PathBuf>, E> {
-    let json_file = repo.get(json_file).map_err(candle_core::Error::wrap)?;
+    let json_file = download_file(repo, json_file, revision).map_err(candle_core::Error::wrap)?;
     let json_file = std::fs::File::open(json_file)?;
     let json: serde_json::Value =
         serde_json::from_reader(&json_file).map_err(candle_core::Error::wrap)?;
@@ -317,7 +305,7 @@ pub fn hub_load_safetensors(
     }
     let safetensors_files = safetensors_files
         .iter()
-        .map(|v| repo.get(v).map_err(candle_core::Error::wrap))
+        .map(|v| download_file(repo, v, revision).map_err(candle_core::Error::wrap))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(safetensors_files)
 }

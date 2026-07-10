@@ -74,7 +74,7 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
 - **Candle Backend** : Supports BERT, Jina, ColPali, Splade, ModernBERT, Reranker, Qwen
 - **ONNX Backend**: Supports BERT, Jina, ColPali, ColBERT Splade, Reranker, ModernBERT, Qwen
 - **Cloud Embedding Models:**: Supports OpenAI, Cohere, and Gemini.
-- **MultiModality** : Works with text sources like PDFs, txt, md, Images JPG and Audio, .WAV
+- **MultiModality** : Works with text sources like PDFs, txt, md, images, audio (.WAV), and videos (frame sampling; enable the `video` feature)
 - **GPU support** : Hardware acceleration on GPU as well.
 - **Chunking** : In-built chunking methods like semantic, late-chunking
 - **Vector Streaming:** Separate file processing, Indexing and Inferencing on different threads, reduces latency.
@@ -141,9 +141,40 @@ data = embed_anything.embed_file("file_address", embedder=model, config=config)
 | Splade | [Splade Models](https://huggingface.co/collections/naver/splade-667eb6df02c2f3b0c39bd248) and other Splade like models |
 | Model2Vec | model2vec, minishlab/potion-base-8M |
 | Qwen3-Embedding | Qwen/Qwen3-Embedding-0.6B |
+| Gemma3 | google/embeddinggemma-300m and other Gemma3 embedding models |
 | Reranker | [Jina Reranker Models](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual), Xenova/bge-reranker, Qwen/Qwen3-Reranker-4B |
 
 
+## Custom Pooling Strategy
+
+By default, the model's own pooling method is used. You can override it by passing a `Pooling` strategy to `from_pretrained_hf` — useful for checkpoints without pooling config or to reproduce a specific sentence-embedding recipe.
+
+```python
+from embed_anything import EmbeddingModel, Pooling
+
+# Available strategies: Pooling.Mean, Pooling.Cls, Pooling.LastToken
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="sentence-transformers/all-MiniLM-L6-v2",
+    pooling=Pooling.Mean,
+)
+```
+
+| Strategy            | Description                                                        |
+| ------------------- | ----------------------------------------------------------------- |
+| `Pooling.Mean`      | Averages token embeddings (weighted by the attention mask).       |
+| `Pooling.Cls`       | Uses the `[CLS]` / first-token embedding.                         |
+| `Pooling.LastToken` | Uses the last non-padding token (common for causal/LLM encoders). |
+
+## Authentication (Private & Gated Models)
+
+Pass a Hugging Face access token to load private or gated repositories (e.g. `google/embeddinggemma-300m`). If `token` is omitted, the `HF_TOKEN` environment variable or your local `huggingface-cli login` credentials are used.
+
+```python
+model = EmbeddingModel.from_pretrained_hf(
+    model_id="google/embeddinggemma-300m",
+    token="hf_your_access_token",   # or set the HF_TOKEN environment variable
+)
+```
 
 
 ## Splade Models:
@@ -339,7 +370,7 @@ We’re excited to share that we've expanded our platform to support multiple mo
 
 - [x] Images
 
-- [ ] Videos
+- [x] Videos (frame sampling; enable the `video` feature)
 
 - [ ] Graph
 
@@ -359,7 +390,7 @@ We now support both candle and Onnx backend<br/>
 We had multimodality from day one for our infrastructure. We have already included it for websites, images and audios but we want to expand it further to.
 
 ➡️ Graph embedding -- build deepwalks embeddings depth first and word to vec <br />
-➡️ Video Embedding <br/>
+➡️ Video embedding improvements (temporal + audio) <br/>
 ➡️ Yolo Clip <br/>
 
 
