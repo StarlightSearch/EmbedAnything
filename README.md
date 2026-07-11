@@ -482,6 +482,10 @@ We provide both backends, candle and onnx. On top of it we also give an end-to-e
 
 One of the main reasons is that Candle doesn't require any specific ONNX format models, which means it can work seamlessly with any Hugging Face model. This flexibility has been a key factor for us. However, we also recognize that we’ve been compromising a bit on speed in favor of that flexibility.
 
+### macOS: I get `use of undeclared identifier 'bfloat'` with Metal
+
+This happens when a Candle model runs on Metal under a Python interpreter that was built against an old macOS SDK (common with conda/Anaconda Pythons, which report macOS 11–12). Metal then defaults to a Shading Language version where `bfloat` doesn't exist. The published wheel is fine — you just need a Python whose SDK is macOS 14+ (e.g. a Homebrew Python), or relink your existing interpreter. See the [Troubleshooting guide](https://embed-anything.com/guides/troubleshooting/) for full steps.
+
 
 ## 🚧 Contributing to EmbedAnything
 
