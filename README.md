@@ -572,13 +572,16 @@ Want to Contribute?
 If you’d like to add support for your favorite vector database, we’d love to have your help! Check out our contribution.md for guidelines, or feel free to reach out directly sonam@starlight-search.com . Let's build something amazing together! 💡
 
 ## AWESOME Projects built on EmbedAnything.
-1. A Rust-based cursor like chat with your codebase tool: https://github.com/timpratim/cargo-chat
-2. A simple vector-based search engine, also supports ordinary text search : https://github.com/szuwgh/vectorbase2
-3. Semantic file tracker in CLI operated through daemon built with rust.: https://github.com/sam-salehi/sophist
-4. FogX-Store is a dataset store service that collects and serves large robotics datasets : https://github.com/J-HowHuang/FogX-Store
-5. A Dart Wrapper for EmbedAnything Crate: https://github.com/cotw-fabier/embedanythingindart
-6. Generate embeddings in Rust with tauri on MacOS : https://github.com/do-me/tauri-embedanything-ios
-7. RAG with EmbedAnything and Milvus: https://milvus.io/docs/v2.5.x/build_RAG_with_milvus_and_embedAnything.md
+
+1. Amgix Now: Amgix Now is a high-performance hybrid search engine from the Amgix family
+2. AletheiaDB: A high-performance bi-temporal graph database
+3. FogX-Store is a dataset store service that collects and serves large robotics datasets : https://github.com/J-HowHuang/FogX-Store
+4. A Rust-based cursor like chat with your codebase tool: https://github.com/timpratim/cargo-chat
+5. A simple vector-based search engine, also supports ordinary text search : https://github.com/szuwgh/vectorbase2
+6. Semantic file tracker in CLI operated through daemon built with rust.: https://github.com/sam-salehi/sophist
+7. A Dart Wrapper for EmbedAnything Crate: https://github.com/cotw-fabier/embedanythingindart
+8. Generate embeddings in Rust with tauri on MacOS : https://github.com/do-me/tauri-embedanything-ios
+8. RAG with EmbedAnything and Milvus: https://milvus.io/docs/v2.5.x/build_RAG_with_milvus_and_embedAnything.md
 
 
 
