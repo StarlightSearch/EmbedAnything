@@ -8,8 +8,8 @@
 
 use candle_core::{DType, Device, Result, Tensor, D};
 use candle_nn::{
-    embedding, layer_norm_no_bias, linear_no_bias, ops::softmax, Embedding, LayerNorm, Linear,
-    Module, VarBuilder,
+    embedding, layer_norm_no_bias, linear_no_bias, ops::silu, ops::softmax, Embedding, LayerNorm,
+    Linear, Module, VarBuilder,
 };
 use serde::Deserialize;
 
@@ -30,6 +30,8 @@ pub struct Config {
     pub global_rope_theta: f64,
     pub local_attention: usize,
     pub local_rope_theta: f64,
+    #[serde(default)]
+    pub hidden_activation: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -129,10 +131,17 @@ impl ModernBertAttention {
     }
 }
 
+#[derive(Clone, Copy)]
+enum MlpActivation {
+    Gelu,
+    Silu,
+}
+
 #[derive(Clone)]
 pub struct ModernBertMLP {
     wi: Linear,
     wo: Linear,
+    activation: MlpActivation,
 }
 
 impl ModernBertMLP {
@@ -143,7 +152,16 @@ impl ModernBertMLP {
             vb.pp("Wi"),
         )?;
         let wo = linear_no_bias(config.intermediate_size, config.hidden_size, vb.pp("Wo"))?;
-        Ok(Self { wi, wo })
+        let activation = match config.hidden_activation.as_deref().unwrap_or("gelu") {
+            "gelu" => MlpActivation::Gelu,
+            "silu" => MlpActivation::Silu,
+            other => candle_core::bail!("unsupported ModernBERT hidden_activation: {other}"),
+        };
+        Ok(Self {
+            wi,
+            wo,
+            activation,
+        })
     }
 }
 
@@ -151,8 +169,13 @@ impl Module for ModernBertMLP {
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
         let xs = xs.apply(&self.wi)?;
         let xs = xs.chunk(2, D::Minus1)?;
-        let xs = (&xs[0].gelu_erf()? * &xs[1])?.apply(&self.wo)?; // GeGLU
-        Ok(xs)
+        let gate = &xs[0];
+        let value = &xs[1];
+        let activated = match self.activation {
+            MlpActivation::Gelu => gate.gelu_erf()?,
+            MlpActivation::Silu => silu(gate)?,
+        };
+        activated.mul(value)?.apply(&self.wo)
     }
 }
 
