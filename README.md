@@ -37,7 +37,7 @@
     <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-our-past-collaborations"><strong>Collaborations</strong></a>
     .
      <a href="https://github.com/StarlightSearch/EmbedAnything?tab=readme-ov-file#-notebooks"><strong>Notebooks</strong></a>
-
+    <a href="https://trendshift.io/repositories/32012?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-32012" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/32012/daily?language=Rust" alt="StarlightSearch%2FEmbedAnything | Trendshift" width="250" height="55"/></a>
 
     
   </p>
@@ -76,6 +76,8 @@ EmbedAnything is a minimalist, yet highly performant, modular, lightning-fast, l
     
   </ol>
 </details>
+
+
 
 
 ## 🚀 Key Features
