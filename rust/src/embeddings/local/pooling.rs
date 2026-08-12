@@ -54,21 +54,68 @@ impl Pooling {
         attention_mask: Option<&PooledOutputType>,
     ) -> Result<PooledOutputType, anyhow::Error> {
         match self {
-            Pooling::Cls => Self::cls(output),
+            Pooling::Cls => Self::cls(output, attention_mask),
             Pooling::Mean => Self::mean(output, attention_mask),
             Pooling::LastToken => Self::last_token(output, attention_mask),
         }
     }
 
-    fn cls(output: &ModelOutput) -> Result<PooledOutputType, anyhow::Error> {
+    fn cls(
+        output: &ModelOutput,
+        attention_mask: Option<&PooledOutputType>,
+    ) -> Result<PooledOutputType, anyhow::Error> {
         match output {
-            ModelOutput::Tensor(tensor) => tensor
-                .get_on_dim(1, 0)
-                .map(PooledOutputType::Tensor)
-                .map_err(|_| anyhow::anyhow!("Cls of empty tensor")),
-            ModelOutput::Array(array) => Ok(PooledOutputType::Array(
-                array.slice(s![.., 0, ..]).to_owned(),
-            )),
+            ModelOutput::Tensor(tensor) => {
+                let Some(attention_mask) = attention_mask else {
+                    return tensor
+                        .get_on_dim(1, 0)
+                        .map(PooledOutputType::Tensor)
+                        .map_err(|_| anyhow::anyhow!("Cls of empty tensor"));
+                };
+                let attention_mask = attention_mask.to_tensor()?;
+                let mask = attention_mask.to_vec2::<u32>()?;
+                let indices: Vec<u32> = mask
+                    .iter()
+                    .map(|row| {
+                        row.iter()
+                            .position(|&token| token != 0)
+                            .ok_or_else(|| anyhow::anyhow!("Cls of row with no real tokens"))
+                            .map(|index| index as u32)
+                    })
+                    .collect::<Result<_, _>>()?;
+                let indices = Tensor::from_vec(indices, (tensor.dim(0)?, 1, 1), tensor.device())?
+                    .expand(&[tensor.dim(0)?, 1, tensor.dim(2)?])?
+                    .contiguous()?;
+                tensor
+                    .gather(&indices, 1)
+                    .and_then(|pooled| pooled.squeeze(1))
+                    .map(PooledOutputType::Tensor)
+                    .map_err(Into::into)
+            }
+            ModelOutput::Array(array) => {
+                let indices: Vec<usize> = if let Some(attention_mask) = attention_mask {
+                    attention_mask
+                        .to_array()?
+                        .outer_iter()
+                        .map(|row| {
+                            row.iter()
+                                .position(|&token| token != 0.)
+                                .ok_or_else(|| anyhow::anyhow!("Cls of row with no real tokens"))
+                        })
+                        .collect::<Result<_, _>>()?
+                } else {
+                    vec![0; array.shape()[0]]
+                };
+
+                let mut embeddings = Vec::with_capacity(array.shape()[0]);
+                for (batch, &index) in indices.iter().enumerate() {
+                    embeddings.push(array.slice(s![batch, index, ..]));
+                }
+                Ok(PooledOutputType::Array(ndarray::stack(
+                    Axis(0),
+                    &embeddings,
+                )?))
+            }
         }
     }
     fn last_token(
@@ -235,5 +282,51 @@ mod tests {
             .map(|r| r.to_vec())
             .collect();
         assert_close(&rows);
+    }
+
+    #[test]
+    fn cls_pool_tensor_uses_first_real_token_for_left_padding() {
+        let device = Device::Cpu;
+        let hidden = Tensor::from_vec(HIDDEN.to_vec(), (2, 3, 2), &device).unwrap();
+        let mask = Tensor::from_vec(vec![0u32, 1, 1, 1, 1, 1], (2, 3), &device).unwrap();
+        let pooled = Pooling::Cls
+            .pool(
+                &ModelOutput::Tensor(hidden),
+                Some(&PooledOutputType::from(mask)),
+            )
+            .unwrap();
+
+        let rows = pooled.to_tensor().unwrap().to_vec2::<f32>().unwrap();
+        assert_eq!(rows, vec![vec![3., 4.], vec![10., 20.]]);
+    }
+
+    #[test]
+    fn cls_pool_ndarray_uses_first_real_token_for_left_padding() {
+        let hidden = Array3::from_shape_vec((2, 3, 2), HIDDEN.to_vec()).unwrap();
+        let mask = Array2::from_shape_vec((2, 3), vec![0., 1., 1., 1., 1., 1.]).unwrap();
+        let pooled = Pooling::Cls
+            .pool(
+                &ModelOutput::Array(hidden),
+                Some(&PooledOutputType::from(mask)),
+            )
+            .unwrap();
+
+        assert_eq!(
+            pooled.to_array().unwrap().to_owned(),
+            Array2::from_shape_vec((2, 2), vec![3., 4., 10., 20.]).unwrap()
+        );
+    }
+
+    #[test]
+    fn cls_pool_without_mask_keeps_first_sequence_position() {
+        let hidden = Array3::from_shape_vec((1, 2, 2), vec![1., 2., 3., 4.]).unwrap();
+        let pooled = Pooling::Cls
+            .pool(&ModelOutput::Array(hidden), None)
+            .unwrap();
+
+        assert_eq!(
+            pooled.to_array().unwrap().to_owned(),
+            Array2::from_shape_vec((1, 2), vec![1., 2.]).unwrap()
+        );
     }
 }
