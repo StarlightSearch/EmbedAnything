@@ -429,4 +429,4 @@ If you’d like to add support for your favorite vector database, we’d love to
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=StarlightSearch/EmbedAnything&type=Date)](https://star-history.com/#StarlightSearch/EmbedAnything&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=StarlightSearch/EmbedAnything&type=Date)](https://star-history.dera.page/#StarlightSearch/EmbedAnything&Date)
