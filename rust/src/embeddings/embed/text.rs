@@ -22,7 +22,6 @@ use crate::embeddings::local::{
     text_embedding::ONNXModel,
 };
 
-
 pub enum TextEmbedder {
     OpenAI(OpenAIEmbedder),
     Cohere(CohereEmbedder),
@@ -89,12 +88,14 @@ impl TextEmbedder {
                 model_id, token, None,
             )?))),
 
-            "ModernBertForMaskedLM" => Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
-                model_id.to_string(),
-                revision.map(|s| s.to_string()),
-                token,
-                dtype,
-            )?))),
+            architecture if is_modernbert_architecture(architecture) => {
+                Ok(Self::ModernBert(Box::new(ModernBertEmbedder::new(
+                    model_id.to_string(),
+                    revision.map(|s| s.to_string()),
+                    token,
+                    dtype,
+                )?)))
+            }
             "Qwen3ForCausalLM" => Ok(Self::Qwen3(Box::new(Qwen3Embedder::new(
                 model_id,
                 revision.map(|s| s.to_string()),
@@ -195,4 +196,21 @@ pub trait TextEmbed {
         text_batch: &[&str],
         batch_size: Option<usize>,
     ) -> impl Future<Output = anyhow::Result<Vec<EmbeddingResult>>>;
+}
+
+fn is_modernbert_architecture(architecture: &str) -> bool {
+    matches!(architecture, "ModernBertForMaskedLM" | "ModernBertModel")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_modernbert_architecture;
+
+    #[test]
+    fn supports_modernbert_embedding_architectures() {
+        for architecture in ["ModernBertForMaskedLM", "ModernBertModel"] {
+            assert!(is_modernbert_architecture(architecture));
+        }
+        assert!(!is_modernbert_architecture("BertModel"));
+    }
 }
