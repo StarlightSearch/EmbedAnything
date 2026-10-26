@@ -86,7 +86,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: '3.14'
           architecture: ${{ matrix.platform.target }}
 
       - name: Build wheels
@@ -98,7 +98,9 @@ jobs:
           AWS_LC_SYS_PREBUILT_NASM: "1"
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features mkl,extension-module,ort,audio
+          # Explicit interpreters instead of --find-interpreter: the runner image also ships
+          # CPython 3.15, which PyO3 0.25 can't build for (max supported is 3.14).
+          args: --release --out dist -i python3.11 python3.12 python3.13 python3.14 --features mkl,extension-module,ort,audio
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
