@@ -117,7 +117,7 @@ model = EmbeddingModel.from_pretrained_hf(
 config = TextEmbedConfig(chunk_size=200, batch_size=32)
 data = embed_anything.embed_file("file_address", embedder=model, config=config)
 ```
-You can check out the documentation at  https://starlight-search.com/references/ 
+You can check out the documentation at  https://embed-anything.com/references/ 
 
 # What’s Next
 

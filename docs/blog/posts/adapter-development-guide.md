@@ -7,7 +7,7 @@ authors:
 slug: vector database
 title: How to write adapters for your vector database.
 ---
-We have received multiple requests to add different vector database for our [vector streaming](https://starlight-search.com/blog/2024/03/31/vector-streaming/). So We have decided to put a detailed guide for different vector databases out there. We are happy to accept pull-request.
+We have received multiple requests to add different vector database for our [vector streaming](https://embed-anything.com/blog/2024/03/31/vector-streaming/). So We have decided to put a detailed guide for different vector databases out there. We are happy to accept pull-request.
 
 <!-- more -->
 ## Creating Custom Adapters for EmbedAnything: A Step-by-Step Guide
