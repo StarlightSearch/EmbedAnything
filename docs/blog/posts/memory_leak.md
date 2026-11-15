@@ -27,7 +27,7 @@ Embedding models are computationally expensive and time-consuming. By separating
 
 Vector streaming transforms a sequential bottleneck into an efficient, concurrent workflow.
 
-The embedding process occurs separately from the main process, allowing for high performance enabled by Rust's MPSC and preventing memory leaks, as embeddings are directly saved to a vector database. Find our [blog](https://starlight-search.com/blog/2025/02/25/vector%20database/).
+The embedding process occurs separately from the main process, allowing for high performance enabled by Rust's MPSC and preventing memory leaks, as embeddings are directly saved to a vector database. Find our [blog](https://embed-anything.com/blog/2025/02/25/vector%20database/).
 
 ### The Solution: Vector Streaming
 

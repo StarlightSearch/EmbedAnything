@@ -43,7 +43,7 @@ Akshay started looking for ways to index embeddings without being dependent on v
 
 And thus, vector streaming was born.
 
-— [vector streaming blog](https://starlight-search.com/blog/2024/01/31/vector-streaming/)
+— [vector streaming blog](https://embed-anything.com/blog/2024/03/31/vector-streaming/)
 
 ### 0.3 release
 
